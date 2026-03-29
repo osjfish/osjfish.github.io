@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辩论赛实时计票系统</title>
+    <style>
+        :root {
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            
+            --indigo-50: #eef2ff;
+            --indigo-100: #e0e7ff;
+            --indigo-500: #6366f1;
+            --indigo-600: #4f46e5;
+            --indigo-700: #4338ca;
+            
+            --blue-50: #eff6ff;
+            --blue-500: #3b82f6;
+            --blue-600: #2563eb;
+            
+            --red-50: #fef2f2;
+            --red-500: #ef4444;
+            --red-600: #dc2626;
+            
+            --yellow-50: #fefce8;
+            --yellow-400: #facc15;
+            --yellow-500: #eab308;
+            
+            --radius-lg: 1.25rem;
+            --radius-md: 0.875rem;
+            --radius-sm: 0.6rem;
+            
+            --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: radial-gradient(circle at top right, var(--indigo-50), transparent), 
+                        radial-gradient(circle at bottom left, var(--blue-50), transparent),
+                        var(--slate-50);
+            color: var(--slate-900);
+            line-height: 1.6;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+
+        @media (min-width: 768px) {
+            body { padding: 3rem 2rem; }
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Header & Typography */
+        h1, h2, h3 {
+            letter-spacing: -0.02em;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--slate-400);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--slate-200);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        /* Preparation View */
+        .prep-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .prep-header h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--slate-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .prep-card {
+            padding: 3.5rem;
+            max-width: 850px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255,255,255,0.6);
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--slate-600);
+            letter-spacing: 0.02em;
+        }
+
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 0.85rem 1.25rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--slate-200);
+            background: rgba(241, 245, 249, 0.5);
+            font-size: 1rem;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--indigo-500);
+            background: white;
+            box-shadow: 0 0 0 4px var(--indigo-100);
+            transform: translateY(-1px);
+        }
+
+        /* Debate View */
+        #debateView {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .debate-header {
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--slate-200);
+            padding-bottom: 1.5rem;
+        }
+
+        /* Round Navigation */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--slate-200);
+            padding: 0.5rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            border-radius: calc(var(--radius-md) - 0.25rem);
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--slate-600);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: var(--indigo-600);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: rgba(255,255,255,0.5);
+            color: var(--slate-800);
+        }
+
+        /* Round Card */
+        .round-card {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .round-info {
+            display: flex;
+            gap: 1.25rem;
+            align-items: flex-start;
+        }
+
+        .round-badge {
+            width: 3rem;
+            height: 3rem;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .subtopic-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1.3;
+            color: var(--slate-900);
+        }
+
+        /* Voting Controls */
+        .voting-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 2rem;
+            padding: 2.5rem;
+            background: linear-gradient(135deg, white, var(--slate-50));
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--slate-200);
+            box-shadow: var(--shadow-md);
+        }
+
+        .vote-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .vote-panel.right { align-items: flex-end; text-align: right; }
+
+        .vote-display {
+            display: flex;
+            align-items: baseline;
+            gap: 0.35rem;
+        }
+
+        .vote-number {
+            font-size: 3.5rem;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+            letter-spacing: -0.05em;
+        }
+
+        .vote-label {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--slate-400);
+        }
+
+        .vote-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .vote-btn {
+            padding: 0.6rem 1rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--slate-200);
+            background: white;
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--slate-600);
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .vote-btn:hover {
+            border-color: var(--indigo-500);
+            color: var(--indigo-600);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .vote-btn:active { transform: translateY(0); }
+
+        /* Slider */
+        .slider-box {
+            margin-top: 1.5rem;
+            position: relative;
+            height: 3.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .slider-track {
+            position: absolute;
+            height: 1.25rem;
+            width: 100%;
+            background: var(--slate-200);
+            border-radius: 999px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .track-pro { background: linear-gradient(to right, var(--blue-600), var(--blue-500)); transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .track-con { background: linear-gradient(to left, var(--red-600), var(--red-500)); transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        input[type="range"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .slider-thumb {
+            position: absolute;
+            width: 2.75rem;
+            height: 2.75rem;
+            background: white;
+            border: 4px solid var(--slate-900);
+            border-radius: 50%;
+            box-shadow: var(--shadow-lg);
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Sidebar Stats */
+        .stats-card {
+            position: sticky;
+            top: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stats-header {
+            background: linear-gradient(135deg, var(--slate-900), var(--slate-800));
+            color: white;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-header::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .stats-body {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stat-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .stat-name {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .progress-bar {
+            height: 0.75rem;
+            background: var(--slate-100);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--indigo-600);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--indigo-700);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--slate-500);
+            font-size: 0.875rem;
+        }
+
+        .btn-ghost:hover { color: var(--slate-900); background: var(--slate-100); }
+
+        /* Result View */
+        .result-view {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 5rem 2rem;
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .winner-banner {
+            margin-bottom: 4rem;
+            position: relative;
+        }
+
+        .winner-title {
+            font-size: 4.5rem;
+            font-weight: 950;
+            line-height: 1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.04em;
+            background: linear-gradient(to bottom, var(--slate-900), var(--slate-700));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .final-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            margin-bottom: 4rem;
+        }
+
+        .final-stat-card {
+            padding: 3rem 2rem;
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--slate-200);
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.3s;
+        }
+
+        .final-stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .round-history {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--slate-200);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .history-table th {
+            background: var(--slate-50);
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--slate-500);
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .history-table td {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--slate-100);
+            font-size: 0.95rem;
+            vertical-align: middle;
+        }
+
+        .history-table tr:last-child td { border-bottom: none; }
+
+        .history-table tr:hover { background: var(--slate-50); }
+
+        .win-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+
+        .win-tag.pro { background: var(--blue-50); color: var(--blue-600); }
+        .win-tag.con { background: var(--red-50); color: var(--red-600); }
+        .win-tag.tie { background: var(--slate-100); color: var(--slate-500); }
+
+        .score-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 1.125rem;
+        }
+
+        .history-item.pro-win { border-left: 4px solid var(--blue-500); }
+        .history-item.con-win { border-left: 4px solid var(--red-500); }
+
+        /* Utils */
+        .text-pro { color: var(--blue-500); }
+        .text-con { color: var(--red-500); }
+        .bg-pro { background: var(--blue-500); }
+        .bg-con { background: var(--red-500); }
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 1. Preparation View -->
+        <div id="prepView" class="view-section active">
+            <div class="prep-header">
+                <h1>辩论赛计票系统</h1>
+                <p style="color: var(--slate-500); font-size: 1.125rem;">专业、实时、直观的辩论赛辅助工具</p>
+            </div>
+
+            <div class="card prep-card">
+                <div style="display: grid; gap: 2rem;">
+                    <div class="input-group">
+                        <label>主辩题</label>
+                        <input type="text" id="prepTopic" value="人工智能是否会取代人类" style="font-size: 1.25rem; font-weight: 800; padding: 1rem;">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="input-group">
+                            <label class="text-pro">正方选手姓名</label>
+                            <input type="text" id="prepProName" value="正方选手">
+                        </div>
+                        <div class="input-group">
+                            <label class="text-con">反方选手姓名</label>
+                            <input type="text" id="prepConName" value="反方选手">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>观众总人数 (总票数)</label>
+                        <input type="number" id="prepTotalVoters" value="100">
+                    </div>
+
+                    <div style="margin-top: 1rem;">
+                        <div class="section-title">分论点辩题设置</div>
+                        <div style="display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
+                            <div class="input-group">
+                                <label class="text-pro">第一场 (正方提)</label>
+                                <input type="text" id="prepSub0" value="AI 具有无限的学习能力和效率">
+                            </div>
+                            <div class="input-group">
+                                <label class="text-con">第二场 (反方提)</label>
+                                <input type="text" id="prepSub1" value="人类具有独特的情感和创造力">
+                            </div>
+                            <div class="input-group">
+                                <label class="text-pro">第三场 (正方提)</label>
+                                <input type="text" id="prepSub2" value="AI 能够处理人类无法胜任的高危工作">
+                            </div>
+                            <div class="input-group">
+                                <label class="text-con">第四场 (反方提)</label>
+                                <input type="text" id="prepSub3" value="伦理和法律将限制 AI 的过度扩张">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="margin-top: 1rem; padding: 1.25rem;" onclick="startDebate()">
+                        开始辩论环节
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Debate View -->
+        <div id="debateView" class="view-section">
+            <div class="debate-header">
+                <div class="section-title">正在进行</div>
+                <h1 id="activeTopicDisplay" style="font-size: 2.25rem; font-weight: 900; color: var(--slate-900); line-height: 1.2;">人工智能是否会取代人类</h1>
+                <div id="roundTitle" style="font-size: 1.125rem; color: var(--slate-500); font-weight: 600; margin-top: 0.5rem;">第一场辩论</div>
+            </div>
+
+            <div class="main-layout" style="display: grid; gap: 2rem; grid-template-columns: 1fr;">
+                <style>
+                    @media (min-width: 1024px) {
+                        .main-layout { grid-template-columns: 1fr 340px !important; }
+                    }
+                </style>
+                <div class="rounds-container">
+                    <div class="nav-tabs">
+                        <button class="nav-tab active" onclick="switchRound(0)">第一场</button>
+                        <button class="nav-tab" onclick="switchRound(1)">第二场</button>
+                        <button class="nav-tab" onclick="switchRound(2)">第三场</button>
+                        <button class="nav-tab" onclick="switchRound(3)">第四场</button>
+                    </div>
+
+                    <div class="card">
+                        <div id="activeRoundContent"></div>
+                    </div>
+                    
+                    <div id="finishAction" style="display: none; margin-top: 1.5rem;">
+                        <button class="btn btn-primary" style="width: 100%; padding: 1.25rem;" onclick="showResults()">
+                            辩论结束，生成结算报告
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sidebar">
+                    <div class="card stats-card">
+                        <div class="stats-header">
+                            <div id="trophyContainer" style="width: 48px; height: 48px; margin: 0 auto 1rem;"></div>
+                            <div class="section-title" style="color: var(--slate-400); margin-bottom: 0.25rem;">当前领先</div>
+                            <div id="winnerDisplay" style="font-size: 1.5rem; font-weight: 900;">双方持平</div>
+                        </div>
+                        <div class="stats-body">
+                            <div class="stat-item">
+                                <div class="stat-meta">
+                                    <div class="stat-name text-pro" id="proStatName">正方选手</div>
+                                    <div class="stat-val" id="proTotalVotes">0</div>
+                                </div>
+                                <div class="progress-bar">
+                                    <div id="proProgress" class="progress-fill bg-pro" style="width: 50%;"></div>
+                                </div>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: var(--slate-400); text-align: right;" id="proRounds">0 / 4 胜</div>
+                            </div>
+
+                            <div class="stat-item">
+                                <div class="stat-meta">
+                                    <div class="stat-name text-con" id="conStatName">反方选手</div>
+                                    <div class="stat-val" id="conTotalVotes">0</div>
+                                </div>
+                                <div class="progress-bar">
+                                    <div id="conProgress" class="progress-fill bg-con" style="width: 50%;"></div>
+                                </div>
+                                <div style="font-size: 0.75rem; font-weight: 700; color: var(--slate-400); text-align: right;" id="conRounds">0 / 4 胜</div>
+                            </div>
+
+                            <div id="tieAlert" style="display: none; padding: 1rem; background: var(--yellow-50); border-radius: var(--radius-md); border: 1px solid var(--yellow-400); text-align: center;">
+                                <div style="font-weight: 800; color: var(--yellow-500); font-size: 0.875rem;">触发终极投票</div>
+                                <div style="font-size: 0.75rem; color: var(--slate-500);">当前完全持平，请进行最后裁定</div>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; margin-top: 1rem; border-top: 1px solid var(--slate-100); pt: 1rem;">
+                                <button class="btn btn-ghost" onclick="switchView('prep')">修改设置</button>
+                                <button class="btn btn-ghost" onclick="resetCurrentVotes()">重置本场</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Result View -->
+        <div id="resultView" class="view-section">
+            <div class="result-view">
+                <div class="winner-banner">
+                    <div id="finalTrophy" style="width: 100px; height: 100px; margin: 0 auto 1.5rem;"></div>
+                    <div class="section-title">最终获胜者</div>
+                    <h1 id="finalWinnerTitle" class="winner-title">正方选手</h1>
+                    <p id="finalTopicDisplay" style="color: var(--slate-500); font-size: 1.25rem; font-weight: 500;"></p>
+                </div>
+
+                <div class="final-stats">
+                    <div class="final-stat-card">
+                        <div class="section-title text-pro">正方总得票</div>
+                        <div id="finalProVotes" style="font-size: 4rem; font-weight: 900; font-family: 'JetBrains Mono';" class="text-pro">0</div>
+                        <div id="finalProRounds" style="font-weight: 700; color: var(--slate-500);">赢得 0 场</div>
+                    </div>
+                    <div class="final-stat-card">
+                        <div class="section-title text-con">反方总得票</div>
+                        <div id="finalConVotes" style="font-size: 4rem; font-weight: 900; font-family: 'JetBrains Mono';" class="text-con">0</div>
+                        <div id="finalConRounds" style="font-weight: 700; color: var(--slate-500);">赢得 0 场</div>
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-bottom: 1.5rem;">各场次回顾</div>
+                <div class="card" style="overflow: hidden; border-radius: var(--radius-md);">
+                    <table class="history-table round-history" id="roundBreakdown">
+                        <!-- Table content will be injected here -->
+                    </table>
+                </div>
+
+                <button class="btn btn-primary" style="margin-top: 4rem; width: 100%; max-width: 400px; background: var(--slate-900);" onclick="location.reload()">
+                    重新开始新辩论
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let state = {
+            view: 'prep', // 'prep', 'debate', 'result'
+            activeRound: 0,
+            topic: '人工智能是否会取代人类',
+            proName: '正方选手',
+            conName: '反方选手',
+            totalVoters: 100,
+            points: [
+                { subTopic: 'AI 具有无限的学习能力和效率', owner: 'pro', proVotes: 50 },
+                { subTopic: '人类具有独特的情感和创造力', owner: 'con', proVotes: 50 },
+                { subTopic: 'AI 能够处理人类无法胜任的高危工作', owner: 'pro', proVotes: 50 },
+                { subTopic: '伦理和法律将限制 AI 的过度扩张', owner: 'con', proVotes: 50 },
+            ]
+        };
+
+        // --- SVGs ---
+        const trophySvg = (color) => `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>`;
+
+        // --- Navigation ---
+        function switchView(viewId) {
+            state.view = viewId;
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId + 'View').classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function startDebate() {
+            // Sync prep data to state
+            state.topic = document.getElementById('prepTopic').value;
+            state.proName = document.getElementById('prepProName').value;
+            state.conName = document.getElementById('prepConName').value;
+            state.totalVoters = parseInt(document.getElementById('prepTotalVoters').value) || 100;
+            
+            state.points[0].subTopic = document.getElementById('prepSub0').value;
+            state.points[1].subTopic = document.getElementById('prepSub1').value;
+            state.points[2].subTopic = document.getElementById('prepSub2').value;
+            state.points[3].subTopic = document.getElementById('prepSub3').value;
+
+            // Update UI
+            document.getElementById('activeTopicDisplay').innerText = state.topic;
+
+            // Reset votes to middle
+            state.points.forEach(p => p.proVotes = Math.floor(state.totalVoters / 2));
+
+            switchView('debate');
+            switchRound(0);
+            updateStats();
+        }
+
+        function showResults() {
+            const results = calculateResults();
+            switchView('result');
+            
+            const finalTrophy = document.getElementById('finalTrophy');
+            const finalWinnerTitle = document.getElementById('finalWinnerTitle');
+            const finalTopicDisplay = document.getElementById('finalTopicDisplay');
+
+            finalTopicDisplay.innerText = `辩题：${state.topic}`;
+            
+            if (results.winner === 'pro') {
+                finalTrophy.innerHTML = trophySvg('var(--blue-500)');
+                finalWinnerTitle.innerText = `获胜者：${state.proName}`;
+                finalWinnerTitle.className = 'winner-title text-pro';
+            } else if (results.winner === 'con') {
+                finalTrophy.innerHTML = trophySvg('var(--red-500)');
+                finalWinnerTitle.innerText = `获胜者：${state.conName}`;
+                finalWinnerTitle.className = 'winner-title text-con';
+            } else {
+                finalTrophy.innerHTML = trophySvg('var(--yellow-500)');
+                finalWinnerTitle.innerText = '双方平局';
+                finalWinnerTitle.className = 'winner-title';
+            }
+
+            document.getElementById('finalProVotes').innerText = results.proTotalVotes;
+            document.getElementById('finalConVotes').innerText = results.conTotalVotes;
+            document.getElementById('finalProRounds').innerText = `赢得 ${results.proRounds} 场`;
+            document.getElementById('finalConRounds').innerText = `赢得 ${results.conRounds} 场`;
+
+            // Breakdown Table
+            const breakdown = document.getElementById('roundBreakdown');
+            breakdown.innerHTML = `
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">场次</th>
+                        <th>辩论分论点</th>
+                        <th style="width: 120px;">正方得分</th>
+                        <th style="width: 120px;">反方得分</th>
+                        <th style="width: 120px; text-align: center;">本场结果</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${state.points.map((p, i) => {
+                        const conV = state.totalVoters - p.proVotes;
+                        let winTag = '';
+                        if (p.proVotes > conV) winTag = `<span class="win-tag pro">正方胜</span>`;
+                        else if (conV > p.proVotes) winTag = `<span class="win-tag con">反方胜</span>`;
+                        else winTag = `<span class="win-tag tie">平局</span>`;
+
+                        return `
+                            <tr>
+                                <td style="font-weight: 800; color: var(--slate-400);">#0${i+1}</td>
+                                <td style="font-weight: 700; color: var(--slate-800);">${p.subTopic}</td>
+                                <td class="score-cell text-pro">${p.proVotes}</td>
+                                <td class="score-cell text-con">${conV}</td>
+                                <td style="text-align: center;">${winTag}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            `;
+        }
+
+        // --- Logic ---
+        function calculateResults() {
+            let proRounds = 0;
+            let conRounds = 0;
+            let proTotalVotes = 0;
+            let conTotalVotes = 0;
+
+            state.points.forEach(p => {
+                const conVotes = state.totalVoters - p.proVotes;
+                if (p.proVotes > conVotes) proRounds++;
+                else if (conVotes > p.proVotes) conRounds++;
+                proTotalVotes += p.proVotes;
+                conTotalVotes += conVotes;
+            });
+
+            let winner = 'tie';
+            if (proRounds > conRounds) winner = 'pro';
+            else if (conRounds > proRounds) winner = 'con';
+            else {
+                if (proTotalVotes > conTotalVotes) winner = 'pro';
+                else if (conTotalVotes > proTotalVotes) winner = 'con';
+                else winner = 'tie';
+            }
+
+            return { proRounds, conRounds, proTotalVotes, conTotalVotes, winner };
+        }
+
+        // --- Render Functions ---
+        function switchRound(idx) {
+            state.activeRound = idx;
+            
+            // Update tabs
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach((tab, i) => {
+                if (i === idx) tab.classList.add('active');
+                else tab.classList.remove('active');
+            });
+
+            // Update title
+            const titles = ['第一场', '第二场', '第三场', '第四场'];
+            document.getElementById('roundTitle').innerText = `${titles[idx]}辩论`;
+
+            // Show finish button on last round
+            document.getElementById('finishAction').style.display = idx === 3 ? 'block' : 'none';
+
+            renderActiveRound();
+        }
+
+        function renderActiveRound() {
+            const container = document.getElementById('activeRoundContent');
+            const idx = state.activeRound;
+            const point = state.points[idx];
+            
+            const conVotes = state.totalVoters - point.proVotes;
+            const proPercent = (point.proVotes / state.totalVoters) * 100;
+            
+            container.innerHTML = `
+                <div class="round-card">
+                    <div class="round-info">
+                        <div class="round-badge ${point.owner === 'pro' ? 'bg-pro' : 'bg-con'}">${idx + 1}</div>
+                        <div style="flex: 1;">
+                            <div class="section-title">第 ${idx + 1} 场分论点</div>
+                            <div class="subtopic-text">${point.subTopic}</div>
+                            <div style="font-size: 0.875rem; color: var(--slate-500); margin-top: 0.5rem;">
+                                提案方：<span class="text-${point.owner}" style="font-weight: 800;">${point.owner === 'pro' ? '正方 (' + state.proName + ')' : '反方 (' + state.conName + ')'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="voting-grid">
+                        <div class="vote-panel">
+                            <div class="stat-name text-pro">${state.proName}</div>
+                            <div class="vote-display">
+                                <span class="vote-number text-pro" id="liveProVotes">${point.proVotes}</span>
+                                <span class="vote-label">票</span>
+                            </div>
+                            <div class="vote-actions">
+                                <button class="vote-btn" onclick="adjustVotes(${idx}, 1)">+1</button>
+                                <button class="vote-btn" onclick="adjustVotes(${idx}, 5)">+5</button>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; padding: 0 1.5rem; border-left: 2px solid var(--slate-200); border-right: 2px solid var(--slate-200);">
+                            <div class="section-title" style="margin-bottom: 0.25rem;">实时分布</div>
+                            <div id="liveDistribution" style="font-family: 'JetBrains Mono'; font-weight: 900; font-size: 1.125rem; color: var(--slate-800); white-space: nowrap;">
+                                ${Math.round(proPercent)}% <span style="color: var(--slate-300); font-weight: 400;">:</span> ${Math.round(100 - proPercent)}%
+                            </div>
+                        </div>
+
+                        <div class="vote-panel right">
+                            <div class="stat-name text-con">${state.conName}</div>
+                            <div class="vote-display">
+                                <span class="vote-number text-con" id="liveConVotes">${conVotes}</span>
+                                <span class="vote-label">票</span>
+                            </div>
+                            <div class="vote-actions">
+                                <button class="vote-btn" onclick="adjustVotes(${idx}, -1)">+1</button>
+                                <button class="vote-btn" onclick="adjustVotes(${idx}, -5)">+5</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="slider-box">
+                        <div class="slider-track">
+                            <div id="liveTrackPro" class="track-pro" style="width: ${proPercent}%"></div>
+                            <div id="liveTrackCon" class="track-con" style="width: ${100 - proPercent}%"></div>
+                        </div>
+                        <input type="range" id="liveSlider" min="0" max="${state.totalVoters}" value="${point.proVotes}" oninput="updateVotes(${idx}, this.value)">
+                        <div id="liveThumb" class="slider-thumb" style="left: ${proPercent}%">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="color: var(--slate-900);"><path d="m18 15-6-6-6 6"/></svg>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateStats() {
+            const results = calculateResults();
+            
+            // Trophy & Winner
+            const trophyBox = document.getElementById('trophyContainer');
+            const winnerDisplay = document.getElementById('winnerDisplay');
+            if (results.winner === 'pro') {
+                trophyBox.innerHTML = trophySvg('var(--blue-400)');
+                winnerDisplay.innerText = state.proName;
+            } else if (results.winner === 'con') {
+                trophyBox.innerHTML = trophySvg('var(--red-400)');
+                winnerDisplay.innerText = state.conName;
+            } else {
+                trophyBox.innerHTML = trophySvg('var(--yellow-400)');
+                winnerDisplay.innerText = '双方持平';
+            }
+
+            // Names
+            document.getElementById('proStatName').innerText = state.proName;
+            document.getElementById('conStatName').innerText = state.conName;
+
+            // Votes & Rounds
+            document.getElementById('proTotalVotes').innerText = results.proTotalVotes;
+            document.getElementById('conTotalVotes').innerText = results.conTotalVotes;
+            document.getElementById('proRounds').innerText = `${results.proRounds} / 4`;
+            document.getElementById('conRounds').innerText = `${results.conRounds} / 4`;
+
+            // Progress
+            const total = results.proTotalVotes + results.conTotalVotes || 1;
+            document.getElementById('proProgress').style.width = `${(results.proTotalVotes / total) * 100}%`;
+            document.getElementById('conProgress').style.width = `${(results.conTotalVotes / total) * 100}%`;
+
+            // Tie Alert
+            document.getElementById('tieAlert').style.display = results.winner === 'tie' ? 'block' : 'none';
+        }
+
+        // --- Event Handlers ---
+        function adjustVotes(idx, delta) {
+            updateVotes(idx, state.points[idx].proVotes + delta);
+        }
+
+        function updateVotes(idx, val) {
+            val = Math.min(Math.max(0, parseInt(val) || 0), state.totalVoters);
+            state.points[idx].proVotes = val;
+            
+            // Partial DOM updates to keep slider draggable
+            const conVotes = state.totalVoters - val;
+            const proPercent = (val / state.totalVoters) * 100;
+
+            const proVotesEl = document.getElementById('liveProVotes');
+            const conVotesEl = document.getElementById('liveConVotes');
+            const distEl = document.getElementById('liveDistribution');
+            const trackProEl = document.getElementById('liveTrackPro');
+            const trackConEl = document.getElementById('liveTrackCon');
+            const thumbEl = document.getElementById('liveThumb');
+            const sliderEl = document.getElementById('liveSlider');
+
+            if (proVotesEl) proVotesEl.innerText = val;
+            if (conVotesEl) conVotesEl.innerText = conVotes;
+            if (distEl) distEl.innerHTML = `${Math.round(proPercent)}% <span style="color: var(--slate-300); font-weight: 400;">:</span> ${Math.round(100 - proPercent)}%`;
+            if (trackProEl) trackProEl.style.width = `${proPercent}%`;
+            if (trackConEl) trackConEl.style.width = `${100 - proPercent}%`;
+            if (thumbEl) thumbEl.style.left = `${proPercent}%`;
+            if (sliderEl && sliderEl.value != val) sliderEl.value = val;
+
+            updateStats();
+        }
+
+        function resetCurrentVotes() {
+            const val = Math.floor(state.totalVoters / 2);
+            state.points[state.activeRound].proVotes = val;
+            renderActiveRound();
+            updateStats();
+        }
+    </script>
+</body>
+</html>
