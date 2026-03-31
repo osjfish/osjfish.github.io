@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>网页应用导航</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 主题配置（仅保留主色调） -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+          },
+        },
+      }
+    }
+  </script>
+
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-5xl">
+    <!-- 头部区域 -->
+    <header class="mb-8">
+      <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-gray-800 mb-2">
+        网页应用导航
+      </h1>
+      <p class="text-gray-600 mb-6">一站式网页工具合集，持续更新</p>
+
+      <!-- 搜索框 -->
+      <div class="mb-6">
+        <input 
+          type="text" 
+          id="search-input"
+          placeholder="搜索应用名称/功能描述..."
+          class="w-full sm:w-80 px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+        >
+      </div>
+    </header>
+
+    <!-- 核心表格区域 -->
+    <main>
+      <div class="overflow-x-auto rounded-lg border border-gray-200">
+        <table class="w-full border-collapse bg-white text-left">
+          <!-- 表头 -->
+          <thead class="bg-gray-50 text-gray-700 border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 font-semibold w-16">序号</th>
+              <th class="px-6 py-3 font-semibold w-1/4">应用名称</th>
+              <th class="px-6 py-3 font-semibold">功能描述</th>
+              <th class="px-6 py-3 font-semibold w-24 text-center">操作</th>
+            </tr>
+          </thead>
+          <!-- 表格内容（JS动态渲染） -->
+          <tbody id="app-table-body" class="divide-y divide-gray-200">
+            <!-- 应用行由JS自动生成 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 无搜索结果提示 -->
+      <div id="no-result" class="hidden text-center py-12">
+        <p class="text-gray-500">暂无匹配的应用</p>
+      </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="mt-10 text-center text-gray-500 text-sm py-4">
+      -------
+    </footer>
+  </div>
+
+  <!-- 核心JS逻辑 -->
+  <script>
+    // ===================== 【唯一修改区域：新增应用仅需在这里加一行配置】=====================
+    const appList = [
+      {
+        title: "简易辩论",
+        description: "将辩题拆解为四个分论点，依次辩论投票",
+        url: "./debate.html" // 替换为你的辩论辅助页面实际路径
+      },
+      // 【新增应用示例】复制下面一行，修改内容即可
+      // { title: "新应用名称", description: "应用功能描述", url: "./新页面路径.html" },
+    ];
+    // =========================================================================================
+
+    // DOM元素获取
+    const tableBody = document.getElementById('app-table-body');
+    const searchInput = document.getElementById('search-input');
+    const noResult = document.getElementById('no-result');
+
+    // 表格渲染函数
+    function renderTable(filteredApps) {
+      tableBody.innerHTML = '';
+      
+      if (filteredApps.length === 0) {
+        noResult.classList.remove('hidden');
+        return;
+      }
+      noResult.classList.add('hidden');
+
+      filteredApps.forEach((app, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 transition-colors';
+        tr.innerHTML = `
+          <td class="px-6 py-4 text-gray-600">${index + 1}</td>
+          <td class="px-6 py-4 font-medium text-gray-800">${app.title}</td>
+          <td class="px-6 py-4 text-gray-600">${app.description}</td>
+          <td class="px-6 py-4 text-center">
+            <a 
+              href="${app.url}" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="text-primary hover:text-primary/80 font-medium transition-colors"
+            >
+              访问
+            </a>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    // 搜索功能
+    function handleSearch() {
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filteredApps = appList.filter(app => 
+        app.title.toLowerCase().includes(keyword) || 
+        app.description.toLowerCase().includes(keyword)
+      );
+      renderTable(filteredApps);
+    }
+
+    // 事件绑定
+    searchInput.addEventListener('input', handleSearch);
+
+    // 页面初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTable(appList);
+    });
+  </script>
+</body>
+</html>
