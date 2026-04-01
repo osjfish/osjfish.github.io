@@ -11,32 +11,150 @@
     <script src="https://unpkg.com/lucide/dist/umd/lucide.min.js"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #f1f5f9;
-            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-            background-size: 24px 24px;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Serif+SC:wght@700;900&display=swap');
         
-        .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+        :root {
+            --guofeng-green: #223e36;
+            --guofeng-red: #b22222;
+            --guofeng-gold: #c5a368;
+            --guofeng-ink: #2c3e50;
+            --guofeng-paper: #fcfaf2;
         }
 
-        .vote-handle {
-            /* 移除 transition 确保拖拽跟手 */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--guofeng-paper);
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.62 0H60v5.38L54.62 0zM5.38 0H0v5.38L5.38 0zM0 54.62V60h5.38L0 54.62zM60 54.62V60h-5.38L60 54.62zM30 30l5.38-5.38L30 19.24l-5.38 5.38L30 30z' fill='%23c5a368' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+        
+        .font-serif { font-family: 'Noto Serif SC', serif; }
+
+        .guofeng-card {
+            background: #ffffff;
+            border: 1px solid rgba(197, 163, 104, 0.3);
+            box-shadow: 0 10px 30px rgba(44, 62, 80, 0.05);
+            position: relative;
+        }
+
+        .guofeng-card::before {
+            content: '';
+            position: absolute;
+            top: 4px; left: 4px; right: 4px; bottom: 4px;
+            border: 1px solid rgba(197, 163, 104, 0.1);
             pointer-events: none;
         }
 
-        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .guofeng-border {
+            border: 2px solid var(--guofeng-ink);
+            padding: 2px;
+            background: white;
+            display: inline-block;
+        }
+
+        /* Slider Styles - Zero Lag */
+        .vote-slider-container {
+            position: relative;
+            height: 48px;
+            display: flex;
+            align-items: center;
+        }
+
+        .vote-track {
+            position: absolute;
+            inset: 12px 0;
+            border-radius: 999px;
+            overflow: hidden;
+            display: flex;
+            background: #eee;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .vote-bar-pro { background-color: var(--guofeng-green); }
+        .vote-bar-con { background-color: var(--guofeng-red); }
+
+        .vote-slider-input {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        .vote-handle-capsule {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 36px;
+            background: white;
+            border: 2px solid var(--guofeng-gold);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .vote-handle-capsule::after, .vote-handle-capsule::before {
+            content: '';
+            width: 6px;
+            height: 1px;
+            background: var(--guofeng-gold);
+            opacity: 0.5;
+        }
+
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .debate-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .debate-table th {
+            background: #f8fafc;
+            padding: 12px 16px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--guofeng-ink);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .debate-table td {
+            padding: 16px;
+            text-align: center;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+        }
+        .debate-table tr:last-child td { border-bottom: none; }
         
-        .lucide { stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke: currentColor; }
+        .seal-logo {
+            width: 40px;
+            height: 40px;
+            background: var(--guofeng-red);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Noto Serif SC', serif;
+            font-weight: 900;
+            font-size: 20px;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px var(--guofeng-red);
+        }
+
+        .lucide { stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke: currentColor; }
     </style>
 </head>
 <body>
@@ -80,6 +198,7 @@
             const [finalVote, setFinalVote] = useState(50);
             const [sessions, setSessions] = useState([]);
             const [showHistory, setShowHistory] = useState(false);
+            const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null });
             const fileInputRef = useRef(null);
 
             useEffect(() => {
@@ -143,6 +262,7 @@
                 const newSession = {
                     id: Date.now().toString(),
                     topic, proName, conName, totalVoters, points, finalVote,
+                    results, // 保存完整的计算结果
                     winner: results.winner,
                     timestamp: Date.now()
                 };
@@ -160,7 +280,40 @@
                 setShowHistory(false);
             };
 
+            const clearAllData = () => {
+                setConfirmModal({
+                    show: true,
+                    title: '清空所有数据',
+                    message: '此操作将永久删除所有历史记录并重置当前比赛，确定继续吗？',
+                    onConfirm: () => {
+                        localStorage.clear();
+                        setSessions([]);
+                        setTopic('');
+                        setProName('正方');
+                        setConName('反方');
+                        setTotalVoters(100);
+                        setPoints([
+                            { text: '', owner: 'pro', proVotes: 50 },
+                            { text: '', owner: 'con', proVotes: 50 },
+                            { text: '', owner: 'pro', proVotes: 50 },
+                            { text: '', owner: 'con', proVotes: 50 }
+                        ]);
+                        setFinalVote(50);
+                        setView('setup');
+                        setCurrentRound(0);
+                        setConfirmModal({ show: false });
+                    }
+                });
+            };
+
             const exportExcel = () => {
+                const now = new Date();
+                const timestamp = now.getFullYear() + 
+                    String(now.getMonth() + 1).padStart(2, '0') + 
+                    String(now.getDate()).padStart(2, '0') + "_" + 
+                    String(now.getHours()).padStart(2, '0') + 
+                    String(now.getMinutes()).padStart(2, '0');
+
                 const detailData = points.map((p, i) => ({
                     '环节': `第${i+1}场 (${p.owner === 'pro' ? '正方' : '反方'}分论点)`,
                     '论点内容': p.text,
@@ -183,10 +336,31 @@
                     '终极投票(反方)': totalVoters - finalVote
                 }];
 
+                const historyData = sessions.map(s => {
+                    const r = s.results || { proRounds: 0, conRounds: 0, proTotalVotes: 0, conTotalVotes: 0, winner: s.winner };
+                    return {
+                        'ID': s.id,
+                        '时间': new Date(s.timestamp).toLocaleString(),
+                        '辩题': s.topic,
+                        '正方': s.proName,
+                        '反方': s.conName,
+                        '总人数': s.totalVoters,
+                        '正方胜场': r.proRounds,
+                        '反方胜场': r.conRounds,
+                        '正方总票': r.proTotalVotes,
+                        '反方总票': r.conTotalVotes,
+                        '最终结果': r.winner === 'pro' ? '正方胜' : (r.winner === 'con' ? '反方胜' : '平局'),
+                        '完整数据JSON': JSON.stringify(s)
+                    };
+                });
+
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData), '辩论详情');
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), '比赛总结');
-                XLSX.writeFile(wb, `辩论赛_${topic || '记录'}.xlsx`);
+                if (historyData.length > 0) {
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(historyData), '历史记录');
+                }
+                XLSX.writeFile(wb, `辩论赛备份_${timestamp}.xlsx`);
             };
 
             const handleImport = (e) => {
@@ -196,6 +370,20 @@
                 reader.onload = (evt) => {
                     try {
                         const wb = XLSX.read(evt.target.result, { type: 'binary' });
+                        
+                        // 恢复历史记录
+                        const historySheet = wb.Sheets['历史记录'];
+                        if (historySheet) {
+                            const historyJson = XLSX.utils.sheet_to_json(historySheet);
+                            const importedSessions = historyJson.map(h => {
+                                try { return JSON.parse(h['完整数据JSON']); } catch(e) { return null; }
+                            }).filter(s => s !== null);
+                            if (importedSessions.length > 0) {
+                                setSessions(importedSessions);
+                            }
+                        }
+
+                        // 恢复当前比赛状态
                         const summary = XLSX.utils.sheet_to_json(wb.Sheets['比赛总结'])[0];
                         if (summary) {
                             setTopic(summary.辩题 || '');
@@ -212,217 +400,321 @@
                                 proVotes: Math.max(0, Math.min(summary?.总人数 || 100, d.正方得票 || 0))
                             })));
                         }
-                        alert('导入成功');
-                    } catch(e) { alert('导入失败，请检查文件格式'); }
+                        alert('数据已完全还原');
+                    } catch(e) { 
+                        console.error(e);
+                        alert('导入失败，请检查文件格式'); 
+                    }
                 };
                 reader.readAsBinaryString(file);
             };
 
             const renderSetup = () => (
-                <div className="space-y-6 fade-in">
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 grid md:grid-cols-3 gap-6">
-                        <div className="md:col-span-2 space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">主辩题</label>
-                            <input value={topic} onChange={e => setTopic(e.target.value)} className="w-full text-lg font-bold border-b border-slate-100 focus:border-indigo-500 outline-none pb-1" placeholder="输入辩题..." />
+                <div className="max-w-4xl mx-auto space-y-8 fade-in">
+                    <div className="guofeng-card p-10">
+                        <div className="flex flex-col items-center mb-12">
+                            <div className="seal-logo mb-4">辩</div>
+                            <h1 className="text-3xl font-serif font-black text-slate-900 tracking-[0.2em]">辩论赛计票系统</h1>
+                            <div className="w-16 h-1 bg-[#c5a368] mt-4"></div>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">观众人数（总投票数）</label>
-                            <input type="number" value={totalVoters} onChange={e => setTotalVoters(parseInt(e.target.value) || 0)} className="w-full text-lg font-bold border-b border-slate-100 focus:border-indigo-500 outline-none pb-1" />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-blue-500">正方选手</label>
-                            <input value={proName} onChange={e => setProName(e.target.value)} className="w-full font-bold border-b border-slate-100 focus:border-blue-500 outline-none pb-1" />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-red-500">反方选手</label>
-                            <input value={conName} onChange={e => setConName(e.target.value)} className="w-full font-bold border-b border-slate-100 focus:border-red-500 outline-none pb-1" />
-                        </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                        {points.map((p, i) => (
-                            <div key={i} className={`p-4 rounded-2xl border ${p.owner === 'pro' ? 'bg-blue-50/50 border-blue-100' : 'bg-red-50/50 border-red-100'}`}>
-                                <label className={`text-[10px] font-bold uppercase mb-2 block ${p.owner === 'pro' ? 'text-blue-500' : 'text-red-500'}`}>
-                                    {p.owner === 'pro' ? '正方' : '反方'} 分论点 {Math.ceil((i+1)/2)}
-                                </label>
-                                <textarea value={p.text} onChange={e => { const n = [...points]; n[i].text = e.target.value; setPoints(n); }} className="w-full h-20 bg-white rounded-xl p-3 text-sm border border-slate-100 outline-none focus:ring-2 focus:ring-indigo-500 resize-none" placeholder="输入论点内容..." />
+                        
+                        <div className="space-y-10">
+                            {/* 顶部：辩题与人数 */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-10 border-b border-slate-100">
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">辩论题目</label>
+                                    <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="请输入本次辩论的主题..." className="w-full bg-slate-50 border-b-2 border-slate-200 p-3 focus:border-[#223e36] outline-none transition-all font-serif text-lg" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">观众人数 (总投票数)</label>
+                                    <input type="number" value={totalVoters} onChange={e => setTotalVoters(parseInt(e.target.value) || 0)} className="w-full bg-slate-50 border-b-2 border-slate-200 p-3 focus:border-slate-900 outline-none transition-all font-mono text-xl" />
+                                </div>
                             </div>
-                        ))}
-                    </div>
+                            
+                            {/* 中部：正反方对等布局 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                {/* 正方列 */}
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-[#223e36] uppercase tracking-widest">正方名称</label>
+                                        <input value={proName} onChange={e => setProName(e.target.value)} className="w-full bg-slate-50 border-b-2 border-slate-200 p-3 focus:border-[#223e36] outline-none transition-all" />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">正方分论点</label>
+                                        {[0, 2].map(i => (
+                                            <div key={i} className="p-4 rounded-lg border-l-4 border-[#223e36] bg-[#223e36]/5">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-[10px] font-bold opacity-60 uppercase">分论点 {i === 0 ? '一' : '二'}</span>
+                                                </div>
+                                                <textarea value={points[i].text} onChange={e => {
+                                                    const next = [...points];
+                                                    next[i].text = e.target.value;
+                                                    setPoints(next);
+                                                }} placeholder="输入分论点核心内容..." className="w-full bg-transparent border-b border-slate-200 p-2 focus:border-slate-900 outline-none transition-all text-sm h-20 resize-none" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
 
-                    <div className="flex justify-center">
-                        <button onClick={() => { if(!topic || points.some(p => !p.text)) return alert('请填写完整辩题和所有分论点'); setView('debate'); setCurrentRound(0); }} className="px-12 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">开始正式比赛</button>
+                                {/* 反方列 */}
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-[#b22222] uppercase tracking-widest">反方名称</label>
+                                        <input value={conName} onChange={e => setConName(e.target.value)} className="w-full bg-slate-50 border-b-2 border-slate-200 p-3 focus:border-[#b22222] outline-none transition-all" />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">反方分论点</label>
+                                        {[1, 3].map(i => (
+                                            <div key={i} className="p-4 rounded-lg border-l-4 border-[#b22222] bg-[#b22222]/5">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-[10px] font-bold opacity-60 uppercase">分论点 {i === 1 ? '一' : '二'}</span>
+                                                </div>
+                                                <textarea value={points[i].text} onChange={e => {
+                                                    const next = [...points];
+                                                    next[i].text = e.target.value;
+                                                    setPoints(next);
+                                                }} placeholder="输入分论点核心内容..." className="w-full bg-transparent border-b border-slate-200 p-2 focus:border-slate-900 outline-none transition-all text-sm h-20 resize-none" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-12 pt-8 border-t border-slate-100 flex justify-center">
+                            <button onClick={() => { if(!topic || points.some(p => !p.text)) return alert('请填写完整辩题和所有分论点'); setView('debate'); setCurrentRound(0); }} className="px-16 py-4 bg-[#2c3e50] text-white font-bold tracking-[0.3em] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-2xl">
+                                开始辩论
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
 
             const renderDebate = () => {
                 const p = points[currentRound];
-                const proPercent = (p.proVotes / totalVoters) * 100;
+                const proVotes = p.proVotes;
+                const conVotes = totalVoters - proVotes;
+                const proPercent = (proVotes / totalVoters) * 100;
+
                 return (
-                    <div className="max-w-3xl mx-auto space-y-6 fade-in">
-                        <div className="flex gap-2">
-                            {[0,1,2,3].map(i => <div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i <= currentRound ? (points[i].owner === 'pro' ? 'bg-blue-500' : 'bg-red-500') : 'bg-slate-200'}`} />)}
+                    <div className="max-w-4xl mx-auto space-y-6 fade-in">
+                        <div className="guofeng-card p-8">
+                            <div className="flex justify-between items-center mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="guofeng-border">
+                                        <div className="bg-[#2c3e50] text-white px-3 py-1 text-xs font-bold">第 {currentRound + 1} / 4 场</div>
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        {p.owner === 'pro' ? proName : conName}分论点
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">辩题</span>
+                                    <h2 className="text-lg font-serif font-black">“ {topic} ”</h2>
+                                </div>
+                            </div>
+
+                            <div className="text-center py-10 border-y border-slate-100 mb-10">
+                                <h3 className="text-3xl font-serif font-black text-slate-900 mb-2">{p.text}</h3>
+                                <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.3em]">Current Argument</p>
+                            </div>
+
+                            <div className="space-y-12">
+                                <div className="flex justify-between items-end px-4">
+                                    <div className="text-center">
+                                        <p className="text-xs font-bold text-[#223e36] mb-2">{proName}</p>
+                                        <p className="text-6xl font-black text-[#223e36] font-mono">{proVotes}</p>
+                                    </div>
+                                    <div className="flex-1 px-12 pb-6">
+                                        <div className="vote-slider-container">
+                                            <div className="vote-track">
+                                                <div className="vote-bar-pro h-full" style={{ width: `${proPercent}%` }} />
+                                                <div className="vote-bar-con h-full flex-1" />
+                                            </div>
+                                            <div className="vote-handle-capsule" style={{ left: `${proPercent}%` }}></div>
+                                            <input 
+                                                type="range" 
+                                                min="0" 
+                                                max={totalVoters} 
+                                                value={proVotes} 
+                                                onChange={e => {
+                                                    const next = [...points];
+                                                    next[currentRound].proVotes = parseInt(e.target.value);
+                                                    setPoints(next);
+                                                }} 
+                                                className="vote-slider-input" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-xs font-bold text-[#b22222] mb-2">{conName}</p>
+                                        <p className="text-6xl font-black text-[#b22222] font-mono">{conVotes}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between gap-8">
+                                    <div className="flex gap-2">
+                                        <button onClick={() => {
+                                            const next = [...points];
+                                            next[currentRound].proVotes = Math.min(totalVoters, p.proVotes + 1);
+                                            setPoints(next);
+                                        }} className="w-12 h-12 bg-[#223e36] text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-lg font-bold">+1</button>
+                                        <button onClick={() => {
+                                            const next = [...points];
+                                            next[currentRound].proVotes = Math.min(totalVoters, p.proVotes + 5);
+                                            setPoints(next);
+                                        }} className="w-12 h-12 bg-[#223e36] text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-lg font-bold">+5</button>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => {
+                                            const next = [...points];
+                                            next[currentRound].proVotes = Math.max(0, p.proVotes - 5);
+                                            setPoints(next);
+                                        }} className="w-12 h-12 bg-[#b22222] text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-lg font-bold">+5</button>
+                                        <button onClick={() => {
+                                            const next = [...points];
+                                            next[currentRound].proVotes = Math.max(0, p.proVotes - 1);
+                                            setPoints(next);
+                                        }} className="w-12 h-12 bg-[#b22222] text-white flex items-center justify-center hover:bg-opacity-90 transition-all shadow-lg font-bold">+1</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                            <div className="bg-slate-900 p-6 text-center">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">主辩题</span>
-                                <h2 className="text-xl font-bold text-white">{topic}</h2>
-                            </div>
-
-                            <div className="p-8 space-y-10">
-                                <div className="text-center space-y-3">
-                                    <div className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold uppercase ${p.owner === 'pro' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
-                                        第 {currentRound + 1} 场：{p.owner === 'pro' ? '正方分论点' : '反方分论点'}
-                                    </div>
-                                    <h3 className="text-2xl font-bold text-slate-800 leading-tight">“ {p.text} ”</h3>
-                                </div>
-
-                                <div className="bg-slate-50 rounded-2xl p-8 space-y-8 border border-slate-100">
-                                    <div className="flex justify-between items-center">
-                                        <div className="space-y-2">
-                                            <span className="text-[10px] font-bold text-blue-600 uppercase block">{proName}</span>
-                                            <div className="flex items-center gap-2">
-                                                <div className="text-5xl font-black font-mono text-blue-700 tracking-tighter">{p.proVotes}</div>
-                                                <div className="flex flex-col gap-1">
-                                                    <button onClick={() => setProVotesSafe(currentRound, p.proVotes + 1)} className="p-1 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors shadow-sm"><Icon name="Plus" className="w-3 h-3" /></button>
-                                                    <button onClick={() => setProVotesSafe(currentRound, p.proVotes + 5)} className="px-1 py-0.5 text-[10px] font-bold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm">+5</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">得票率</div>
-                                            <div className="text-xl font-bold font-mono text-slate-700">{Math.round(proPercent)}% : {Math.round(100-proPercent)}%</div>
-                                        </div>
-                                        <div className="space-y-2 text-right">
-                                            <span className="text-[10px] font-bold text-red-600 uppercase block">{conName}</span>
-                                            <div className="flex items-center gap-2 justify-end">
-                                                <div className="flex flex-col gap-1">
-                                                    <button onClick={() => setProVotesSafe(currentRound, p.proVotes - 1)} className="p-1 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors shadow-sm"><Icon name="Plus" className="w-3 h-3" /></button>
-                                                    <button onClick={() => setProVotesSafe(currentRound, p.proVotes - 5)} className="px-1 py-0.5 text-[10px] font-bold bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors shadow-sm">+5</button>
-                                                </div>
-                                                <div className="text-5xl font-black font-mono text-red-700 tracking-tighter">{totalVoters - p.proVotes}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="relative h-16 flex items-center">
-                                        {/* 进度条背景 */}
-                                        <div className="relative w-full h-5 bg-slate-200 rounded-full overflow-hidden flex shadow-inner border border-slate-300/50">
-                                            <div className="h-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-200" style={{ width: `${proPercent}%` }} />
-                                            <div className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-200" style={{ width: `${100 - proPercent}%` }} />
-                                        </div>
-                                        
-                                        {/* 优化后的滑块形状：胶囊造型 */}
-                                        <div 
-                                            className="vote-handle absolute z-20 w-10 h-10 bg-white border-[3px] border-slate-900 rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.15)] flex items-center justify-center"
-                                            style={{ left: `${proPercent}%`, transform: 'translateX(-50%)' }}
-                                        >
-                                            <div className="w-1 h-5 bg-slate-900 rounded-full opacity-20 mx-0.5" />
-                                            <div className="w-1 h-5 bg-slate-900 rounded-full opacity-80 mx-0.5" />
-                                            <div className="w-1 h-5 bg-slate-900 rounded-full opacity-20 mx-0.5" />
-                                        </div>
-
-                                        {/* 隐藏的交互层 */}
-                                        <input 
-                                            type="range" 
-                                            min="0" 
-                                            max={totalVoters} 
-                                            value={p.proVotes} 
-                                            onChange={e => setProVotesSafe(currentRound, parseInt(e.target.value))} 
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30" 
-                                        />
-                                    </div>
-                                    <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 -mt-2">
-                                        <span>{proName} 阵营</span>
-                                        <span>{conName} 阵营</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-between px-8">
-                                <button onClick={() => currentRound > 0 ? setCurrentRound(currentRound - 1) : setView('setup')} className="text-sm font-bold text-slate-400 hover:text-slate-700 flex items-center gap-1"><Icon name="ChevronLeft" /> 返回</button>
-                                <button onClick={() => currentRound < 3 ? setCurrentRound(currentRound + 1) : setView('summary')} className="px-8 py-2 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-1 hover:bg-slate-800 transition-all">{currentRound === 3 ? '查看最终结果' : '下一场'} <Icon name="ChevronRight" /></button>
-                            </div>
+                        <div className="flex justify-between items-center">
+                            <button onClick={() => setCurrentRound(Math.max(0, currentRound - 1))} disabled={currentRound === 0} className="px-6 py-3 text-slate-400 font-bold hover:text-slate-900 disabled:opacity-0 transition-all flex items-center gap-2">
+                                <Icon name="ChevronLeft" /> 上一轮
+                            </button>
+                            {currentRound < 3 ? (
+                                <button onClick={() => setCurrentRound(currentRound + 1)} className="px-10 py-4 bg-[#2c3e50] text-white font-bold tracking-widest hover:bg-slate-800 transition-all shadow-xl flex items-center gap-2">
+                                    下一轮 <Icon name="ChevronRight" />
+                                </button>
+                            ) : (
+                                <button onClick={() => setView('summary')} className="px-12 py-4 bg-[#b22222] text-white font-bold tracking-widest hover:bg-red-700 transition-all shadow-xl">
+                                    查看结果
+                                </button>
+                            )}
                         </div>
                     </div>
                 );
             };
 
             const renderSummary = () => (
-                <div className="max-w-3xl mx-auto space-y-6 fade-in">
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="bg-indigo-600 p-10 text-center text-white">
-                            <Icon name="Trophy" className="w-12 h-12 mx-auto text-yellow-300 mb-4" />
-                            <h2 className="text-2xl font-bold mb-1">辩论赛最终统计</h2>
-                            <p className="text-indigo-100 text-sm font-medium">“ {topic} ”</p>
+                <div className="max-w-4xl mx-auto space-y-8 fade-in">
+                    <div className="guofeng-card overflow-hidden">
+                        {/* 1. 获胜者 */}
+                        <div className="bg-[#2c3e50] p-12 text-center text-white relative">
+                            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                            <span className="text-xs font-bold text-[#c5a368] uppercase tracking-[0.5em] block mb-4">最终胜出</span>
+                            <div className="text-7xl font-black font-serif tracking-widest mb-2">
+                                {results.winner === 'pro' ? proName : results.winner === 'con' ? conName : '双方持平'}
+                            </div>
+                            <div className="w-24 h-1 bg-[#c5a368] mx-auto mt-6"></div>
                         </div>
 
-                        <div className="p-8 space-y-8">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-blue-50/50 rounded-2xl p-6 text-center border border-blue-100">
-                                    <span className="text-[10px] font-bold text-blue-600 uppercase block mb-3">{proName}</span>
-                                    <div className="flex justify-around">
-                                        <div><p className="text-[10px] text-slate-400 uppercase">场次</p><p className="text-2xl font-bold text-blue-700">{results.proRounds}</p></div>
-                                        <div className="w-px h-8 bg-blue-100" />
-                                        <div><p className="text-[10px] text-slate-400 uppercase">总票</p><p className="text-2xl font-bold text-blue-700">{results.proTotalVotes}</p></div>
+                        <div className="p-10 space-y-12">
+                            {/* 2. 辩题 */}
+                            <div className="text-center space-y-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">辩论题目</span>
+                                <h2 className="text-2xl font-serif font-black text-[#2c3e50]">“ {topic} ”</h2>
+                            </div>
+
+                            {/* 数据概览 */}
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="p-6 text-center border-l-4 border-[#223e36] bg-slate-50">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-2">{proName} (正方)</span>
+                                    <div className="flex justify-around items-center">
+                                        <div><p className="text-[10px] text-slate-400">胜场</p><p className="text-3xl font-black text-[#223e36]">{results.proRounds}</p></div>
+                                        <div className="w-px h-8 bg-slate-200" />
+                                        <div><p className="text-[10px] text-slate-400">总票</p><p className="text-3xl font-black text-[#223e36]">{results.proTotalVotes}</p></div>
                                     </div>
                                 </div>
-                                <div className="bg-red-50/50 rounded-2xl p-6 text-center border border-red-100">
-                                    <span className="text-[10px] font-bold text-red-600 uppercase block mb-3">{conName}</span>
-                                    <div className="flex justify-around">
-                                        <div><p className="text-[10px] text-slate-400 uppercase">场次</p><p className="text-2xl font-bold text-red-700">{results.conRounds}</p></div>
-                                        <div className="w-px h-8 bg-red-100" />
-                                        <div><p className="text-[10px] text-slate-400 uppercase">总票</p><p className="text-2xl font-bold text-red-700">{results.conTotalVotes}</p></div>
+                                <div className="p-6 text-center border-r-4 border-[#b22222] bg-slate-50">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-2">{conName} (反方)</span>
+                                    <div className="flex justify-around items-center">
+                                        <div><p className="text-[10px] text-slate-400">胜场</p><p className="text-3xl font-black text-[#b22222]">{results.conRounds}</p></div>
+                                        <div className="w-px h-8 bg-slate-200" />
+                                        <div><p className="text-[10px] text-slate-400">总票</p><p className="text-3xl font-black text-[#b22222]">{results.conTotalVotes}</p></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-slate-900 rounded-2xl p-8 text-center text-white">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">最终胜出</span>
-                                <div className="text-4xl font-bold">{results.winner === 'pro' ? proName : results.winner === 'con' ? conName : '双方持平'}</div>
+                            {/* 3. 各场次情况表格 */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2">
+                                    <Icon name="Table" className="w-4 h-4" /> 各场次情况
+                                </h3>
+                                <div className="overflow-hidden border border-slate-200">
+                                    <table className="debate-table">
+                                        <thead>
+                                            <tr>
+                                                <th>场次</th>
+                                                <th>分论点内容</th>
+                                                <th>{proName} (正)</th>
+                                                <th>{conName} (反)</th>
+                                                <th>本场结果</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {points.map((p, i) => {
+                                                const conVotes = totalVoters - p.proVotes;
+                                                const win = p.proVotes > conVotes ? 'pro' : (conVotes > p.proVotes ? 'con' : 'tie');
+                                                return (
+                                                    <tr key={i}>
+                                                        <td className="font-bold">第 {i+1} 场</td>
+                                                        <td className="text-left max-w-xs truncate">{p.text}</td>
+                                                        <td className="font-mono font-bold text-[#223e36]">{p.proVotes}</td>
+                                                        <td className="font-mono font-bold text-[#b22222]">{conVotes}</td>
+                                                        <td>
+                                                            <span className={`px-2 py-1 text-[10px] font-bold ${win === 'pro' ? 'bg-[#223e36]/10 text-[#223e36]' : win === 'con' ? 'bg-[#b22222]/10 text-[#b22222]' : 'bg-slate-100 text-slate-600'}`}>
+                                                                {win === 'pro' ? '正方胜' : win === 'con' ? '反方胜' : '平局'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
 
                             {results.winner === 'tie' && (
-                                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 space-y-4 fade-in">
+                                <div className="bg-amber-50 border-2 border-double border-amber-200 p-8 space-y-6 fade-in">
                                     <div className="text-center">
-                                        <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest block mb-1">终极投票 (平局决胜)</span>
-                                        <p className="text-xs text-amber-700">请观众进行最后一轮整体投票</p>
+                                        <span className="text-[10px] font-bold text-amber-600 uppercase tracking-[0.3em] block mb-2">终极投票 (平局决胜)</span>
+                                        <p className="text-sm text-amber-800 font-serif">请观众进行最后一轮整体投票</p>
                                     </div>
-                                    <div className="flex justify-between items-end px-4">
+                                    <div className="flex justify-between items-end px-10">
                                         <div className="text-center">
-                                            <p className="text-[10px] font-bold text-blue-600 uppercase">{proName}</p>
-                                            <p className="text-3xl font-black text-blue-700">{finalVote}</p>
+                                            <p className="text-xs font-bold text-[#223e36] mb-2">{proName}</p>
+                                            <p className="text-4xl font-black text-[#223e36]">{finalVote}</p>
                                         </div>
-                                        <div className="flex-1 px-8 pb-2">
-                                            <div className="relative h-2 bg-slate-200 rounded-full overflow-hidden flex">
-                                                <div className="h-full bg-blue-500" style={{ width: `${(finalVote/totalVoters)*100}%` }} />
-                                                <div className="h-full bg-red-500" style={{ width: `${100 - (finalVote/totalVoters)*100}%` }} />
-                                                <input type="range" min="0" max={totalVoters} value={finalVote} onChange={e => setFinalVote(parseInt(e.target.value))} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                        <div className="flex-1 px-12 pb-4">
+                                            <div className="vote-slider-container">
+                                                <div className="vote-track">
+                                                    <div className="vote-bar-pro h-full" style={{ width: `${(finalVote/totalVoters)*100}%` }} />
+                                                    <div className="vote-bar-con h-full flex-1" />
+                                                </div>
+                                                <div className="vote-handle-capsule" style={{ left: `${(finalVote/totalVoters)*100}%` }}></div>
+                                                <input type="range" min="0" max={totalVoters} value={finalVote} onChange={e => setFinalVote(parseInt(e.target.value))} className="vote-slider-input" />
                                             </div>
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-[10px] font-bold text-red-600 uppercase">{conName}</p>
-                                            <p className="text-3xl font-black text-red-700">{totalVoters - finalVote}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-center pt-2">
-                                        <div className={`inline-block px-6 py-2 rounded-xl font-bold text-white ${finalVote > (totalVoters-finalVote) ? 'bg-blue-600' : (finalVote < (totalVoters-finalVote) ? 'bg-red-600' : 'bg-slate-400')}`}>
-                                            最终胜者：{finalVote > (totalVoters-finalVote) ? proName : (finalVote < (totalVoters-finalVote) ? conName : '仍为平局')}
+                                            <p className="text-xs font-bold text-[#b22222] mb-2">{conName}</p>
+                                            <p className="text-4xl font-black text-[#b22222]">{totalVoters - finalVote}</p>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="flex justify-center gap-3">
-                                <button onClick={() => setView('setup')} className="px-6 py-2 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all">修改设置</button>
+                            <div className="flex justify-center gap-4 pt-6">
+                                <button onClick={() => setView('setup')} className="px-10 py-3 border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all">修改设置</button>
                                 <button onClick={() => { 
                                     saveToHistory();
                                     setView('setup'); 
                                     setTopic(''); 
                                     setPoints(points.map(p=>({...p, text:'', proVotes: Math.floor(totalVoters/2)}))); 
-                                }} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">保存并结束比赛</button>
+                                }} className="px-10 py-3 bg-[#2c3e50] text-white font-bold hover:bg-slate-800 transition-all shadow-xl">保存并结束比赛</button>
                             </div>
                         </div>
                     </div>
@@ -431,16 +723,20 @@
 
             return (
                 <div className="min-h-screen flex flex-col">
-                    <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-3 sticky top-0 z-40">
+                    <nav className="bg-white/90 backdrop-blur-md border-b-2 border-double border-slate-200 px-6 py-4 sticky top-0 z-40">
                         <div className="max-w-5xl mx-auto flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <div className="bg-indigo-600 p-1.5 rounded-lg text-white"><Icon name="MessageSquare" className="w-4 h-4" /></div>
-                                <span className="font-extrabold text-slate-800 tracking-tight">辩论赛计票系统</span>
+                            <div className="flex items-center gap-4">
+                                <div className="seal-logo">辩</div>
+                                <div className="flex flex-col">
+                                    <span className="font-black text-slate-900 tracking-widest text-lg font-serif">辩论赛计票系统</span>
+                                    <span className="text-[8px] text-slate-400 font-bold uppercase tracking-[0.3em] -mt-1">Debate Scoring System</span>
+                                </div>
                             </div>
                             <div className="flex gap-1">
-                                <button onClick={() => setShowHistory(true)} className="p-2 text-slate-400 hover:text-indigo-600 transition-all"><Icon name="History" /></button>
-                                <button onClick={exportExcel} className="p-2 text-slate-400 hover:text-green-600 transition-all"><Icon name="Download" /></button>
-                                <button onClick={() => fileInputRef.current.click()} className="p-2 text-slate-400 hover:text-amber-600 transition-all"><Icon name="Upload" /></button>
+                                <button onClick={clearAllData} className="p-2 text-slate-400 hover:text-red-600 transition-all" title="清空所有数据"><Icon name="Trash2" /></button>
+                                <button onClick={() => setShowHistory(true)} className="p-2 text-slate-400 hover:text-[#223e36] transition-all" title="历史记录"><Icon name="History" /></button>
+                                <button onClick={exportExcel} className="p-2 text-slate-400 hover:text-[#223e36] transition-all" title="导出备份"><Icon name="Download" /></button>
+                                <button onClick={() => fileInputRef.current.click()} className="p-2 text-slate-400 hover:text-[#223e36] transition-all" title="导入备份"><Icon name="Upload" /></button>
                                 <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls" className="hidden" />
                             </div>
                         </div>
@@ -467,9 +763,39 @@
                                                 <h4 className="font-bold text-slate-800">{s.topic}</h4>
                                                 <p className="text-[10px] text-slate-400 uppercase">{new Date(s.timestamp).toLocaleString()}</p>
                                             </div>
-                                            <button onClick={() => setSessions(sessions.filter(x => x.id !== s.id))} className="p-2 text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Icon name="Trash2" /></button>
+                                            <button onClick={() => {
+                                                setConfirmModal({
+                                                    show: true,
+                                                    title: '删除记录',
+                                                    message: `确定要删除“${s.topic}”这条历史记录吗？`,
+                                                    onConfirm: () => {
+                                                        setSessions(sessions.filter(x => x.id !== s.id));
+                                                        setConfirmModal({ show: false });
+                                                    }
+                                                });
+                                            }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"><Icon name="Trash2" /></button>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {confirmModal.show && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                            <div onClick={() => setConfirmModal({ show: false })} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+                            <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden fade-in">
+                                <div className="p-6 text-center space-y-4">
+                                    <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto">
+                                        <Icon name="AlertTriangle" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h3 className="font-bold text-lg text-slate-900">{confirmModal.title}</h3>
+                                        <p className="text-sm text-slate-500 leading-relaxed">{confirmModal.message}</p>
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        <button onClick={() => setConfirmModal({ show: false })} className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all">取消</button>
+                                        <button onClick={confirmModal.onConfirm} className="flex-1 px-4 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200">确定</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
