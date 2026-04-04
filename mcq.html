@@ -172,7 +172,7 @@
                             <button onClick={onImportClick} className={THEME_CLASSES.secondaryButton}><Icons.Upload/> 导入题库</button>
                             <button onClick={() => setMode('text_import')} className={THEME_CLASSES.secondaryButton}><Icons.FileText/> 文本导入</button>
                             <button onClick={handleExportExcel} className={THEME_CLASSES.secondaryButton}><Icons.Download/> 导出题库</button>
-                            <button onClick={confirmClear} className="px-4 py-1.5 border border-red-700 text-red-700 font-serif hover:bg-red-50 transition-all text-sm flex items-center gap-2"><Icons.Eraser/> 清空题库</button>
+                            {questions.length > 0 && <button onClick={confirmClear} className="px-4 py-1.5 border border-red-700 text-red-700 font-serif hover:bg-red-50 transition-all text-sm flex items-center gap-2"><Icons.Eraser/> 清空题库</button>}
                             <div className="flex-1"></div>
                             {selectedIds.length > 0 && (
                                 <button onClick={() => confirmDelete(selectedIds)} className="px-4 py-1.5 bg-red-700 text-white font-serif text-sm flex items-center gap-2">
@@ -210,14 +210,32 @@
                     </div>
 
                     <div className="space-y-2">
-                        <div className="flex items-center gap-3 px-4 py-2 border-b border-themeRed/10 text-xs opacity-50">
-                            <input type="checkbox" checked={isAllSelected} onChange={(e) => {
-                                if (e.target.checked) setSelectedIds(filteredQuestions.map(q => q.id));
-                                else setSelectedIds([]);
-                            }}/>
-                            <span>全选 ({filteredQuestions.length})</span>
-                        </div>
-                        {filteredQuestions.map(q => (
+                        {questions.length === 0 ? (
+                            <div className="text-center py-20 opacity-50">
+                                <div className="text-6xl mb-4">&#128221;</div>
+                                <p className="text-lg mb-2">题库还是空的</p>
+                                <p className="text-sm mb-6">点击上方"新增题目"或"导入题库"开始添加题目吧</p>
+                                <div className="flex justify-center gap-3 text-xs">
+                                    <span className="px-3 py-1 border rounded-sm">支持 Excel 批量导入</span>
+                                    <span className="px-3 py-1 border rounded-sm">支持文本粘贴导入</span>
+                                    <span className="px-3 py-1 border rounded-sm">支持手动逐题添加</span>
+                                </div>
+                            </div>
+                        ) : filteredQuestions.length === 0 ? (
+                            <div className="text-center py-16 opacity-40">
+                                <p className="text-lg mb-2">没有匹配的题目</p>
+                                <p className="text-sm">尝试调整筛选条件</p>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3 px-4 py-2 border-b border-themeRed/10 text-xs opacity-50">
+                                <input type="checkbox" checked={isAllSelected} onChange={(e) => {
+                                    if (e.target.checked) setSelectedIds(filteredQuestions.map(q => q.id));
+                                    else setSelectedIds([]);
+                                }}/>
+                                <span>全选 ({filteredQuestions.length})</span>
+                            </div>
+                        )}
+                        {filteredQuestions.length > 0 && filteredQuestions.map(q => (
                             <div key={q.id} className={THEME_CLASSES.card + " group py-3"}>
                                 <div className="flex justify-between items-start gap-4">
                                     <div className="pt-1">
@@ -293,7 +311,6 @@
                     </div>
 
                     <div className={THEME_CLASSES.card + " space-y-6"}>
-                        {/* 题干 */}
                         <div>
                             <label className="text-xs font-bold text-themeRed mb-2 block">题干内容</label>
                             <textarea className={THEME_CLASSES.input + " h-24 resize-none text-base leading-relaxed p-2 bg-white/30"} 
@@ -301,7 +318,6 @@
                                 value={form.stem} onChange={e => setForm({...form, stem: e.target.value})}/>
                         </div>
 
-                        {/* 选项 - 动态布局 */}
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <label className="text-xs font-bold text-themeRed block">选项设置</label>
@@ -326,7 +342,6 @@
                             </div>
                         </div>
 
-                        {/* 答案设置 */}
                         <div>
                             <label className="text-xs font-bold text-themeRed mb-2 block">正确答案 (勾选即可)</label>
                             <div className="flex flex-wrap gap-2">
@@ -349,7 +364,6 @@
                             </div>
                         </div>
 
-                        {/* 解析 */}
                         <div>
                             <label className="text-xs font-bold text-themeRed mb-2 block">解析说明</label>
                             <input className={THEME_CLASSES.input} 
@@ -357,7 +371,6 @@
                                 value={form.analysis} onChange={e => setForm({...form, analysis: e.target.value})}/>
                         </div>
 
-                        {/* 标签与备注 */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="text-xs font-bold text-themeRed mb-2 block">标签 (逗号或空格分隔)</label>
@@ -373,7 +386,6 @@
                             </div>
                         </div>
 
-                        {/* 统计数据 */}
                         <div className="pt-4 border-t border-themeRed/10 grid grid-cols-2 gap-6">
                             <div>
                                 <label className="text-xs opacity-50 block mb-1">累计练习次数</label>
@@ -606,6 +618,7 @@
                     <div className={THEME_CLASSES.card + " space-y-6"}>
                         <div className="flex gap-2"><span className={THEME_CLASSES.badge}>{current.answer.length > 1 ? '多选' : '单选'}</span></div>
                         <p className="text-lg leading-relaxed">{current.stem}</p>
+                        <div className="text-[10px] opacity-30 text-right">快捷键：数字键选择 | Enter 提交/下一题</div>
                         <div className="space-y-2">
                             {displayOptions.map((opt, i) => {
                                 const letter = String.fromCharCode(65 + i);
@@ -743,7 +756,7 @@
 
                     while (i < lines.length) {
                         const line = lines[i].trim();
-                        const optMatch = line.match(/^([A-Z])[\.、\s：:](.*)/);
+                        const optMatch = line.match(/^([A-Za-z])[\.、:\s：](.*)/);
                         if (optMatch) {
                             options.push(optMatch[2].trim());
                             i++;
@@ -918,7 +931,7 @@
             );
         };
 
-        const Battle = ({ battleState, setBattleState, setMode, updateStats, battleTimer }) => {
+        const Battle = ({ battleState, setBattleState, setMode, updateStats, battleTimer, startBattle }) => {
             if (!battleState) return null;
             const { left, right, phase } = battleState;
             const leftQ = left.questions[left.index];
@@ -986,25 +999,26 @@
                         </div>
                         <div className="text-center py-4">
                             <p className="text-2xl font-bold text-themeRed">
-                                {winner === 'draw' ? '平局！' : winner === 'left' ? '🔴 红方胜！' : '🔵 蓝方胜！'}
+                                {winner === 'draw' ? '平局！' : winner === 'left' ? '红方胜！' : '蓝方胜！'}
                             </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className={`p-6 border-2 rounded-sm text-center space-y-3 ${winner === 'left' ? 'border-themeRed bg-themeRed/5' : winner === 'draw' ? 'border-themeRed/20' : 'border-themeRed/10'}`}>
-                                <p className="text-lg font-bold text-themeRed">🔴 红方</p>
+                                <p className="text-lg font-bold text-themeRed">红方</p>
                                 <p className="text-4xl font-bold">{l.correct} / {lTotal}</p>
                                 <p className="text-xs opacity-50">用时 {formatTime(lTime)}</p>
                                 <p className="text-sm">正确率 {(l.correct / lTotal * 100).toFixed(1)}%</p>
                             </div>
                             <div className={`p-6 border-2 rounded-sm text-center space-y-3 ${winner === 'right' ? 'border-themeRed bg-themeRed/5' : winner === 'draw' ? 'border-themeRed/20' : 'border-themeRed/10'}`}>
-                                <p className="text-lg font-bold text-themeRed">🔵 蓝方</p>
+                                <p className="text-lg font-bold text-themeRed">蓝方</p>
                                 <p className="text-4xl font-bold">{r.correct} / {rTotal}</p>
                                 <p className="text-xs opacity-50">用时 {formatTime(rTime)}</p>
                                 <p className="text-sm">正确率 {(r.correct / rTotal * 100).toFixed(1)}%</p>
                             </div>
                         </div>
-                        <div className="text-center pt-4">
-                            <button onClick={() => setMode('home')} className={THEME_CLASSES.button}>返回主页</button>
+                        <div className="text-center pt-4 flex gap-4 justify-center">
+                            <button onClick={() => startBattle({ count: lTotal, timeLimit: battleState.timeLimit, tags: [], difficulties: [], shuffleOptions: battleState.shuffleOptions })} className={THEME_CLASSES.button}>再来一局</button>
+                            <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton}>返回主页</button>
                         </div>
                     </div>
                 );
@@ -1015,12 +1029,12 @@
                 const borderColor = isLeft ? 'border-l-4 border-l-themeRed' : 'border-r-4 border-r-blue-600';
                 const answerColor = isLeft ? 'bg-themeRed text-white border-themeRed' : 'bg-blue-600 text-white border-blue-600';
                 const hoverColor = isLeft ? 'hover:border-themeRed/30' : 'hover:border-blue-600/30';
-                const label = isLeft ? '🔴 红方' : '🔵 蓝方';
+                const label = isLeft ? '红方' : '蓝方';
 
                 if (isDone) {
                     return (
                         <div className={`p-8 space-y-4 ${borderColor} flex flex-col items-center justify-center min-h-[300px] opacity-60`}>
-                            <div className="animate-pulse text-4xl mb-4">⏳</div>
+                            <div className="animate-pulse text-4xl mb-4">&#8987;</div>
                             <p className="text-lg font-bold text-themeRed">{label} 已完成</p>
                             <p className="text-sm opacity-50">答对 <b className="text-themeRed">{correct}</b> / {total} 题</p>
                             <p className="text-sm opacity-40 mt-2">等待对方答完...</p>
@@ -1158,7 +1172,7 @@
                                 if (prev.phase !== 'playing') return prev;
                                 const updated = { ...prev };
                                 ['left', 'right'].forEach(side => {
-                                    if (!prev[side].done && prev[side].timeLeft <= 1) {
+                                    if (!prev[side].done && prev[side].timeLeft <= 0) {
                                         const q = prev[side].questions[prev[side].index];
                                         updateStats(q.id, false);
                                         const s = { ...prev[side], userAnswer: '', answered: true };
@@ -1232,7 +1246,6 @@
                         ['选项1', '选项2', '选项3', '选项4', '选项5', '选项6', 'A', 'B', 'C', 'D'].forEach(k => {
                             if (row[k]) options.push(String(row[k]));
                         });
-                        // Relaxed answer detection
                         let answer = "";
                         ['答案', '正确答案', 'Answer', 'Key', '正确项'].forEach(k => {
                             if (row[k]) answer = String(row[k]).toUpperCase().replace(/\s/g, '');
@@ -1263,7 +1276,7 @@
                     }
                 };
                 reader.readAsBinaryString(file);
-                e.target.value = null; // Reset for same file re-import
+                e.target.value = null;
             };
 
             const handleImportAction = (action) => {
@@ -1377,9 +1390,9 @@
                         </div>
                         <div className="flex gap-6 font-serif text-sm">
                             <button onClick={() => setMode('home')} className={mode === 'home' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>题库</button>
-                            <button onClick={() => setMode('practice_config')} className={mode === 'practice_config' || mode === 'practice' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>练习</button>
-                            <button onClick={() => setMode('exam_config')} className={mode === 'exam_config' || mode === 'exam' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>检测</button>
-                            <button onClick={() => setMode('battle_config')} className={mode === 'battle_config' || mode === 'battle' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>对战</button>
+                            <button onClick={() => questions.length > 0 ? setMode('practice_config') : setInfoModal({ isOpen: true, title: '提示', message: '题库为空，请先添加题目' })} className={mode === 'practice_config' || mode === 'practice' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>练习</button>
+                            <button onClick={() => questions.length > 0 ? setMode('exam_config') : setInfoModal({ isOpen: true, title: '提示', message: '题库为空，请先添加题目' })} className={mode === 'exam_config' || mode === 'exam' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>检测</button>
+                            <button onClick={() => questions.length > 0 ? setMode('battle_config') : setInfoModal({ isOpen: true, title: '提示', message: '题库为空，请先添加题目' })} className={mode === 'battle_config' || mode === 'battle' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>对战</button>
                         </div>
                     </nav>
 
@@ -1392,7 +1405,7 @@
                         {mode === 'exam' && <Exam examState={examState} setExamState={setExamState} handleExamFail={(reason, answered) => setExamFailModal({ isOpen: true, reason, answered })} handleExamSuccess={handleExamSuccess} updateStats={updateStats} />}
                         {mode === 'battle_config' && <BattleConfig allTags={allTags} setMode={setMode} questions={questions} setInfoModal={setInfoModal} startBattle={startBattle} />}
                         {mode === 'text_import' && <TextImport setMode={setMode} setQuestions={setQuestions} setInfoModal={setInfoModal} questions={questions} />}
-                        {mode === 'battle' && <Battle battleState={battleState} setBattleState={setBattleState} setMode={setMode} updateStats={updateStats} battleTimer={battleTimer} />}
+                        {mode === 'battle' && <Battle battleState={battleState} setBattleState={setBattleState} setMode={setMode} updateStats={updateStats} battleTimer={battleTimer} startBattle={startBattle} />}
                         {mode === 'exam_config' && (
                             <div className="max-w-md mx-auto space-y-4">
                                 <h2 className={THEME_CLASSES.title}>检测准备</h2>
@@ -1451,7 +1464,6 @@
                                         <p>特发此证，以资鼓励</p>
                                     </div>
 
-                                    {/* 详细检测信息面板 */}
                                     <div className="mt-10 pt-6 border-t border-themeRed/10 grid grid-cols-2 gap-x-12 gap-y-2 text-left text-[10px] font-serif text-themeRed/60 w-full max-w-md">
                                         <p>● 检测时长：<span className="text-themeRed font-bold">
                                             {(() => {
