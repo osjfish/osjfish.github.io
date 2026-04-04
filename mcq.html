@@ -1,739 +1,3 @@
-D:\Downloads\mcq
-1、取消题库中手动添加错题的按钮。
-2、练习和检测中，增加“错题”的标签。
-3、检测模式结束后，还在计时请修复这一点。
-Now I understand the codebase. Let me make all three changes:
-
-Now let me add "错题" tag button in Practice mode. I need to add it in the Practice component where the tags are shown:
-
-Now add the "错题" tag in the Exam component:
-
-Now I need to pass the wrongQuestions and setWrongQuestions props to the Exam component:
-
-Now let me fix the timer issue. The problem is in the useEffect for the exam timer - when examState.endTime is set, the timer should stop, but the condition checks examState.endTime which is only set on timeout, not when the exam ends successfully. Let me look at the timer logic more carefully:
-
-The issue is that when the exam ends successfully (via handleExamSuccess), examState.endTime is not set. The timer keeps running because examState.endTime is only set when time runs out. Let me check handleExamSuccess:
-
-The issue is that the timer continues running after the exam ends. The fix is to also check mode === 'exam' in the timer condition:
-
-Let me verify the changes are correct by checking the Practice component props:
-
-Now let me verify the Practice component is receiving the props correctly:
-
-Good, the Practice component already receives wrongQuestions and setWrongQuestions props. Let me verify the final state of the changes:
-
-已完成所有三项修改：
-
-取消手动添加错题按钮 - 已删除题库列表中手动标记错题的按钮（mcq.html:238-241）
-练习和检测中增加"错题"标签：
-练习模式：在题型标签旁添加"错题"按钮（mcq.html:560）
-检测模式：在题号旁添加"错题"按钮（mcq.html:642）
-修复检测模式结束后仍在计时 - 在计时器的 useEffect 中增加 mode === 'exam' 条件判断，确保离开检测模式后计时器停止（mcq.html:724）
-在练习和检测的准备页面，增加错题标签，使用户可以只练习错题。
-Now I need to:
-
-Add "错题" filter to PracticeConfig (练习准备页面)
-Add "错题" filter to exam_config (检测准备页面)
-Update filtering logic in both places to support wrong questions filter
-Let me check how PracticeConfig is called:
-
-Now I'll make all the changes:
-
-Now update the PracticeConfig invocation to pass wrongQuestions:
-
-Now update the startPractice function to handle the wrongOnly filter:
-
-Now add the same "错题" filter to the exam config page:
-
-Now add the "错题" button to the exam config UI:
-
-已完成修改。让我验证一下所有改动是否正确：
-
-已完成所有修改：
-
-练习准备页面（mcq.html:474-477）- 新增"仅练错题"按钮，点击后可只练习错题
-检测准备页面（mcq.html:975-978）- 新增"仅测错题"按钮，点击后可只检测错题
-筛选逻辑 - startPractice、startExam 以及两个页面的 filteredCount/examFilteredCount 均已加入错题过滤条件
-题库列表右侧三个图标高度不一，收藏图标小一点，且偏上
-已修复。给收藏图标的 SVG 添加了 icon-svg 类以统一尺寸，并为容器和按钮添加了 items-center / flex items-center justify-center 确保垂直居中对齐。
-
-还是没有对齐
-Now all three icons use consistent sizing (w-4 h-4) and the icon-svg class. The favorites star SVG now has the icon-svg class applied, and the Edit/Trash icons get explicit w-4 h-4 sizing passed through.
-
-现在对齐了，但收藏后五角星不是实心的，我想要实心的
-已修复。之前收藏图标的 SVG 上有 icon-svg 类，该类在 CSS 中定义了 fill: none，覆盖了 fill="currentColor"，导致收藏后五角星无法显示为实心。移除该类后，收藏状态下五角星会正确显示为实心黄色。
-
-收藏图标能不能和修改、删除图标统一风格，修必、删除的图标挺好的
-Now I need to handle the filled state. The icon-svg CSS class sets fill: none, so I need to override it when favorited:
-
-已修改。现在收藏图标使用统一的 Icons.Star 组件，与编辑、删除图标风格一致（相同的 icon-svg 类）。收藏时通过内联样式覆盖 CSS 的 fill: none，显示实心黄色五角星。
-
-很好，你觉得这个选择题系统还可以怎么优化？
-基于对代码的分析，以下是可以优化的方向，按优先级排序：
-
-高优先级（核心体验）
-错题自动归集 + 错题专项练习模式
-目前错题需手动标记，建议答错时自动加入错题本
-增加"错题重练"模式，只练习错题，答对后自动移出
-练习数据持久化与统计面板
-当前只有简单的 practiceCount/correctCount，缺少按日期记录的练习历史
-可增加学习天数、连续打卡、正确率趋势图等
-间隔重复算法（Spaced Repetition）
-类似 Anki 的算法，根据掌握程度动态安排复习间隔
-避免反复练习已掌握的题目，提升学习效率
-中优先级（功能增强）
-数据备份与恢复
-一键导出/导入全部数据（含收藏、错题、统计数据）
-防止浏览器清除缓存后数据丢失
-批量操作增强
-批量修改标签、批量移除错题/收藏
-更多快捷键
-练习中已有数字键选答案、Enter提交，可扩展更多快捷键
-低优先级（锦上添花）
-移动端适配优化 - 当前在小屏上体验一般
-夜间模式
-题目拖拽排序
-智能推荐 - 根据薄弱知识点推荐题目
-你对哪些方向比较感兴趣？我可以制定详细的实现方案。
-
-现在好像本来就是答错了自动加入错题吧？
-你说得对，我重新看了代码，updateStats 函数中已经有自动加入错题的逻辑：
-
-if (updatedQ.correctCount > wrongCount) {
-    setWrongQuestions(prev => prev.filter(qid => qid !== id));
-} else if (!isCorrect) {
-    setWrongQuestions(prev => [...new Set([...prev, id])]);
-}
-答错时会自动加入错题本，正确率超过50%时会自动移出。所以之前说的第1点"错题自动归集"已经实现了。
-
-那我重新梳理一下最有价值的优化方向：
-
-真正值得做的
-错题重练模式 - 虽然错题会自动归集，但缺少"只练错题"的快捷入口，目前需要在练习/检测准备页手动点"仅练错题"
-数据备份/恢复 - 目前题库、收藏、错题都存在 localStorage，清浏览器就没了，缺少一键导出/导入全部数据的功能
-学习统计面板 - 只有累计次数，没有按日期记录的历史，无法看进步趋势
-间隔重复算法 - 目前所有题目一视同仁，没有根据掌握程度智能安排复习顺序
-你对哪个方向最感兴趣？或者有其他想法？
-
-现在练习、检测页面都可以只练错题。现在可以一键导出所有数据为excel格式。
-明白，那我重新思考一下。让我先确认一下当前导出功能的范围：
-
-你说得对，我重新看了代码，当前导出功能只导出了题目数据（题干、选项、答案、练习次数、正确次数），但没有导出收藏列表和错题列表。
-
-所以目前真正有价值的优化方向是：
-
-1. 数据完整备份/恢复
-当前导出只包含题目，缺少收藏和错题数据。清浏览器后这两项会丢失。
-
-导出时增加"收藏"和"错题"两个 sheet
-导入时能恢复收藏和错题状态
-2. 学习统计面板
-目前只有累计练习次数和正确次数，缺少：
-
-总练习天数、连续打卡
-各标签/难度的正确率对比
-最近练习趋势
-3. 错题快捷入口
-虽然有"仅练错题"选项，但需要先进入练习/检测准备页才能选，缺少从主页一键进入错题练习的快捷方式。
-
-你想先做哪个？或者有其他想法？
-
-我突然觉得错题没有必要，因为易、中、难本身就是错题。
-有道理。当前难度计算逻辑是：
-
-正确率 ≥ 90% → 易
-正确率 ≥ 70% → 中
-正确率 < 70% → 难
-所以"难"题基本就是错题，"错题"标签确实有些冗余。
-
-如果要移除错题功能，涉及修改的地方：
-
-主页筛选栏 - 移除"错题"筛选按钮
-题目列表行内 - 移除手动标记错题的按钮（已移除）
-练习/检测页面 - 移除"错题"标签按钮
-练习/检测准备页 - 移除"仅练错题"选项
-updateStats 函数 - 移除自动加入/移出错题本的逻辑
-localStorage - 移除 wrongQuestions 的读写
-相关 props 传递 - 清理 wrongQuestions/setWrongQuestions 在各组件间的传递
-你觉得这个方向可以吗？如果确认我就开始执行。
-
-可以，执行吧
-Let me make all the changes to remove the wrong questions feature:
-
-Now update the Practice component:
-
-Now update the Exam component:
-
-Now update the main App component - remove wrongQuestions state and related logic:
-
-Now update the filteredQuestions in the App:
-
-Now update the updateStats function to remove wrong question tracking:
-
-Now update the startPractice function:
-
-Now update the startExam function:
-
-Now update the Home component invocation:
-
-Now update the PracticeConfig invocation:
-
-Now update the Practice invocation:
-
-Now update the Exam invocation:
-
-Now remove the wrong question button from the exam config page:
-
-Let me verify no references to wrongQuestions remain:
-
-已完成。所有错题相关代码已彻底移除，包括：
-
-主页筛选按钮
-练习/检测页面的错题标签
-练习/检测准备页的"仅练错题"选项
-updateStats 中的自动归集逻辑
-wrongQuestions 状态及 localStorage 读写
-所有组件间的 props 传递
-很好，目前还有哪些地方可以修改或优化？
-让我先全面审视一下当前系统的状态，然后给你一份优化清单。
-
-基于对代码的全面分析，以下是可以优化或修改的方向，按优先级排列：
-
-高优先级（核心体验）
-1. 练习模式增加进度条
-
-当前只显示"3 / 50"这样的数字，缺少直观的进度可视化
-2. 练习完成后显示统计报告
-
-目前只有"恭喜你完成了本次练习！"一句话
-可增加：答对/答错数量、正确率、用时等
-3. 检测失败时丢失所有进度
-
-检测模式只要答错1题就全部失败，没有记录答了几题
-建议显示答对了几题再失败
-4. 数据备份/恢复功能
-
-导出目前只包含题目，不含收藏状态
-清浏览器后收藏会丢失
-建议增加"备份全部数据"（含收藏）和"恢复数据"功能
-中优先级（功能增强）
-5. 练习模式增加"难"题优先
-
-可以按难度排序，优先练习"难"题
-6. 题目列表增加排序功能
-
-目前只能按添加顺序显示，可按正确率、练习次数、创建时间排序
-7. 导入时保留收藏状态
-
-合并/覆盖导入时，如果能根据题干匹配保留原有收藏状态会更好
-8. 练习模式增加"跳过"功能
-
-遇到不会的题可以跳过，最后再回顾
-低优先级（锦上添花）
-9. 检测模式增加"总限时"选项
-
-目前只有单题限时，可以增加整场检测的总时间限制
-10. 空状态引导
-
-题库为空时显示引导提示，提示用户如何添加题目
-11. 快捷键提示
-
-练习模式已有数字键和Enter键，但用户不知道，可增加快捷键提示
-12. 移动端适配
-
-当前在小屏设备上体验一般
-你想先做哪些？可以选几个告诉我。
-
-练习结束后显示统计报告
-目前只有"恭喜你完成了本次练习！"一句话
-可增加：答对/答错数量、正确率、用时等
-Now let me also add a progress bar to the practice mode:
-
-已完成。练习模式现在包含：
-
-进度条 - 题目上方显示绿色进度条，直观展示完成进度
-统计报告弹窗 - 练习完成后显示：
-总题数、答对、答错数量（大数字卡片）
-正确率和用时
-每道题的对错列表（可滚动查看），绿色背景=正确，红色背景=错误
-检测失败时丢失所有进度
-检测模式只要答错1题就全部失败，没有记录答了几题
-建议失败页面显示答对了几题
-Now update the handleExamFail call in the App to pass the index, and update the fail modal:
-
-Now update the examFailModal state and the modal display:
-
-Now update the exam fail modal display:
-
-Also need to update the timer timeout case to pass the answered count:
-
-已完成。检测模式现在：
-
-增加了进度条 - 与练习模式一致
-失败页面显示答题进度 - 显示已连续答对了几题、总题数、还差几题通关
-练习模式不光是完成时，在主动结束时也要给反馈
-Now update the modal to show different messages based on whether practice was completed or ended early:
-
-Now also add a "已完成/总题数" indicator to the stats:
-
-Now also handle the division by zero edge case when no questions have been answered:
-
-已完成。现在练习模式无论何时结束都会显示统计报告：
-
-完成所有题目后结束 - 显示"恭喜你完成了本次练习！"
-中途主动点击"结束"按钮 - 显示"本次练习统计"，同样展示已做题数、答对/答错、正确率、用时
-现在导出excel备份时没有包含收藏状态，请加上
-Now update the import logic to restore favorites:
-
-Now update the import actions to restore favorites:
-
-Also handle the direct import case (when no existing questions):
-
-已完成。导出 Excel 时新增"收藏"列（值为"是"或"否"），导入时会自动恢复收藏状态：
-
-导出 - 每道题增加"收藏"字段
-导入（合并/覆盖/首次导入） - 读取"收藏"列，恢复对应的收藏状态
-新增一个对战功能，准备页和检测差不多，然后屏幕左右分成两块，显示同样的题，但顺序不同。看谁对得多，一样多就看谁做得快。
-Now let me add all the battle-related code. First, the BattleConfig and Battle components:
-
-Now add the battle state and functions in the App component:
-
-Now add the startBattle function. I'll put it right after startExam:
-
-Now update the battle side rendering to track timeSpent when a side finishes:
-
-Now add the nav button and routes:
-
-Now add the routes for battle_config and battle:
-
-Now I need to fix the BattleConfig component - it references startBattle which is defined inside App. I need to pass it as a prop:
-
-Now let me also handle the edge case where the timer for the battle elapsed display needs to update. Let me also add a timer effect for the battle and handle the case when both sides finish but one side takes longer:
-
-Now add a timer effect for the battle:
-
-Now update the battle rendering to use the live timer:
-
-Now update the battle route to pass battleTimer:
-
-Now let me also remove the unused elapsed variable from the renderSide function:
-
-Now let me also handle a subtle issue: when one side finishes first, the other side should still be able to answer. But currently both sides share the same question pool - the left side may be on question 3 while right side is still on question 2. Let me verify the logic handles this correctly by checking the renderSide function - it uses leftQ and rightQ independently, so this should work fine.
-
-Let me also make sure the result page handles the case where one side didn't finish (e.g. user ended early):
-
-对战功能已完成，包含：
-
-对战准备页（battle_config）
-
-设置题目数量、筛选标签/难度、打乱选项
-与检测准备页风格一致
-对战页面（battle）
-
-屏幕左右分栏，红方（左）和蓝方（右）
-同一批题目但顺序不同（各自随机打乱）
-双方各自独立答题，实时显示答对数量和用时
-顶部有计时器
-对战结果
-
-答对多者胜
-答对相同则用时短者胜
-平局时显示平局
-展示双方正确率、用时等详细数据
-对战模式左右双方隔远一点，另外一方先答完后，这一方显示等待对方答完，并不能操作。对方答完后显示最终结果。
-已完成。修改内容：
-
-间距加大 - gap-4 → gap-12，左右两方间距更大
-容器加宽 - max-w-6xl → max-w-7xl，给更大屏幕更多空间
-等待状态 - 一方答完后，该侧显示等待界面（⏳ 动画 + "等待对方答完..."），不再显示题目和选项，无法操作
-双方都完成后 - 自动显示最终结果
-很好，在对战准备页面，加入每题限时的选项
-Now I need to add the timer effect for battle and update the Battle component to handle per-question time limits:
-
-Now update the Battle component to show the timer and handle time-up:
-
-Now update the renderSide calls to pass timeLeft and timeLimit:
-
-Now I need to reset the timer when moving to the next question. Let me update the submit handlers:
-
-已完成。对战准备页面新增"每题限时（秒，0为不限）"选项，对战中：
-
-限时 > 0 时，每侧显示独立倒计时，少于10秒时红色闪烁
-一方限时用完自动判定该侧完成，进入等待状态
-换题时限时自动重置
-对战模式每题超时后，这一题算做错，并自动进入下一题。
-已完成。对战模式中每题限时用完时：
-
-该题算错（调用 updateStats(q.id, false)）
-自动进入下一题，限时重置
-如果是最后一题则标记完成
-太棒了。现在增加一个文本导入功能。按固定格式粘贴纯文本，就可以批量导入题目。
-Let me first add a Text icon, then create the TextImport component:
-
-Now let me add the TextImport component. I'll place it right before the BattleConfig component:
-
-Now add the route in the App:
-
-文本导入功能已完成。在题库页面新增了一个 "文本导入" 按钮（mcq.html:172）。
-
-使用方式： 点击按钮后粘贴纯文本，格式如下（题目之间用空行分隔）：
-
-题干内容
-A. 选项一
-B. 选项二
-C. 选项三
-D. 选项四
-答案：AB
-解析：（可选）
-标签：（可选，逗号或空格分隔）
-备注：（可选）
-点击"预览解析"可查看识别结果，确认无误后选择合并或覆盖方式导入。
-
-不要有覆盖导入的选项，很容易丢失数据
-已移除文本导入中的覆盖选项，现在只保留合并导入，自动去重，不会丢失数据。
-
-请再检查一下，还有没有存在BUG，以及如何优化
-让我全面检查一下代码。
-
-全面审查完毕，以下是发现的 BUG 和优化建议：
-
-BUG
-1. 对战超时后 updateStats 闭包过期（mcq.html:1163）
-
-useEffect 中的 updateStats 是在组件首次渲染时捕获的，但 setBattleState 在 interval 回调里使用了旧的 updateStats 引用。虽然 updateStats 用了 useCallback 且依赖为空，所以这个实际上没问题。
-2. 对战超时判断边界问题（mcq.html:1161）
-
-条件是 timeLeft <= 1，意味着 timeLeft 为 1 时就触发超时。如果限时 10 秒，实际只给了 9 秒（10→9→8→7→6→5→4→3→2→1 触发）。应该改为 timeLeft <= 0 并在初始值上 +1，或者改为 < 1。
-3. 练习模式"结束"按钮在答题前也能点（mcq.html:650）
-
-点"结束"后弹窗统计，但如果一题都没做就结束，显示"0/总数"，体验不好。
-4. 对战模式 useEffect 依赖 updateStats（mcq.html:1184）
-
-useEffect 的依赖数组只有 [mode, battleState]，但内部调用了 updateStats。由于 updateStats 是稳定的 useCallback，不会造成问题。
-5. 对战超时后，timeLeft 可能为负数
-
-当 timeLeft <= 1 时触发，但此时 timeLeft 还没被设为 0，可能导致显示为 0 或 1 的闪烁。
-优化建议
-A. 对战超时边界修复 - 改为 timeLeft <= 0 更合理
-
-B. 练习模式空状态提示 - 题库为空时主页显示引导
-
-C. 对战模式增加"再来一局"按钮 - 结果页可以快速重开
-
-D. 练习模式增加快捷键提示 - 用户不知道可以用数字键和 Enter
-
-E. 文本导入支持更多格式 - 目前只支持 A. 格式，可增加对 A、 A: A 等格式的兼容
-
-F. 空题库时隐藏练习/检测/对战按钮或给提示
-
-你想先修哪些？
-
-优化以下内容
-
-A. 对战超时边界修复 - 改为 timeLeft <= 0 更合理
-
-B. 练习模式空状态提示 - 题库为空时主页显示引导
-
-C. 对战模式增加"再来一局"按钮 - 结果页可以快速重开
-
-D. 练习模式增加快捷键提示 - 用户不知道可以用数字键和 Enter
-
-E. 文本导入支持更多格式 - 目前只支持 A. 格式，可增加对 A、 A: A 等格式的兼容
-
-F. 空题库时隐藏练习/检测/对战按钮或给提示
-Now B and F together - empty state on home page:
-
-Now add empty state when no questions exist:
-
-Now close the conditional properly - find the end of the filteredQuestions.map section:
-
-Now F - hide nav buttons when no questions. Let me update the nav:
-
-Now C - add "再来一局" button to battle result:
-
-Need to pass startBattle to the Battle component:
-
-Now D - add keyboard shortcut hints in Practice mode:
-
-Now E - improve text import regex to support more formats like A、 A: A :
-
-The regex already supports A. A、 A: A： A (space). The character class [\.、:\s：] covers all these. Actually the original regex [\.、\s：:] was already correct, my edit just reordered it. Let me verify it's still correct and also add support for lowercase letters:
-
-全部完成：
-
-项	修改内容
-A	对战超时条件改为 timeLeft <= 0，限时 10 秒就是完整的 10 秒
-B	题库为空时显示引导页面（📝 图标 + 提示文字 + 三种导入方式说明）；筛选无结果时显示"没有匹配的题目"
-C	对战结果页新增"再来一局"按钮，使用相同题数和设置快速重开
-D	练习模式题干下方显示快捷键提示：数字键选择 | Enter 提交/下一题
-E	文本导入选项正则增加小写字母支持（a. b. 等），已支持 . 、 : ： 空格 五种分隔符
-F	题库为空时，导航栏"练习/检测/对战"点击会弹窗提示"题库为空，请先添加题目"；"清空题库"按钮也自动隐藏
-现在访问页面一片空白
-The emoji characters might be causing Babel parsing issues. Let me replace them:
-
-The issue is likely the emoji in the empty state. Babel standalone can choke on certain Unicode. Let me replace the emoji:
-
-Let me check the actual file encoding and see if there's a Babel parse error by checking for any problematic characters:
-
-The file has encoding issues - the emojis got corrupted. Let me fix this by replacing all emoji characters with plain text alternatives:
-
-Now fix the battle emojis:
-
-Now let me also check the renderSide function for the same labels:
-
-Good, all fixed. Now let me verify the file is valid by checking for any other problematic characters:
-
-Now let me also verify there are no JSX syntax issues by checking the structure around the conditional rendering I added:
-
-The file has encoding corruption with emojis. Let me fix all emoji characters by replacing them with safe alternatives:
-
-The file got corrupted by the PowerShell command. Let me rewrite it completely:
-
-文件已重写。之前的问题是 PowerShell 命令导致文件编码损坏，emoji 字符变成了乱码。现在已用 HTML 实体（&#128221;、&#8987;）替代了所有 emoji，并修复了 JSX 条件渲染的结构问题。
-
-请刷新页面试试。
-
-请再检查一下，还有没有存在BUG，以及如何优化
-让我全面检查一下当前代码。
-
-全面审查完毕，以下是发现的问题：
-
-BUG
-1. 对战限时初始值导致少1秒 (line 1175)
-
-timeLeft 初始为 config.timeLimit（例如10秒），条件改为 <= 0 后，倒计时过程：10→9→8→7→6→5→4→3→2→1→0 触发超时。实际给了10秒，这是正确的。但 timeLeft 显示为 0 时才触发，用户会看到 0s 闪一下。建议显示为 0 时直接隐藏或标记为超时。
-2. 对战超时后 timeLeft 未重置为 0 (line 1175-1186)
-
-当 timeLeft <= 0 触发超时后，如果还没到最后一题，timeLeft 被重置为 prev.timeLimit，但此时 timeLeft 已经是 0 或负数了。prev.timeLimit 是正确的，所以这个没问题。
-3. 对战超时触发时 updateStats 可能重复调用 (line 1177)
-
-useEffect 的 interval 每秒执行一次，如果 timeLeft 恰好为 0，updateStats 被调用后 timeLeft 没有被设为负数，下一轮 interval 可能再次触发。需要确保超时后 timeLeft 变为负值或加标记防止重复。
-4. 练习模式"结束"按钮在答题前可用 (line 663)
-
-一题未答就点"结束"，弹窗显示 0/总数，体验差。
-5. 练习模式 startTime 每次渲染都重新创建 (line 515)
-
-useState(Date.now()) 只在首次渲染时执行，这是正确的。但切换题目时 startTime 不会重置，所以用时统计的是从进入练习到结束的总时间，不是答题时间。这其实是合理的设计。
-6. 对战"再来一局"使用空标签/难度 (line 1020)
-
-startBattle({ count: lTotal, timeLimit: battleState.timeLimit, tags: [], difficulties: [], ... }) 会忽略上一次的筛选条件，可能题目池不够导致无法开始。
-优化建议
-#	优化项	说明
-A	对战超时防重复触发	timeLeft 减到 0 后设为 -1，防止 interval 重复处理
-B	对战"再来一局"保留筛选	将上一次的 config 存入 battleState，重开时复用
-C	练习模式未答题时禁用"结束"	至少答了一题后才允许点"结束"
-D	对战限时 0 时不显示倒计时	timeLeft 为 0 时显示"超时"而不是 "0s"
-E	文本导入支持无序号题干	目前题干正则 /^[【\d\w\.\s]+/ 会误删以字母开头的题干首字
-F	检测准备页题目数量输入验证	examConfig.count 是字符串类型，应转数字
-你想修复哪些？
-
-再次思考这些优化建议是不是合理，如果合理，现在就修复。
-逐项评估后，A、C、D、F 是明确的 BUG 或必要修复，B 和 E 影响较小。现在修复 A、C、D、F。
-
-Now fix C - disable "结束" button in practice until at least one answer submitted:
-
-Now fix F - ensure examConfig.count and timeLimit are numbers:
-
-Also fix the initial state types:
-
-Good, initial state already uses numbers. Now let me also fix the examConfig comparison where it compares examFilteredCount < examConfig.count - since count is now always a number this is fine. Let me also fix the battle config input to ensure numbers:
-
-Now let me also fix B - store the last battle config so "再来一局" can reuse it:
-
-Now fix E - the text import stem regex can eat the first character of stems starting with letters:
-
-已修复全部 6 项：
-
-项	问题	修复
-A	对战超时可能重复触发	timeLeft 超时时设为 -1，interval 条件增加 timeLeft > 0 防止重复
-B	"再来一局"丢失筛选条件	battleState 新增 lastConfig 字段保存原始配置
-C	练习未答题时可点"结束"	添加 disabled={results.length === 0}
-D	对战限时 0s 闪烁	timeLeft <= 0 时显示"超时"而非 "0s"
-E	文本导入误删字母开头题干	正则从 [\d\w\.\s] 改为 [\d\s\.、\)\]\}]+，不匹配字母
-F	检测/对战数量输入为字符串	改用 parseInt 确保为数字，添加 min 属性
-请再检查一下，还有没有存在BUG，以及如何优化
-全面审查完毕，代码质量整体良好，以下是剩余问题：
-
-剩余 BUG
-无阻断性 BUG。之前的 6 项已全部修复。
-
-可优化项（影响较小）
-#	优化项	严重程度	说明
-1	练习模式快捷键 setMode 在依赖数组但未使用	低	useEffect 依赖包含 setMode 但实际未调用，无害但冗余
-2	对战超时后 answered: true 字段未使用	低	设置了但从未读取
-3	文本导入题干正则 /^[\d\s\.、\)\]\}]+/ 可能误删以 ) 开头的题干	低	极少见，但理论上存在
-4	检测模式 examConfig.count 和 timeLimit 初始值为 number 但 onChange 用 parseInt	无	已修复，类型一致
-5	空题库时导航栏按钮仍可点击（只是弹窗提示）	低	体验层面，已做提示
-6	练习模式 startTime 统计的是从进入页面到结束的总时间，不是纯答题时间	低	如果用户中途离开页面再回来，用时会偏大
-结论：当前代码没有需要紧急修复的 BUG。 上述 6 项都是体验层面的小优化，不影响功能正常运行。如果你认为某项值得做，告诉我即可。
-
-题库页面中，在复选题目的情况下，不仅可以删除这些题，还可以为这些题批量添加标签或批量收藏
-Now let me verify the Home component invocation already passes setQuestions and setFavorites:
-
-Good, setQuestions, setFavorites, and setInfoModal are all already passed as props. Let me verify the file parses correctly:
-
-Let me verify the changes are working correctly by checking the updated Home component:
-
-已完成。选中题目后，工具栏会显示 4 个操作按钮：
-
-按钮	功能
-删除	删除选中题目（原有功能）
-收藏	将选中题目全部加入收藏
-取消收藏	将选中题目移出收藏
-添加标签	展开输入框，输入标签后为选中题目批量添加（支持逗号/空格分隔多个标签，自动去重）
-将题库的标签由下拉选择改为可拖动的标签罗列
-已完成。标签筛选从下拉框改为可点击的标签按钮行：
-
-多标签同时筛选 - 可点击多个标签，题目会匹配任意一个选中的标签
-再次点击取消 - 已选中的标签再次点击即可取消
-自动隐藏 - 题库无标签时不显示标签行
-布局调整 - 搜索框、难度下拉、收藏按钮在同一行，标签在下方单独一行
-题库页面，同时点选标签时，是“与”逻辑，不是“或”逻辑
-当前逻辑是 .some() 即"或"。改为 .every() 即"与"：
-
-已改为"与"逻辑。现在同时选中多个标签时，只显示同时包含所有选中标签的题目。
-
-在题库筛选页面，以及练习、检测、对战的准备页面，增加单选或多选的筛选。
-Now add the filter logic:
-
-Now update the Home component to accept and use the new prop:
-
-Now add the type filter buttons to the Home UI, right after the tags row:
-
-Now update the reset button:
-
-Now update the Home component invocation to pass the new props:
-
-Now add the type filter to PracticeConfig:
-
-Now I'll update PracticeConfig to add the question type filter:
-
-Now add the type filter UI in PracticeConfig:
-
-Now do the same for BattleConfig:
-
-Now update examConfig and the exam config page:
-
-Now update the exam start function:
-
-Now add the question type filter to the exam config UI:
-
-Now update the startPractice function to include questionTypes filtering:
-
-Now update the startBattle function:
-
-已完成所有修改。现在题库筛选、练习准备、检测准备、对战准备四个页面都增加了"题型"筛选按钮（单选/多选），支持多选组合筛选。
-
-题库页面不需要单独给收藏一个筛选标签，把收藏作为一个特殊标签放在标签的第一个。
-练习、检测、对战中也加入收藏的筛选。
-Now update the filter UI - remove the separate 收藏 button and merge it into the tags row:
-
-Now update the filteredQuestions logic to handle the '收藏' tag:
-
-Now update the reset button:
-
-Now update the Home invocation to remove filterFavorites props:
-
-Now add the 收藏 filter to PracticeConfig, ExamConfig, and BattleConfig. First PracticeConfig:
-
-Now update startPractice to handle favOnly:
-
-Now do the same for BattleConfig:
-
-Now update startBattle:
-
-Now update examConfig and exam start:
-
-Now add the 收藏 filter button to the exam config UI:
-
-练习、检测、对战的准备页，收藏也放在筛选标签的第一个，和题库页面一样
-Now update startPractice to handle the '收藏' tag:
-
-Now do the same for BattleConfig:
-
-Now update the BattleConfig UI to put 收藏 as the first tag:
-
-Now do the same for examConfig - add 收藏 as first tag in the UI and update filtering:
-
-Now update the exam config UI to put 收藏 as the first tag:
-
-已完成。现在题库、练习、检测、对战四个页面的收藏筛选统一为：
-
-"收藏"作为特殊标签放在标签行的第一个
-有收藏题目时才显示
-黄色高亮样式，与普通标签的红色区分
-点击切换选中/取消
-你太棒了。现在练习模式中，除顺序、乱序之外，添加一个智能练习功能，每20道题为一组，每组中包含大部分未做过的题，其次是难题、中等题，易题。默认乱序乱项。这样可以让用户方便地训练加强。
-
-另外，练习模式中，做错的题可以当时手动添加标签、解析或备注
-Now add the ability to edit tags/analysis/remark when answering wrong in practice mode. Let me find the practice showAnswer section:
-
-Now I need to add state for editing wrong answer info and pass setQuestions to Practice:
-
-Now add the edit wrong answer logic and UI after the showAnswer section. I need to add it inside the answer feedback area:
-
-Now add the edit modal for wrong answers inside the Practice component:
-
-Now update the Practice invocation to pass the new props:
-
-已完成两项功能：
-
-1. 智能练习模式
-
-练习准备页新增"智能"按钮，与"顺序"、"乱序"并列
-每组 20 题，按比例抽取：60% 未做过 + 20% 难题 + 15% 中等题 + 5% 易题
-自动乱序乱项，默认开启
-题目不足时按实际数量抽取
-2. 答错后可编辑
-
-答错后答案反馈区显示"编辑标签/解析/备注"链接
-点击弹出编辑弹窗，可修改当前题的标签、解析、备注
-保存后立即更新题库
-太棒了。再优化一点：练习模式中，答对后答案反馈区也显示"编辑标签/解析/备注"链接
-已移除条件判断，现在无论答对还是答错，答案反馈区都显示"编辑标签/解析/备注"链接。
-
-对战模式、检测模式中做对和做错的所有题，也要统计做题次数和正确次数
-Exam 模式中答错时没有调用 updateStats，Battle 模式中答对和答错都调用了 updateStats。让我确认：
-
-Battle 模式已经正确调用了 updateStats(leftQ.id, isCorrect) 和 updateStats(rightQ.id, isCorrect)，无论对错都统计了。
-
-Exam 模式中答错时直接 return，没有调用 updateStats。需要修复：
-
-Also need to handle the exam timer timeout case - when time runs out, the current question's stats should also be recorded:
-
-The exam timer timeout doesn't call updateStats for the current unanswered question. But since the user didn't answer it (time ran out), it's reasonable not to count it. The question that was already answered (wrong) in the previous round already got counted via handleSubmit. So this is fine.
-
-Now let me also check the battle timeout case - it already calls updateStats(q.id, false):
-
-Battle timeout already calls updateStats(q.id, false). All good.
-
-已完成修改。现在：
-
-检测模式 - 答错时也会调用 updateStats(current.id, false) 统计练习次数和正确次数（之前答错直接 return，没有统计）
-对战模式 - 答对、答错、超时都已正确调用 updateStats
-添加导出试卷的功能，功能的准备员和练习类似，可以自动生成若干题目供用户打印练习，可选择试卷结尾附不附答案或解析。
-
-能导出docx是最好的，否则导出为txt和pdf（注意排版紧凑、精致、实用）也行。如果可以docx或pdf，默认A4纸大小。
-Now let me add the PaperConfig component and the docx export function. I'll place PaperConfig right after BattleConfig:
-
-Now add the nav button and route:
-
-Now add the route:
-
-Now I need to fix the favorites reference in PaperConfig - it's not passed as a prop. Let me add it:
-
-Now let me verify the file is valid:
-
-已完成。新增"试卷"功能：
-
-功能特性：
-
-题库页导航栏新增"试卷"按钮
-可设置题目数量、筛选标签/难度/题型
-可打乱题序和选项顺序
-三种输出模式：仅题目 / 附答案 / 答案+解析
-答案位置可选：末尾集中（另起一页）或每题下方
-导出为 .docx 格式，默认 A4 纸张，排版紧凑精致
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -749,7 +13,6 @@ Now let me verify the file is valid:
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
@@ -1339,6 +602,12 @@ Now let me verify the file is valid:
             const [editTags, setEditTags] = useState('');
             const [editAnalysis, setEditAnalysis] = useState('');
             const [editRemark, setEditRemark] = useState('');
+            const [reviewMode, setReviewMode] = useState(false);
+            const [reviewList, setReviewList] = useState([]);
+            const [reviewIndex, setReviewIndex] = useState(0);
+            const [reviewAnswer, setReviewAnswer] = useState('');
+            const [reviewShowAnswer, setReviewShowAnswer] = useState(false);
+            const [reviewCorrect, setReviewCorrect] = useState(0);
             if (!practiceState) return null;
             const current = practiceState.list[practiceState.index];
             
@@ -1448,6 +717,20 @@ Now let me verify the file is valid:
                                     </div>
                                 ))}
                             </div>
+                            {wrongCount > 0 && (
+                                <button onClick={() => {
+                                    const wrongResults = results.filter(r => !r.isCorrect);
+                                    setReviewList(wrongResults);
+                                    setReviewIndex(0);
+                                    setReviewAnswer('');
+                                    setReviewShowAnswer(false);
+                                    setReviewCorrect(0);
+                                    setReviewMode(true);
+                                    setShowCompleteModal(false);
+                                }} className="w-full py-2 border-2 border-themeRed text-themeRed font-serif text-sm hover:bg-themeRed/5 transition-all">
+                                    回顾错题 ({wrongCount} 题)
+                                </button>
+                            )}
                         </div>
                     </Modal>
                     <Modal
@@ -1480,6 +763,79 @@ Now let me verify the file is valid:
                             </div>
                         </div>
                     </Modal>
+                    {reviewMode ? (
+                        <div className="max-w-2xl mx-auto space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h2 className="font-title text-2xl text-[#A93226] border-b-2 border-[#A93226] inline-block mb-4 pb-1" style={{ fontFamily: "'Noto Serif SC', serif" }}>错题回顾</h2>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-xs opacity-50">{reviewIndex + 1} / {reviewList.length}</span>
+                                    <button onClick={() => setReviewMode(false)} className={THEME_CLASSES.secondaryButton}>结束回顾</button>
+                                </div>
+                            </div>
+                            <div className="w-full h-1.5 bg-themeRed/10 rounded-sm overflow-hidden">
+                                <div className="h-full bg-themeRed transition-all duration-300" style={{ width: `${((reviewIndex + 1) / reviewList.length) * 100}%` }}></div>
+                            </div>
+                            <div className={THEME_CLASSES.card + " space-y-6"}>
+                                <div className="flex gap-2"><span className={THEME_CLASSES.badge}>{reviewList[reviewIndex].question.answer.length > 1 ? '多选' : '单选'}</span></div>
+                                <p className="text-lg leading-relaxed">{reviewList[reviewIndex].question.stem}</p>
+                                <div className="space-y-2">
+                                    {(() => {
+                                        const q = reviewList[reviewIndex].question;
+                                        const opts = practiceState.shuffleOptions ? shuffleArray(q.options.map((text, idx) => ({ text, originalLetter: String.fromCharCode(65 + idx) }))) : q.options.map((text, idx) => ({ text, originalLetter: String.fromCharCode(65 + idx) }));
+                                        return opts.map((opt, i) => {
+                                            const letter = String.fromCharCode(65 + i);
+                                            const isSelected = reviewAnswer.includes(opt.originalLetter);
+                                            return (
+                                                <button key={i}
+                                                    disabled={reviewShowAnswer}
+                                                    onClick={() => {
+                                                        const newUA = reviewAnswer.includes(opt.originalLetter)
+                                                            ? reviewAnswer.replace(opt.originalLetter, '')
+                                                            : reviewAnswer + opt.originalLetter;
+                                                        setReviewAnswer(newUA);
+                                                    }}
+                                                    className={`w-full text-left p-3 border transition-all flex items-center gap-3 ${isSelected ? 'bg-themeRed text-white border-themeRed' : 'border-themeRed/10 hover:border-themeRed/30'}`}>
+                                                    <span className={`w-6 h-6 flex items-center justify-center border rounded-full text-xs ${isSelected ? 'border-white' : 'border-themeRed/20'}`}>{letter}</span>
+                                                    {opt.text}
+                                                </button>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+                                {reviewShowAnswer ? (
+                                    <div className="p-4 bg-themeRed/5 border-l-4 border-themeRed space-y-2 text-sm">
+                                        <p className="font-bold flex items-center gap-2">
+                                            {reviewList[reviewIndex].question.answer.split('').sort().join('') === reviewAnswer.split('').sort().join('') ?
+                                                <span className="text-green-700"><Icons.Check/> 正确</span> :
+                                                <span className="text-red-700"><Icons.X/> 错误</span>
+                                            }
+                                        </p>
+                                        <p><span className="opacity-60">正确答案：</span>{reviewList[reviewIndex].question.answer}</p>
+                                        <p><span className="opacity-60">解析：</span>{reviewList[reviewIndex].question.analysis || '无'}</p>
+                                        <div className="flex gap-3 pt-2">
+                                            <button onClick={() => {
+                                                if (reviewIndex < reviewList.length - 1) {
+                                                    setReviewIndex(reviewIndex + 1);
+                                                    setReviewAnswer('');
+                                                    setReviewShowAnswer(false);
+                                                } else {
+                                                    setReviewMode(false);
+                                                }
+                                            }} className={THEME_CLASSES.button}>下一题</button>
+                                            <button onClick={() => setReviewMode(false)} className={THEME_CLASSES.secondaryButton}>结束回顾</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => {
+                                        const isCorrect = reviewList[reviewIndex].question.answer.split('').sort().join('') === reviewAnswer.split('').sort().join('');
+                                        if (isCorrect) setReviewCorrect(prev => prev + 1);
+                                        setReviewShowAnswer(true);
+                                    }} disabled={!reviewAnswer} className={THEME_CLASSES.button + " w-full py-3"}>提交答案</button>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                    <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h2 className={THEME_CLASSES.title}>练习模式</h2>
                         <span className="text-xs opacity-50">{practiceState.index + 1} / {practiceState.list.length}</span>
@@ -1545,6 +901,8 @@ Now let me verify the file is valid:
                             <button onClick={handleSubmit} disabled={!practiceState.userAnswer} className={THEME_CLASSES.button + " w-full py-3"}>提交答案</button>
                         )}
                     </div>
+                </div>
+                    )}
                 </div>
             );
         };
@@ -1828,7 +1186,6 @@ Now let me verify the file is valid:
         };
 
         const PaperConfig = ({ allTags, setMode, questions, setInfoModal, favorites }) => {
-            const { Paragraph, TextRun, AlignmentType, PageBreak, Packer, Document, SectionType, HeadingLevel, BorderStyle, Table, TableRow, TableCell, WidthType } = docx;
             const [config, setConfig] = useState({
                 count: 20,
                 tags: [],
@@ -1836,8 +1193,8 @@ Now let me verify the file is valid:
                 questionTypes: [],
                 shuffleQuestions: true,
                 shuffleOptions: true,
-                includeAnswer: false,
-                includeAnalysis: false,
+                includeAnswer: true,
+                includeAnalysis: true,
                 answerPosition: 'end',
             });
 
@@ -1867,112 +1224,58 @@ Now let me verify the file is valid:
 
                 let selected = config.shuffleQuestions ? shuffleArray(pool).slice(0, config.count) : pool.slice(0, config.count);
 
-                const children = [];
-                children.push(
-                    new Paragraph({
-                        children: [new TextRun({ text: '选择题测试卷', bold: true, size: 36, font: 'SimSun' })],
-                        alignment: AlignmentType.CENTER,
-                        spacing: { after: 200 },
-                    }),
-                    new Paragraph({
-                        children: [new TextRun({ text: `（共 ${config.count} 题，满分 ${config.count} 分）`, size: 22, font: 'SimSun', color: '666666' })],
-                        alignment: AlignmentType.CENTER,
-                        spacing: { after: 400 },
-                    })
-                );
+                let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>试卷</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+@page { size: A4; margin: 2.54cm 3.18cm 2.54cm 3.18cm; }
+body { font-family: 'SimSun','宋体',serif; font-size: 10.5pt; line-height: 1.5; color: #000; }
+h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; letter-spacing: 4px; }
+.sub { text-align: center; font-size: 11pt; color: #555; margin: 0 0 18px; }
+.q { margin: 8px 0; page-break-inside: avoid; }
+.qs { font-weight: bold; }
+.qt { color: #777; font-size: 10.5pt; }
+.opt { margin: 2px 0 2px 1.5em; }
+.ans { color: #A93226; font-weight: bold; margin-top: 3px; }
+.ana { color: #555; margin-top: 2px; }
+.ah { text-align: center; font-size: 16pt; font-weight: bold; margin: 0 0 12px; }
+</style></head><body>
+<h1>选择题测试卷</h1>
+<p class="sub">（共 ${config.count} 题，满分 ${config.count} 分）</p>`;
 
                 selected.forEach((q, i) => {
                     const letter = q.answer.length > 1 ? '多选' : '单选';
-                    children.push(
-                        new Paragraph({
-                            children: [
-                                new TextRun({ text: `${i + 1}. `, bold: true, size: 24, font: 'SimSun' }),
-                                new TextRun({ text: `[${letter}] `, size: 22, font: 'SimSun', color: '888888' }),
-                                new TextRun({ text: q.stem, size: 24, font: 'SimSun' }),
-                            ],
-                            spacing: { before: 200, after: 100 },
-                        })
-                    );
-
+                    html += `<div class="q"><span class="qs">${i + 1}. </span><span class="qt">[${letter}] </span><span>${q.stem}</span>`;
                     const opts = config.shuffleOptions ? shuffleArray(q.options.map((text, idx) => ({ text, originalLetter: String.fromCharCode(65 + idx) }))) : q.options.map((text, idx) => ({ text, originalLetter: String.fromCharCode(65 + idx) }));
-                    
                     opts.forEach((opt, j) => {
-                        children.push(
-                            new Paragraph({
-                                children: [
-                                    new TextRun({ text: `    ${String.fromCharCode(65 + j)}. `, size: 24, font: 'SimSun' }),
-                                    new TextRun({ text: opt.text, size: 24, font: 'SimSun' }),
-                                ],
-                                spacing: { after: 60 },
-                            })
-                        );
+                        html += `<div class="opt">${String.fromCharCode(65 + j)}. ${opt.text}</div>`;
                     });
-
                     if (config.includeAnswer || config.includeAnalysis) {
                         if (config.answerPosition === 'inline') {
-                            if (config.includeAnswer) {
-                                children.push(
-                                    new Paragraph({
-                                        children: [
-                                            new TextRun({ text: `    答案：${q.answer}`, bold: true, size: 22, font: 'SimSun', color: 'A93226' }),
-                                        ],
-                                        spacing: { before: 60, after: 40 },
-                                    })
-                                );
-                            }
-                            if (config.includeAnalysis && q.analysis) {
-                                children.push(
-                                    new Paragraph({
-                                        children: [
-                                            new TextRun({ text: `    解析：${q.analysis}`, size: 22, font: 'SimSun', color: '666666' }),
-                                        ],
-                                        spacing: { before: 40, after: 100 },
-                                    })
-                                );
-                            }
+                            if (config.includeAnswer) html += `<div class="ans">答案：${q.answer}</div>`;
+                            if (config.includeAnalysis && q.analysis) html += `<div class="ana">解析：${q.analysis}</div>`;
                         }
-                    } else {
-                        children.push(new Paragraph({ text: '', spacing: { after: 150 } }));
                     }
+                    html += `</div>`;
                 });
 
                 if (config.answerPosition === 'end' && (config.includeAnswer || config.includeAnalysis)) {
-                    children.push(new Paragraph({
-                        children: [new PageBreak()],
-                    }));
-                    children.push(
-                        new Paragraph({
-                            children: [new TextRun({ text: '参考答案', bold: true, size: 32, font: 'SimSun' })],
-                            alignment: AlignmentType.CENTER,
-                            spacing: { after: 300 },
-                        })
-                    );
+                    html += `<br clear="all" style="page-break-before:always;margin:0;padding:0;height:0;"/>`;
+                    html += `<p class="ah">参考答案</p>`;
                     selected.forEach((q, i) => {
                         let answerText = `${i + 1}. ${q.answer}`;
-                        if (config.includeAnalysis && q.analysis) {
-                            answerText += `  解析：${q.analysis}`;
-                        }
-                        children.push(
-                            new Paragraph({
-                                children: [new TextRun({ text: answerText, size: 22, font: 'SimSun' })],
-                                spacing: { after: 100 },
-                            })
-                        );
+                        if (config.includeAnalysis && q.analysis) answerText += `  解析：${q.analysis}`;
+                        html += `<p style="margin:4px 0">${answerText}</p>`;
                     });
                 }
 
-                const doc = new Document({
-                    sections: [{
-                        properties: {},
-                        children: children,
-                    }],
-                });
+                html += `</body></html>`;
 
-                const blob = await Packer.toBlob(doc);
+                const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `试卷_${Date.now()}.docx`;
+                a.download = `试卷_${Date.now()}.doc`;
                 a.click();
                 URL.revokeObjectURL(url);
             };
@@ -2047,7 +1350,7 @@ Now let me verify the file is valid:
                             </div>
                         )}
                         <p className="text-[10px] opacity-40">当前筛选条件下共有 <span className="text-themeRed font-bold">{filteredCount}</span> 道题目</p>
-                        <button onClick={generatePaper} className={THEME_CLASSES.button + " w-full py-3"}>生成并下载试卷 (.docx)</button>
+                        <button onClick={generatePaper} className={THEME_CLASSES.button + " w-full py-3"}>生成并下载试卷 (.doc)</button>
                         <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton + " w-full"}>返回</button>
                     </div>
                 </div>
