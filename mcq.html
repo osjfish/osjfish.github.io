@@ -103,6 +103,8 @@
             Alert: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
             History: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
             Eraser: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="m22 21H7"/><path d="m5 11 9 9"/></svg>,
+            Star: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+            FileText: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
         };
 
         // --- Constants ---
@@ -133,6 +135,14 @@
             return newArr;
         };
 
+        const formatTime = (ms) => {
+            const totalSeconds = Math.floor(ms / 1000);
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
+            if (m > 0) return `${m}分${s}秒`;
+            return `${s}秒`;
+        };
+
         // --- Components ---
 
         const Modal = ({ isOpen, onClose, title, children, footer }) => {
@@ -151,7 +161,7 @@
             );
         };
 
-        const Home = ({ questions, filteredQuestions, searchQuery, setSearchQuery, filterTags, setFilterTags, filterDifficulty, setFilterDifficulty, filterFavorites, setFilterFavorites, filterWrong, setFilterWrong, allTags, setMode, setEditingQuestion, onImportClick, handleExportExcel, setQuestions, selectedIds, setSelectedIds, confirmDelete, confirmClear, setInfoModal, setFavorites, favorites, setWrongQuestions, wrongQuestions }) => {
+        const Home = ({ questions, filteredQuestions, searchQuery, setSearchQuery, filterTags, setFilterTags, filterDifficulty, setFilterDifficulty, filterFavorites, setFilterFavorites, allTags, setMode, setEditingQuestion, onImportClick, handleExportExcel, setQuestions, selectedIds, setSelectedIds, confirmDelete, confirmClear, setInfoModal, setFavorites, favorites }) => {
             const isAllSelected = filteredQuestions.length > 0 && selectedIds.length === filteredQuestions.length;
             
             return (
@@ -160,6 +170,7 @@
                         <div className="flex flex-wrap gap-3 mb-4">
                             <button onClick={() => {setEditingQuestion(null); setMode('edit')}} className={THEME_CLASSES.button}><Icons.Plus/> 新增题目</button>
                             <button onClick={onImportClick} className={THEME_CLASSES.secondaryButton}><Icons.Upload/> 导入题库</button>
+                            <button onClick={() => setMode('text_import')} className={THEME_CLASSES.secondaryButton}><Icons.FileText/> 文本导入</button>
                             <button onClick={handleExportExcel} className={THEME_CLASSES.secondaryButton}><Icons.Download/> 导出题库</button>
                             <button onClick={confirmClear} className="px-4 py-1.5 border border-red-700 text-red-700 font-serif hover:bg-red-50 transition-all text-sm flex items-center gap-2"><Icons.Eraser/> 清空题库</button>
                             <div className="flex-1"></div>
@@ -188,13 +199,12 @@
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={() => setFilterFavorites(!filterFavorites)} className={`flex-1 px-2 py-1 text-xs border ${filterFavorites ? 'bg-yellow-500 text-white border-yellow-500' : 'border-themeRed/20'}`}>收藏</button>
-                                <button onClick={() => setFilterWrong(!filterWrong)} className={`flex-1 px-2 py-1 text-xs border ${filterWrong ? 'bg-red-500 text-white border-red-500' : 'border-themeRed/20'}`}>错题</button>
                             </div>
                         </div>
                         <div className="mt-3 flex justify-between items-center px-1">
                             <p className="text-[10px] opacity-40">当前筛选条件下共有 <span className="text-themeRed font-bold">{filteredQuestions.length}</span> 道题目</p>
                             {filteredQuestions.length !== questions.length && (
-                                <button onClick={() => {setSearchQuery(''); setFilterTags([]); setFilterDifficulty([]); setFilterFavorites(false); setFilterWrong(false);}} className="text-[10px] text-themeRed hover:underline">重置筛选</button>
+                                <button onClick={() => {setSearchQuery(''); setFilterTags([]); setFilterDifficulty([]); setFilterFavorites(false);}} className="text-[10px] text-themeRed hover:underline">重置筛选</button>
                             )}
                         </div>
                     </div>
@@ -230,17 +240,13 @@
                                             <span>正确率: {q.practiceCount ? (q.correctCount / q.practiceCount * 100).toFixed(1) : 0}%</span>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => setFavorites(prev => prev.includes(q.id) ? prev.filter(id => id !== q.id) : [...prev, q.id])} 
                                             className={`p-1 ${favorites.includes(q.id) ? 'text-yellow-500' : 'text-themeRed/40'} hover:bg-themeRed/5`}>
-                                            <svg className="w-4 h-4" fill={favorites.includes(q.id) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                            <Icons.Star className="w-4 h-4" style={favorites.includes(q.id) ? { fill: 'currentColor', stroke: 'none' } : {}}/>
                                         </button>
-                                        <button onClick={() => setWrongQuestions(prev => prev.includes(q.id) ? prev.filter(id => id !== q.id) : [...prev, q.id])}
-                                            className={`p-1 ${wrongQuestions.includes(q.id) ? 'text-red-500' : 'text-themeRed/40'} hover:bg-themeRed/5`}>
-                                            <Icons.Alert className="w-4 h-4"/>
-                                        </button>
-                                        <button onClick={() => { setEditingQuestion(q); setMode('edit'); }} className="p-1 text-themeRed hover:bg-themeRed/5"><Icons.Edit/></button>
-                                        <button onClick={() => confirmDelete([q.id])} className="p-1 text-red-700 hover:bg-red-50"><Icons.Trash/></button>
+                                        <button onClick={() => { setEditingQuestion(q); setMode('edit'); }} className="p-1 text-themeRed hover:bg-themeRed/5"><Icons.Edit className="w-4 h-4"/></button>
+                                        <button onClick={() => confirmDelete([q.id])} className="p-1 text-red-700 hover:bg-red-50"><Icons.Trash className="w-4 h-4"/></button>
                                     </div>
                                 </div>
                             </div>
@@ -492,6 +498,10 @@
 
         const Practice = ({ practiceState, setPracticeState, setMode, updateStats, setLastPracticeIndex }) => {
             const [showCompleteModal, setShowCompleteModal] = useState(false);
+            const [correctCount, setCorrectCount] = useState(0);
+            const [wrongCount, setWrongCount] = useState(0);
+            const [startTime] = useState(Date.now());
+            const [results, setResults] = useState([]);
             if (!practiceState) return null;
             const current = practiceState.list[practiceState.index];
             
@@ -504,6 +514,9 @@
                 if (!current) return;
                 const isCorrect = practiceState.userAnswer.split('').sort().join('') === current.answer.split('').sort().join('');
                 updateStats(current.id, isCorrect);
+                setResults(prev => [...prev, { question: current, isCorrect, userAnswer: practiceState.userAnswer }]);
+                if (isCorrect) setCorrectCount(prev => prev + 1);
+                else setWrongCount(prev => prev + 1);
                 setPracticeState({...practiceState, showAnswer: true});
                 if (practiceState.type === 'sequential') {
                     localStorage.setItem('choice_bank_last_index', practiceState.index.toString());
@@ -548,14 +561,47 @@
                     <Modal 
                         isOpen={showCompleteModal} 
                         onClose={() => { setShowCompleteModal(false); setMode('home'); }} 
-                        title="练习完成" 
+                        title={practiceState.index >= practiceState.list.length - 1 ? "练习完成" : "练习统计"} 
                         footer={<button onClick={() => { setShowCompleteModal(false); setMode('home'); }} className={THEME_CLASSES.button}>返回主页</button>}
                     >
-                        恭喜你完成了本次练习！
+                        <div className="space-y-4">
+                            <div className="text-center space-y-2">
+                                <p className="text-lg font-bold text-themeRed">{practiceState.index >= practiceState.list.length - 1 ? '恭喜你完成了本次练习！' : '本次练习统计'}</p>
+                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                    <div className="p-3 border border-themeRed/10 rounded-sm">
+                                        <p className="text-xs opacity-50 mb-1">已做</p>
+                                        <p className="text-2xl font-bold text-themeRed">{correctCount + wrongCount} / {practiceState.list.length}</p>
+                                    </div>
+                                    <div className="p-3 border border-green-700/10 rounded-sm">
+                                        <p className="text-xs opacity-50 mb-1">答对</p>
+                                        <p className="text-2xl font-bold text-green-700">{correctCount}</p>
+                                    </div>
+                                    <div className="p-3 border border-red-700/10 rounded-sm">
+                                        <p className="text-xs opacity-50 mb-1">答错</p>
+                                        <p className="text-2xl font-bold text-red-700">{wrongCount}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-center gap-6 text-sm pt-2">
+                                    <p>正确率：<span className="font-bold text-themeRed">{correctCount + wrongCount > 0 ? (correctCount / (correctCount + wrongCount) * 100).toFixed(1) : 0}%</span></p>
+                                    <p>用时：<span className="font-bold text-themeRed">{formatTime(Date.now() - startTime)}</span></p>
+                                </div>
+                            </div>
+                            <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                {results.map((r, i) => (
+                                    <div key={i} className={`p-2 text-xs border rounded-sm flex justify-between items-center ${r.isCorrect ? 'border-green-700/20 bg-green-50' : 'border-red-700/20 bg-red-50'}`}>
+                                        <span className="truncate flex-1 mr-2">{i + 1}. {r.question.stem}</span>
+                                        <span className={`flex-shrink-0 ${r.isCorrect ? 'text-green-700' : 'text-red-700'}`}>{r.isCorrect ? '正确' : '错误'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </Modal>
                     <div className="flex justify-between items-center">
                         <h2 className={THEME_CLASSES.title}>练习模式</h2>
                         <span className="text-xs opacity-50">{practiceState.index + 1} / {practiceState.list.length}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-themeRed/10 rounded-sm overflow-hidden">
+                        <div className="h-full bg-themeRed transition-all duration-300" style={{ width: `${((practiceState.index + 1) / practiceState.list.length) * 100}%` }}></div>
                     </div>
                     <div className={THEME_CLASSES.card + " space-y-6"}>
                         <div className="flex gap-2"><span className={THEME_CLASSES.badge}>{current.answer.length > 1 ? '多选' : '单选'}</span></div>
@@ -601,7 +647,7 @@
                                         if (practiceState.index < practiceState.list.length - 1) setPracticeState({...practiceState, index: practiceState.index+1, showAnswer: false, userAnswer: ''});
                                         else { setShowCompleteModal(true); }
                                     }} className={THEME_CLASSES.button}>下一题</button>
-                                    <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton}>结束</button>
+                                    <button onClick={() => setShowCompleteModal(true)} className={THEME_CLASSES.secondaryButton}>结束</button>
                                 </div>
                             </div>
                         ) : (
@@ -623,7 +669,7 @@
 
             const handleSubmit = () => {
                 const isCorrect = examState.userAnswer.split('').sort().join('') === current.answer.split('').sort().join('');
-                if (!isCorrect) return handleExamFail('答题错误');
+                if (!isCorrect) return handleExamFail('答题错误', examState.index);
                 
                 updateStats(current.id, true);
                 if (examState.index === examState.questions.length - 1) handleExamSuccess();
@@ -640,6 +686,9 @@
                                 <Icons.Clock/> {examState.timeLeft}s
                             </div>
                         </div>
+                    </div>
+                    <div className="w-full h-1.5 bg-themeRed/10 rounded-sm overflow-hidden">
+                        <div className="h-full bg-themeRed transition-all duration-300" style={{ width: `${((examState.index + 1) / examState.questions.length) * 100}%` }}></div>
                     </div>
                     <div className={THEME_CLASSES.card + " space-y-6"}>
                         <p className="text-lg leading-relaxed">{current.stem}</p>
@@ -669,6 +718,373 @@
             );
         };
 
+        const TextImport = ({ setMode, setQuestions, setInfoModal, questions }) => {
+            const [text, setText] = useState('');
+            const [preview, setPreview] = useState([]);
+
+            const parseQuestions = (inputText) => {
+                const result = [];
+                const blocks = inputText.split(/\n\s*\n/).filter(b => b.trim());
+
+                for (const block of blocks) {
+                    const lines = block.trim().split('\n').filter(l => l.trim());
+                    if (lines.length < 3) continue;
+
+                    let stem = '';
+                    const options = [];
+                    let answer = '';
+                    let analysis = '';
+                    let tags = [];
+                    let remark = '';
+
+                    let i = 0;
+                    stem = lines[i].replace(/^[【\d\w\.\s]+/, '').trim();
+                    i++;
+
+                    while (i < lines.length) {
+                        const line = lines[i].trim();
+                        const optMatch = line.match(/^([A-Z])[\.、\s：:](.*)/);
+                        if (optMatch) {
+                            options.push(optMatch[2].trim());
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if (options.length < 2) continue;
+
+                    while (i < lines.length) {
+                        const line = lines[i].trim();
+                        if (/^答案[：:]?/.test(line)) {
+                            answer = line.replace(/^答案[：:]?\s*/, '').toUpperCase().replace(/\s/g, '');
+                            i++;
+                        } else if (/^解析[：:]?/.test(line)) {
+                            analysis = line.replace(/^解析[：:]?\s*/, '');
+                            i++;
+                        } else if (/^标签[：:]?/.test(line)) {
+                            tags = line.replace(/^标签[：:]?\s*/, '').split(/[\s,，]+/).filter(Boolean);
+                            i++;
+                        } else if (/^备注[：:]?/.test(line)) {
+                            remark = line.replace(/^备注[：:]?\s*/, '');
+                            i++;
+                        } else {
+                            i++;
+                        }
+                    }
+
+                    if (!answer || !stem) continue;
+
+                    result.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        type: answer.length > 1 ? '多选题' : '单选题',
+                        stem,
+                        options,
+                        answer,
+                        analysis,
+                        tags,
+                        remark,
+                        practiceCount: 0,
+                        correctCount: 0,
+                        createdAt: Date.now(),
+                    });
+                }
+
+                return result;
+            };
+
+            const handlePreview = () => {
+                const parsed = parseQuestions(text);
+                setPreview(parsed);
+            };
+
+            const handleImport = () => {
+                if (preview.length === 0) return;
+                const existingKeys = new Set(questions.map(q => `${q.stem}|${q.options.join(',')}|${q.answer}`));
+                const uniqueNew = preview.filter(q => !existingKeys.has(`${q.stem}|${q.options.join(',')}|${q.answer}`));
+                setQuestions(prev => [...prev, ...uniqueNew]);
+                setInfoModal({ isOpen: true, title: '提示', message: `文本导入完成：新增 ${uniqueNew.length} 道题目，跳过 ${preview.length - uniqueNew.length} 道重复题` });
+                setMode('home');
+            };
+
+            return (
+                <div className="max-w-3xl mx-auto space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h2 className={THEME_CLASSES.title}>文本导入</h2>
+                        <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton}>返回</button>
+                    </div>
+                    <div className={THEME_CLASSES.card + " space-y-4"}>
+                        <div className="p-3 bg-themeRed/5 border border-themeRed/10 text-xs leading-relaxed">
+                            <p className="font-bold mb-1">格式说明（题目之间用空行分隔）：</p>
+                            <p className="opacity-60">题干内容（首行）</p>
+                            <p className="opacity-60">A. 选项一</p>
+                            <p className="opacity-60">B. 选项二</p>
+                            <p className="opacity-60">C. 选项三</p>
+                            <p className="opacity-60">D. 选项四</p>
+                            <p className="opacity-60">答案：AB</p>
+                            <p className="opacity-60">解析：（可选）</p>
+                            <p className="opacity-60">标签：（可选，逗号或空格分隔）</p>
+                            <p className="opacity-60">备注：（可选）</p>
+                        </div>
+                        <textarea
+                            className="w-full h-64 bg-white/30 border border-themeRed/20 rounded-sm p-3 text-sm font-serif resize-y focus:border-themeRed outline-none"
+                            placeholder="在此粘贴或输入题目..."
+                            value={text}
+                            onChange={e => setText(e.target.value)}
+                        />
+                        <div className="flex gap-3">
+                            <button onClick={handlePreview} className={THEME_CLASSES.button}><Icons.Search/> 预览解析</button>
+                        </div>
+                        {preview.length > 0 && (
+                            <div className="space-y-3 pt-2 border-t border-themeRed/10">
+                                <p className="text-sm">解析到 <span className="text-themeRed font-bold">{preview.length}</span> 道题目</p>
+                                <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1">
+                                    {preview.map((q, i) => (
+                                        <div key={i} className="flex gap-2 text-xs items-start p-2 bg-white/20 rounded-sm">
+                                            <span className="text-themeRed font-bold flex-shrink-0">{i + 1}.</span>
+                                            <span className="truncate">{q.stem}</span>
+                                            <span className="text-themeRed/40 flex-shrink-0 ml-auto">答案: {q.answer}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={handleImport} className={THEME_CLASSES.button + " w-full py-3"}>确认导入</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const BattleConfig = ({ allTags, setMode, questions, setInfoModal, startBattle }) => {
+            const [config, setConfig] = useState({
+                count: 10,
+                timeLimit: 0,
+                tags: [],
+                difficulties: [],
+                shuffleOptions: true,
+            });
+
+            const filteredCount = useMemo(() => {
+                return questions.filter(q => {
+                    const matchesTags = config.tags.length === 0 || config.tags.some(t => q.tags.includes(t));
+                    const matchesDifficulty = config.difficulties.length === 0 || config.difficulties.includes(getDifficulty(q));
+                    return matchesTags && matchesDifficulty;
+                }).length;
+            }, [questions, config]);
+
+            return (
+                <div className="max-w-md mx-auto space-y-4">
+                    <h2 className={THEME_CLASSES.title}>对战准备</h2>
+                    <div className={THEME_CLASSES.card + " space-y-4"}>
+                        <div>
+                            <label className="text-xs opacity-50 block mb-1">题目数量</label>
+                            <input type="number" className={THEME_CLASSES.input} value={config.count} onChange={e => setConfig({...config, count: parseInt(e.target.value) || 10})}/>
+                        </div>
+                        <div>
+                            <label className="text-xs opacity-50 block mb-1">每题限时 (秒，0为不限)</label>
+                            <input type="number" min="0" className={THEME_CLASSES.input} value={config.timeLimit} onChange={e => setConfig({...config, timeLimit: parseInt(e.target.value) || 0})}/>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs opacity-50 block mb-2">筛选标签</label>
+                            <div className="flex flex-wrap gap-2">
+                                {allTags.map(t => (
+                                    <button key={t} onClick={() => setConfig({...config, tags: config.tags.includes(t) ? config.tags.filter(i => i !== t) : [...config.tags, t]})}
+                                        className={`px-2 py-0.5 text-xs border ${config.tags.includes(t) ? 'bg-themeRed text-white border-themeRed' : 'border-themeRed/20'}`}>{t}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs opacity-50 block mb-2">筛选难度</label>
+                            <div className="flex gap-2">
+                                {['未练习', '易', '中', '难'].map(d => (
+                                    <button key={d} onClick={() => setConfig({...config, difficulties: config.difficulties.includes(d) ? config.difficulties.filter(i => i !== d) : [...config.difficulties, d]})}
+                                        className={`px-3 py-1 text-xs border ${config.difficulties.includes(d) ? 'bg-themeRed text-white border-themeRed' : 'border-themeRed/20'}`}>{d}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex gap-4">
+                            <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                <input type="checkbox" checked={config.shuffleOptions} onChange={e => setConfig({...config, shuffleOptions: e.target.checked})}/> 打乱选项顺序
+                            </label>
+                        </div>
+                        <p className="text-[10px] opacity-40">当前筛选条件下共有 <span className="text-themeRed font-bold">{filteredCount}</span> 道题目</p>
+                        <button onClick={() => {
+                            if (filteredCount < config.count) return setInfoModal({ isOpen: true, title: '提示', message: `符合条件的题目不足 (当前 ${filteredCount} 题)` });
+                            startBattle(config);
+                        }} className={THEME_CLASSES.button + " w-full py-3"}>开始对战</button>
+                        <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton + " w-full"}>返回</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const Battle = ({ battleState, setBattleState, setMode, updateStats, battleTimer }) => {
+            if (!battleState) return null;
+            const { left, right, phase } = battleState;
+            const leftQ = left.questions[left.index];
+            const rightQ = right.questions[right.index];
+
+            const leftDisplayOptions = useMemo(() => {
+                const opts = leftQ.options.map((text, idx) => ({ text, originalLetter: String.fromCharCode(65 + idx) }));
+                return battleState.shuffleOptions ? shuffleArray(opts) : opts;
+            }, [leftQ.id, battleState.shuffleOptions, left.index]);
+
+            const rightDisplayOptions = useMemo(() => {
+                const opts = rightQ.options.map((text, idx) => ({ text, originalLetter: String.fromCharCode(65 + idx) }));
+                return battleState.shuffleOptions ? shuffleArray(opts) : opts;
+            }, [rightQ.id, battleState.shuffleOptions, right.index]);
+
+            const handleLeftSubmit = () => {
+                const isCorrect = left.userAnswer.split('').sort().join('') === leftQ.answer.split('').sort().join('');
+                updateStats(leftQ.id, isCorrect);
+                const newLeft = { ...left, userAnswer: '', answered: true };
+                if (isCorrect) newLeft.correct = left.correct + 1;
+                if (left.index < left.questions.length - 1) {
+                    newLeft.index = left.index + 1;
+                    newLeft.timeLeft = battleState.timeLimit;
+                }
+                else { newLeft.done = true; newLeft.timeSpent = Date.now() - battleState.startTime; }
+                setBattleState(prev => ({ ...prev, left: newLeft }));
+            };
+
+            const handleRightSubmit = () => {
+                const isCorrect = right.userAnswer.split('').sort().join('') === rightQ.answer.split('').sort().join('');
+                updateStats(rightQ.id, isCorrect);
+                const newRight = { ...right, userAnswer: '', answered: true };
+                if (isCorrect) newRight.correct = right.correct + 1;
+                if (right.index < right.questions.length - 1) {
+                    newRight.index = right.index + 1;
+                    newRight.timeLeft = battleState.timeLimit;
+                }
+                else { newRight.done = true; newRight.timeSpent = Date.now() - battleState.startTime; }
+                setBattleState(prev => ({ ...prev, right: newRight }));
+            };
+
+            useEffect(() => {
+                if (battleState.left.done && battleState.right.done) {
+                    setBattleState(prev => ({ ...prev, phase: 'result' }));
+                }
+            }, [battleState.left.done, battleState.right.done, setBattleState]);
+
+            if (phase === 'result') {
+                const l = battleState.left, r = battleState.right;
+                const lTotal = l.questions.length, rTotal = r.questions.length;
+                const lTime = l.timeSpent || (Date.now() - battleState.startTime);
+                const rTime = r.timeSpent || (Date.now() - battleState.startTime);
+                let winner = 'draw';
+                if (l.correct > r.correct) winner = 'left';
+                else if (r.correct > l.correct) winner = 'right';
+                else {
+                    if (lTime < rTime) winner = 'left';
+                    else if (rTime < lTime) winner = 'right';
+                }
+
+                return (
+                    <div className="max-w-4xl mx-auto space-y-4">
+                        <div className="text-center">
+                            <h2 className={THEME_CLASSES.title}>对战结果</h2>
+                        </div>
+                        <div className="text-center py-4">
+                            <p className="text-2xl font-bold text-themeRed">
+                                {winner === 'draw' ? '平局！' : winner === 'left' ? '🔴 红方胜！' : '🔵 蓝方胜！'}
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className={`p-6 border-2 rounded-sm text-center space-y-3 ${winner === 'left' ? 'border-themeRed bg-themeRed/5' : winner === 'draw' ? 'border-themeRed/20' : 'border-themeRed/10'}`}>
+                                <p className="text-lg font-bold text-themeRed">🔴 红方</p>
+                                <p className="text-4xl font-bold">{l.correct} / {lTotal}</p>
+                                <p className="text-xs opacity-50">用时 {formatTime(lTime)}</p>
+                                <p className="text-sm">正确率 {(l.correct / lTotal * 100).toFixed(1)}%</p>
+                            </div>
+                            <div className={`p-6 border-2 rounded-sm text-center space-y-3 ${winner === 'right' ? 'border-themeRed bg-themeRed/5' : winner === 'draw' ? 'border-themeRed/20' : 'border-themeRed/10'}`}>
+                                <p className="text-lg font-bold text-themeRed">🔵 蓝方</p>
+                                <p className="text-4xl font-bold">{r.correct} / {rTotal}</p>
+                                <p className="text-xs opacity-50">用时 {formatTime(rTime)}</p>
+                                <p className="text-sm">正确率 {(r.correct / rTotal * 100).toFixed(1)}%</p>
+                            </div>
+                        </div>
+                        <div className="text-center pt-4">
+                            <button onClick={() => setMode('home')} className={THEME_CLASSES.button}>返回主页</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const renderSide = (side, q, displayOpts, userAnswer, onSubmit, index, total, correct, isDone, timeLeft, timeLimit) => {
+                const isLeft = side === 'left';
+                const borderColor = isLeft ? 'border-l-4 border-l-themeRed' : 'border-r-4 border-r-blue-600';
+                const answerColor = isLeft ? 'bg-themeRed text-white border-themeRed' : 'bg-blue-600 text-white border-blue-600';
+                const hoverColor = isLeft ? 'hover:border-themeRed/30' : 'hover:border-blue-600/30';
+                const label = isLeft ? '🔴 红方' : '🔵 蓝方';
+
+                if (isDone) {
+                    return (
+                        <div className={`p-8 space-y-4 ${borderColor} flex flex-col items-center justify-center min-h-[300px] opacity-60`}>
+                            <div className="animate-pulse text-4xl mb-4">⏳</div>
+                            <p className="text-lg font-bold text-themeRed">{label} 已完成</p>
+                            <p className="text-sm opacity-50">答对 <b className="text-themeRed">{correct}</b> / {total} 题</p>
+                            <p className="text-sm opacity-40 mt-2">等待对方答完...</p>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className={`p-4 space-y-4 ${borderColor}`}>
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm">{label}</span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs opacity-50">{index + 1} / {total}</span>
+                                <span className="text-xs">答对: <b className="text-themeRed">{correct}</b></span>
+                                {timeLimit > 0 && (
+                                    <span className={`text-lg font-title ${timeLeft < 10 ? 'text-red-600 animate-pulse' : 'text-themeRed'}`}>
+                                        <Icons.Clock/> {timeLeft}s
+                                    </span>
+                                )}
+                                <span className="text-xs opacity-40">{formatTime(battleTimer)}</span>
+                            </div>
+                        </div>
+                        <p className="text-base leading-relaxed">{q.stem}</p>
+                        <div className="space-y-2">
+                            {displayOpts.map((opt, i) => {
+                                const letter = String.fromCharCode(65 + i);
+                                const isSelected = userAnswer.includes(opt.originalLetter);
+                                return (
+                                    <button key={i}
+                                        onClick={() => {
+                                            const newUA = userAnswer.includes(opt.originalLetter)
+                                                ? userAnswer.replace(opt.originalLetter, '')
+                                                : userAnswer + opt.originalLetter;
+                                            setBattleState(prev => ({
+                                                ...prev,
+                                                [side]: { ...prev[side], userAnswer: newUA }
+                                            }));
+                                        }}
+                                        className={`w-full text-left p-2 border transition-all flex items-center gap-3 text-sm ${isSelected ? answerColor : 'border-themeRed/10 ' + hoverColor}`}>
+                                        <span className={`w-6 h-6 flex items-center justify-center border rounded-full text-xs flex-shrink-0 ${isSelected ? 'border-white' : 'border-themeRed/20'}`}>{letter}</span>
+                                        {opt.text}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <button onClick={onSubmit} disabled={!userAnswer} className={`${isLeft ? THEME_CLASSES.button : 'px-4 py-1.5 bg-blue-600 text-white font-serif hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[1px_1px_0px_rgba(0,0,0,0.2)] active:translate-y-[1px] active:shadow-none text-sm'} w-full py-2`}>提交</button>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="max-w-7xl mx-auto space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h2 className={THEME_CLASSES.title}>同步对战</h2>
+                        <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton}>结束对战</button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-12">
+                        {renderSide('left', leftQ, leftDisplayOptions, left.userAnswer, handleLeftSubmit, left.index, left.questions.length, left.correct, left.done, left.timeLeft, battleState.timeLimit)}
+                        {renderSide('right', rightQ, rightDisplayOptions, right.userAnswer, handleRightSubmit, right.index, right.questions.length, right.correct, right.done, right.timeLeft, battleState.timeLimit)}
+                    </div>
+                </div>
+            );
+        };
+
         // --- Main App ---
         function App() {
             const [questions, setQuestions] = useState(() => {
@@ -676,7 +1092,6 @@
                 return saved ? JSON.parse(saved) : [];
             });
             const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('choice_bank_favorites') || '[]'));
-            const [wrongQuestions, setWrongQuestions] = useState(() => JSON.parse(localStorage.getItem('choice_bank_wrong') || '[]'));
             const [originalFileName, setOriginalFileName] = useState(() => localStorage.getItem('choice_bank_filename') || "题库导出");
             const [lastPracticeIndex, setLastPracticeIndex] = useState(() => Number(localStorage.getItem('choice_bank_last_index')) || 0);
 
@@ -688,7 +1103,6 @@
             const [filterTags, setFilterTags] = useState([]);
             const [filterDifficulty, setFilterDifficulty] = useState([]);
             const [filterFavorites, setFilterFavorites] = useState(false);
-            const [filterWrong, setFilterWrong] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             
             const [editingQuestion, setEditingQuestion] = useState(null);
@@ -697,12 +1111,14 @@
                 tags: [], difficulties: [], count: 10, timeLimit: 20, shuffleQuestions: true, shuffleOptions: true,
             });
             const [examState, setExamState] = useState(null);
+            const [battleState, setBattleState] = useState(null);
+            const [battleTimer, setBattleTimer] = useState(0);
             const [lastExamResult, setLastExamResult] = useState(null);
 
             // Modal States
             const [deleteModal, setDeleteModal] = useState({ isOpen: false, ids: [] });
             const [clearModal, setClearModal] = useState(false);
-            const [examFailModal, setExamFailModal] = useState({ isOpen: false, reason: '' });
+            const [examFailModal, setExamFailModal] = useState({ isOpen: false, reason: '', answered: 0 });
             const [importModal, setImportModal] = useState({ isOpen: false, pendingQuestions: [] });
             const [infoModal, setInfoModal] = useState({ isOpen: false, title: '', message: '' });
 
@@ -711,17 +1127,16 @@
             useEffect(() => {
                 localStorage.setItem('choice_bank_questions', JSON.stringify(questions));
                 localStorage.setItem('choice_bank_favorites', JSON.stringify(favorites));
-                localStorage.setItem('choice_bank_wrong', JSON.stringify(wrongQuestions));
-            }, [questions, favorites, wrongQuestions]);
+            }, [questions, favorites]);
 
             useEffect(() => {
                 let timer;
-                if (examState && !examState.endTime) {
+                if (mode === 'exam' && examState && !examState.endTime) {
                     timer = setInterval(() => {
                         setExamState(prev => {
                             if (!prev || prev.timeLeft <= 0) {
                                 if (prev && prev.timeLeft <= 0) {
-                                    setExamFailModal({ isOpen: true, reason: '时间到' });
+                                    setExamFailModal({ isOpen: true, reason: '时间到', answered: prev.index });
                                     return { ...prev, endTime: Date.now() };
                                 }
                                 return prev;
@@ -732,6 +1147,41 @@
                 }
                 return () => clearInterval(timer);
             }, [examState]);
+
+            useEffect(() => {
+                let timer;
+                if (mode === 'battle' && battleState && battleState.phase === 'playing') {
+                    timer = setInterval(() => {
+                        setBattleTimer(Date.now() - battleState.startTime);
+                        if (battleState.timeLimit > 0) {
+                            setBattleState(prev => {
+                                if (prev.phase !== 'playing') return prev;
+                                const updated = { ...prev };
+                                ['left', 'right'].forEach(side => {
+                                    if (!prev[side].done && prev[side].timeLeft <= 1) {
+                                        const q = prev[side].questions[prev[side].index];
+                                        updateStats(q.id, false);
+                                        const s = { ...prev[side], userAnswer: '', answered: true };
+                                        if (prev[side].index < prev[side].questions.length - 1) {
+                                            s.index = prev[side].index + 1;
+                                            s.timeLeft = prev.timeLimit;
+                                        } else {
+                                            s.done = true;
+                                            s.timeSpent = Date.now() - prev.startTime;
+                                        }
+                                        updated[side] = s;
+                                    } else if (!prev[side].done) {
+                                        const s = { ...prev[side], timeLeft: prev[side].timeLeft - 1 };
+                                        updated[side] = s;
+                                    }
+                                });
+                                return updated;
+                            });
+                        }
+                    }, 1000);
+                }
+                return () => clearInterval(timer);
+            }, [mode, battleState]);
 
             const allTags = useMemo(() => {
                 const tags = new Set();
@@ -754,27 +1204,14 @@
                     const matchesTags = filterTags.length === 0 || filterTags.some(t => q.tags.includes(t));
                     const matchesDifficulty = filterDifficulty.length === 0 || filterDifficulty.includes(getDifficulty(q));
                     const matchesFavorites = !filterFavorites || favorites.includes(q.id);
-                    const matchesWrong = !filterWrong || wrongQuestions.includes(q.id);
-                    return matchesSearch && matchesTags && matchesDifficulty && matchesFavorites && matchesWrong;
+                    return matchesSearch && matchesTags && matchesDifficulty && matchesFavorites;
                 });
-            }, [questions, searchQuery, filterTags, filterDifficulty, filterFavorites, filterWrong, favorites, wrongQuestions]);
+            }, [questions, searchQuery, filterTags, filterDifficulty, filterFavorites, favorites]);
 
             const updateStats = useCallback((id, isCorrect) => {
-                setQuestions(prev => {
-                    const updatedQuestions = prev.map(q => 
-                        q.id === id ? { ...q, practiceCount: q.practiceCount + 1, correctCount: q.correctCount + (isCorrect ? 1 : 0) } : q
-                    );
-                    const updatedQ = updatedQuestions.find(q => q.id === id);
-                    if (updatedQ) {
-                        const wrongCount = updatedQ.practiceCount - updatedQ.correctCount;
-                        if (updatedQ.correctCount > wrongCount) {
-                            setWrongQuestions(prev => prev.filter(qid => qid !== id));
-                        } else if (!isCorrect) {
-                            setWrongQuestions(prev => [...new Set([...prev, id])]);
-                        }
-                    }
-                    return updatedQuestions;
-                });
+                setQuestions(prev => prev.map(q => 
+                    q.id === id ? { ...q, practiceCount: q.practiceCount + 1, correctCount: q.correctCount + (isCorrect ? 1 : 0) } : q
+                ));
             }, []);
 
             const handleFileSelect = (e) => {
@@ -811,6 +1248,7 @@
                             remark: row['备注'] || '',
                             practiceCount: Number(row['练习次数'] || 0), 
                             correctCount: Number(row['正确次数'] || 0), 
+                            isFavorited: row['收藏'] === '是',
                             createdAt: Date.now(),
                         };
                     }).filter(q => q.stem);
@@ -819,7 +1257,9 @@
                         setImportModal({ isOpen: true, pendingQuestions: newQuestions });
                     } else {
                         setQuestions(newQuestions);
-                        setInfoModal({ isOpen: true, title: '提示', message: `成功导入 ${newQuestions.length} 道题目` });
+                        const newFavs = newQuestions.filter(q => q.isFavorited).map(q => q.id);
+                        setFavorites(newFavs);
+                        setInfoModal({ isOpen: true, title: '提示', message: `成功导入 ${newQuestions.length} 道题目，恢复 ${newFavs.length} 个收藏` });
                     }
                 };
                 reader.readAsBinaryString(file);
@@ -832,10 +1272,14 @@
                     const existingKeys = new Set(questions.map(q => `${q.stem}|${q.options.join(',')}|${q.answer}`));
                     const uniqueNew = newQs.filter(q => !existingKeys.has(`${q.stem}|${q.options.join(',')}|${q.answer}`));
                     setQuestions(prev => [...prev, ...uniqueNew]);
-                    setInfoModal({ isOpen: true, title: '提示', message: `合并完成：新增 ${uniqueNew.length} 道题目，跳过 ${newQs.length - uniqueNew.length} 道重复题` });
+                    const newFavs = uniqueNew.filter(q => q.isFavorited).map(q => q.id);
+                    setFavorites(prev => [...prev, ...newFavs]);
+                    setInfoModal({ isOpen: true, title: '提示', message: `合并完成：新增 ${uniqueNew.length} 道题目，跳过 ${newQs.length - uniqueNew.length} 道重复题，恢复 ${newFavs.length} 个收藏` });
                 } else if (action === 'overwrite') {
                     setQuestions(newQs);
-                    setInfoModal({ isOpen: true, title: '提示', message: `覆盖完成：共导入 ${newQs.length} 道题目` });
+                    const newFavs = newQs.filter(q => q.isFavorited).map(q => q.id);
+                    setFavorites(newFavs);
+                    setInfoModal({ isOpen: true, title: '提示', message: `覆盖完成：共导入 ${newQs.length} 道题目，恢复 ${newFavs.length} 个收藏` });
                 }
                 setImportModal({ isOpen: false, pendingQuestions: [] });
             };
@@ -846,6 +1290,7 @@
                     ...Object.fromEntries(q.options.map((opt, i) => [`选项${i + 1}`, opt])),
                     '答案': q.answer, '解析': q.analysis, '标签': q.tags.join(','), '备注': q.remark,
                     '练习次数': q.practiceCount, '正确次数': q.correctCount,
+                    '收藏': favorites.includes(q.id) ? '是' : '否',
                 }));
                 const ws = XLSX.utils.json_to_sheet(exportData);
                 const wb = XLSX.utils.book_new();
@@ -883,6 +1328,27 @@
                 setMode('exam');
             };
 
+            const startBattle = (config) => {
+                let pool = questions.filter(q => {
+                    const matchesTags = config.tags.length === 0 || config.tags.some(t => q.tags.includes(t));
+                    const matchesDifficulty = config.difficulties.length === 0 || config.difficulties.includes(getDifficulty(q));
+                    return matchesTags && matchesDifficulty;
+                });
+                if (pool.length < config.count) return setInfoModal({ isOpen: true, title: '提示', message: `符合条件的题目不足 (当前 ${pool.length} 题)` });
+                const selected = shuffleArray(pool).slice(0, config.count);
+                const leftQuestions = shuffleArray(selected);
+                const rightQuestions = shuffleArray(selected);
+                setBattleState({
+                    left: { questions: leftQuestions, index: 0, userAnswer: '', correct: 0, done: false, startTime: Date.now(), timeSpent: 0, timeLeft: config.timeLimit },
+                    right: { questions: rightQuestions, index: 0, userAnswer: '', correct: 0, done: false, startTime: Date.now(), timeSpent: 0, timeLeft: config.timeLimit },
+                    shuffleOptions: config.shuffleOptions,
+                    phase: 'playing',
+                    startTime: Date.now(),
+                    timeLimit: config.timeLimit,
+                });
+                setMode('battle');
+            };
+
             const saveQuestion = (q) => {
                 if (editingQuestion) setQuestions(prev => prev.map(item => item.id === editingQuestion.id ? { ...item, ...q } : item));
                 else setQuestions(prev => [{ id: Math.random().toString(36).substr(2, 9), ...q, createdAt: Date.now() }, ...prev]);
@@ -913,16 +1379,20 @@
                             <button onClick={() => setMode('home')} className={mode === 'home' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>题库</button>
                             <button onClick={() => setMode('practice_config')} className={mode === 'practice_config' || mode === 'practice' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>练习</button>
                             <button onClick={() => setMode('exam_config')} className={mode === 'exam_config' || mode === 'exam' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>检测</button>
+                            <button onClick={() => setMode('battle_config')} className={mode === 'battle_config' || mode === 'battle' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>对战</button>
                         </div>
                     </nav>
 
                     <main className="max-w-7xl mx-auto">
                         <input type="file" ref={fileInputRef} hidden accept=".xlsx, .xls" onChange={handleFileSelect}/>
-                        {mode === 'home' && <Home questions={questions} filteredQuestions={filteredQuestions} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filterTags={filterTags} setFilterTags={setFilterTags} filterDifficulty={filterDifficulty} setFilterDifficulty={setFilterDifficulty} filterFavorites={filterFavorites} setFilterFavorites={setFilterFavorites} filterWrong={filterWrong} setFilterWrong={setFilterWrong} allTags={allTags} setMode={setMode} setEditingQuestion={setEditingQuestion} onImportClick={() => fileInputRef.current.click()} handleExportExcel={handleExportExcel} setQuestions={setQuestions} selectedIds={selectedIds} setSelectedIds={setSelectedIds} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} confirmClear={() => setClearModal(true)} setInfoModal={setInfoModal} setFavorites={setFavorites} favorites={favorites} setWrongQuestions={setWrongQuestions} wrongQuestions={wrongQuestions} />}
+                        {mode === 'home' && <Home questions={questions} filteredQuestions={filteredQuestions} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filterTags={filterTags} setFilterTags={setFilterTags} filterDifficulty={filterDifficulty} setFilterDifficulty={setFilterDifficulty} filterFavorites={filterFavorites} setFilterFavorites={setFilterFavorites} allTags={allTags} setMode={setMode} setEditingQuestion={setEditingQuestion} onImportClick={() => fileInputRef.current.click()} handleExportExcel={handleExportExcel} setQuestions={setQuestions} selectedIds={selectedIds} setSelectedIds={setSelectedIds} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} confirmClear={() => setClearModal(true)} setInfoModal={setInfoModal} setFavorites={setFavorites} favorites={favorites} />}
                         {mode === 'edit' && <Edit editingQuestion={editingQuestion} saveQuestion={(q) => { if (editingQuestion) setQuestions(prev => prev.map(item => item.id === q.id ? q : item)); else setQuestions(prev => [...prev, q]); setMode('home'); }} setMode={setMode} />}
                         {mode === 'practice_config' && <PracticeConfig allTags={allTags} startPractice={startPractice} lastIndex={lastPracticeIndex} setMode={setMode} questions={questions} setLastPracticeIndex={setLastPracticeIndex} setInfoModal={setInfoModal} />}
-                        {mode === 'practice' && <Practice practiceState={practiceState} setPracticeState={setPracticeState} setMode={setMode} updateStats={updateStats} setLastPracticeIndex={setLastPracticeIndex} setFavorites={setFavorites} favorites={favorites} setWrongQuestions={setWrongQuestions} wrongQuestions={wrongQuestions} setEditingQuestion={setEditingQuestion} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} />}
-                        {mode === 'exam' && <Exam examState={examState} setExamState={setExamState} handleExamFail={(reason) => setExamFailModal({ isOpen: true, reason })} handleExamSuccess={handleExamSuccess} updateStats={updateStats} />}
+                        {mode === 'practice' && <Practice practiceState={practiceState} setPracticeState={setPracticeState} setMode={setMode} updateStats={updateStats} setLastPracticeIndex={setLastPracticeIndex} setFavorites={setFavorites} favorites={favorites} setEditingQuestion={setEditingQuestion} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} />}
+                        {mode === 'exam' && <Exam examState={examState} setExamState={setExamState} handleExamFail={(reason, answered) => setExamFailModal({ isOpen: true, reason, answered })} handleExamSuccess={handleExamSuccess} updateStats={updateStats} />}
+                        {mode === 'battle_config' && <BattleConfig allTags={allTags} setMode={setMode} questions={questions} setInfoModal={setInfoModal} startBattle={startBattle} />}
+                        {mode === 'text_import' && <TextImport setMode={setMode} setQuestions={setQuestions} setInfoModal={setInfoModal} questions={questions} />}
+                        {mode === 'battle' && <Battle battleState={battleState} setBattleState={setBattleState} setMode={setMode} updateStats={updateStats} battleTimer={battleTimer} />}
                         {mode === 'exam_config' && (
                             <div className="max-w-md mx-auto space-y-4">
                                 <h2 className={THEME_CLASSES.title}>检测准备</h2>
@@ -1026,7 +1496,17 @@
 
                     <Modal isOpen={infoModal.isOpen} onClose={() => setInfoModal({ isOpen: false, title: '', message: '' })} title={infoModal.title} footer={<button onClick={() => setInfoModal({ isOpen: false, title: '', message: '' })} className={THEME_CLASSES.button}>确定</button>}>{infoModal.message}</Modal>
 
-                    <Modal isOpen={examFailModal.isOpen} onClose={() => { setExamFailModal({ isOpen: false, reason: '' }); setMode('home'); }} title="检测未通过" footer={<button onClick={() => { setExamFailModal({ isOpen: false, reason: '' }); setMode('home'); }} className={THEME_CLASSES.button}>返回主页</button>}><div className="text-center space-y-4"><Icons.Alert className="w-12 h-12 text-themeRed mx-auto opacity-50"/><p className="text-lg font-bold">遗憾！本次检测未通过</p><p className="opacity-60">失败原因：{examFailModal.reason}</p></div></Modal>
+                    <Modal isOpen={examFailModal.isOpen} onClose={() => { setExamFailModal({ isOpen: false, reason: '', answered: 0 }); setMode('home'); }} title="检测未通过" footer={<button onClick={() => { setExamFailModal({ isOpen: false, reason: '', answered: 0 }); setMode('home'); }} className={THEME_CLASSES.button}>返回主页</button>}>
+                        <div className="text-center space-y-4">
+                            <Icons.Alert className="w-12 h-12 text-themeRed mx-auto opacity-50"/>
+                            <p className="text-lg font-bold">遗憾！本次检测未通过</p>
+                            <p className="opacity-60">失败原因：{examFailModal.reason}</p>
+                            <div className="pt-2 border-t border-themeRed/10">
+                                <p className="text-sm">已连续答对 <span className="text-2xl font-bold text-themeRed">{examFailModal.answered}</span> / {examConfig.count} 题</p>
+                                <p className="text-[10px] opacity-40 mt-1">距离通关还差 {examConfig.count - examFailModal.answered} 题</p>
+                            </div>
+                        </div>
+                    </Modal>
 
                     <footer className="mt-12 py-6 text-center font-serif text-themeRed/20 text-xs"><div className="flex justify-center gap-3"><span>——</span><span>选择题库 · 专注高效</span><span>——</span></div></footer>
                 </div>
