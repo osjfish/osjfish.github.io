@@ -151,7 +151,7 @@
             );
         };
 
-        const Home = ({ questions, filteredQuestions, searchQuery, setSearchQuery, filterTags, setFilterTags, filterDifficulty, setFilterDifficulty, allTags, setMode, setEditingQuestion, onImportClick, handleExportExcel, setQuestions, selectedIds, setSelectedIds, confirmDelete, confirmClear }) => {
+        const Home = ({ questions, filteredQuestions, searchQuery, setSearchQuery, filterTags, setFilterTags, filterDifficulty, setFilterDifficulty, filterFavorites, setFilterFavorites, filterWrong, setFilterWrong, allTags, setMode, setEditingQuestion, onImportClick, handleExportExcel, setQuestions, selectedIds, setSelectedIds, confirmDelete, confirmClear, setInfoModal, setFavorites, favorites, setWrongQuestions, wrongQuestions }) => {
             const isAllSelected = filteredQuestions.length > 0 && selectedIds.length === filteredQuestions.length;
             
             return (
@@ -169,8 +169,8 @@
                                 </button>
                             )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="relative">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                            <div className="relative md:col-span-2">
                                 <Icons.Search className="absolute left-2 top-1/2 -translate-y-1/2 opacity-30 w-4 h-4"/>
                                 <input className={THEME_CLASSES.input + " pl-8"} placeholder="搜索题目、备注关键词..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}/>
                             </div>
@@ -179,24 +179,22 @@
                                     <option value="">所有标签</option>
                                     {allTags.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-30">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-                                </div>
                             </div>
                             <div className="relative">
                                 <select className={THEME_CLASSES.input + " pr-8"} value={filterDifficulty[0] || ""} onChange={e => setFilterDifficulty(e.target.value ? [e.target.value] : [])}>
                                     <option value="">所有难度</option>
                                     <option value="未练习">未练习</option><option value="易">易</option><option value="中">中</option><option value="难">难</option>
                                 </select>
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-30">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => setFilterFavorites(!filterFavorites)} className={`flex-1 px-2 py-1 text-xs border ${filterFavorites ? 'bg-yellow-500 text-white border-yellow-500' : 'border-themeRed/20'}`}>收藏</button>
+                                <button onClick={() => setFilterWrong(!filterWrong)} className={`flex-1 px-2 py-1 text-xs border ${filterWrong ? 'bg-red-500 text-white border-red-500' : 'border-themeRed/20'}`}>错题</button>
                             </div>
                         </div>
                         <div className="mt-3 flex justify-between items-center px-1">
                             <p className="text-[10px] opacity-40">当前筛选条件下共有 <span className="text-themeRed font-bold">{filteredQuestions.length}</span> 道题目</p>
                             {filteredQuestions.length !== questions.length && (
-                                <button onClick={() => {setSearchQuery(''); setFilterTags([]); setFilterDifficulty([]);}} className="text-[10px] text-themeRed hover:underline">重置筛选</button>
+                                <button onClick={() => {setSearchQuery(''); setFilterTags([]); setFilterDifficulty([]); setFilterFavorites(false); setFilterWrong(false);}} className="text-[10px] text-themeRed hover:underline">重置筛选</button>
                             )}
                         </div>
                     </div>
@@ -233,7 +231,15 @@
                                         </div>
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => {setEditingQuestion(q); setMode('edit')}} className="p-1 text-themeRed hover:bg-themeRed/5"><Icons.Edit/></button>
+                                        <button onClick={() => setFavorites(prev => prev.includes(q.id) ? prev.filter(id => id !== q.id) : [...prev, q.id])} 
+                                            className={`p-1 ${favorites.includes(q.id) ? 'text-yellow-500' : 'text-themeRed/40'} hover:bg-themeRed/5`}>
+                                            <svg className="w-4 h-4" fill={favorites.includes(q.id) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                        </button>
+                                        <button onClick={() => setWrongQuestions(prev => prev.includes(q.id) ? prev.filter(id => id !== q.id) : [...prev, q.id])}
+                                            className={`p-1 ${wrongQuestions.includes(q.id) ? 'text-red-500' : 'text-themeRed/40'} hover:bg-themeRed/5`}>
+                                            <Icons.Alert className="w-4 h-4"/>
+                                        </button>
+                                        <button onClick={() => { setEditingQuestion(q); setMode('edit'); }} className="p-1 text-themeRed hover:bg-themeRed/5"><Icons.Edit/></button>
                                         <button onClick={() => confirmDelete([q.id])} className="p-1 text-red-700 hover:bg-red-50"><Icons.Trash/></button>
                                     </div>
                                 </div>
@@ -314,19 +320,35 @@
                             </div>
                         </div>
 
-                        {/* 答案与解析 */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-themeRed mb-2 block">正确答案 (如: A 或 ABC)</label>
-                                <input className={THEME_CLASSES.input + " font-bold text-lg tracking-widest text-center"} 
-                                    value={form.answer} onChange={e => setForm({...form, answer: e.target.value.toUpperCase()})}/>
+                        {/* 答案设置 */}
+                        <div>
+                            <label className="text-xs font-bold text-themeRed mb-2 block">正确答案 (勾选即可)</label>
+                            <div className="flex flex-wrap gap-2">
+                                {form.options.map((_, i) => {
+                                    const letter = String.fromCharCode(65 + i);
+                                    const isSelected = form.answer.includes(letter);
+                                    return (
+                                        <button key={i} type="button"
+                                            onClick={() => {
+                                                const newAnswer = isSelected 
+                                                    ? form.answer.replace(letter, '') 
+                                                    : (form.answer + letter).split('').sort().join('');
+                                                setForm({...form, answer: newAnswer});
+                                            }}
+                                            className={`w-8 h-8 rounded border flex items-center justify-center font-bold ${isSelected ? 'bg-themeRed text-white border-themeRed' : 'border-themeRed/20'}`}>
+                                            {letter}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                            <div className="md:col-span-2">
-                                <label className="text-xs font-bold text-themeRed mb-2 block">解析说明</label>
-                                <input className={THEME_CLASSES.input} 
-                                    placeholder="请输入题目解析..."
-                                    value={form.analysis} onChange={e => setForm({...form, analysis: e.target.value})}/>
-                            </div>
+                        </div>
+
+                        {/* 解析 */}
+                        <div>
+                            <label className="text-xs font-bold text-themeRed mb-2 block">解析说明</label>
+                            <input className={THEME_CLASSES.input} 
+                                placeholder="请输入题目解析..."
+                                value={form.analysis} onChange={e => setForm({...form, analysis: e.target.value})}/>
                         </div>
 
                         {/* 标签与备注 */}
@@ -469,6 +491,7 @@
         };
 
         const Practice = ({ practiceState, setPracticeState, setMode, updateStats, setLastPracticeIndex }) => {
+            const [showCompleteModal, setShowCompleteModal] = useState(false);
             if (!practiceState) return null;
             const current = practiceState.list[practiceState.index];
             
@@ -477,7 +500,8 @@
                 return practiceState.shuffleOptions ? shuffleArray(opts) : opts;
             }, [current.id, practiceState.shuffleOptions]);
 
-            const handleSubmit = () => {
+            const handleSubmit = useCallback(() => {
+                if (!current) return;
                 const isCorrect = practiceState.userAnswer.split('').sort().join('') === current.answer.split('').sort().join('');
                 updateStats(current.id, isCorrect);
                 setPracticeState({...practiceState, showAnswer: true});
@@ -485,10 +509,50 @@
                     localStorage.setItem('choice_bank_last_index', practiceState.index.toString());
                     setLastPracticeIndex(practiceState.index);
                 }
-            };
+            }, [practiceState, current, updateStats, setLastPracticeIndex, setPracticeState]);
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (practiceState.showAnswer) {
+                        if (e.key === 'Enter') {
+                            if (practiceState.index < practiceState.list.length - 1) setPracticeState({...practiceState, index: practiceState.index+1, showAnswer: false, userAnswer: ''});
+                            else { setShowCompleteModal(true); }
+                        }
+                    } else {
+                        if (e.key >= '1' && e.key <= '9') {
+                            const idx = parseInt(e.key) - 1;
+                            if (idx < displayOptions.length) {
+                                const opt = displayOptions[idx];
+                                const isMultiple = current.answer.length > 1;
+                                if (!isMultiple) {
+                                    setPracticeState({...practiceState, userAnswer: opt.originalLetter});
+                                } else {
+                                    const currentUA = practiceState.userAnswer;
+                                    const newUA = currentUA.includes(opt.originalLetter) 
+                                        ? currentUA.replace(opt.originalLetter, '') 
+                                        : currentUA + opt.originalLetter;
+                                    setPracticeState({...practiceState, userAnswer: newUA});
+                                }
+                            }
+                        } else if (e.key === 'Enter' && practiceState.userAnswer) {
+                            handleSubmit();
+                        }
+                    }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [practiceState, displayOptions, current, handleSubmit, setPracticeState, setMode]);
 
             return (
                 <div className="max-w-2xl mx-auto space-y-4">
+                    <Modal 
+                        isOpen={showCompleteModal} 
+                        onClose={() => { setShowCompleteModal(false); setMode('home'); }} 
+                        title="练习完成" 
+                        footer={<button onClick={() => { setShowCompleteModal(false); setMode('home'); }} className={THEME_CLASSES.button}>返回主页</button>}
+                    >
+                        恭喜你完成了本次练习！
+                    </Modal>
                     <div className="flex justify-between items-center">
                         <h2 className={THEME_CLASSES.title}>练习模式</h2>
                         <span className="text-xs opacity-50">{practiceState.index + 1} / {practiceState.list.length}</span>
@@ -504,16 +568,11 @@
                                     <button key={i} 
                                         disabled={practiceState.showAnswer}
                                         onClick={() => {
-                                            const isMultiple = current.answer.length > 1;
-                                            if (!isMultiple) {
-                                                setPracticeState({...practiceState, userAnswer: opt.originalLetter});
-                                            } else {
-                                                const currentUA = practiceState.userAnswer;
-                                                const newUA = currentUA.includes(opt.originalLetter) 
-                                                    ? currentUA.replace(opt.originalLetter, '') 
-                                                    : currentUA + opt.originalLetter;
-                                                setPracticeState({...practiceState, userAnswer: newUA});
-                                            }
+                                            const currentUA = practiceState.userAnswer;
+                                            const newUA = currentUA.includes(opt.originalLetter) 
+                                                ? currentUA.replace(opt.originalLetter, '') 
+                                                : currentUA + opt.originalLetter;
+                                            setPracticeState({...practiceState, userAnswer: newUA});
                                         }}
                                         className={`w-full text-left p-3 border transition-all flex items-center gap-3 ${isSelected ? 'bg-themeRed text-white border-themeRed' : 'border-themeRed/10 hover:border-themeRed/30'}`}>
                                         <span className={`w-6 h-6 flex items-center justify-center border rounded-full text-xs ${isSelected ? 'border-white' : 'border-themeRed/20'}`}>{letter}</span>
@@ -531,13 +590,16 @@
                                         <span className="text-red-700"><Icons.X/> 错误</span>
                                     }
                                 </p>
-                                <p><span className="opacity-60">正确答案：</span>{current.answer}</p>
+                                <p><span className="opacity-60">正确答案：</span>{current.answer.split('').map(l => {
+                                    const optIndex = displayOptions.findIndex(o => o.originalLetter === l);
+                                    return String.fromCharCode(65 + optIndex);
+                                }).sort().join('')}</p>
                                 <p><span className="opacity-60">解析：</span>{current.analysis || '无'}</p>
                                 {current.remark && <p><span className="opacity-60">备注：</span>{current.remark}</p>}
                                 <div className="flex gap-3 pt-2">
                                     <button onClick={() => {
                                         if (practiceState.index < practiceState.list.length - 1) setPracticeState({...practiceState, index: practiceState.index+1, showAnswer: false, userAnswer: ''});
-                                        else { alert('练习完成！'); setMode('home'); }
+                                        else { setShowCompleteModal(true); }
                                     }} className={THEME_CLASSES.button}>下一题</button>
                                     <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton}>结束</button>
                                 </div>
@@ -588,16 +650,11 @@
                                 return (
                                     <button key={i} 
                                         onClick={() => {
-                                            const isMultiple = current.answer.length > 1;
-                                            if (!isMultiple) {
-                                                setExamState({...examState, userAnswer: opt.originalLetter});
-                                            } else {
-                                                const currentUA = examState.userAnswer;
-                                                const newUA = currentUA.includes(opt.originalLetter) 
-                                                    ? currentUA.replace(opt.originalLetter, '') 
-                                                    : currentUA + opt.originalLetter;
-                                                setExamState({...examState, userAnswer: newUA});
-                                            }
+                                            const currentUA = examState.userAnswer;
+                                            const newUA = currentUA.includes(opt.originalLetter) 
+                                                ? currentUA.replace(opt.originalLetter, '') 
+                                                : currentUA + opt.originalLetter;
+                                            setExamState({...examState, userAnswer: newUA});
                                         }}
                                         className={`w-full text-left p-3 border transition-all flex items-center gap-3 ${isSelected ? 'bg-themeRed text-white border-themeRed' : 'border-themeRed/10 hover:border-themeRed/30'}`}>
                                         <span className={`w-6 h-6 flex items-center justify-center border rounded-full text-xs ${isSelected ? 'border-white' : 'border-themeRed/20'}`}>{letter}</span>
@@ -618,6 +675,8 @@
                 const saved = localStorage.getItem('choice_bank_questions');
                 return saved ? JSON.parse(saved) : [];
             });
+            const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('choice_bank_favorites') || '[]'));
+            const [wrongQuestions, setWrongQuestions] = useState(() => JSON.parse(localStorage.getItem('choice_bank_wrong') || '[]'));
             const [originalFileName, setOriginalFileName] = useState(() => localStorage.getItem('choice_bank_filename') || "题库导出");
             const [lastPracticeIndex, setLastPracticeIndex] = useState(() => Number(localStorage.getItem('choice_bank_last_index')) || 0);
 
@@ -628,6 +687,8 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [filterTags, setFilterTags] = useState([]);
             const [filterDifficulty, setFilterDifficulty] = useState([]);
+            const [filterFavorites, setFilterFavorites] = useState(false);
+            const [filterWrong, setFilterWrong] = useState(false);
             const [selectedIds, setSelectedIds] = useState([]);
             
             const [editingQuestion, setEditingQuestion] = useState(null);
@@ -643,12 +704,15 @@
             const [clearModal, setClearModal] = useState(false);
             const [examFailModal, setExamFailModal] = useState({ isOpen: false, reason: '' });
             const [importModal, setImportModal] = useState({ isOpen: false, pendingQuestions: [] });
+            const [infoModal, setInfoModal] = useState({ isOpen: false, title: '', message: '' });
 
             const fileInputRef = useRef(null);
 
             useEffect(() => {
                 localStorage.setItem('choice_bank_questions', JSON.stringify(questions));
-            }, [questions]);
+                localStorage.setItem('choice_bank_favorites', JSON.stringify(favorites));
+                localStorage.setItem('choice_bank_wrong', JSON.stringify(wrongQuestions));
+            }, [questions, favorites, wrongQuestions]);
 
             useEffect(() => {
                 let timer;
@@ -689,14 +753,28 @@
                     const matchesSearch = q.stem.toLowerCase().includes(searchLower) || (q.remark && q.remark.toLowerCase().includes(searchLower));
                     const matchesTags = filterTags.length === 0 || filterTags.some(t => q.tags.includes(t));
                     const matchesDifficulty = filterDifficulty.length === 0 || filterDifficulty.includes(getDifficulty(q));
-                    return matchesSearch && matchesTags && matchesDifficulty;
+                    const matchesFavorites = !filterFavorites || favorites.includes(q.id);
+                    const matchesWrong = !filterWrong || wrongQuestions.includes(q.id);
+                    return matchesSearch && matchesTags && matchesDifficulty && matchesFavorites && matchesWrong;
                 });
-            }, [questions, searchQuery, filterTags, filterDifficulty]);
+            }, [questions, searchQuery, filterTags, filterDifficulty, filterFavorites, filterWrong, favorites, wrongQuestions]);
 
             const updateStats = useCallback((id, isCorrect) => {
-                setQuestions(prev => prev.map(q => 
-                    q.id === id ? { ...q, practiceCount: q.practiceCount + 1, correctCount: q.correctCount + (isCorrect ? 1 : 0) } : q
-                ));
+                setQuestions(prev => {
+                    const updatedQuestions = prev.map(q => 
+                        q.id === id ? { ...q, practiceCount: q.practiceCount + 1, correctCount: q.correctCount + (isCorrect ? 1 : 0) } : q
+                    );
+                    const updatedQ = updatedQuestions.find(q => q.id === id);
+                    if (updatedQ) {
+                        const wrongCount = updatedQ.practiceCount - updatedQ.correctCount;
+                        if (updatedQ.correctCount > wrongCount) {
+                            setWrongQuestions(prev => prev.filter(qid => qid !== id));
+                        } else if (!isCorrect) {
+                            setWrongQuestions(prev => [...new Set([...prev, id])]);
+                        }
+                    }
+                    return updatedQuestions;
+                });
             }, []);
 
             const handleFileSelect = (e) => {
@@ -741,7 +819,7 @@
                         setImportModal({ isOpen: true, pendingQuestions: newQuestions });
                     } else {
                         setQuestions(newQuestions);
-                        alert(`成功导入 ${newQuestions.length} 道题目`);
+                        setInfoModal({ isOpen: true, title: '提示', message: `成功导入 ${newQuestions.length} 道题目` });
                     }
                 };
                 reader.readAsBinaryString(file);
@@ -754,10 +832,10 @@
                     const existingKeys = new Set(questions.map(q => `${q.stem}|${q.options.join(',')}|${q.answer}`));
                     const uniqueNew = newQs.filter(q => !existingKeys.has(`${q.stem}|${q.options.join(',')}|${q.answer}`));
                     setQuestions(prev => [...prev, ...uniqueNew]);
-                    alert(`合并完成：新增 ${uniqueNew.length} 道题目，跳过 ${newQs.length - uniqueNew.length} 道重复题`);
+                    setInfoModal({ isOpen: true, title: '提示', message: `合并完成：新增 ${uniqueNew.length} 道题目，跳过 ${newQs.length - uniqueNew.length} 道重复题` });
                 } else if (action === 'overwrite') {
                     setQuestions(newQs);
-                    alert(`覆盖完成：共导入 ${newQs.length} 道题目`);
+                    setInfoModal({ isOpen: true, title: '提示', message: `覆盖完成：共导入 ${newQs.length} 道题目` });
                 }
                 setImportModal({ isOpen: false, pendingQuestions: [] });
             };
@@ -784,7 +862,7 @@
                     const matchesDifficulty = config.difficulties.length === 0 || config.difficulties.includes(getDifficulty(q));
                     return matchesTags && matchesDifficulty;
                 });
-                if (pool.length === 0) return alert('符合条件的题目不足');
+                if (pool.length === 0) return setInfoModal({ isOpen: true, title: '提示', message: '符合条件的题目不足' });
                 let list = config.type === 'random' ? shuffleArray(pool) : pool;
                 let startIndex = (config.continue && lastPracticeIndex > 0) ? lastPracticeIndex : 0;
                 setPracticeState({ list, index: startIndex, showAnswer: false, userAnswer: '', shuffleOptions: config.shuffleOptions, type: config.type });
@@ -797,7 +875,7 @@
                     const matchesDifficulty = examConfig.difficulties.length === 0 || examConfig.difficulties.includes(getDifficulty(q));
                     return matchesTags && matchesDifficulty;
                 });
-                if (pool.length < examConfig.count) return alert(`符合条件的题目不足 (当前 ${pool.length} 题)`);
+                if (pool.length < examConfig.count) return setInfoModal({ isOpen: true, title: '提示', message: `符合条件的题目不足 (当前 ${pool.length} 题)` });
                 let selected = examConfig.shuffleQuestions ? shuffleArray(pool) : pool;
                 setTestStartTime(Date.now());
                 setTestEndTime(null);
@@ -840,20 +918,10 @@
 
                     <main className="max-w-7xl mx-auto">
                         <input type="file" ref={fileInputRef} hidden accept=".xlsx, .xls" onChange={handleFileSelect}/>
-                        {mode === 'home' && <Home 
-                            questions={questions} filteredQuestions={filteredQuestions}
-                            searchQuery={searchQuery} setSearchQuery={setSearchQuery}
-                            filterTags={filterTags} setFilterTags={setFilterTags}
-                            filterDifficulty={filterDifficulty} setFilterDifficulty={setFilterDifficulty}
-                            allTags={allTags} setMode={setMode} setEditingQuestion={setEditingQuestion}
-                            onImportClick={() => fileInputRef.current.click()} handleExportExcel={handleExportExcel}
-                            setQuestions={setQuestions} selectedIds={selectedIds} setSelectedIds={setSelectedIds}
-                            confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })}
-                            confirmClear={() => setClearModal(true)}
-                        />}
-                        {mode === 'edit' && <Edit editingQuestion={editingQuestion} saveQuestion={saveQuestion} setMode={setMode} />}
-                        {mode === 'practice_config' && <PracticeConfig allTags={allTags} startPractice={startPractice} lastIndex={lastPracticeIndex} setMode={setMode} questions={questions} setLastPracticeIndex={setLastPracticeIndex} />}
-                        {mode === 'practice' && <Practice practiceState={practiceState} setPracticeState={setPracticeState} setMode={setMode} updateStats={updateStats} setLastPracticeIndex={setLastPracticeIndex} />}
+                        {mode === 'home' && <Home questions={questions} filteredQuestions={filteredQuestions} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filterTags={filterTags} setFilterTags={setFilterTags} filterDifficulty={filterDifficulty} setFilterDifficulty={setFilterDifficulty} filterFavorites={filterFavorites} setFilterFavorites={setFilterFavorites} filterWrong={filterWrong} setFilterWrong={setFilterWrong} allTags={allTags} setMode={setMode} setEditingQuestion={setEditingQuestion} onImportClick={() => fileInputRef.current.click()} handleExportExcel={handleExportExcel} setQuestions={setQuestions} selectedIds={selectedIds} setSelectedIds={setSelectedIds} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} confirmClear={() => setClearModal(true)} setInfoModal={setInfoModal} setFavorites={setFavorites} favorites={favorites} setWrongQuestions={setWrongQuestions} wrongQuestions={wrongQuestions} />}
+                        {mode === 'edit' && <Edit editingQuestion={editingQuestion} saveQuestion={(q) => { if (editingQuestion) setQuestions(prev => prev.map(item => item.id === q.id ? q : item)); else setQuestions(prev => [...prev, q]); setMode('home'); }} setMode={setMode} />}
+                        {mode === 'practice_config' && <PracticeConfig allTags={allTags} startPractice={startPractice} lastIndex={lastPracticeIndex} setMode={setMode} questions={questions} setLastPracticeIndex={setLastPracticeIndex} setInfoModal={setInfoModal} />}
+                        {mode === 'practice' && <Practice practiceState={practiceState} setPracticeState={setPracticeState} setMode={setMode} updateStats={updateStats} setLastPracticeIndex={setLastPracticeIndex} setFavorites={setFavorites} favorites={favorites} setWrongQuestions={setWrongQuestions} wrongQuestions={wrongQuestions} setEditingQuestion={setEditingQuestion} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} />}
                         {mode === 'exam' && <Exam examState={examState} setExamState={setExamState} handleExamFail={(reason) => setExamFailModal({ isOpen: true, reason })} handleExamSuccess={handleExamSuccess} updateStats={updateStats} />}
                         {mode === 'exam_config' && (
                             <div className="max-w-md mx-auto space-y-4">
@@ -894,7 +962,10 @@
                                         </label>
                                     </div>
                                     <p className="text-[10px] opacity-40">当前筛选条件下共有 <span className="text-themeRed font-bold">{examFilteredCount}</span> 道题目</p>
-                                    <button onClick={startExam} className={THEME_CLASSES.button + " w-full py-3"}>开启检测</button>
+                                    <button onClick={() => {
+                                        if (examFilteredCount < examConfig.count) return setInfoModal({ isOpen: true, title: '提示', message: `符合条件的题目不足 (当前 ${examFilteredCount} 题)` });
+                                        startExam();
+                                    }} className={THEME_CLASSES.button + " w-full py-3"}>开启检测</button>
                                     <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton + " w-full"}>返回</button>
                                 </div>
                             </div>
@@ -952,6 +1023,8 @@
                     <Modal isOpen={clearModal} onClose={() => setClearModal(false)} title="清空题库" footer={<><button onClick={() => setClearModal(false)} className={THEME_CLASSES.secondaryButton}>取消</button><button onClick={() => { setQuestions([]); setSelectedIds([]); setClearModal(false); }} className="px-4 py-1.5 bg-red-700 text-white font-serif text-sm">确认清空</button></>}>确定要清空所有题库数据吗？此操作将不可逆转！</Modal>
 
                     <Modal isOpen={importModal.isOpen} onClose={() => setImportModal({ isOpen: false, pendingQuestions: [] })} title="导入选项" footer={<><button onClick={() => handleImportAction('merge')} className={THEME_CLASSES.button}>合并导入</button><button onClick={() => handleImportAction('overwrite')} className="px-4 py-1.5 bg-red-700 text-white font-serif text-sm">覆盖现有</button><button onClick={() => setImportModal({ isOpen: false, pendingQuestions: [] })} className={THEME_CLASSES.secondaryButton}>取消</button></>}>检测到题库已有题目。请选择：<br/>1. <b>合并导入</b>：保留现有题目，仅导入不重复的新题。<br/>2. <b>覆盖现有</b>：清空当前题库，仅保留新导入的题目。</Modal>
+
+                    <Modal isOpen={infoModal.isOpen} onClose={() => setInfoModal({ isOpen: false, title: '', message: '' })} title={infoModal.title} footer={<button onClick={() => setInfoModal({ isOpen: false, title: '', message: '' })} className={THEME_CLASSES.button}>确定</button>}>{infoModal.message}</Modal>
 
                     <Modal isOpen={examFailModal.isOpen} onClose={() => { setExamFailModal({ isOpen: false, reason: '' }); setMode('home'); }} title="检测未通过" footer={<button onClick={() => { setExamFailModal({ isOpen: false, reason: '' }); setMode('home'); }} className={THEME_CLASSES.button}>返回主页</button>}><div className="text-center space-y-4"><Icons.Alert className="w-12 h-12 text-themeRed mx-auto opacity-50"/><p className="text-lg font-bold">遗憾！本次检测未通过</p><p className="opacity-60">失败原因：{examFailModal.reason}</p></div></Modal>
 
