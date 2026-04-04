@@ -522,51 +522,68 @@
                 return practiceState.shuffleOptions ? shuffleArray(opts) : opts;
             }, [current.id, practiceState.shuffleOptions]);
 
+            const displayOptionsRef = useRef(displayOptions);
+            displayOptionsRef.current = displayOptions;
+            const currentRef = useRef(current);
+            currentRef.current = current;
+            const practiceStateRef = useRef(practiceState);
+            practiceStateRef.current = practiceState;
+
             const handleSubmit = useCallback(() => {
-                if (!current) return;
-                const isCorrect = practiceState.userAnswer.split('').sort().join('') === current.answer.split('').sort().join('');
-                updateStats(current.id, isCorrect);
-                setResults(prev => [...prev, { question: current, isCorrect, userAnswer: practiceState.userAnswer }]);
+                const ps = practiceStateRef.current;
+                const cur = currentRef.current;
+                if (!cur) return;
+                const isCorrect = ps.userAnswer.split('').sort().join('') === cur.answer.split('').sort().join('');
+                updateStats(cur.id, isCorrect);
+                setResults(prev => [...prev, { question: cur, isCorrect, userAnswer: ps.userAnswer }]);
                 if (isCorrect) setCorrectCount(prev => prev + 1);
                 else setWrongCount(prev => prev + 1);
-                setPracticeState({...practiceState, showAnswer: true});
-                if (practiceState.type === 'sequential') {
-                    localStorage.setItem('choice_bank_last_index', practiceState.index.toString());
-                    setLastPracticeIndex(practiceState.index);
+                setPracticeState({...ps, showAnswer: true});
+                if (ps.type === 'sequential') {
+                    localStorage.setItem('choice_bank_last_index', ps.index.toString());
+                    setLastPracticeIndex(ps.index);
                 }
-            }, [practiceState, current, updateStats, setLastPracticeIndex, setPracticeState]);
+            }, [updateStats, setLastPracticeIndex, setPracticeState]);
+
+            const handleSubmitRef = useRef(handleSubmit);
+            handleSubmitRef.current = handleSubmit;
 
             useEffect(() => {
                 const handleKeyDown = (e) => {
-                    if (practiceState.showAnswer) {
+                    const ps = practiceStateRef.current;
+                    const cur = currentRef.current;
+                    const opts = displayOptionsRef.current;
+                    if (ps.showAnswer) {
                         if (e.key === 'Enter') {
-                            if (practiceState.index < practiceState.list.length - 1) setPracticeState({...practiceState, index: practiceState.index+1, showAnswer: false, userAnswer: ''});
+                            if (ps.index < ps.list.length - 1) setPracticeState({...ps, index: ps.index+1, showAnswer: false, userAnswer: ''});
                             else { setShowCompleteModal(true); }
                         }
                     } else {
                         if (e.key >= '1' && e.key <= '9') {
                             const idx = parseInt(e.key) - 1;
-                            if (idx < displayOptions.length) {
-                                const opt = displayOptions[idx];
-                                const isMultiple = current.answer.length > 1;
+                            if (idx < opts.length) {
+                                const opt = opts[idx];
+                                const isMultiple = cur.answer.length > 1;
                                 if (!isMultiple) {
-                                    setPracticeState({...practiceState, userAnswer: opt.originalLetter});
+                                    setPracticeState(prev => ({...prev, userAnswer: opt.originalLetter}));
                                 } else {
-                                    const currentUA = practiceState.userAnswer;
-                                    const newUA = currentUA.includes(opt.originalLetter) 
-                                        ? currentUA.replace(opt.originalLetter, '') 
-                                        : currentUA + opt.originalLetter;
-                                    setPracticeState({...practiceState, userAnswer: newUA});
+                                    setPracticeState(prev => {
+                                        const currentUA = prev.userAnswer;
+                                        const newUA = currentUA.includes(opt.originalLetter) 
+                                            ? currentUA.replace(opt.originalLetter, '') 
+                                            : currentUA + opt.originalLetter;
+                                        return {...prev, userAnswer: newUA};
+                                    });
                                 }
                             }
-                        } else if (e.key === 'Enter' && practiceState.userAnswer) {
-                            handleSubmit();
+                        } else if (e.key === 'Enter' && practiceStateRef.current.userAnswer) {
+                            handleSubmitRef.current();
                         }
                     }
                 };
                 window.addEventListener('keydown', handleKeyDown);
                 return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [practiceState, displayOptions, current, handleSubmit, setPracticeState, setMode]);
+            }, []);
 
             return (
                 <div className="max-w-2xl mx-auto space-y-4">
@@ -660,7 +677,7 @@
                                         if (practiceState.index < practiceState.list.length - 1) setPracticeState({...practiceState, index: practiceState.index+1, showAnswer: false, userAnswer: ''});
                                         else { setShowCompleteModal(true); }
                                     }} className={THEME_CLASSES.button}>下一题</button>
-                                    <button onClick={() => setShowCompleteModal(true)} className={THEME_CLASSES.secondaryButton}>结束</button>
+                                    <button onClick={() => setShowCompleteModal(true)} className={THEME_CLASSES.secondaryButton} disabled={results.length === 0}>结束</button>
                                 </div>
                             </div>
                         ) : (
@@ -751,7 +768,7 @@
                     let remark = '';
 
                     let i = 0;
-                    stem = lines[i].replace(/^[【\d\w\.\s]+/, '').trim();
+                    stem = lines[i].replace(/^[\d\s\.、\)\]\}]+/, '').trim();
                     i++;
 
                     while (i < lines.length) {
@@ -891,7 +908,7 @@
                     <div className={THEME_CLASSES.card + " space-y-4"}>
                         <div>
                             <label className="text-xs opacity-50 block mb-1">题目数量</label>
-                            <input type="number" className={THEME_CLASSES.input} value={config.count} onChange={e => setConfig({...config, count: parseInt(e.target.value) || 10})}/>
+                            <input type="number" min="1" className={THEME_CLASSES.input} value={config.count} onChange={e => setConfig({...config, count: parseInt(e.target.value) || 10})}/>
                         </div>
                         <div>
                             <label className="text-xs opacity-50 block mb-1">每题限时 (秒，0为不限)</label>
@@ -1017,7 +1034,7 @@
                             </div>
                         </div>
                         <div className="text-center pt-4 flex gap-4 justify-center">
-                            <button onClick={() => startBattle({ count: lTotal, timeLimit: battleState.timeLimit, tags: [], difficulties: [], shuffleOptions: battleState.shuffleOptions })} className={THEME_CLASSES.button}>再来一局</button>
+                            <button onClick={() => startBattle(battleState.lastConfig || { count: lTotal, timeLimit: battleState.timeLimit, tags: [], difficulties: [], shuffleOptions: battleState.shuffleOptions })} className={THEME_CLASSES.button}>再来一局</button>
                             <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton}>返回主页</button>
                         </div>
                     </div>
@@ -1049,9 +1066,14 @@
                             <div className="flex items-center gap-3">
                                 <span className="text-xs opacity-50">{index + 1} / {total}</span>
                                 <span className="text-xs">答对: <b className="text-themeRed">{correct}</b></span>
-                                {timeLimit > 0 && (
+                                {timeLimit > 0 && timeLeft > 0 && (
                                     <span className={`text-lg font-title ${timeLeft < 10 ? 'text-red-600 animate-pulse' : 'text-themeRed'}`}>
                                         <Icons.Clock/> {timeLeft}s
+                                    </span>
+                                )}
+                                {timeLimit > 0 && timeLeft <= 0 && (
+                                    <span className="text-lg font-title text-red-600 animate-pulse">
+                                        <Icons.Clock/> 超时
                                     </span>
                                 )}
                                 <span className="text-xs opacity-40">{formatTime(battleTimer)}</span>
@@ -1175,7 +1197,7 @@
                                     if (!prev[side].done && prev[side].timeLeft <= 0) {
                                         const q = prev[side].questions[prev[side].index];
                                         updateStats(q.id, false);
-                                        const s = { ...prev[side], userAnswer: '', answered: true };
+                                        const s = { ...prev[side], userAnswer: '', answered: true, timeLeft: -1 };
                                         if (prev[side].index < prev[side].questions.length - 1) {
                                             s.index = prev[side].index + 1;
                                             s.timeLeft = prev.timeLimit;
@@ -1184,7 +1206,7 @@
                                             s.timeSpent = Date.now() - prev.startTime;
                                         }
                                         updated[side] = s;
-                                    } else if (!prev[side].done) {
+                                    } else if (!prev[side].done && prev[side].timeLeft > 0) {
                                         const s = { ...prev[side], timeLeft: prev[side].timeLeft - 1 };
                                         updated[side] = s;
                                     }
@@ -1358,6 +1380,7 @@
                     phase: 'playing',
                     startTime: Date.now(),
                     timeLimit: config.timeLimit,
+                    lastConfig: config,
                 });
                 setMode('battle');
             };
@@ -1412,11 +1435,11 @@
                                 <div className={THEME_CLASSES.card + " space-y-4"}>
                                     <div>
                                         <label className="text-xs opacity-50 block mb-1">题目数量</label>
-                                        <input type="number" className={THEME_CLASSES.input} value={examConfig.count} onChange={e => setExamConfig({...examConfig, count: e.target.value})}/>
+                                        <input type="number" min="1" className={THEME_CLASSES.input} value={examConfig.count} onChange={e => setExamConfig({...examConfig, count: parseInt(e.target.value) || 1})}/>
                                     </div>
                                     <div>
                                         <label className="text-xs opacity-50 block mb-1">单题限时 (秒)</label>
-                                        <input type="number" className={THEME_CLASSES.input} value={examConfig.timeLimit} onChange={e => setExamConfig({...examConfig, timeLimit: e.target.value})}/>
+                                        <input type="number" min="1" className={THEME_CLASSES.input} value={examConfig.timeLimit} onChange={e => setExamConfig({...examConfig, timeLimit: parseInt(e.target.value) || 1})}/>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs opacity-50 block mb-2">筛选标签</label>
