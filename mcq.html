@@ -433,7 +433,7 @@
             const [sortAsc, setSortAsc] = useState(false);
             const [page, setPage] = useState(1);
             const pageSize = 10;
-            const [aiAnalysisModal, setAiAnalysisModal] = useState({ isOpen: false, question: null, loading: false, analysis: '', confirm: false, provider: '' });
+            const [aiAnalysisModal, setAiAnalysisModal] = useState({ isOpen: false, question: null, loading: false, analysis: '', confirm: false, provider: '', showCompare: false, originalAnalysis: '' });
             const [aiSimilarModal, setAiSimilarModal] = useState({ isOpen: false, question: null, loading: false, questions: [], confirm: false, provider: '' });
             
             const sortedQuestions = useMemo(() => {
@@ -561,7 +561,7 @@
 
             const confirmAIAnalysis = (q) => {
                 const { provider } = getAIConfig();
-                setAiAnalysisModal({ isOpen: true, question: q, loading: false, analysis: '', confirm: true, provider });
+                setAiAnalysisModal({ isOpen: true, question: q, loading: false, analysis: '', confirm: true, provider, showCompare: false, originalAnalysis: q.analysis || '' });
             };
 
             const handleAIAnalysis = async () => {
@@ -915,7 +915,7 @@ D. ${q.options[3]}
                         <AIGenerateModalContent setInfoModal={setInfoModal} setQuestions={setQuestions} questions={questions} allTags={allTags} />
                     </Modal>
 
-                    <Modal isOpen={aiAnalysisModal.isOpen} onClose={() => setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false })} title="AI 解析" maxHeight="80vh">
+                    <Modal isOpen={aiAnalysisModal.isOpen} onClose={() => setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false, provider: '', showCompare: false, originalAnalysis: '' })} title="AI 解析" maxHeight="80vh">
                         {aiAnalysisModal.confirm ? (
                             <div className="space-y-3">
                                 <div>
@@ -929,7 +929,7 @@ D. ${q.options[3]}
                                     <p className="text-[10px] opacity-50">答案：{aiAnalysisModal.question?.answer}</p>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button onClick={() => setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false, provider: '' })} className={THEME_CLASSES.secondaryButton + " flex-1"}>取消</button>
+                                    <button onClick={() => setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false, provider: '', showCompare: false, originalAnalysis: '' })} className={THEME_CLASSES.secondaryButton + " flex-1"}>取消</button>
                                     <button onClick={handleAIAnalysis} className={THEME_CLASSES.button + " flex-1"}>确认生成</button>
                                 </div>
                             </div>
@@ -945,18 +945,46 @@ D. ${q.options[3]}
                                     <p className="text-xs font-bold mb-1">{aiAnalysisModal.question?.stem}</p>
                                     <p className="text-[10px] opacity-50">答案：{aiAnalysisModal.question?.answer}</p>
                                 </div>
-                                <div className="text-sm leading-relaxed max-h-60 overflow-y-auto custom-scrollbar">
-                                    {cleanMarkdown(aiAnalysisModal.analysis).split('\n').map((line, i) => (
-                                        <div key={i} className={line.startsWith('【') ? 'mt-2 mb-1 font-bold' : 'mb-1'}>{line || <br/>}</div>
-                                    ))}
-                                </div>
+                                {aiAnalysisModal.showCompare && aiAnalysisModal.originalAnalysis ? (
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-bold text-themeRed">对比新旧解析</span>
+                                            <button onClick={() => setAiAnalysisModal(prev => ({ ...prev, showCompare: false }))} className="text-[10px] text-themeRed hover:underline">返回</button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <div className="p-2 border border-themeRed/10 rounded-sm">
+                                                <p className="font-bold mb-1 text-themeRed">原解析</p>
+                                                <div className="max-h-40 overflow-y-auto custom-scrollbar whitespace-pre-wrap opacity-60">{aiAnalysisModal.originalAnalysis || '无'}</div>
+                                            </div>
+                                            <div className="p-2 border border-themeRed/10 rounded-sm">
+                                                <p className="font-bold mb-1 text-themeRed">AI 解析</p>
+                                                <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                                                    {cleanMarkdown(aiAnalysisModal.analysis).split('\n').map((line, i) => (
+                                                        <div key={i} className={line.startsWith('【') ? 'mt-2 mb-1 font-bold' : 'mb-1'}>{line || <br/>}</div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-sm leading-relaxed max-h-60 overflow-y-auto custom-scrollbar">
+                                        {cleanMarkdown(aiAnalysisModal.analysis).split('\n').map((line, i) => (
+                                            <div key={i} className={line.startsWith('【') ? 'mt-2 mb-1 font-bold' : 'mb-1'}>{line || <br/>}</div>
+                                        ))}
+                                    </div>
+                                )}
                                 {aiAnalysisModal.analysis && !aiAnalysisModal.analysis.startsWith('生成失败') && (
-                                    <button onClick={() => {
-                                        const q = aiAnalysisModal.question;
-                                        setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, analysis: aiAnalysisModal.analysis } : item));
-                                        setInfoModal({ isOpen: true, title: '提示', message: '解析已保存到题目' });
-                                        setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false });
-                                    }} className={THEME_CLASSES.button + " w-full py-2"}>保存到题目</button>
+                                    <div className="flex gap-2">
+                                        {aiAnalysisModal.originalAnalysis && !aiAnalysisModal.showCompare && (
+                                            <button onClick={() => setAiAnalysisModal(prev => ({ ...prev, showCompare: true }))} className={THEME_CLASSES.secondaryButton + " flex-1"}>对比查看</button>
+                                        )}
+                                        <button onClick={() => {
+                                            const q = aiAnalysisModal.question;
+                                            setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, analysis: aiAnalysisModal.analysis } : item));
+                                            setInfoModal({ isOpen: true, title: '提示', message: '解析已替换到题目' });
+                                            setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false, provider: '', showCompare: false, originalAnalysis: '' });
+                                        }} className={THEME_CLASSES.button + " flex-1"}>一键替换原解析</button>
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -1021,6 +1049,7 @@ D. ${q.options[3]}
                 practiceCount: 0, correctCount: 0, remark: ''
             });
             const [tagInput, setTagInput] = useState(form.tags.join(','));
+            const [showPreview, setShowPreview] = useState(false);
 
             const handleSave = (e) => {
                 if (e) e.preventDefault();
@@ -1041,11 +1070,42 @@ D. ${q.options[3]}
                 }
             };
 
+            if (showPreview) {
+                const validOptions = form.options.filter(o => o.trim());
+                const displayOptions = validOptions.map((text, idx) => ({ text, originalLetter: String.fromCharCode(65 + idx) }));
+                return (
+                    <div className="max-w-2xl mx-auto space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h2 className={THEME_CLASSES.title}>题目预览</h2>
+                            <button onClick={() => setShowPreview(false)} className={THEME_CLASSES.secondaryButton}>返回编辑</button>
+                        </div>
+                        <div className={THEME_CLASSES.card + " space-y-6"}>
+                            <div className="flex gap-2"><span className={THEME_CLASSES.badge}>{form.answer.length > 1 ? '多选' : '单选'}</span></div>
+                            <p className="text-lg leading-relaxed">{form.stem || '（题干为空）'}</p>
+                            <div className="space-y-2">
+                                {displayOptions.map((opt, i) => (
+                                    <div key={i} className="w-full text-left p-3 border border-themeRed/10 flex items-center gap-3">
+                                        <span className="w-6 h-6 flex items-center justify-center border border-themeRed/20 rounded-full text-xs">{String.fromCharCode(65 + i)}</span>
+                                        {opt.text || '（选项为空）'}
+                                    </div>
+                                ))}
+                            </div>
+                            {form.analysis && (
+                                <div className="p-4 bg-themeRed/5 border-l-4 border-themeRed text-sm">
+                                    <p><span className="opacity-60">解析：</span><span className="whitespace-pre-wrap">{form.analysis}</span></p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="max-w-3xl mx-auto space-y-4 pb-10">
                     <div className="flex justify-between items-center">
                         <h2 className={THEME_CLASSES.title}>{editingQuestion ? '修改' : '新增'}题目</h2>
                         <div className="flex gap-3">
+                            <button onClick={() => setShowPreview(true)} className={THEME_CLASSES.secondaryButton}><Icons.Search/> 预览</button>
                             <button onClick={handleSave} className={THEME_CLASSES.button}>保存题目</button>
                             <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton}>返回</button>
                         </div>
@@ -1107,7 +1167,7 @@ D. ${q.options[3]}
 
                         <div>
                             <label className="text-xs font-bold text-themeRed mb-2 block">解析说明</label>
-                            <input className={THEME_CLASSES.input} 
+                            <textarea className={THEME_CLASSES.input + " h-20 resize-none"} 
                                 placeholder="请输入题目解析..."
                                 value={form.analysis} onChange={e => setForm({...form, analysis: e.target.value})}/>
                         </div>
