@@ -1556,17 +1556,8 @@ h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; letter-spacing: 4px; 
                                 const isSelected = userAnswer.includes(opt.originalLetter);
                                 return (
                                     <button key={i}
-                                        onClick={() => {
-                                            const newUA = userAnswer.includes(opt.originalLetter)
-                                                ? userAnswer.replace(opt.originalLetter, '')
-                                                : userAnswer + opt.originalLetter;
-                                            setBattleState(prev => ({
-                                                ...prev,
-                                                [side]: { ...prev[side], userAnswer: newUA }
-                                            }));
-                                        }}
                                         onPointerDown={(e) => {
-                                            e.preventDefault();
+                                            e.stopPropagation();
                                             const newUA = userAnswer.includes(opt.originalLetter)
                                                 ? userAnswer.replace(opt.originalLetter, '')
                                                 : userAnswer + opt.originalLetter;
@@ -1576,7 +1567,7 @@ h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; letter-spacing: 4px; 
                                             }));
                                         }}
                                         className={`w-full text-left p-2 border transition-all flex items-center gap-3 text-sm select-none ${isSelected ? answerColor : 'border-themeRed/10 ' + hoverColor}`}
-                                        style={{ touchAction: 'none' }}>
+                                        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}>
                                         <span className={`w-6 h-6 flex items-center justify-center border rounded-full text-xs flex-shrink-0 ${isSelected ? 'border-white' : 'border-themeRed/20'}`}>{letter}</span>
                                         {opt.text}
                                     </button>
