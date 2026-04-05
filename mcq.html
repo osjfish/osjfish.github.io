@@ -895,7 +895,7 @@
             );
         };
 
-        const Practice = ({ practiceState, setPracticeState, setMode, updateStats, setLastPracticeIndex, setQuestions, allTags }) => {
+        const Practice = ({ practiceState, setPracticeState, setMode, updateStats, setLastPracticeIndex, setQuestions, allTags, questions }) => {
             const [showCompleteModal, setShowCompleteModal] = useState(false);
             const [correctCount, setCorrectCount] = useState(0);
             const [wrongCount, setWrongCount] = useState(0);
@@ -919,6 +919,16 @@
                 const opts = current.options.map((text, idx) => ({ text, originalLetter: String.fromCharCode(65 + idx) }));
                 return practiceState.shuffleOptions ? shuffleArray(opts) : opts;
             }, [current.id, practiceState.shuffleOptions]);
+
+            const progressInfo = useMemo(() => {
+                const practiced = questions.filter(q => q.practiceCount > 0);
+                const mastered = practiced.filter(q => q.correctCount / q.practiceCount >= 0.5);
+                return {
+                    mastered: mastered.length,
+                    total: questions.length,
+                    percent: questions.length > 0 ? (mastered.length / questions.length * 100) : 0,
+                };
+            }, [questions]);
 
             const displayOptionsRef = useRef(displayOptions);
             displayOptionsRef.current = displayOptions;
@@ -1146,10 +1156,10 @@
                     <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h2 className={THEME_CLASSES.title}>练习模式</h2>
-                        <span className="text-xs opacity-50">{practiceState.index + 1} / {practiceState.list.length}</span>
+                        <span className="text-xs opacity-50">已掌握 {progressInfo.mastered} / {progressInfo.total}</span>
                     </div>
                     <div className="w-full h-1.5 bg-themeRed/10 rounded-sm overflow-hidden">
-                        <div className="h-full bg-themeRed transition-all duration-300" style={{ width: `${((practiceState.index + 1) / practiceState.list.length) * 100}%` }}></div>
+                        <div className="h-full bg-themeRed transition-all duration-300" style={{ width: `${progressInfo.percent}%` }}></div>
                     </div>
                     <div className={THEME_CLASSES.card + " space-y-6"}>
                         <div className="flex gap-2"><span className={THEME_CLASSES.badge}>{current.answer.length > 1 ? '多选' : '单选'}</span></div>
@@ -2191,7 +2201,7 @@ h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; letter-spacing: 4px; 
                         {mode === 'home' && <Home questions={questions} filteredQuestions={filteredQuestions} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filterTags={filterTags} setFilterTags={setFilterTags} filterDifficulty={filterDifficulty} setFilterDifficulty={setFilterDifficulty} filterQuestionType={filterQuestionType} setFilterQuestionType={setFilterQuestionType} allTags={allTags} setMode={setMode} setEditingQuestion={setEditingQuestion} onImportClick={() => fileInputRef.current.click()} handleExportExcel={handleExportExcel} setQuestions={setQuestions} selectedIds={selectedIds} setSelectedIds={setSelectedIds} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} confirmClear={() => setClearModal(true)} setInfoModal={setInfoModal} setFavorites={setFavorites} favorites={favorites} />}
                         {mode === 'edit' && <Edit editingQuestion={editingQuestion} saveQuestion={(q) => { if (editingQuestion) setQuestions(prev => prev.map(item => item.id === q.id ? q : item)); else setQuestions(prev => [...prev, q]); setMode('home'); }} setMode={setMode} />}
                         {mode === 'practice_config' && <PracticeConfig allTags={allTags} startPractice={startPractice} lastIndex={lastPracticeIndex} setMode={setMode} questions={questions} setLastPracticeIndex={setLastPracticeIndex} setInfoModal={setInfoModal} favorites={favorites} />}
-                        {mode === 'practice' && <Practice practiceState={practiceState} setPracticeState={setPracticeState} setMode={setMode} updateStats={updateStats} setLastPracticeIndex={setLastPracticeIndex} setFavorites={setFavorites} favorites={favorites} setEditingQuestion={setEditingQuestion} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} setQuestions={setQuestions} allTags={allTags} />}
+                        {mode === 'practice' && <Practice practiceState={practiceState} setPracticeState={setPracticeState} setMode={setMode} updateStats={updateStats} setLastPracticeIndex={setLastPracticeIndex} setFavorites={setFavorites} favorites={favorites} setEditingQuestion={setEditingQuestion} confirmDelete={(ids) => setDeleteModal({ isOpen: true, ids })} setQuestions={setQuestions} allTags={allTags} questions={questions} />}
                         {mode === 'exam' && <Exam examState={examState} setExamState={setExamState} handleExamFail={(reason, answered) => setExamFailModal({ isOpen: true, reason, answered })} handleExamSuccess={handleExamSuccess} updateStats={updateStats} />}
                         {mode === 'battle_config' && <BattleConfig allTags={allTags} setMode={setMode} questions={questions} setInfoModal={setInfoModal} startBattle={startBattle} favorites={favorites} />}
                         {mode === 'paper_config' && <PaperConfig allTags={allTags} setMode={setMode} questions={questions} setInfoModal={setInfoModal} favorites={favorites} />}
