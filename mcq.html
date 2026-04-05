@@ -228,7 +228,7 @@
 5. 选项内容不要包含A、B、C、D等字母前缀，只写选项正文，系统会自动添加字母编号`;
                     if (extraReq) prompt += `\n6. 附加要求：${extraReq}`;
                     if (tagHint) prompt += `\n${extraReq ? '7' : '6'}. 标签：请根据题目内容，结合以下提示为每道题打2-3个标签：${tagHint}`;
-                    prompt += `\n\n请严格按以下JSON格式返回，不要包含任何其他文字：
+                    prompt += `\n\n请严格按以下JSON格式返回，不要包含任何其他文字。注意：选项内容和解析中如果包含双引号，请使用单引号代替：
 [
   {
     "stem": "题干内容",
@@ -249,7 +249,40 @@
                     const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
                     if (jsonMatch) content = jsonMatch[1].trim();
                     content = content.replace(/[""]/g, '"').replace(/['']/g, "'");
-                    const parsed = JSON.parse(content);
+                    let parsed;
+                    try {
+                        parsed = JSON.parse(content);
+                    } catch (e) {
+                        const arrMatch = content.match(/\[[\s\S]*\]/);
+                        if (arrMatch) {
+                            let cleaned = arrMatch[0];
+                            cleaned = cleaned.replace(/[""]/g, '"').replace(/['']/g, "'");
+                            cleaned = cleaned.replace(/\\n/g, ' ').replace(/\\r/g, '');
+                            try {
+                                parsed = JSON.parse(cleaned);
+                            } catch (e2) {
+                                const lines = cleaned.split('\n');
+                                let validJson = '';
+                                for (let i = 0; i < lines.length; i++) {
+                                    try {
+                                        validJson = lines.slice(0, i + 1).join('\n');
+                                        JSON.parse(validJson);
+                                    } catch (e3) {
+                                        if (i > 0) {
+                                            validJson = lines.slice(0, i).join('\n');
+                                            try {
+                                                parsed = JSON.parse(validJson + ']');
+                                                break;
+                                            } catch (e4) {}
+                                        }
+                                    }
+                                }
+                                if (!parsed) throw new Error('AI返回的JSON格式有误，请减少生成数量后重试');
+                            }
+                        } else {
+                            throw new Error('AI返回的不是有效的JSON格式');
+                        }
+                    }
                     if (!Array.isArray(parsed)) throw new Error('AI返回的不是有效的题目列表');
                     setPreview(parsed.map(q => ({
                         id: Math.random().toString(36).substr(2, 9),
@@ -316,7 +349,7 @@
                     <div className="flex gap-3">
                         <div className="flex-1">
                             <label className="text-xs opacity-50 block mb-1">数量</label>
-                            <input type="number" min="1" max="20" className={THEME_CLASSES.input} value={count} onChange={e => setCount(parseInt(e.target.value) || 5)}/>
+                            <input type="number" min="1" max="10" className={THEME_CLASSES.input} value={count} onChange={e => setCount(Math.min(10, parseInt(e.target.value) || 5))}/>
                         </div>
                         <div className="flex-1">
                             <label className="text-xs opacity-50 block mb-1">题型</label>
