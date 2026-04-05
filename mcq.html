@@ -102,6 +102,9 @@
             X: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
             Alert: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
             History: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
+            Brain: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="10" y1="23" x2="14" y2="23"/></svg>,
+            Sparkles: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
+            Wand: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8L19 13"/><path d="M15 9h0"/><path d="M17.8 6.2L19 5"/><path d="m3 21 9-9"/><path d="M12.2 6.2L11 5"/></svg>,
             Eraser: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="m22 21H7"/><path d="m5 11 9 9"/></svg>,
             Star: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
             FileText: ({ className, ...props }) => <svg className={`icon-svg ${className || ""}`} {...props} viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
@@ -141,6 +144,25 @@
             const s = totalSeconds % 60;
             if (m > 0) return `${m}分${s}秒`;
             return `${s}秒`;
+        };
+
+        const cleanMarkdown = (text) => {
+            if (!text) return '';
+            return text
+                .replace(/#{1,6}\s*/g, '')
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1')
+                .replace(/__(.*?)__/g, '$1')
+                .replace(/_(.*?)_/g, '$1')
+                .replace(/~~(.*?)~~/g, '$1')
+                .replace(/`(.*?)`/g, '$1')
+                .replace(/^(\s*[-*+]\s)/gm, '')
+                .replace(/^(\s*\d+\.\s)/gm, '')
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                .replace(/^>\s*/gm, '')
+                .replace(/---+/g, '')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
         };
 
         // --- Components ---
@@ -225,7 +247,8 @@
 2. 答案唯一且正确
 3. 解析简明扼要，解析中不要使用"A选项"、"B选项"等字母代称，应直接引用选项的具体内容
 4. 题干中不要使用"加点字"、"划线句"、"画线部分"、"文中画波浪线处"等需要视觉标记才能理解的表述，如需强调某内容请用引号或书名号标出
-5. 选项内容不要包含A、B、C、D等字母前缀，只写选项正文，系统会自动添加字母编号`;
+5. 选项内容不要包含A、B、C、D等字母前缀，只写选项正文，系统会自动添加字母编号
+6. 不要使用任何markdown格式（不要用**、#、-等符号）`;
                     if (extraReq) prompt += `\n6. 附加要求：${extraReq}`;
                     if (tagHint) prompt += `\n${extraReq ? '7' : '6'}. 标签：请根据题目内容，结合以下提示为每道题打2-3个标签：${tagHint}`;
                     prompt += `\n\n请严格按以下JSON格式返回，不要包含任何其他文字。注意：选项内容和解析中如果包含双引号，请使用单引号代替：
@@ -410,6 +433,8 @@
             const [sortAsc, setSortAsc] = useState(false);
             const [page, setPage] = useState(1);
             const pageSize = 10;
+            const [aiAnalysisModal, setAiAnalysisModal] = useState({ isOpen: false, question: null, loading: false, analysis: '', confirm: false, provider: '' });
+            const [aiSimilarModal, setAiSimilarModal] = useState({ isOpen: false, question: null, loading: false, questions: [], confirm: false, provider: '' });
             
             const sortedQuestions = useMemo(() => {
                 if (!sortBy) return filteredQuestions;
@@ -510,6 +535,153 @@
                 }
                 setTagDeleteModal({ isOpen: false, tag: '' });
                 setTagDeleteConfirm(false);
+            };
+
+            const getAIConfig = () => {
+                const provider = localStorage.getItem('choice_bank_ai_provider') || 'DeepSeek';
+                const key = localStorage.getItem('choice_bank_ai_key_' + provider) || '';
+                const url = localStorage.getItem('choice_bank_ai_url_' + provider) || AI_PROVIDERS.find(p => p.name === provider)?.url || '';
+                const model = localStorage.getItem('choice_bank_ai_model_' + provider) || AI_PROVIDERS.find(p => p.name === provider)?.model || '';
+                return { key, url, model, provider };
+            };
+
+            const callAI = async (prompt) => {
+                const { key, url, model, provider } = getAIConfig();
+                if (!url) throw new Error('请先在 AI 生成试题中配置 API 地址');
+                const headers = { 'Content-Type': 'application/json' };
+                if (key) headers['Authorization'] = `Bearer ${key}`;
+                const response = await fetch(url, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.7 }),
+                });
+                if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || `请求失败 (${response.status})`); }
+                const data = await response.json();
+                return { content: data.choices[0].message.content.trim(), provider };
+            };
+
+            const confirmAIAnalysis = (q) => {
+                const { provider } = getAIConfig();
+                setAiAnalysisModal({ isOpen: true, question: q, loading: false, analysis: '', confirm: true, provider });
+            };
+
+            const handleAIAnalysis = async () => {
+                const q = aiAnalysisModal.question;
+                const savedProvider = aiAnalysisModal.provider;
+                const key = localStorage.getItem('choice_bank_ai_key_' + savedProvider) || '';
+                const url = localStorage.getItem('choice_bank_ai_url_' + savedProvider) || AI_PROVIDERS.find(p => p.name === savedProvider)?.url || '';
+                const model = localStorage.getItem('choice_bank_ai_model_' + savedProvider) || AI_PROVIDERS.find(p => p.name === savedProvider)?.model || '';
+                if (!url) { setAiAnalysisModal(prev => ({ ...prev, loading: false, confirm: false, analysis: '请先在 AI 生成试题中配置 ' + savedProvider + ' 的 API 地址' })); return; }
+                setAiAnalysisModal(prev => ({ ...prev, loading: true, confirm: false }));
+                try {
+                    const prompt = `请为以下选择题生成详细解析。
+
+题干：${q.stem}
+选项：
+A. ${q.options[0]}
+B. ${q.options[1]}
+C. ${q.options[2]}
+D. ${q.options[3]}
+正确答案：${q.answer}
+
+要求：
+1. 不要使用任何markdown格式（不要用**、#、-等符号）
+2. 不要使用"A选项"、"B选项"等字母代称，请直接引用选项的完整原文内容
+3. 按以下格式输出：
+【考点】指出本题考查的知识点
+【解析】解释为什么正确答案是正确的，逐项分析其他选项为什么错误（引用选项原文）
+【易错点】指出学生容易出错的地方
+4. 语言简洁明了，适合学生理解`;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (key) headers['Authorization'] = `Bearer ${key}`;
+                    const response = await fetch(url, {
+                        method: 'POST', headers,
+                        body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.7 }),
+                    });
+                    if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || `请求失败 (${response.status})`); }
+                    const data = await response.json();
+                    setAiAnalysisModal(prev => ({ ...prev, loading: false, analysis: data.choices[0].message.content.trim(), provider: savedProvider }));
+                } catch (e) {
+                    setAiAnalysisModal(prev => ({ ...prev, loading: false, analysis: '生成失败：' + e.message, provider: savedProvider }));
+                }
+            };
+
+            const confirmAISimilar = (q) => {
+                const { provider } = getAIConfig();
+                setAiSimilarModal({ isOpen: true, question: q, loading: false, questions: [], confirm: true, provider });
+            };
+
+            const handleAISimilar = async () => {
+                const q = aiSimilarModal.question;
+                const savedProvider = aiSimilarModal.provider;
+                const key = localStorage.getItem('choice_bank_ai_key_' + savedProvider) || '';
+                const url = localStorage.getItem('choice_bank_ai_url_' + savedProvider) || AI_PROVIDERS.find(p => p.name === savedProvider)?.url || '';
+                const model = localStorage.getItem('choice_bank_ai_model_' + savedProvider) || AI_PROVIDERS.find(p => p.name === savedProvider)?.model || '';
+                if (!url) { setAiSimilarModal(prev => ({ ...prev, loading: false, confirm: false, error: '请先在 AI 生成试题中配置 ' + savedProvider + ' 的 API 地址' })); return; }
+                setAiSimilarModal(prev => ({ ...prev, loading: true, confirm: false }));
+                try {
+                    const prompt = `请根据以下选择题，生成3道同考点的变体题（相似题）：
+
+题干：${q.stem}
+选项：
+A. ${q.options[0]}
+B. ${q.options[1]}
+C. ${q.options[2]}
+D. ${q.options[3]}
+正确答案：${q.answer}
+解析：${q.analysis || '无'}
+
+要求：
+1. 考查相同的知识点，但换一种出题角度
+2. 每题4个选项，答案唯一
+3. 附带简要解析
+4. 不要使用任何markdown格式
+
+请严格按以下JSON格式返回，不要包含任何其他文字：
+[
+  {
+    "stem": "题干",
+    "options": ["选项A", "选项B", "选项C", "选项D"],
+    "answer": "A",
+    "analysis": "解析"
+  }
+]`;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (key) headers['Authorization'] = `Bearer ${key}`;
+                    const response = await fetch(url, {
+                        method: 'POST', headers,
+                        body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.7 }),
+                    });
+                    if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || `请求失败 (${response.status})`); }
+                    const data = await response.json();
+                    let content = data.choices[0].message.content.trim();
+                    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+                    if (jsonMatch) content = jsonMatch[1].trim();
+                    content = content.replace(/[""]/g, '"').replace(/['']/g, "'");
+                    const parsed = JSON.parse(content);
+                    if (!Array.isArray(parsed)) throw new Error('返回格式不正确');
+                    const formatted = parsed.map(sq => ({
+                        id: Math.random().toString(36).substr(2, 9),
+                        type: sq.answer.length > 1 ? '多选题' : '单选题',
+                        stem: sq.stem || '',
+                        options: (sq.options || []).map(o => o.replace(/^\s*[A-Za-z][\.、:\s]\s*/, '').trim()),
+                        answer: (sq.answer || '').toUpperCase().replace(/\s/g, ''),
+                        analysis: sq.analysis || '',
+                        tags: q.tags ? [...q.tags] : [],
+                        remark: `相似题来源：${q.stem.substring(0, 30)}...`,
+                        practiceCount: 0, correctCount: 0, importTime: Date.now(),
+                    })).filter(sq => sq.stem && sq.options.length >= 2 && sq.answer);
+                    setAiSimilarModal(prev => ({ ...prev, loading: false, questions: formatted, provider: savedProvider }));
+                } catch (e) {
+                    setAiSimilarModal(prev => ({ ...prev, loading: false, questions: [], error: e.message, provider: savedProvider }));
+                }
+            };
+
+            const importSimilarQuestions = () => {
+                const existingKeys = new Set(questions.map(q => `${q.stem}|${q.options.join(',')}|${q.answer}`));
+                const uniqueNew = aiSimilarModal.questions.filter(q => !existingKeys.has(`${q.stem}|${q.options.join(',')}|${q.answer}`));
+                setQuestions(prev => [...prev, ...uniqueNew]);
+                setInfoModal({ isOpen: true, title: '提示', message: `相似题导入完成：新增 ${uniqueNew.length} 道题目` });
+                setAiSimilarModal({ isOpen: false, question: null, loading: false, questions: [] });
             };
             
             return (
@@ -665,6 +837,8 @@
                                             className={`p-1 ${favorites.includes(q.id) ? 'text-yellow-500' : 'text-themeRed/40'} hover:bg-themeRed/5`}>
                                             <Icons.Star className="w-4 h-4" style={favorites.includes(q.id) ? { fill: 'currentColor', stroke: 'none' } : {}}/>
                                         </button>
+                                        <button onClick={() => confirmAIAnalysis(q)} className="p-1 text-purple-600 hover:bg-purple-50" title="AI解析"><Icons.Brain className="w-4 h-4"/></button>
+                                        <button onClick={() => confirmAISimilar(q)} className="p-1 text-blue-600 hover:bg-blue-50" title="生成相似题"><Icons.Sparkles className="w-4 h-4"/></button>
                                         <button onClick={() => { setEditingQuestion(q); setMode('edit'); }} className="p-1 text-themeRed hover:bg-themeRed/5"><Icons.Edit className="w-4 h-4"/></button>
                                         <button onClick={() => confirmDelete([q.id])} className="p-1 text-red-700 hover:bg-red-50"><Icons.Trash className="w-4 h-4"/></button>
                                     </div>
@@ -737,8 +911,105 @@
                         )}
                     </Modal>
 
-                    <Modal isOpen={showAIModal} onClose={() => setShowAIModal(false)} title="AI 生成试题" footer={<button onClick={() => setShowAIModal(false)} className={THEME_CLASSES.secondaryButton}>关闭</button>} maxHeight="80vh">
+                    <Modal isOpen={showAIModal} onClose={() => setShowAIModal(false)} title="AI 生成试题" maxHeight="80vh">
                         <AIGenerateModalContent setInfoModal={setInfoModal} setQuestions={setQuestions} questions={questions} allTags={allTags} />
+                    </Modal>
+
+                    <Modal isOpen={aiAnalysisModal.isOpen} onClose={() => setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false })} title="AI 解析" maxHeight="80vh">
+                        {aiAnalysisModal.confirm ? (
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs opacity-50 block mb-1">选择 AI 接口</label>
+                                    <select className={THEME_CLASSES.input} value={aiAnalysisModal.provider} onChange={e => setAiAnalysisModal(prev => ({ ...prev, provider: e.target.value }))}>
+                                        {AI_PROVIDERS.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="p-3 bg-themeRed/5 border border-themeRed/10 rounded-sm">
+                                    <p className="text-xs font-bold mb-1">{aiAnalysisModal.question?.stem}</p>
+                                    <p className="text-[10px] opacity-50">答案：{aiAnalysisModal.question?.answer}</p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false, provider: '' })} className={THEME_CLASSES.secondaryButton + " flex-1"}>取消</button>
+                                    <button onClick={handleAIAnalysis} className={THEME_CLASSES.button + " flex-1"}>确认生成</button>
+                                </div>
+                            </div>
+                        ) : aiAnalysisModal.loading ? (
+                            <div className="text-center py-8 opacity-50">
+                                <div className="animate-pulse text-2xl mb-2"><Icons.Brain className="w-8 h-8 mx-auto"/></div>
+                                <p>AI 正在生成解析...</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {aiAnalysisModal.provider && <p className="text-[10px] opacity-40">使用 {aiAnalysisModal.provider} 生成</p>}
+                                <div className="p-3 bg-themeRed/5 border border-themeRed/10 rounded-sm">
+                                    <p className="text-xs font-bold mb-1">{aiAnalysisModal.question?.stem}</p>
+                                    <p className="text-[10px] opacity-50">答案：{aiAnalysisModal.question?.answer}</p>
+                                </div>
+                                <div className="text-sm leading-relaxed max-h-60 overflow-y-auto custom-scrollbar">
+                                    {cleanMarkdown(aiAnalysisModal.analysis).split('\n').map((line, i) => (
+                                        <div key={i} className={line.startsWith('【') ? 'mt-2 mb-1 font-bold' : 'mb-1'}>{line || <br/>}</div>
+                                    ))}
+                                </div>
+                                {aiAnalysisModal.analysis && !aiAnalysisModal.analysis.startsWith('生成失败') && (
+                                    <button onClick={() => {
+                                        const q = aiAnalysisModal.question;
+                                        setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, analysis: aiAnalysisModal.analysis } : item));
+                                        setInfoModal({ isOpen: true, title: '提示', message: '解析已保存到题目' });
+                                        setAiAnalysisModal({ isOpen: false, question: null, loading: false, analysis: '', confirm: false });
+                                    }} className={THEME_CLASSES.button + " w-full py-2"}>保存到题目</button>
+                                )}
+                            </div>
+                        )}
+                    </Modal>
+
+                    <Modal isOpen={aiSimilarModal.isOpen} onClose={() => setAiSimilarModal({ isOpen: false, question: null, loading: false, questions: [], confirm: false })} title="生成相似题" maxHeight="80vh">
+                        {aiSimilarModal.confirm ? (
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs opacity-50 block mb-1">选择 AI 接口</label>
+                                    <select className={THEME_CLASSES.input} value={aiSimilarModal.provider} onChange={e => setAiSimilarModal(prev => ({ ...prev, provider: e.target.value }))}>
+                                        {AI_PROVIDERS.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="p-3 bg-themeRed/5 border border-themeRed/10 rounded-sm">
+                                    <p className="text-xs font-bold mb-1">{aiSimilarModal.question?.stem}</p>
+                                    <p className="text-[10px] opacity-50">答案：{aiSimilarModal.question?.answer}</p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setAiSimilarModal({ isOpen: false, question: null, loading: false, questions: [], confirm: false, provider: '' })} className={THEME_CLASSES.secondaryButton + " flex-1"}>取消</button>
+                                    <button onClick={handleAISimilar} className={THEME_CLASSES.button + " flex-1"}>确认生成</button>
+                                </div>
+                            </div>
+                        ) : aiSimilarModal.loading ? (
+                            <div className="text-center py-8 opacity-50">
+                                <div className="animate-pulse text-2xl mb-2"><Icons.Sparkles className="w-8 h-8 mx-auto"/></div>
+                                <p>AI 正在生成相似题...</p>
+                            </div>
+                        ) : aiSimilarModal.error ? (
+                            <div className="text-center py-4 text-red-700">
+                                <p>生成失败：{aiSimilarModal.error}</p>
+                            </div>
+                        ) : aiSimilarModal.questions.length > 0 ? (
+                            <div className="space-y-3">
+                                <p className="text-[10px] opacity-40">使用 {aiSimilarModal.provider} 生成</p>
+                                <p className="text-xs opacity-50">基于题目：{aiSimilarModal.question?.stem.substring(0, 50)}...</p>
+                                <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-2">
+                                    {aiSimilarModal.questions.map((q, i) => (
+                                        <div key={i} className="p-3 bg-white/30 border border-themeRed/10 rounded-sm text-xs">
+                                            <p className="font-bold mb-1">{i + 1}. {q.stem}</p>
+                                            {q.options.map((o, j) => <p key={j} className="ml-4 opacity-70">{String.fromCharCode(65 + j)}. {o}</p>)}
+                                            <p className="mt-1 text-themeRed">答案：{q.answer}</p>
+                                            {q.analysis && <p className="mt-1 opacity-50">解析：{q.analysis}</p>}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={importSimilarQuestions} className={THEME_CLASSES.button + " w-full py-2"}>导入题库 ({aiSimilarModal.questions.length} 题)</button>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 opacity-40">
+                                <p>点击"生成相似题"开始</p>
+                            </div>
+                        )}
                     </Modal>
                 </div>
             );
@@ -1306,7 +1577,7 @@
                                     const optIndex = displayOptions.findIndex(o => o.originalLetter === l);
                                     return String.fromCharCode(65 + optIndex);
                                 }).sort().join('')}</p>
-                                <p><span className="opacity-60">解析：</span>{current.analysis || '无'}</p>
+                                <p><span className="opacity-60">解析：</span><span className="whitespace-pre-wrap">{current.analysis || '无'}</span></p>
                                 {current.remark && <p><span className="opacity-60">备注：</span>{current.remark}</p>}
                                 <button onClick={() => {
                                     setEditTags(current.tags.join(','));
@@ -1987,6 +2258,7 @@ h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; letter-spacing: 4px; 
             const [battleState, setBattleState] = useState(null);
             const [battleTimer, setBattleTimer] = useState(0);
             const [lastExamResult, setLastExamResult] = useState(null);
+            const [reportState, setReportState] = useState({ loading: false, report: '', error: '', provider: 'DeepSeek' });
 
             // Modal States
             const [deleteModal, setDeleteModal] = useState({ isOpen: false, ids: [] });
@@ -2288,6 +2560,68 @@ h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; letter-spacing: 4px; 
                 }
             };
 
+            const generateReport = async () => {
+                setReportState(prev => ({ ...prev, loading: true, report: '', error: '' }));
+                try {
+                    const provider = reportState.provider;
+                    const key = localStorage.getItem('choice_bank_ai_key_' + provider) || '';
+                    const url = localStorage.getItem('choice_bank_ai_url_' + provider) || AI_PROVIDERS.find(p => p.name === provider)?.url || '';
+                    const model = localStorage.getItem('choice_bank_ai_model_' + provider) || AI_PROVIDERS.find(p => p.name === provider)?.model || '';
+                    if (!url) { setReportState(prev => ({ ...prev, loading: false, report: '', error: '请先在 AI 生成试题中配置 ' + provider + ' 的 API 地址' })); return; }
+
+                    const tagStats = {};
+                    questions.forEach(q => {
+                        q.tags.forEach(t => {
+                            if (!tagStats[t]) tagStats[t] = { total: 0, practiced: 0, correct: 0 };
+                            tagStats[t].total++;
+                            if (q.practiceCount > 0) { tagStats[t].practiced++; tagStats[t].correct += q.correctCount; }
+                        });
+                    });
+
+                    const practiced = questions.filter(q => q.practiceCount > 0);
+                    const totalCorrect = practiced.reduce((s, q) => s + q.correctCount, 0);
+                    const totalPractice = practiced.reduce((s, q) => s + q.practiceCount, 0);
+                    const hardQs = questions.filter(q => q.practiceCount > 0 && q.correctCount / q.practiceCount < 0.5).sort((a, b) => (a.correctCount / a.practiceCount) - (b.correctCount / b.practiceCount)).slice(0, 10);
+
+                    const prompt = `你是一位专业的学习诊断分析师。请根据以下学习数据生成一份简洁的学习报告：
+
+题库总题数：${questions.length}
+已练习题目数：${practiced.length}
+总练习次数：${totalPractice}
+总正确次数：${totalCorrect}
+整体正确率：${totalPractice > 0 ? (totalCorrect / totalPractice * 100).toFixed(1) : 0}%
+
+薄弱题目（正确率最低的10题）：
+${hardQs.map((q, i) => `${i + 1}. ${q.stem.substring(0, 50)}... (正确率: ${q.practiceCount > 0 ? (q.correctCount / q.practiceCount * 100).toFixed(1) : 0}%, 练习${q.practiceCount}次)`).join('\n')}
+
+标签掌握情况：
+${Object.entries(tagStats).map(([tag, s]) => `${tag}: 共${s.total}题, 已练习${s.practiced}题, 正确率${s.practiced > 0 ? (s.correct / (s.practiced * (questions.find(q => q.tags.includes(tag))?.practiceCount || 1)) * 100).toFixed(0) : 'N'}%`).join('\n')}
+
+ 请给出：
+1. 整体学习情况总结（2-3句话）
+2. 薄弱环节分析（按标签/知识点）
+3. 薄弱题目清单及复习建议
+4. 下一步学习计划建议
+
+要求：
+1. 不要使用任何markdown格式（不要用**、#、-等符号）
+2. 用【】标注各部分标题
+3. 语言简洁实用，直接给出建议，不要废话`;
+
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (key) headers['Authorization'] = `Bearer ${key}`;
+                    const response = await fetch(url, {
+                        method: 'POST', headers,
+                        body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.7 }),
+                    });
+                    if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || `请求失败 (${response.status})`); }
+                    const data = await response.json();
+                    setReportState(prev => ({ ...prev, loading: false, report: data.choices[0].message.content.trim(), error: '' }));
+                } catch (e) {
+                    setReportState({ loading: false, report: '', error: e.message });
+                }
+            };
+
             return (
                 <div className="min-h-screen p-4 md:p-8">
                     <nav className="max-w-7xl mx-auto flex justify-between items-center mb-6 border-b border-themeRed/10 pb-3">
@@ -2301,6 +2635,7 @@ h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; letter-spacing: 4px; 
                             <button onClick={() => questions.length > 0 ? setMode('exam_config') : setInfoModal({ isOpen: true, title: '提示', message: '题库为空，请先添加题目' })} className={mode === 'exam_config' || mode === 'exam' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>检测</button>
                             <button onClick={() => questions.length > 0 ? setMode('battle_config') : setInfoModal({ isOpen: true, title: '提示', message: '题库为空，请先添加题目' })} className={mode === 'battle_config' || mode === 'battle' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>对战</button>
                             <button onClick={() => questions.length > 0 ? setMode('paper_config') : setInfoModal({ isOpen: true, title: '提示', message: '题库为空，请先添加题目' })} className={mode === 'paper_config' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>试卷</button>
+                            <button onClick={() => questions.length > 0 ? setMode('report') : setInfoModal({ isOpen: true, title: '提示', message: '题库为空，请先添加题目' })} className={mode === 'report' ? 'text-themeRed border-b border-themeRed' : 'opacity-40'}>报告</button>
                         </div>
                     </nav>
 
@@ -2315,6 +2650,54 @@ h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; letter-spacing: 4px; 
                         {mode === 'paper_config' && <PaperConfig allTags={allTags} setMode={setMode} questions={questions} setInfoModal={setInfoModal} favorites={favorites} />}
                         {mode === 'text_import' && <TextImport setMode={setMode} setQuestions={setQuestions} setInfoModal={setInfoModal} questions={questions} />}
                         {mode === 'battle' && <Battle battleState={battleState} setBattleState={setBattleState} setMode={setMode} updateStats={updateStats} battleTimer={battleTimer} startBattle={startBattle} />}
+                        {mode === 'report' && (
+                            <div className="max-w-2xl mx-auto space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h2 className={THEME_CLASSES.title}>学习诊断报告</h2>
+                                    <button onClick={() => setMode('home')} className={THEME_CLASSES.secondaryButton}>返回</button>
+                                </div>
+                                <div className={THEME_CLASSES.card + " space-y-4"}>
+                                    <div className="grid grid-cols-4 gap-3 text-center">
+                                        <div className="p-3 border border-themeRed/10 rounded-sm">
+                                            <p className="text-xs opacity-50">总题数</p>
+                                            <p className="text-2xl font-bold text-themeRed">{questions.length}</p>
+                                        </div>
+                                        <div className="p-3 border border-themeRed/10 rounded-sm">
+                                            <p className="text-xs opacity-50">已练习</p>
+                                            <p className="text-2xl font-bold text-themeRed">{questions.filter(q => q.practiceCount > 0).length}</p>
+                                        </div>
+                                        <div className="p-3 border border-themeRed/10 rounded-sm">
+                                            <p className="text-xs opacity-50">整体正确率</p>
+                                            <p className="text-2xl font-bold text-themeRed">{(() => { const p = questions.filter(q => q.practiceCount > 0); const t = p.reduce((s, q) => s + q.practiceCount, 0); const c = p.reduce((s, q) => s + q.correctCount, 0); return t > 0 ? (c / t * 100).toFixed(1) + '%' : '0%'; })()}</p>
+                                        </div>
+                                        <div className="p-3 border border-themeRed/10 rounded-sm">
+                                            <p className="text-xs opacity-50">薄弱题</p>
+                                            <p className="text-2xl font-bold text-themeRed">{questions.filter(q => q.practiceCount > 0 && q.correctCount / q.practiceCount < 0.5).length}</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs opacity-50 block mb-1">选择 AI 接口</label>
+                                        <select className={THEME_CLASSES.input} value={reportState.provider} onChange={e => setReportState(prev => ({ ...prev, provider: e.target.value }))}>
+                                            {AI_PROVIDERS.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <p className="text-[10px] opacity-40">报告将分析：整体学习情况、各标签掌握情况、薄弱题目清单、下一步复习建议</p>
+                                    <button onClick={generateReport} disabled={reportState.loading} className={THEME_CLASSES.button + " w-full py-3"}>
+                                        {reportState.loading ? '分析中...' : '生成诊断报告'}
+                                    </button>
+                                    {reportState.error && (
+                                        <div className="p-3 bg-red-50 border border-red-700/20 text-red-700 text-sm">{reportState.error}</div>
+                                    )}
+                                    {reportState.report && (
+                                        <div className="p-4 bg-white/30 border border-themeRed/10 rounded-sm text-sm leading-relaxed max-h-96 overflow-y-auto custom-scrollbar">
+                                            {cleanMarkdown(reportState.report).split('\n').map((line, i) => (
+                                                <div key={i} className={line.startsWith('【') ? 'mt-3 mb-2 font-bold text-themeRed' : 'mb-1'}>{line || <br/>}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         {mode === 'exam_config' && (
                             <div className="max-w-md mx-auto space-y-4">
                                 <h2 className={THEME_CLASSES.title}>检测准备</h2>
