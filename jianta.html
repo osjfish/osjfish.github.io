@@ -1,0 +1,3473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mythic Spire: Card Battle</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.custom-scrollbar::-webkit-scrollbar{width:6px}
+.custom-scrollbar::-webkit-scrollbar-track{background:rgba(255,255,255,0.05);border-radius:3px}
+.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:3px}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.3)}
+.no-scrollbar::-webkit-scrollbar{display:none}
+.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+@keyframes floatUp{0%{opacity:1;transform:translate(-50%,-50%) scale(1.5)}100%{opacity:0;transform:translate(-50%,calc(-50% - 60px)) scale(1)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeInScale{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translate(0,0)}10%,50%,90%{transform:translate(-8px,0)}30%,70%{transform:translate(8px,0)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes flamePulse{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.05) rotate(2deg)}75%{transform:scale(1.05) rotate(-2deg)}}
+@keyframes scaleIn{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.animate-floatUp{animation:floatUp 1.2s ease-out forwards;position:absolute;left:50%;top:50%;pointer-events:none}
+.animate-fadeIn{animation:fadeIn .3s ease-out}
+.animate-fadeInScale{animation:fadeInScale .3s ease-out}
+.animate-shake{animation:shake .3s ease-in-out}
+.animate-bob{animation:bob 2.2s infinite}
+.animate-flamePulse{animation:flamePulse 4s infinite}
+.animate-scaleIn{animation:scaleIn .3s ease-out}
+.animate-pulse-slow{animation:pulse 2s infinite}
+.card-hover:hover{transform:translateY(-8px) scale(1.05);z-index:50!important}
+.card-hover:active{transform:scale(.95)}
+.card-hover-retain:hover{transform:translateY(-12px) scale(1.1);z-index:50!important}
+.hand-scroll::before,.hand-scroll::after{content:'';flex:1;min-width:0.5rem}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+window.onerror = function(m,s,l,c,e) {
+  console.error('window.onerror:', m, s, l, c, e);
+  var msg = (m && m.message) ? m.message : String(m);
+  var stack = (m && m.stack) ? m.stack : (s + ':' + l);
+  document.body.innerHTML = '<div style="background:#800;color:#fff;padding:30px;font-family:monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center"><h1 style="font-size:2rem;margin-bottom:1rem">JAVASCRIPT ERROR</h1><p style="font-size:1.2rem;margin-bottom:1rem">' + msg + '</p><p style="font-family:monospace;font-size:0.9rem;opacity:0.8">' + stack + '</p><p style="margin-top:1rem;color:#ffcccc">Check console (F12) for full details</p></div>';
+  return true;
+};
+// Icon components as React.createElement factories
+var Icn = function Icn(p) { var s = p.size || 24; var c = p.className || ''; var v = p.viewBox || '0 0 24 24'; return React.createElement('svg', { width: s, height: s, viewBox: v, fill: 'none', stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', className: c }, p.children); };
+var Sword = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2' })); };
+var Shield = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' })); };
+var Zap = function(p) { return React.createElement(Icn, p, React.createElement('polygon', { points: '13 2 3 14 12 14 11 22 21 10 12 10' })); };
+var RotateCcw = function(p) { return React.createElement(Icn, p, React.createElement('polyline', { points: '1 4 1 10 7 10' }), React.createElement('path', { d: 'M3.51 15a9 9 0 102.13-9.36L1 10' })); };
+var Skull = function(p) { return React.createElement(Icn, p, React.createElement('circle', { cx: '9', cy: '12', r: '1' }), React.createElement('circle', { cx: '15', cy: '12', r: '1' }), React.createElement('path', { d: 'M21 20v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7M3 20h18M8 20v2M16 20v2' })); };
+var Heart = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z' })); };
+var Trophy = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M4 22h16M10 14.66V17l-1 2-3 3M14 14.66V17l1 2 3 3M18 2H6v7a6 6 0 0012 0V2z' })); };
+var ChevronRight = function(p) { return React.createElement(Icn, p, React.createElement('polyline', { points: '9 18 15 12 9 6' })); };
+var Flame = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M12 2c-3 5-7 9-7 14a7 7 0 0014 0c0-5-4-9-7-14z' })); };
+var MessageSquare = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z' })); };
+var Coins = function(p) { return React.createElement(Icn, p, React.createElement('circle', { cx: '12', cy: '12', r: '9' }), React.createElement('path', { d: 'M9.5 9.5h5M9.5 14.5h5M12 8v8' })); };
+var MapIcon = function(p) { return React.createElement(Icn, p, React.createElement('polygon', { points: '1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2' }), React.createElement('line', { x1: '8', y1: '2', x2: '8', y2: '18' }), React.createElement('line', { x1: '16', y1: '6', x2: '16', y2: '22' })); };
+var ShoppingCart = function(p) { return React.createElement(Icn, p, React.createElement('circle', { cx: '9', cy: '21', r: '1' }), React.createElement('circle', { cx: '20', cy: '21', r: '1' }), React.createElement('path', { d: 'M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6' })); };
+var Tent = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M3.5 21L12 2l8.5 19M4 21h16M12 8v13' })); };
+var Droplet = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M12 2.69l5.66 5.66a8 8 0 11-11.31 0z' })); };
+var Scissors = function(p) { return React.createElement(Icn, p, React.createElement('circle', { cx: '6', cy: '6', r: '3' }), React.createElement('circle', { cx: '6', cy: '18', r: '3' }), React.createElement('line', { x1: '20', y1: '4', x2: '8.12', y2: '15.88' }), React.createElement('line', { x1: '14.47', y1: '14.48', x2: '20', y2: '20' }), React.createElement('line', { x1: '8.12', y1: '8.12', x2: '12', y2: '12' })); };
+var BookOpen = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z' })); };
+var X = function(p) { return React.createElement(Icn, p, React.createElement('line', { x1: '18', y1: '6', x2: '6', y2: '18' }), React.createElement('line', { x1: '6', y1: '6', x2: '18', y2: '18' })); };
+var Layers = function(p) { return React.createElement(Icn, p, React.createElement('polygon', { points: '12 2 2 7 12 12 22 7' }), React.createElement('polyline', { points: '2 17 12 22 22 17' }), React.createElement('polyline', { points: '2 12 12 17 22 12' })); };
+var Ghost = function(p) { return React.createElement(Icn, p, React.createElement('circle', { cx: '9', cy: '10', r: '1' }), React.createElement('circle', { cx: '15', cy: '10', r: '1' }), React.createElement('path', { d: 'M12 2a8 8 0 00-8 8v12l3-3 3 3 2-2 3 3 3-3 3 3V10a8 8 0 00-8-8z' })); };
+var Swords = function(p) { return React.createElement(Icn, p, React.createElement('path', { d: 'M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M14.5 6.5L18 3h3v3l-3.5 3.5M5 14l4 4' })); };
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
+// Destructure React hooks for Babel-transpiled code to use
+var useState = React.useState;
+var useEffect = React.useEffect;
+var useRef = React.useRef;
+var Fragment = React.Fragment;
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error: error };
+  }
+  componentDidCatch(error, errorInfo) {
+    this.setState({ errorInfo: errorInfo });
+    console.error('ErrorBoundary caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      var err = this.state.error;
+      var info = this.state.errorInfo;
+      return React.createElement('div', { style: { background: 'red', color: 'white', padding: '20px', fontFamily: 'monospace', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' } },
+        React.createElement('h1', null, 'REACT ERROR BOUNDARY'),
+        React.createElement('p', null, err && err.message ? err.message : String(err)),
+        React.createElement('pre', { style: { textAlign: 'left', maxWidth: '800px', overflow: 'auto' } }, info && info.componentStack ? info.componentStack : 'No stack'),
+        React.createElement('button', { onClick: () => window.location.reload(), style: { marginTop: '20px', padding: '10px 20px', fontSize: '16px', cursor: 'pointer' } }, 'Reload')
+      );
+    }
+    return this.props.children;
+  }
+}
+
+window.onunhandledrejection = function(e) {
+  document.body.innerHTML = '<div style="background:red;color:white;padding:20px;font-family:monospace"><h1>UNHANDLED REJECTION</h1><p>' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) + '</p></div>';
+  e.preventDefault();
+};
+
+const getLevelColor = level => {
+  switch (level) {
+    case '普通':
+      return 'text-slate-400';
+    case '劲敌':
+      return 'text-emerald-400';
+    case '精英':
+      return 'text-blue-400';
+    case '首领':
+      return 'text-orange-400';
+    case '魔王':
+      return 'text-red-500';
+    default:
+      return 'text-slate-400';
+  }
+};
+const getLevelBorder = (level, defaultBorder) => {
+  switch (level) {
+    case '劲敌':
+      return 'border-emerald-500/50';
+    case '精英':
+      return 'border-blue-500/50';
+    case '首领':
+      return 'border-orange-500/50';
+    case '魔王':
+      return 'border-red-500/50';
+    default:
+      return defaultBorder;
+  }
+};
+const playSound = type => {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    if (type === 'hit') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'block') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'buff') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'relic' || type === 'victory') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(554, audioCtx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+    }
+  } catch (e) {
+    // Audio failed
+  }
+};
+let cardIdCounter = 0;
+const generateId = () => `card_${Date.now()}_${++cardIdCounter}_${Math.random().toString(36).substring(2)}${Math.random().toString(36).substring(2)}`;
+const dealDamage = (state, amount, times = 1) => {
+  let ns = {
+    ...state,
+    player: {
+      ...state.player
+    },
+    enemy: {
+      ...state.enemy
+    },
+    history: [...state.history],
+    animations: [...state.animations]
+  };
+  let totalDmg = 0;
+
+  // 遗物：苦痛之锤 (伤害提升 25%)
+  const dmgMultiplier = ns.relics.some(r => r.effectType === 'damage_boost_cost_hp') ? 1.25 : 1;
+  const enemyTrait = ENEMIES.find(e => e.name === ns.enemyName)?.trait || '';
+  // 遗物：钢笔尖 (伤害翻倍)
+  const penNibMultiplier = ns.penNibActive ? 2 : 1;
+  if (ns.penNibActive) ns.penNibActive = false;
+  for (let i = 0; i < times; i++) {
+    let dmg = Math.floor((amount + ns.player.strength) * dmgMultiplier * penNibMultiplier);
+    if (ns.player.weak > 0) dmg = Math.floor(dmg * 0.75);
+
+    // 遗物：纸蛙 (易伤提升)
+    const vulnMultiplier = ns.relics.some(r => r.effectType === 'paper_frog') ? 1.75 : 1.5;
+    if (ns.enemy.vulnerable > 0) dmg = Math.floor(dmg * vulnMultiplier);
+
+    // 怪物特性：残影 (受到攻击时35%概率闪避)
+    if (enemyTrait.includes('残影') && Math.random() < 0.35) {
+      ns.animations.push({ id: generateId(), type: 'status', value: '闪避!', target: 'enemy' });
+      ns.history = ['【特性】幻影刺客瞬移躲避了攻击！', ...ns.history];
+      continue;
+    }
+    // 怪物特性：隐匿 (每3回合免疫一次攻击)
+    if (enemyTrait.includes('隐匿') && ns.turn % 3 === 0 && !ns.enemyFlags.includes('隐匿已触发')) {
+      ns.enemyFlags = [...ns.enemyFlags, '隐匿已触发'];
+      ns.animations.push({ id: generateId(), type: 'status', value: '闪避!', target: 'enemy' });
+      ns.history = ['【隐匿】刺客隐入暗影，免疫了攻击！', ...ns.history];
+      continue;
+    }
+
+    // 怪物特性：坚不可摧 (单次伤害不超过 15)
+    if (enemyTrait.includes('坚不可摧')) dmg = Math.min(dmg, 15);
+
+    if (ns.enemy.block >= dmg) {
+      ns.enemy.block -= dmg;
+      ns.animations.push({
+        id: generateId(),
+        type: 'block',
+        value: `-${dmg}`,
+        target: 'enemy'
+      });
+    } else {
+      const remains = dmg - ns.enemy.block;
+      ns.enemy.block = 0;
+      ns.enemy.hp = Math.max(0, ns.enemy.hp - remains);
+      totalDmg += remains;
+      ns.animations.push({
+        id: generateId(),
+        type: 'damage',
+        value: `-${remains}`,
+        target: 'enemy'
+      });
+      ns.animations.push({
+        id: generateId(),
+        type: 'shake',
+        value: '',
+        target: 'enemy'
+      });
+    }
+    if (dmg > 0) {
+      if (enemyTrait.includes('激怒')) {
+        ns.enemy.strength += 1;
+        ns.animations.push({
+          id: generateId(),
+          type: 'status',
+          value: '力量 +1',
+          target: 'enemy'
+        });
+      }
+      if (enemyTrait.includes('荆棘') || enemyTrait.includes('尖刺')) {
+        let reflect = enemyTrait.includes('荆棘') ? 3 : Math.floor(dmg * 0.5);
+
+        // 先抵消格挡
+        if (ns.player.block > 0) {
+          const blockTaken = Math.min(ns.player.block, reflect);
+          ns.player.block -= blockTaken;
+          reflect -= blockTaken;
+          ns.animations.push({
+            id: generateId(),
+            type: 'block',
+            value: `-${blockTaken}`,
+            target: 'player'
+          });
+        }
+
+        // 剩余伤害扣除血量
+        if (reflect > 0) {
+          ns.player.hp = Math.max(0, ns.player.hp - reflect);
+          ns.animations.push({
+            id: generateId(),
+            type: 'damage',
+            value: `-${reflect}`,
+            target: 'player'
+          });
+        }
+        ns.history = [`【特性】反弹伤害生效，扣除格挡/血量`, ...ns.history];
+      }
+      if (enemyTrait.includes('受击时玩家可能随机丢弃手牌') && Math.random() < 0.2 && ns.hand.length > 0) {
+        const idx = Math.floor(Math.random() * ns.hand.length);
+        const card = ns.hand[idx];
+        ns.hand.splice(idx, 1);
+        ns.discard.push(card);
+        ns.history = [`【特性】腐蚀使你丢弃了 ${card.name}`, ...ns.history];
+      }
+    }
+  }
+  ns.history = [`造成了 ${totalDmg} 点伤害`, ...ns.history];
+  // 怪物特性：吞噬 (血量每减少20%吞噬一张遗物)
+  if (enemyTrait.includes('吞噬') && ns.relics && ns.relics.length > 0) {
+    const hpPercent = ns.enemy.hp / ns.enemy.maxHp;
+    const consumedKey = '吞噬_已触发_' + Math.ceil((1 - hpPercent) * 5);
+    if (!ns.enemyFlags.includes(consumedKey) && hpPercent < 1) {
+      const relicIdx = Math.floor(Math.random() * ns.relics.length);
+      const consumedRelic = ns.relics.splice(relicIdx, 1)[0];
+      if (consumedRelic) {
+        ns.enemyFlags = [...ns.enemyFlags, consumedKey];
+        ns.history = ['【吞噬】深渊爬行者吞噬了你的遗物: ' + consumedRelic.name + '！', ...ns.history];
+      }
+    }
+  }
+  return ns;
+};
+const addBlock = (state, amount) => {
+  const ns = {
+    ...state,
+    player: {
+      ...state.player
+    },
+    history: [...state.history],
+    animations: [...state.animations]
+  };
+  // 怪物特性：威慑 - 护甲效果减少25%
+  const trait = ns.enemyName ? (ENEMIES.find(e => e.name === ns.enemyName)?.trait || '') : '';
+  if (trait.includes('威慑')) amount = Math.floor(amount * 0.75);
+  ns.player.block += amount;
+  ns.animations.push({
+    id: generateId(),
+    type: 'status_block',
+    value: `+${amount}`,
+    target: 'player'
+  });
+  ns.history = [`获得了 ${amount} 点格挡`, ...ns.history];
+  return ns;
+};
+const applyStatus = (state, target, status, amount, label) => {
+  const ns = {
+    ...state,
+    player: {
+      ...state.player
+    },
+    enemy: {
+      ...state.enemy
+    },
+    history: [...state.history],
+    animations: [...state.animations]
+  };
+  // 遗物：皇家药水 (施加状态时额外多施加1层)
+  if (ns.relics && ns.relics.some(r => r.effectType === 'status_extra_stack')) amount += 1;
+  ns[target][status] += amount;
+  ns.animations.push({
+    id: generateId(),
+    type: 'status',
+    value: `${label} +${amount}`,
+    target
+  });
+  ns.history = [`施加了 ${amount} 层${label}`, ...ns.history];
+  return ns;
+};
+const drawCards = (state, count) => {
+  let ns = {
+    ...state,
+    deck: [...state.deck],
+    hand: [...state.hand],
+    discard: [...state.discard],
+    history: [...state.history]
+  };
+  let drawn = 0;
+  for (let i = 0; i < count; i++) {
+    if (ns.deck.length === 0) {
+      if (ns.discard.length === 0) break;
+      ns.deck = shuffle(ns.discard);
+      ns.discard = [];
+    }
+    if (ns.hand.length >= 10) break;
+    const c = ns.deck.pop();
+    if (c && !ns.hand.some(h => h.id === c.id)) {
+      ns.hand.push(c);
+      drawn++;
+    }
+  }
+  ns.history = [`抽了 ${drawn} 张牌`, ...ns.history];
+  return ns;
+};
+const getTypeColor = type => {
+  switch (type) {
+    case '攻击':
+      return 'bg-red-600';
+    case '防御':
+      return 'bg-blue-600';
+    case '增益':
+      return 'bg-amber-600';
+    case '减益':
+      return 'bg-purple-600';
+    case '毒术':
+      return 'bg-emerald-600';
+    default:
+      return 'bg-slate-600';
+  }
+};
+const createCard = (name, cost, type, desc, effect, rarity = 1, exhaust = false) => {
+  return () => ({
+    id: generateId(),
+    name,
+    cost,
+    type,
+    description: desc,
+    color: getTypeColor(type),
+    effect,
+    rarity,
+    exhaust
+  });
+};
+const ALL_CARDS = [
+// ===== 攻击 (Attack) 20张 =====
+// 1★ 基础攻击
+createCard('打击', 1, '攻击', '造成 8 点伤害。', s => dealDamage(s, 8 + (s.relics && s.relics.some(r => r.effectType === 'whetstone') ? 3 : 0)), 1),
+createCard('穿刺', 1, '攻击', '造成 7 点伤害，无视护甲。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; n.enemy.hp = Math.max(0, n.enemy.hp - 7); n.animations.push({ id: generateId(), type: 'damage', value: '-7', target: 'enemy' }); return n; }, 1),
+createCard('火花', 0, '攻击', '造成 3 点伤害，抽 1 张牌。', s => drawCards(dealDamage(s, 3), 1), 1),
+createCard('硫磺', 0, '攻击', '造成 10 点伤害，受到 3 点伤害。', s => { let n = dealDamage(s, 10); n.player.hp = Math.max(0, n.player.hp - 3); n.animations.push({ id: generateId(), type: 'damage', value: '-3', target: 'player' }); n.history = ['【硫磺】反噬 3 点伤害', ...n.history]; if (n.player.hp <= 0) n.status = '已战败'; return n; }, 1),
+// 2★ 进阶攻击
+createCard('重锤', 2, '攻击', '造成 22 点伤害，给予 1 层易伤。', s => applyStatus(dealDamage(s, 22), 'enemy', 'vulnerable', 1, '易伤'), 2),
+createCard('刀扇', 1, '攻击', '造成 3 点伤害 4 次。', s => dealDamage(s, 3, 4), 2),
+createCard('吸血之触', 1, '攻击', '造成 6 点伤害，回复 3 点生命。', s => { let n = dealDamage(s, 6); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 3); n.history = ['吸回 3 点生命', ...n.history]; return n; }, 2),
+createCard('致死打击', 3, '攻击', '造成 35 点伤害。', s => dealDamage(s, 35), 2),
+// 3★ 强力攻击
+createCard('虚空爆裂', 2, '攻击', '造成 12 点伤害，给予 2 层易伤和 2 层虚弱。', s => applyStatus(applyStatus(dealDamage(s, 12), 'enemy', 'vulnerable', 2, '易伤'), 'enemy', 'weak', 2, '虚弱'), 3),
+createCard('连斩', 1, '攻击', '造成 8 点伤害 2 次，抽 1 张牌。', s => drawCards(dealDamage(s, 8, 2), 1), 3),
+createCard('万剑归宗', 1, '攻击', '打出所有手牌中攻击牌的复本。消耗。', s => { let ns = { ...s }; const atks = ns.hand.filter(c => c.type === '攻击' && c.name !== '万剑归宗'); atks.forEach(c => { ns = c.effect(ns); }); ns.history = ['【万剑归宗】爆发！', ...ns.history]; return ns; }, 3, true),
+createCard('血怒', 0, '攻击', '造成 15 点伤害，受到 5 点伤害。下次攻击伤害翻倍。', s => { let n = dealDamage(s, 15); n.player.hp = Math.max(0, n.player.hp - 5); n.animations.push({ id: generateId(), type: 'damage', value: '-5', target: 'player' }); n.penNibActive = true; n.history = ['【血怒】下次攻击伤害翻倍！', ...n.history]; if (n.player.hp <= 0) n.status = '已战败'; return n; }, 3),
+// 4★ 高等攻击
+createCard('神之怒', 2, '攻击', '造成 10 点伤害 5 次。', s => dealDamage(s, 10, 5), 4),
+createCard('破甲重击', 2, '攻击', '造成 18 点伤害，无视护甲，给予 2 层易伤。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; n.enemy.hp = Math.max(0, n.enemy.hp - 18); n.enemy.vulnerable = (n.enemy.vulnerable || 0) + 2; n.animations.push({ id: generateId(), type: 'damage', value: '-18', target: 'enemy' }); n.history = ['【破甲】击穿了防御！', ...n.history]; return n; }, 4),
+createCard('闪电链', 2, '攻击', '造成 6 点伤害 3 次。若敌人有易伤，额外 2 次。', s => { const hits = 3 + (s.enemy.vulnerable > 0 ? 2 : 0); return dealDamage(s, 6, hits); }, 4),
+createCard('旋风斩', 1, '攻击', '造成 5 点伤害 4 次，抽 1 张牌。', s => drawCards(dealDamage(s, 5, 4), 1), 4),
+// 5★ 终极攻击
+createCard('致命一击', 3, '攻击', '造成 60 点伤害。消耗。', s => dealDamage(s, 60), 5, true),
+createCard('剑刃风暴', 3, '攻击', '造成 8 点伤害 6 次。', s => dealDamage(s, 8, 6), 5),
+createCard('处决', 3, '攻击', '敌人生命低于 30% 时直接斩杀。否则 15 点伤害。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; if (n.enemy.hp <= n.enemy.maxHp * 0.3) { n.enemy.hp = 0; n.animations.push({ id: generateId(), type: 'damage', value: '斩杀！', target: 'enemy' }); n.history = ['【处决】一击必杀！', ...n.history]; } else { n.enemy.hp = Math.max(0, n.enemy.hp - 15); n.animations.push({ id: generateId(), type: 'damage', value: '-15', target: 'enemy' }); } return n; }, 5),
+createCard('终极爆破', 3, '攻击', '造成 25 点伤害。若敌人有中毒，中毒层数翻倍。消耗。', s => { let n = dealDamage(s, 25); if (n.enemy.poison > 0) { n.enemy.poison *= 2; n.history = [`【爆破】中毒翻倍至 ${n.enemy.poison} 层！`, ...n.history]; } return n; }, 5, true),
+
+// ===== 防御 (Defense) 20张 =====
+// 1★ 基础防御
+createCard('防御', 1, '防御', '获得 6 点格挡。', s => addBlock(s, 6), 1),
+createCard('灵动', 1, '防御', '获得 5 点格挡，抽 1 张牌。', s => drawCards(addBlock(s, 5), 1), 1),
+createCard('不屈', 1, '防御', '格挡 +8，已受伤则 +14。', s => addBlock(s, s.player.hp < s.player.maxHp ? 14 : 8), 1),
+createCard('战术性撤退', 1, '防御', '格挡 +7，下回合抽牌 +1。', s => { let n = addBlock(s, 7); n.player.drawBonusNextTurn = (n.player.drawBonusNextTurn || 0) + 1; return n; }, 1),
+// 2★ 进阶防御
+createCard('扫腿', 2, '防御', '获得 12 点格挡，给予 2 层虚弱。', s => applyStatus(addBlock(s, 12), 'enemy', 'weak', 2, '虚弱'), 2),
+createCard('烟雾弹', 1, '防御', '获得 15 点格挡。消耗。', s => addBlock(s, 15), 2, true),
+createCard('厚实皮毛', 1, '防御', '格挡 +7，回复 2 点生命。', s => { let n = addBlock(s, 7); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 2); return n; }, 2),
+createCard('全身防护', 1, '防御', '格挡翻倍。消耗。', s => addBlock(s, s.player.block), 2, true),
+// 3★ 强力防御
+createCard('冰墙', 2, '防御', '格挡 +15，给予 2 层虚弱。', s => applyStatus(addBlock(s, 15), 'enemy', 'weak', 2, '虚弱'), 3),
+createCard('虚幻', 1, '防御', '格挡 +25，下轮能量 -1。', s => { let n = addBlock(s, 25); n.player.energyBonusNextTurn = (n.player.energyBonusNextTurn || 0) - 1; return n; }, 3),
+createCard('双重防线', 1, '防御', '格挡 +10 两次。', s => addBlock(addBlock(s, 10), 10), 3),
+createCard('荆棘护甲', 2, '防御', '获得 15 点格挡，给予 10 层中毒。消耗。', s => applyStatus(addBlock(s, 15), 'enemy', 'poison', 10, '中毒'), 3, true),
+// 4★ 高等防御
+createCard('绝对防御', 2, '防御', '获得 30 点格挡。消耗。', s => addBlock(s, 30), 4, true),
+createCard('铁壁', 1, '防御', '格挡 +12，获得 1 点力量。', s => applyStatus(addBlock(s, 12), 'player', 'strength', 1, '力量'), 4),
+createCard('反射盾', 2, '防御', '格挡 +10。本回合格挡被打破时，造成等同于破防量的伤害。', s => addBlock(s, 10), 4),
+createCard('圣盾', 2, '防御', '格挡 +20，回复 5 点生命。消耗。', s => { let n = addBlock(s, 20); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 5); n.history = ['【圣盾】神圣之光回复了 5 点生命', ...n.history]; return n; }, 4, true),
+// 5★ 终极防御
+createCard('不朽', 3, '防御', '获得 40 点格挡。消耗。', s => addBlock(s, 40), 5, true),
+createCard('堡垒', 2, '防御', '格挡 +18，给予 3 层虚弱和 3 层易伤。', s => applyStatus(applyStatus(addBlock(s, 18), 'enemy', 'weak', 3, '虚弱'), 'enemy', 'vulnerable', 3, '易伤'), 5),
+createCard('生命屏障', 2, '防御', '格挡 +15，回复 10 点生命。消耗。', s => { let n = addBlock(s, 15); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 10); n.history = ['【生命屏障】回复 10 点生命', ...n.history]; return n; }, 5, true),
+createCard('金钟罩', 2, '防御', '格挡 +25。本回合受到伤害减半。', s => { let n = addBlock(s, 25); n.playerFlags = [...n.playerFlags, '金钟罩']; n.history = ['【金钟罩】伤害减免已激活', ...n.history]; return n; }, 5),
+
+// ===== 毒术 (Poison) 20张 =====
+// 1★ 基础毒术
+createCard('毒雾', 0, '毒术', '给予 6 层中毒。', s => applyStatus(s, 'enemy', 'poison', 6, '中毒'), 1),
+createCard('毒针', 1, '毒术', '造成 3 点伤害，给予 6 层中毒。', s => applyStatus(dealDamage(s, 3), 'enemy', 'poison', 6, '中毒'), 1),
+createCard('腐蚀之触', 1, '毒术', '给予 10 层中毒。', s => applyStatus(s, 'enemy', 'poison', 10, '中毒'), 1),
+createCard('毒蛇之吻', 1, '毒术', '给予 10 层中毒。若敌人有易伤，改为 20 层。', s => applyStatus(s, 'enemy', 'poison', s.enemy.vulnerable > 0 ? 20 : 10, '中毒'), 1),
+// 2★ 进阶毒术
+createCard('污染', 1, '毒术', '给予敌人 15 层中毒，抽 1 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 15, '中毒'), 1), 2),
+createCard('毒液喷溅', 1, '毒术', '给予 12 层中毒和 1 层易伤。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 12, '中毒'), 'enemy', 'vulnerable', 1, '易伤'), 2),
+createCard('慢性毒药', 0, '毒术', '给予 8 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 8, '中毒'), 2, true),
+createCard('毒爆', 2, '毒术', '造成等同于毒层数的伤害，毒层减半。消耗。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; const d = n.enemy.poison; n.enemy.hp = Math.max(0, n.enemy.hp - d); n.enemy.poison = Math.floor(n.enemy.poison / 2); n.animations.push({ id: generateId(), type: 'damage', value: '-'+d, target: 'enemy' }); n.history = [`【毒爆】引爆 ${d} 点毒伤`, ...n.history]; return n; }, 2, true),
+// 3★ 强力毒术
+createCard('剧毒瘟疫', 2, '毒术', '给予 25 层中毒，抽 2 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 25, '中毒'), 2), 3),
+createCard('催化剂', 1, '毒术', '中毒层数翻 3 倍。消耗。', s => { let e = { ...s.enemy }; e.poison *= 3; return { ...s, enemy: e }; }, 3, true),
+createCard('毒素蔓延', 2, '毒术', '给予 20 层中毒。下回合毒伤 +50%。', s => { let n = applyStatus(s, 'enemy', 'poison', 20, '中毒'); n.enemyFlags = [...n.enemyFlags, '毒素蔓延']; n.history = ['【蔓延】毒素深入体内...', ...n.history]; return n; }, 3),
+createCard('麻痹毒雾', 1, '毒术', '给予 10 层中毒和 2 层虚弱。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 10, '中毒'), 'enemy', 'weak', 2, '虚弱'), 3),
+// 4★ 高等毒术
+createCard('致命剧毒', 2, '毒术', '给予 35 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 35, '中毒'), 4, true),
+createCard('灵魂链接', 2, '毒术', '给予 15 层中毒。敌人每次毒伤回复 1 点生命。', s => { let n = applyStatus(s, 'enemy', 'poison', 15, '中毒'); n.playerFlags = [...n.playerFlags, '灵魂链接']; n.history = ['【灵魂链接】与毒素共生...', ...n.history]; return n; }, 4),
+createCard('淬毒武器', 1, '毒术', '给予 5 层中毒。本回合所有攻击牌额外给予 2 层中毒。', s => { let n = applyStatus(s, 'enemy', 'poison', 5, '中毒'); n.playerFlags = [...n.playerFlags, '淬毒武器']; n.history = ['【淬毒】武器涂抹了剧毒', ...n.history]; return n; }, 4),
+createCard('瘟疫风暴', 3, '毒术', '给予 20 层中毒。抽 3 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 20, '中毒'), 3), 4),
+// 5★ 终极毒术
+createCard('致死毒素', 2, '毒术', '给予 40 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 40, '中毒'), 5, true),
+createCard('毒素共鸣', 1, '毒术', '中毒层数变为当前 ×4。消耗。', s => { let e = { ...s.enemy }; e.poison *= 4; return { ...s, enemy: e }; }, 5, true),
+createCard('末日瘟疫', 3, '毒术', '给予 20 层中毒。每回合结束时毒层翻倍。消耗。', s => { let n = applyStatus(s, 'enemy', 'poison', 20, '中毒'); n.enemyFlags = [...n.enemyFlags, '末日瘟疫']; n.history = ['【末日】瘟疫开始蔓延...', ...n.history]; return n; }, 5, true),
+createCard('毒云笼罩', 2, '毒术', '给予 20 层中毒和 3 层虚弱。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 20, '中毒'), 'enemy', 'weak', 3, '虚弱'), 5),
+
+// ===== 增益 (Buff) 20张 =====
+// 1★ 基础增益
+createCard('弱点分析', 1, '增益', '力量 +2。', s => applyStatus(s, 'player', 'strength', 2, '力量'), 1),
+createCard('战吼', 0, '增益', '抽 2 张牌。消耗。', s => drawCards(s, 2), 1, true),
+createCard('专注', 1, '增益', '抽 4 张牌。', s => drawCards(s, 4), 1),
+createCard('振奋', 1, '增益', '力量 +1，抽 1 张牌。', s => drawCards(applyStatus(s, 'player', 'strength', 1, '力量'), 1), 1),
+// 2★ 进阶增益
+createCard('燃烧', 1, '增益', '力量 +3。', s => applyStatus(s, 'player', 'strength', 3, '力量'), 2),
+createCard('精密计算', 1, '增益', '能量 +1，抽 1 张。消耗。', s => { let n = drawCards(s, 1); n.energy = Math.min(n.maxEnergy, n.energy + 1); return n; }, 2, true),
+createCard('肾上腺素', 0, '增益', '本回合能量 +1。消耗。', s => { let n = { ...s }; n.energy += 1; return n; }, 2, true),
+createCard('快速治疗', 1, '增益', '回复 4 点生命。消耗。', s => { let n = { ...s, player: { ...s.player } }; const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 4); else n.history = ['【灾祸】无法回复生命！', ...n.history]; return n; }, 2, true),
+// 3★ 强力增益
+createCard('力量爆发', 2, '增益', '力量 +8。消耗。', s => applyStatus(s, 'player', 'strength', 8, '力量'), 3, true),
+createCard('狂战士之怒', 0, '增益', '力量 +6。失去所有格挡。消耗。', s => { let n = applyStatus(s, 'player', 'strength', 6, '力量'); n.player.block = 0; n.history = ['【狂怒】放弃所有防御！', ...n.history]; return n; }, 3, true),
+createCard('能量转换', 0, '增益', '消耗格挡，每 5 点换 1 点能量。消耗。', s => { let n = { ...s, player: { ...s.player }, history: [...s.history] }; const e = Math.floor(n.player.block / 5); n.player.block = 0; n.energy += e; n.history = [`${e*5} 格挡 → ${e} 能量`, ...n.history]; return n; }, 3, true),
+createCard('残暴', 1, '增益', '每回合开始力量 +1。消耗。', s => { let n = { ...s, playerFlags: [...s.playerFlags, '残暴'] }; n.history = ['感到【残暴】...', ...n.history]; return n; }, 3, true),
+// 4★ 高等增益
+createCard('暗影步', 0, '增益', '本回合下一张攻击牌伤害翻倍。消耗。', s => { let n = { ...s, history: [...s.history] }; n.penNibActive = true; n.history = ['【暗影步】潜入暗影...', ...n.history]; return n; }, 4, true),
+createCard('血祭', 0, '增益', '失去 3 点生命，能量 +2。消耗。', s => { let n = { ...s, player: { ...s.player } }; n.player.hp = Math.max(0, n.player.hp - 3); n.energy += 2; n.animations.push({ id: generateId(), type: 'damage', value: '-3', target: 'player' }); if (n.player.hp <= 0) n.status = '已战败'; return n; }, 4, true),
+createCard('战斗狂怒', 1, '增益', '力量 +4，抽 2 张。消耗。', s => drawCards(applyStatus(s, 'player', 'strength', 4, '力量'), 2), 4, true),
+createCard('超载', 0, '增益', '本回合能量 +3。下回合能量 -2。消耗。', s => { let n = { ...s }; n.energy += 3; n.player.energyBonusNextTurn = (n.player.energyBonusNextTurn || 0) - 2; n.history = ['【超载】能量暴涨！', ...n.history]; return n; }, 4, true),
+// 5★ 终极增益
+createCard('神赐', 1, '增益', '力量 +10，回复 10 点生命。消耗。', s => { let n = applyStatus(s, 'player', 'strength', 10, '力量'); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 10); n.history = ['【神赐】神力降临！', ...n.history]; return n; }, 5, true),
+createCard('无限能量', 0, '增益', '本回合能量补满。消耗。', s => { let n = { ...s }; n.energy = n.maxEnergy; n.history = ['【无限】能量充盈！', ...n.history]; return n; }, 5, true),
+createCard('进化', 2, '增益', '力量 +5，抽 3 张，回复 5 点生命。消耗。', s => { let n = applyStatus(s, 'player', 'strength', 5, '力量'); n = drawCards(n, 3); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 5); n.history = ['【进化】全面强化！', ...n.history]; return n; }, 5, true),
+createCard('狂暴', 3, '增益', '力量 +12。获得 15 点格挡。', s => addBlock(applyStatus(s, 'player', 'strength', 12, '力量'), 15), 5),
+
+// ===== 减益 (Debuff) 20张 =====
+// 1★ 基础减益
+createCard('绊倒', 0, '减益', '给予 1 层易伤。', s => applyStatus(s, 'enemy', 'vulnerable', 1, '易伤'), 1),
+createCard('恐吓', 0, '减益', '给予 1 层虚弱。', s => applyStatus(s, 'enemy', 'weak', 1, '虚弱'), 1),
+createCard('扰乱', 0, '减益', '给予 1 层虚弱和 1 层易伤。', s => applyStatus(applyStatus(s, 'enemy', 'weak', 1, '虚弱'), 'enemy', 'vulnerable', 1, '易伤'), 1),
+createCard('削弱', 1, '减益', '给予 2 层虚弱。', s => applyStatus(s, 'enemy', 'weak', 2, '虚弱'), 1),
+// 2★ 进阶减益
+createCard('腐蚀', 0, '减益', '给予 2 层易伤。', s => applyStatus(s, 'enemy', 'vulnerable', 2, '易伤'), 2),
+createCard('困兽之斗', 1, '减益', '给予 1 层虚弱和 1 层易伤，造成 5 点伤害。', s => applyStatus(applyStatus(dealDamage(s, 5), 'enemy', 'weak', 1, '虚弱'), 'enemy', 'vulnerable', 1, '易伤'), 2),
+createCard('破绽', 1, '减益', '给予 3 层易伤。消耗。', s => applyStatus(s, 'enemy', 'vulnerable', 3, '易伤'), 2, true),
+createCard('威慑', 1, '减益', '给予 2 层虚弱和 2 层易伤。', s => applyStatus(applyStatus(s, 'enemy', 'weak', 2, '虚弱'), 'enemy', 'vulnerable', 2, '易伤'), 2),
+// 3★ 强力减益
+createCard('致残打击', 1, '减益', '造成 4 点伤害，给予 2 层虚弱和 1 层易伤。', s => applyStatus(applyStatus(dealDamage(s, 4), 'enemy', 'weak', 2, '虚弱'), 'enemy', 'vulnerable', 1, '易伤'), 3),
+createCard('精神鞭笞', 1, '减益', '使敌人下一次攻击伤害降为 1。消耗。', s => { let n = { ...s, enemyFlags: [...s.enemyFlags, '精神鞭笞'] }; n.history = ['【精神鞭笞】缠绕了敌人...', ...n.history]; return n; }, 3, true),
+createCard('恐惧', 0, '减益', '给予 3 层虚弱。消耗。', s => applyStatus(s, 'enemy', 'weak', 3, '虚弱'), 3, true),
+createCard('夺魂', 2, '减益', '给予 2 层虚弱和 2 层易伤，抽 1 张牌。', s => drawCards(applyStatus(applyStatus(s, 'enemy', 'weak', 2, '虚弱'), 'enemy', 'vulnerable', 2, '易伤'), 1), 3),
+// 4★ 高等减益
+createCard('力竭', 1, '减益', '给予 4 层虚弱。消耗。', s => applyStatus(s, 'enemy', 'weak', 4, '虚弱'), 4, true),
+createCard('崩坏', 2, '减益', '造成 10 点伤害，给予 3 层易伤。', s => applyStatus(dealDamage(s, 10), 'enemy', 'vulnerable', 3, '易伤'), 4),
+createCard('缴械', 1, '减益', '给予 3 层虚弱。本回合敌人无法攻击。', s => { let n = applyStatus(s, 'enemy', 'weak', 3, '虚弱'); n.enemy.intent = { type: '攻击', value: 0 }; n.history = ['【缴械】敌人无法攻击！', ...n.history]; return n; }, 4),
+createCard('绝望光环', 2, '减益', '给予 3 层虚弱和 3 层易伤。消耗。', s => applyStatus(applyStatus(s, 'enemy', 'weak', 3, '虚弱'), 'enemy', 'vulnerable', 3, '易伤'), 4, true),
+// 5★ 终极减益
+createCard('死刑宣告', 2, '减益', '给予 5 层虚弱和 5 层易伤。消耗。', s => applyStatus(applyStatus(s, 'enemy', 'weak', 5, '虚弱'), 'enemy', 'vulnerable', 5, '易伤'), 5, true),
+createCard('灵魂冻结', 1, '减益', '造成 8 点伤害，给予 4 层虚弱。', s => applyStatus(dealDamage(s, 8), 'enemy', 'weak', 4, '虚弱'), 5),
+createCard('瓦解', 0, '减益', '移除敌人所有力量和格挡。消耗。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history] }; n.enemy.strength = 0; n.enemy.block = 0; n.history = ['【瓦解】敌人之力消散！', ...n.history]; return n; }, 5, true),
+createCard('末日降临', 3, '减益', '给予 3 层虚弱、3 层易伤，造成 15 点伤害。消耗。', s => applyStatus(applyStatus(dealDamage(s, 15), 'enemy', 'weak', 3, '虚弱'), 'enemy', 'vulnerable', 3, '易伤'), 5, true),
+];
+
+const CARD_STRIKE = ALL_CARDS[0];
+const CARD_DEFEND = ALL_CARDS[20];
+const CARD_NEUTRALIZE = createCard('中和', 0, '减益', '造成 4 点伤害，给予 1 层虚弱和 1 层易伤。', s => applyStatus(applyStatus(dealDamage(s, 4), 'enemy', 'weak', 1, '虚弱'), 'enemy', 'vulnerable', 1, '易伤'));
+const INITIAL_DECK = [CARD_STRIKE, CARD_STRIKE, CARD_STRIKE, CARD_STRIKE, CARD_STRIKE, CARD_DEFEND, CARD_DEFEND, CARD_DEFEND, CARD_DEFEND, CARD_NEUTRALIZE];
+const RELIC_POOL = [() => ({
+  id: generateId(),
+  name: '金蛋',
+  description: '战斗胜利额外获得 20 金币',
+  effectType: 'bonus_gold'
+}), () => ({
+  id: generateId(),
+  name: '磨刀石',
+  description: '拾取时：所有的「打击」伤害始终 +3',
+  effectType: 'whetstone'
+}), () => ({
+  id: generateId(),
+  name: '医疗包',
+  description: '战斗结束回复 5 点生命值',
+  effectType: 'battle_end_heal'
+}), () => ({
+  id: generateId(),
+  name: '手里剑',
+  description: '每回合打出 3 张攻击牌，力量 +1',
+  effectType: 'shuriken'
+}), () => ({
+  id: generateId(),
+  name: '钢笔尖',
+  description: '每打出 10 张攻击牌，下一张伤害翻倍',
+  effectType: 'pen_nib'
+}), () => ({
+  id: generateId(),
+  name: '冰淇淋',
+  description: '能量在回合结束时不消失',
+  effectType: 'keep_energy'
+}), () => ({
+  id: generateId(),
+  name: '战士护额',
+  description: '在战斗开始时获得 1 点力量',
+  effectType: 'start_battle_str'
+}), () => ({
+  id: generateId(),
+  name: '水星提灯',
+  description: '在战斗开始时获得 2 点力量',
+  effectType: 'start_battle_str_2'
+}), () => ({
+  id: generateId(),
+  name: '锚',
+  description: '每场战斗的第一回合获得 10 点格挡',
+  effectType: 'start_battle_block'
+}), () => ({
+  id: generateId(),
+  name: '蛇之戒指',
+  description: '每场战斗的第一回合额外抽 2 张牌',
+  effectType: 'snake_ring'
+}), () => ({
+  id: generateId(),
+  name: '干涸根茎',
+  description: '敌人的中毒层数每回合不会减少',
+  effectType: 'poison_lock'
+}), () => ({
+  id: generateId(),
+  name: '变色龙',
+  description: '在商店购买卡牌价格减半',
+  effectType: 'shop_discount'
+}), () => ({
+  id: generateId(),
+  name: '发条装置',
+  description: '每回合产生 1 点格挡',
+  effectType: 'turn_start_block'
+}), () => ({
+  id: generateId(),
+  name: '魔法药水',
+  description: '战斗开始时给予敌人 3 层中毒',
+  effectType: 'start_battle_poison'
+}), () => ({
+  id: generateId(),
+  name: '纸蛙',
+  description: '易伤效果从 50% 提高到 75%',
+  effectType: 'paper_frog'
+}), () => ({
+  id: generateId(),
+  name: '微笑面具',
+  description: '在商店移除卡牌只需 15 金币',
+  effectType: 'shop_remove_discount'
+}), () => ({
+  id: generateId(),
+  name: '苦痛之锤',
+  description: '伤害提升 25%，但每场战斗开始失去 3 HP',
+  effectType: 'damage_boost_cost_hp'
+}), () => ({
+  id: generateId(),
+  name: '奥利哈刚',
+  description: '如果回合结束没有格挡，获得 6 点格挡',
+  effectType: 'orichalcum'
+}), () => ({
+  id: generateId(),
+  name: '颂钵',
+  description: '跳过卡牌奖励时，最大生命值 +2',
+  effectType: 'singing_bowl'
+}), () => ({
+  id: generateId(),
+  name: '皇家药水',
+  description: '你每次施加状态时额外多施加 1 层',
+  effectType: 'status_extra_stack'
+})];
+const ENEMIES = [
+// 普通 (10)
+{
+  name: '酸液史莱姆',
+  hp: 42,
+  level: '普通',
+  p: [t => t % 2 === 0 ? {
+    type: '恶化',
+    value: 3
+  } : {
+    type: '攻击',
+    value: 8
+  }],
+  trait: '【腐蚀】受击时玩家可能随机丢弃手牌',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '邪教徒',
+  hp: 52,
+  level: '普通',
+  p: [t => t === 1 ? {
+    type: '强化',
+    value: 4
+  } : {
+    type: '攻击',
+    value: 6 + Math.floor(t / 2) * 3
+  }],
+  trait: '【虔诚】每回合力量永久增加 3 点',
+  patterns: ['攻击', '强化']
+}, {
+  name: '下颚虫',
+  hp: 46,
+  level: '普通',
+  p: [t => t % 3 === 0 ? {
+    type: '强化',
+    value: 3
+  } : {
+    type: '攻击',
+    value: 11
+  }],
+  trait: '【厚皮】拥有初始格挡',
+  patterns: ['攻击', '强化']
+}, {
+  name: '寻宝地精',
+  hp: 38,
+  level: '普通',
+  p: [t => t % 3 === 0 ? {
+    type: '攻击',
+    value: 12
+  } : {
+    type: '强化',
+    value: 1
+  }],
+  trait: '【迅捷】玩家抽牌数 +1',
+  patterns: ['攻击', '强化']
+}, {
+  name: '蓝色史莱姆',
+  hp: 38,
+  level: '普通',
+  p: [t => t % 2 === 0 ? {
+    type: '恶化',
+    value: 3
+  } : {
+    type: '攻击',
+    value: 7
+  }],
+  trait: '【粘稠】玩家抽牌数 -1',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '小偷地精',
+  hp: 35,
+  level: '普通',
+  p: [t => ({
+    type: '攻击',
+    value: 9
+  })],
+  trait: '【贪婪】每次攻击偷取玩家 5 金币',
+  patterns: ['攻击']
+}, {
+  name: '尖刺史莱姆',
+  hp: 40,
+  level: '普通',
+  p: [t => t % 2 === 0 ? {
+    type: '防御',
+    value: 5
+  } : {
+    type: '攻击',
+    value: 8
+  }],
+  trait: '【荆棘】受到攻击时反弹 3 点伤害',
+  patterns: ['攻击', '防御']
+}, {
+  name: '弱小蝙蝠',
+  hp: 30,
+  level: '普通',
+  p: [t => ({
+    type: '攻击',
+    value: 6
+  })],
+  trait: '【吸血】攻击时按伤害比例回复生命值',
+  patterns: ['攻击']
+}, {
+  name: '真菌兽',
+  hp: 45,
+  level: '普通',
+  p: [t => t % 2 === 0 ? {
+    type: '攻击',
+    value: 6
+  } : {
+    type: '恶化',
+    value: 3
+  }],
+  trait: '【寄生】死亡后对玩家造成 5 点伤害',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '贪婪的妖精',
+  hp: 48,
+  level: '普通',
+  p: [t => t % 2 === 0 ? {
+    type: '强化',
+    value: 2
+  } : {
+    type: '攻击',
+    value: 10
+  }],
+  trait: '【贪食】血量低于 50% 时伤害翻倍',
+  patterns: ['攻击', '强化']
+},
+// 劲敌 (10)
+{
+  name: '护卫兵',
+  hp: 55,
+  level: '劲敌',
+  p: [t => t % 2 === 0 ? {
+    type: '防御',
+    value: 8
+  } : {
+    type: '攻击',
+    value: 9
+  }],
+  trait: '【格挡】每回合开始获得 10 点格挡',
+  patterns: ['攻击', '防御']
+}, {
+  name: '狂暴地精',
+  hp: 50,
+  level: '劲敌',
+  p: [t => t % 3 === 0 ? {
+    type: '强化',
+    value: 3
+  } : {
+    type: '攻击',
+    value: 12
+  }],
+  trait: '【激怒】受攻击后增加 1 点力量',
+  patterns: ['攻击', '强化']
+}, {
+  name: '多刺怪',
+  hp: 60,
+  level: '劲敌',
+  p: [t => t % 2 === 0 ? {
+    type: '攻击',
+    value: 10
+  } : {
+    type: '防御',
+    value: 6
+  }],
+  trait: '【尖刺】反弹玩家受到的 50% 伤害',
+  patterns: ['攻击', '防御']
+}, {
+  name: '黑史莱姆',
+  hp: 65,
+  level: '劲敌',
+  p: [t => t === 1 ? {
+    type: '强化',
+    value: 5
+  } : {
+    type: '攻击',
+    value: 11
+  }],
+  trait: '【分裂】血量低于 50% 时产生一个护盾',
+  patterns: ['攻击', '强化']
+}, {
+  name: '巫女',
+  hp: 45,
+  level: '劲敌',
+  p: [t => t % 2 === 0 ? {
+    type: '恶化',
+    value: 3
+  } : {
+    type: '攻击',
+    value: 12
+  }],
+  trait: '【诅咒】所有负面状态层数翻倍',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '毒蛇',
+  hp: 48,
+  level: '劲敌',
+  p: [t => t % 2 === 0 ? {
+    type: '攻击',
+    value: 14
+  } : {
+    type: '恶化',
+    value: 4
+  }],
+  trait: '【毒牙】所有攻击附带 2 层中毒',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '装甲巨剑士',
+  hp: 70,
+  level: '劲敌',
+  p: [t => t % 2 === 0 ? {
+    type: '防御',
+    value: 10
+  } : {
+    type: '攻击',
+    value: 8
+  }],
+  trait: '【坚毅】无视虚弱状态',
+  patterns: ['攻击', '防御']
+}, {
+  name: '食人花',
+  hp: 62,
+  level: '劲敌',
+  p: [t => t % 3 === 0 ? {
+    type: '强化',
+    value: 2
+  } : {
+    type: '攻击',
+    value: 13
+  }],
+  trait: '【消噬】击中时有几率消耗玩家一张手牌',
+  patterns: ['攻击', '强化']
+}, {
+  name: '大鄂虫',
+  hp: 55,
+  level: '劲敌',
+  p: [t => t % 2 === 0 ? {
+    type: '恶化',
+    value: 3
+  } : {
+    type: '攻击',
+    value: 14
+  }],
+  trait: '【威慑】玩家护甲效果减少 25%',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '重装战士',
+  hp: 75,
+  level: '劲敌',
+  p: [t => t % 4 === 0 ? {
+    type: '防御',
+    value: 15
+  } : {
+    type: '攻击',
+    value: 10
+  }],
+  trait: '【反射】受到的中毒伤害减少 50%',
+  patterns: ['攻击', '防御']
+},
+// 精英 (10)
+{
+  name: '巨型史莱姆',
+  hp: 80,
+  level: '精英',
+  p: [t => t % 3 === 0 ? {
+    type: '攻击',
+    value: 14
+  } : t % 3 === 1 ? {
+    type: '防御',
+    value: 12
+  } : {
+    type: '恶化',
+    value: 4
+  }],
+  trait: '【粘液】每回合在玩家牌组加入一张「粘液」',
+  patterns: ['攻击', '防御', '恶化']
+}, {
+  name: '地精首领',
+  hp: 92,
+  level: '精英',
+  p: [t => t % 2 === 0 ? {
+    type: '强化',
+    value: 3
+  } : {
+    type: '攻击',
+    value: 14
+  }],
+  trait: '【号令】每回合力量永久增加 2 点',
+  patterns: ['攻击', '强化']
+}, {
+  name: '巨角魔',
+  hp: 110,
+  level: '精英',
+  p: [t => t % 3 === 0 ? {
+    type: '攻击',
+    value: 14
+  } : t % 3 === 1 ? {
+    type: '恶化',
+    value: 3
+  } : {
+    type: '强化',
+    value: 3
+  }],
+  trait: '【冲撞】攻击无视玩家 50% 护甲',
+  patterns: ['攻击', '强化', '恶化']
+}, {
+  name: '刺客',
+  hp: 75,
+  level: '精英',
+  p: [t => t % 3 === 0 ? {
+    type: '恶化',
+    value: 5
+  } : {
+    type: '攻击',
+    value: 18
+  }],
+  trait: '【隐匿】每 3 回合免疫一次攻击',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '大祭司',
+  hp: 85,
+  level: '精英',
+  p: [t => t % 4 === 0 ? {
+    type: '强化',
+    value: 5
+  } : {
+    type: '攻击',
+    value: 12
+  }],
+  trait: '【神力】受到的中毒伤害直接转为回血',
+  patterns: ['攻击', '强化']
+}, {
+  name: '地狱犬',
+  hp: 100,
+  level: '精英',
+  p: [t => t % 2 === 0 ? {
+    type: '攻击',
+    value: 16
+  } : {
+    type: '强化',
+    value: 2
+  }],
+  trait: '【连击】每次攻击命中两次',
+  patterns: ['攻击', '强化']
+}, {
+  name: '石像鬼',
+  hp: 140,
+  level: '精英',
+  p: [t => t % 3 === 0 ? {
+    type: '防御',
+    value: 20
+  } : {
+    type: '攻击',
+    value: 15
+  }],
+  trait: '【石化】玩家出牌超过 3 张后消耗增加',
+  patterns: ['攻击', '防御']
+}, {
+  name: '幻影刺客',
+  hp: 88,
+  level: '精英',
+  p: [t => t === 1 ? {
+    type: '强化',
+    value: 4
+  } : {
+    type: '攻击',
+    value: 16
+  }],
+  trait: '【残影】受到攻击时瞬移',
+  patterns: ['攻击', '强化']
+}, {
+  name: '红史莱姆王',
+  hp: 120,
+  level: '精英',
+  p: [t => t % 3 === 0 ? {
+    type: '恶化',
+    value: 4
+  } : {
+    type: '攻击',
+    value: 15
+  }],
+  trait: '【腐蚀】减少玩家最大能量',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '堕落骑士',
+  hp: 130,
+  level: '精英',
+  p: [t => t % 3 === 0 ? {
+    type: '防御',
+    value: 15
+  } : {
+    type: '攻击',
+    value: 18
+  }],
+  trait: '【邪恶】力量随时间爆发增长',
+  patterns: ['攻击', '防御']
+},
+// 首领 (10)
+{
+  name: '死亡骑士',
+  hp: 150,
+  level: '首领',
+  p: [t => t % 3 === 0 ? {
+    type: '强化',
+    value: 4
+  } : {
+    type: '攻击',
+    value: 22
+  }],
+  trait: '【凋零】每回合减少玩家 2 点生命值',
+  patterns: ['攻击', '强化']
+}, {
+  name: '巫妖',
+  hp: 140,
+  level: '首领',
+  p: [t => t % 4 === 0 ? {
+    type: '恶化',
+    value: 5
+  } : {
+    type: '攻击',
+    value: 20
+  }],
+  trait: '【复生】死亡后有 50% 机率 1 血复活',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '骸骨巨龙',
+  hp: 180,
+  level: '首领',
+  p: [t => t % 2 === 0 ? {
+    type: '攻击',
+    value: 24
+  } : {
+    type: '防御',
+    value: 15
+  }],
+  trait: '【龙吟】使玩家所有卡牌消耗增加 1 点',
+  patterns: ['攻击', '防御']
+}, {
+  name: '混沌元素',
+  hp: 160,
+  level: '首领',
+  p: [t => t % 3 === 0 ? {
+    type: '强化',
+    value: 3
+  } : {
+    type: '攻击',
+    value: 25
+  }],
+  trait: '【无序】每回合随机交换玩家的力量和护甲',
+  patterns: ['攻击', '强化']
+}, {
+  name: '暗影领主',
+  hp: 170,
+  level: '首领',
+  p: [t => t % 4 === 0 ? {
+    type: '恶化',
+    value: 6
+  } : {
+    type: '攻击',
+    value: 23
+  }],
+  trait: '【暗影】攻击有几率让玩家跳过下一个回合',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '深渊爬行者',
+  hp: 190,
+  level: '首领',
+  p: [t => t === 1 ? {
+    type: '强化',
+    value: 6
+  } : {
+    type: '攻击',
+    value: 20
+  }],
+  trait: '【吞噬】血量每减少 20% 吞噬一张遗物效果',
+  patterns: ['攻击', '强化']
+}, {
+  name: '钢铁行者',
+  hp: 250,
+  level: '首领',
+  p: [t => t % 3 === 0 ? {
+    type: '防御',
+    value: 25
+  } : {
+    type: '攻击',
+    value: 16
+  }],
+  trait: '【坚不可摧】单次受到的伤害不会超过 15 点',
+  patterns: ['攻击', '防御']
+}, {
+  name: '灾厄兽',
+  hp: 200,
+  level: '首领',
+  p: [t => t % 3 === 0 ? {
+    type: '恶化',
+    value: 5
+  } : {
+    type: '攻击',
+    value: 26
+  }],
+  trait: '【灾祸】本场战斗玩家无法回复生命',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '鲜血暴君',
+  hp: 220,
+  level: '首领',
+  p: [t => t % 2 === 0 ? {
+    type: '攻击',
+    value: 25
+  } : {
+    type: '强化',
+    value: 2
+  }],
+  trait: '【血统】吸取造成伤害的 100% 转化为生命值',
+  patterns: ['攻击', '强化']
+}, {
+  name: '恐惧之眼',
+  hp: 175,
+  level: '首领',
+  p: [t => t % 3 === 0 ? {
+    type: '恶化',
+    value: 6
+  } : {
+    type: '攻击',
+    value: 24
+  }],
+  trait: '【幻视】玩家无法看到敌人意图的数值',
+  patterns: ['攻击', '恶化']
+},
+// 魔王 (10)
+{
+  name: '六火亡魂',
+  hp: 280,
+  level: '魔王',
+  p: [t => {
+    if (t === 1) return {
+      type: '强化',
+      value: 4
+    };
+    if (t % 4 === 0) return {
+      type: '攻击',
+      value: 24
+    };
+    return {
+      type: '攻击',
+      value: 12
+    };
+  }],
+  trait: '【地狱火】每回合烧毁玩家弃牌堆的一张牌',
+  patterns: ['攻击', '强化']
+}, {
+  name: '远古守护者',
+  hp: 350,
+  level: '魔王',
+  p: [t => {
+    if (t === 1) return {
+      type: '强化',
+      value: 5
+    };
+    if (t % 3 === 0) return {
+      type: '防御',
+      value: 20
+    };
+    if (t % 3 === 1) return {
+      type: '攻击',
+      value: 16
+    };
+    return {
+      type: '强化',
+      value: 4
+    };
+  }],
+  trait: '【反物质】反弹所有负面状态给玩家',
+  patterns: ['攻击', '防御', '强化']
+}, {
+  name: '时间吞噬者',
+  hp: 420,
+  level: '魔王',
+  p: [t => {
+    if (t % 4 === 0) return {
+      type: '强化',
+      value: 6
+    };
+    return {
+      type: '攻击',
+      value: 26
+    };
+  }],
+  trait: '【时之刻印】玩家每出 10 张牌强行结束回合',
+  patterns: ['攻击', '强化']
+}, {
+  name: '觉醒者',
+  hp: 400,
+  level: '魔王',
+  p: [t => {
+    if (t % 3 === 0) return {
+      type: '恶化',
+      value: 4
+    };
+    return {
+      type: '攻击',
+      value: 28
+    };
+  }],
+  trait: '【复苏】第一次死亡后进入觉醒形态，满血复活',
+  patterns: ['攻击', '恶化']
+}, {
+  name: '甜圈与八角',
+  hp: 450,
+  level: '魔王',
+  p: [t => {
+    if (t % 2 === 0) return {
+      type: '防御',
+      value: 25
+    };
+    return {
+      type: '攻击',
+      value: 30
+    };
+  }],
+  trait: '【协作】一个防御时另一个必会反击',
+  patterns: ['攻击', '防御']
+}, {
+  name: '腐化之心',
+  hp: 600,
+  level: '魔王',
+  p: [t => {
+    if (t === 1) return {
+      type: '恶化',
+      value: 5
+    };
+    if (t % 3 === 0) return {
+      type: '强化',
+      value: 8
+    };
+    return {
+      type: '攻击',
+      value: 35
+    };
+  }],
+  trait: '【律法】玩家每次出牌都要受到 2 点伤害',
+  patterns: ['攻击', '强化', '恶化']
+}, {
+  name: '堕落神明',
+  hp: 500,
+  level: '魔王',
+  p: [t => {
+    if (t % 4 === 0) return {
+      type: '恶化',
+      value: 5
+    };
+    if (t % 4 === 2) return {
+      type: '强化',
+      value: 5
+    };
+    return {
+      type: '攻击',
+      value: 32
+    };
+  }],
+  trait: '【神威】玩家无法使用稀有度为 3 以上的卡牌',
+  patterns: ['攻击', '强化', '恶化']
+}, {
+  name: '虚空之眼',
+  hp: 380,
+  level: '魔王',
+  p: [t => {
+    if (t % 3 === 0) return {
+      type: '防御',
+      value: 30
+    };
+    return {
+      type: '攻击',
+      value: 25
+    };
+  }],
+  trait: '【虚空】玩家能量上限减为 2',
+  patterns: ['攻击', '防御']
+}, {
+  name: '末日巨兽',
+  hp: 550,
+  level: '魔王',
+  p: [t => {
+    if (t === 1) return {
+      type: '强化',
+      value: 10
+    };
+    return {
+      type: '攻击',
+      value: 40
+    };
+  }],
+  trait: '【毁灭】每 5 回合对玩家造成 100 点伤害',
+  patterns: ['攻击', '强化']
+}, {
+  name: '终焉使者',
+  hp: 480,
+  level: '魔王',
+  p: [t => {
+    if (t % 3 === 0) return {
+      type: '恶化',
+      value: 6
+    };
+    if (t % 3 === 1) return {
+      type: '防御',
+      value: 25
+    };
+    return {
+      type: '攻击',
+      value: 38
+    };
+  }],
+  trait: '【终结】当玩家生命低于 20% 时直接斩杀',
+  patterns: ['攻击', '防御', '恶化']
+}];
+const shuffle = array => [...array].sort(() => Math.random() - 0.5);
+const getRandom = arr => arr[Math.floor(Math.random() * arr.length)];
+const sampleSize = (arr, n) => shuffle([...arr]).slice(0, n);
+
+const generateRewards = (enemyLevel, floor) => {
+  try {
+    let maxRarity = 2;
+    if (enemyLevel === '劲敌') maxRarity = 3;
+    if (['精英', '首领', '魔王'].includes(enemyLevel)) maxRarity = 4;
+    const eligibleCards = ALL_CARDS.filter(cardFactory => {
+      const testCard = cardFactory();
+      return testCard && testCard.rarity <= maxRarity;
+    });
+    const selectedFactories = sampleSize(eligibleCards, 3);
+    return selectedFactories.map(factory => factory());
+  } catch(e) {
+    console.error('generateRewards failed:', e);
+    return [];
+  }
+};
+
+function App() {
+  const [gameState, setGameState] = useState(() => {
+    let saved = localStorage.getItem('slay_state');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const inflateCard = sc => {
+          const t = [...INITIAL_DECK.map(f => f()), ...ALL_CARDS.map(f => f())].find(c => c.name === sc.name);
+          return t ? {
+            ...t,
+            id: sc.id
+          } : INITIAL_DECK[0]();
+        };
+        parsed.deck = parsed.deck.map(inflateCard);
+        parsed.hand = parsed.hand.map(inflateCard);
+        parsed.discard = parsed.discard.map(inflateCard);
+        parsed.rewards = parsed.rewards.map(inflateCard);
+        parsed.shopCards = parsed.shopCards.map(inflateCard);
+        parsed.relics = parsed.relics.map(n => RELIC_POOL.map(f => f()).find(r => r.name === n) || RELIC_POOL[0]());
+        const enemyConfig = ENEMIES.find(e => e.name === parsed.enemyName);
+        parsed.enemyActionPatterns = enemyConfig ? enemyConfig.p : [];
+        if (!parsed.animations) parsed.animations = [];
+        if (parsed.announcement === undefined) parsed.announcement = null;
+        if (!parsed.selectedToRetain) parsed.selectedToRetain = [];
+        if (!parsed.battleSummary) parsed.battleSummary = null;
+        if (!parsed.enemyFlags) parsed.enemyFlags = [];
+        if (!parsed.playerFlags) parsed.playerFlags = [];
+        if (parsed.turnSkipActive === undefined) parsed.turnSkipActive = false;
+        if (parsed.totalAttacksPlayed === undefined) parsed.totalAttacksPlayed = 0;
+        if (parsed.penNibActive === undefined) parsed.penNibActive = false;
+        if (parsed.player && parsed.player.drawBonusNextTurn === undefined) parsed.player.drawBonusNextTurn = 0;
+        if (parsed.player && parsed.player.energyBonusNextTurn === undefined) parsed.player.energyBonusNextTurn = 0;
+        return parsed;
+      } catch (e) {}
+    }
+    const deck = INITIAL_DECK.map(f => f());
+    return {
+      player: {
+        hp: 70,
+        maxHp: 70,
+        block: 0,
+        strength: 0,
+        vulnerable: 0,
+        weak: 0,
+        poison: 0,
+        energyBonusNextTurn: 0,
+        drawBonusNextTurn: 0
+      },
+      enemy: {
+        hp: 1,
+        maxHp: 1,
+        block: 0,
+        strength: 0,
+        vulnerable: 0,
+        weak: 0,
+        poison: 0
+      },
+      enemyName: '',
+      enemyLevel: '普通',
+      enemyActionPatterns: [],
+      enemyIntent: {
+        type: '攻击',
+        value: 0
+      },
+      deck: deck,
+      hand: [],
+      discard: [],
+      energy: 3,
+      maxEnergy: 3,
+      turn: 1,
+      floor: 0,
+      gold: 50,
+      relics: [],
+      status: '选择遗物',
+      startingRelics: sampleSize(RELIC_POOL.map(f => f()), 3),
+      history: ['准备进入高塔...'],
+      rewards: [],
+      shopCards: [],
+      shopRelic: null,
+      nextRooms: [{
+        type: '战斗',
+        label: '一层入口'
+      }],
+      animations: [],
+      announcement: null,
+      selectedToRetain: [],
+      battleSummary: null,
+      playerFlags: [],
+      enemyFlags: [],
+      cardsPlayedThisTurn: 0,
+      totalAttacksPlayed: 0,
+      penNibActive: false,
+      turnSkipActive: false
+    };
+  });
+  useEffect(() => {
+    const serialized = {
+      ...gameState,
+      deck: gameState.deck.map(c => ({
+        name: c.name,
+        id: c.id
+      })),
+      hand: gameState.hand.map(c => ({
+        name: c.name,
+        id: c.id
+      })),
+      discard: gameState.discard.map(c => ({
+        name: c.name,
+        id: c.id
+      })),
+      rewards: gameState.rewards.map(c => ({
+        name: c.name,
+        id: c.id
+      })),
+      shopCards: gameState.shopCards.map(c => ({
+        name: c.name,
+        id: c.id
+      })),
+      relics: gameState.relics.map(r => r.name),
+      enemyActionPatterns: []
+    };
+    localStorage.setItem('slay_state', JSON.stringify(serialized));
+  }, [gameState]);
+  const [isEnemyActing, setIsEnemyActing] = useState(false);
+  useEffect(() => { if (gameState.status === '战斗中') setIsEnemyActing(false); }, [gameState.status]);
+  const [isRemovingCard, setIsRemovingCard] = useState(false);
+  const gameStateRef = useRef(gameState);
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
+  const playCard = card => {
+    const gs = gameStateRef.current;
+    // 强制弃牌模式逻辑
+    if (gs.status === '弃牌') {
+      setGameState(prev => {
+        const nextHand = prev.hand.filter(c => c.id !== card.id);
+        const nextDiscard = [...prev.discard, card];
+        const discardedCount = (prev.announcement?.count || 0) + 1;
+        let nextStatus = prev.status;
+        let nextAnnouncement = prev.announcement;
+        if (discardedCount >= 2 || nextHand.length === 0) {
+          nextStatus = '战斗中';
+          nextAnnouncement = null;
+        } else {
+          nextAnnouncement = {
+            ...prev.announcement,
+            count: discardedCount
+          };
+        }
+        return {
+          ...prev,
+          hand: nextHand,
+          discard: nextDiscard,
+          status: nextStatus,
+          announcement: nextAnnouncement,
+          history: [`【弃牌】${card.name}`, ...prev.history]
+        };
+      });
+      return;
+    }
+    if (gs.energy < card.cost || gs.status !== '战斗中' || isEnemyActing) return;
+    // 暗影领主·暗影：跳过回合时无法出牌
+    if (gs.turnSkipActive) return;
+    // 骸骨巨龙·龙吟：卡牌消耗+1
+    const dragonTrait = ENEMIES.find(e => e.name === gs.enemyName)?.trait || '';
+    const extraCost = dragonTrait.includes('龙吟') ? 1 : 0;
+    if (gs.energy < card.cost + extraCost) return;
+
+    // 怪物特性：神威 (限制稀有卡)
+    const currentEnemyTrait = ENEMIES.find(e => e.name === gs.enemyName)?.trait || '';
+    if (currentEnemyTrait.includes('神威') && card.rarity && card.rarity >= 3) {
+      setGameState(prev => ({
+        ...prev,
+        history: ['【神威】神明禁锢了稀有卡牌的魔力！', ...prev.history]
+      }));
+      return;
+    }
+    setGameState(prev => {
+      // Validation
+      const dt = ENEMIES.find(e => e.name === prev.enemyName)?.trait || '';
+      const ec = dt.includes('龙吟') ? 1 : 0;
+      if (prev.status !== '战斗中' || prev.energy < card.cost + ec || !prev.hand.some(c => c.id === card.id)) return prev;
+      if (!card.effect || typeof card.effect !== 'function') return prev;
+      let next = card.effect(prev);
+      next.energy -= (card.cost + ec);
+
+      // Remove from hand
+      next.hand = next.hand.filter(c => c.id !== card.id);
+      // 去重：防止同一张卡在手中出现两次
+      const ids = new Set();
+      next.hand = next.hand.filter(c => ids.has(c.id) ? false : (ids.add(c.id), true));
+
+      // Handle Exhaust / Return to hand logic
+      if (next.playerFlags.includes('无限循环') && Math.random() < 0.3) {
+        next.hand = [...next.hand, card];
+        next.history = [`【无限循环】触发！${card.name} 回到手牌`, ...next.history];
+      } else if (card.exhaust) {
+        next.history = [`【消耗】了 ${card.name}`, ...next.history];
+        if (next.relics.some(r => r.effectType === 'exhaust_boost')) {
+          next.player.strength += 1;
+          next.animations.push({
+            id: generateId(),
+            type: 'status',
+            value: '力量 +1',
+            target: 'player'
+          });
+        }
+      } else {
+        next.discard = [...next.discard, card];
+      }
+
+      // 遗物：钢笔尖 (每10张攻击牌下一张伤害翻倍) - 简化，暂不实现计数器前端显示，直接累计到全局状态较复杂，这里先补全卡牌基础逻辑
+
+      next.history = [`使用了 ${card.name}`, ...next.history];
+      next.cardsPlayedThisTurn = (next.cardsPlayedThisTurn || 0) + 1;
+
+      // 淬毒武器：本回合攻击牌额外给予2层中毒
+      if (card.type === '攻击' && next.playerFlags.includes('淬毒武器')) {
+        next.enemy.poison = (next.enemy.poison || 0) + 2;
+      }
+
+      // 遗物：手里剑 (每回合打出3张攻击牌，力量+1)
+      if (card.type === '攻击' && next.relics.some(r => r.effectType === 'shuriken')) {
+        const attackCount = next.cardsPlayedThisTurn; // simplified: track total
+        if (!next._shurikenCount) next._shurikenCount = 0;
+        next._shurikenCount = (next._shurikenCount || 0) + 1;
+        if (next._shurikenCount >= 3) {
+          next.player.strength += 1;
+          next._shurikenCount = 0;
+          next.animations.push({ id: generateId(), type: 'status', value: '力量 +1 (手里剑)', target: 'player' });
+          next.history = ['【手里剑】打出 3 张攻击牌，力量 +1！', ...next.history];
+        }
+      }
+
+      // 遗物：钢笔尖 (每打出10张攻击牌，下一张伤害翻倍)
+      if (card.type === '攻击' && next.relics.some(r => r.effectType === 'pen_nib')) {
+        next.totalAttacksPlayed = (next.totalAttacksPlayed || 0) + 1;
+        if (next.totalAttacksPlayed >= 10) {
+          next.penNibActive = true;
+          next.totalAttacksPlayed = 0;
+          next.animations.push({ id: generateId(), type: 'status', value: '钢笔尖激活!', target: 'player' });
+          next.history = ['【钢笔尖】下一张攻击牌伤害翻倍！', ...next.history];
+        }
+      }
+
+      const trait = ENEMIES.find(e => e.name === next.enemyName)?.trait || '';
+      if (trait.includes('石化') && next.cardsPlayedThisTurn > 3) { next.energy -= 1; next.history = ['【石化】出牌消耗增加了！', ...next.history]; }
+      // 怪物特性：律法 (每次出牌受伤)
+      if (trait.includes('律法')) {
+        next.player.hp = Math.max(1, next.player.hp - 2);
+        next.animations.push({
+          id: generateId(),
+          type: 'damage',
+          value: '-2',
+          target: 'player'
+        });
+      }
+
+      // 怪物特性：时之刻印 (10张强制结束)
+      if (trait.includes('时之刻印') && next.cardsPlayedThisTurn >= 10) {
+        next.history = ['【特性】时间被吞噬了！强制结束回合', ...next.history];
+        // 这里需要异步触发结束回合逻辑，简化处理直接清空能量
+        next.energy = 0;
+      }
+
+      // 怪物特性：分裂 (HP < 50% 时获得护盾，仅触发一次)
+      if (trait.includes('分裂') && next.enemy.hp > 0 && next.enemy.hp < next.enemy.maxHp / 2 && !next.enemyFlags.includes('分裂已触发')) {
+        next.enemy.block += 15;
+        next.enemyFlags = [...next.enemyFlags, '分裂已触发'];
+        next.animations.push({id: generateId(), type: 'block', value: '+15', target: 'enemy'});
+        next.history = ['【特性】分裂产生了护盾！', ...next.history];
+      }
+
+      // 敌人死亡判断
+      if (next.enemy.hp <= 0) {
+        const deathTrait = ENEMIES.find(e => e.name === next.enemyName)?.trait || '';
+        // 巫妖·复生：50%几率1血复活
+        if (deathTrait.includes('复生') && !next.enemyFlags.includes('复生已触发') && Math.random() < 0.5) {
+          next.enemy.hp = 1;
+          next.enemyFlags = [...next.enemyFlags, '复生已触发'];
+          next.animations.push({ id: generateId(), type: 'status', value: '复活!', target: 'enemy' });
+          next.history = ['【复生】巫妖从死亡中复活了！', ...next.history];
+        }
+        // 觉醒者·复苏：第一次死亡满血复活
+        else if (deathTrait.includes('复苏') && !next.enemyFlags.includes('复苏已触发')) {
+          next.enemy.hp = next.enemy.maxHp;
+          next.enemyFlags = [...next.enemyFlags, '复苏已触发'];
+          next.animations.push({ id: generateId(), type: 'status', value: '觉醒!', target: 'enemy' });
+          next.history = ['【复苏】觉醒者进入了觉醒形态！', ...next.history];
+        }
+        else {
+          if (deathTrait.includes('寄生')) { next.player.hp = Math.max(0, next.player.hp - 5); next.animations.push({ id: generateId(), type: 'damage', value: '-5', target: 'player' }); next.history = ['【寄生】敌人死后释放了剧毒！受到 5 点伤害', ...next.history]; if (next.player.hp <= 0) { next.status = '已战败'; return next; } }
+          let baseGold = next.enemyLevel === '魔王' ? 50 : next.enemyLevel === '首领' ? 30 : next.enemyLevel === '精英' ? 25 : next.enemyLevel === '劲敌' ? 20 : 15;
+          if (next.relics.some(r => r.effectType === 'bonus_gold')) {
+            baseGold += 20;
+          }
+          if (next.relics.some(r => r.effectType === 'battle_end_heal')) {
+            next.player.hp = Math.min(next.player.maxHp, next.player.hp + 5);
+            next.history = ['【医疗包】战斗结束回复了5点生命值！', ...next.history];
+          }
+          const rewards = generateRewards(next.enemyLevel, next.floor);
+          // 遗物掉落
+          let droppedRelic = undefined;
+          const rDrop = next.enemyLevel === '魔王' ? 1 : next.enemyLevel === '首领' ? 0.5 : next.enemyLevel === '精英' ? 0.25 : next.enemyLevel === '劲敌' ? 0.12 : 0;
+          if (Math.random() < rDrop) {
+            const av = RELIC_POOL.map(f => f()).filter(r => !next.relics.some(pr => pr.name === r.name));
+            if (av.length > 0) {
+              droppedRelic = getRandom(av);
+              next.relics = [...next.relics, droppedRelic];
+              next.history = [`击败${next.enemyName}获得遗物【${droppedRelic.name}】！`, ...next.history];
+            }
+          }
+          // 恢复战斗前的卡组和遗物，清空手牌/弃牌防止重复，同时过滤粘液
+          next.deck = (next.preBattleDeck || [...next.deck]).filter(c => c.name !== '粘液');
+          next.hand = [];
+          next.discard = [];
+          if (next.preBattleRelics) {
+            if (droppedRelic) next.relics = [...next.preBattleRelics, droppedRelic];
+            else next.relics = [...next.preBattleRelics];
+          }
+          return {
+            ...next,
+            gold: (next.gold || 0) + baseGold,
+            status: '收获总结',
+            battleSummary: { gold: baseGold, relic: droppedRelic },
+            rewards: rewards,
+            history: ['战斗胜利！', ...next.history]
+          };
+        }
+      }
+      return next;
+    });
+  };
+  const toggleRetainCard = cardId => {
+    if (gameState.status !== '保留手牌') return;
+    setGameState(prev => {
+      const isSelected = prev.selectedToRetain.includes(cardId);
+      if (!isSelected && prev.selectedToRetain.length >= 2) return prev;
+      return {
+        ...prev,
+        selectedToRetain: isSelected ? prev.selectedToRetain.filter(id => id !== cardId) : [...prev.selectedToRetain, cardId]
+      };
+    });
+  };
+  const startRetainPhase = () => {
+    if (gameState.status !== '战斗中' || isEnemyActing) return;
+    if (gameState.hand.length === 0) {
+      proceedToEndTurn([]);
+      return;
+    }
+    setGameState(prev => ({
+      ...prev,
+      status: '保留手牌',
+      selectedToRetain: []
+    }));
+  };
+  const proceedToEndTurn = async toRetainIds => {
+    setIsEnemyActing(true);
+
+    // 1. 弃牌阶段 (保留所选)
+    setGameState(prev => {
+      const retained = prev.hand.filter(c => toRetainIds.includes(c.id));
+      const discarded = prev.hand.filter(c => !toRetainIds.includes(c.id));
+      let next = {
+        ...prev,
+        status: '战斗中',
+        history: [`【弃牌阶段】保留了 ${retained.length} 张牌`, ...prev.history],
+        hand: retained,
+        discard: [...prev.discard, ...discarded],
+        selectedToRetain: []
+      };
+      return next;
+    });
+    await new Promise(r => setTimeout(r, 600));
+
+    // 2. 敌方回合开始
+    setGameState(prev => {
+      if (prev.status !== '战斗中' && prev.status !== '保留手牌') return prev;
+      let next = {
+        ...prev,
+        player: {
+          ...prev.player
+        },
+        enemy: {
+          ...prev.enemy
+        },
+        history: ['【敌方回合】', ...prev.history]
+      };
+      const trait = ENEMIES.find(e => e.name === next.enemyName)?.trait || '';
+
+      // 遗物：奥利哈刚 (回合结束时没有格挡则获得6点格挡)
+      if (next.player.block === 0 && next.relics.some(r => r.effectType === 'orichalcum')) {
+        next.player.block += 6;
+        next.animations.push({ id: generateId(), type: 'status_block', value: '+6', target: 'player' });
+        next.history = ['【奥利哈刚】获得了 6 点格挡！', ...next.history];
+      }
+
+      // 敌人回合开始特性触发
+      if (trait.includes('号令')) next.enemy.strength += 2;
+      if (trait.includes('虔诚')) next.enemy.strength += 3;
+      if (trait.includes('凋零')) next.player.hp = Math.max(1, next.player.hp - 2);
+      if (trait.includes('邪恶')) { next.enemy.strength += Math.floor(next.turn / 3) + 1; next.history = ['【邪恶】力量随时间爆发增长！', ...next.history]; }
+      if (trait.includes('反物质')) {
+        if (next.enemy.vulnerable > 0) { next.player.vulnerable = (next.player.vulnerable || 0) + next.enemy.vulnerable; next.enemy.vulnerable = 0; }
+        if (next.enemy.weak > 0) { next.player.weak = (next.player.weak || 0) + next.enemy.weak; next.enemy.weak = 0; }
+        if (next.enemy.poison > 0) { next.player.poison = (next.player.poison || 0) + next.enemy.poison; next.enemy.poison = 0; }
+        next.history = ['【反物质】负面状态被反射到你身上！', ...next.history];
+      }
+      if (trait.includes('无序') && Math.random() < 0.5) {
+        const tmp = next.player.strength;
+        next.player.strength = next.player.block;
+        next.player.block = tmp;
+        next.history = ['【无序】你的力量和护甲被交换了！', ...next.history];
+      }
+      if (trait.includes('毁灭') && next.turn > 1 && next.turn % 5 === 0) {
+        next.player.hp = Math.max(0, next.player.hp - 100);
+        next.animations.push({ id: generateId(), type: 'damage', value: '-100', target: 'player' });
+        next.history = ['【毁灭】末日降临！遭受 100 点伤害！', ...next.history];
+      }
+      if (trait.includes('地狱火') && next.discard.length > 0) {
+        const burnIdx = Math.floor(Math.random() * next.discard.length);
+        const burned = next.discard.splice(burnIdx, 1)[0];
+        next.history = ['【地狱火】地狱之火烧毁了 ' + burned.name + '！', ...next.history];
+      }
+      // 粘液：每回合加入一张粘液牌并减少抽牌
+      if (trait.includes('粘液')) {
+        const slimeCard = { id: generateId(), name: '粘液', cost: 1, type: '减益', description: '无用的粘液。占据手牌。', color: 'bg-emerald-600', effect: s => s, rarity: 1, exhaust: false };
+        next.deck.push(slimeCard);
+        next.player.drawBonusNextTurn = (next.player.drawBonusNextTurn || 0) - 1;
+        next.history = ['【粘液】一张粘液被加入了你的牌组！抽牌 -1！', ...next.history];
+      }
+
+      // 敌人回合开始，清除上一轮的护甲 (除非有特殊特性，暂无)
+      next.enemy.block = trait.includes('格挡') ? 10 : 0;
+      if (trait.includes('厚皮') && next.turn === 1) next.enemy.block += 5;
+
+      // 敌人回合开始，受到毒伤
+      if (next.enemy.poison > 0) {
+        let pDmg = next.enemy.poison;
+        if (trait.includes('反射')) pDmg = Math.floor(pDmg * 0.5);
+        // 毒素蔓延：下回合毒伤+50%
+        if (next.enemyFlags.includes('毒素蔓延')) { pDmg = Math.floor(pDmg * 1.5); next.enemyFlags = next.enemyFlags.filter(f => f !== '毒素蔓延'); }
+        if (trait.includes('神力')) {
+          // 大祭司：毒转血
+          next.enemy.hp = Math.min(next.enemy.maxHp, next.enemy.hp + pDmg);
+          next.history = [`【特性】毒素转化为生命 +${pDmg}`, ...next.history];
+        } else {
+          next.enemy.hp = Math.max(0, next.enemy.hp - pDmg);
+          next.history = [`敌人受到 ${pDmg} 点毒伤`, ...next.history];
+        }
+        // 灵魂链接：毒伤时回复生命
+        if (next.playerFlags.includes('灵魂链接')) {
+          next.player.hp = Math.min(next.player.maxHp, next.player.hp + 1);
+        }
+
+        // 遗物：干涸根茎 (中毒层数不减)
+        if (!next.relics.some(r => r.effectType === 'poison_lock')) {
+          next.enemy.poison = Math.max(0, next.enemy.poison - 1);
+        }
+        // 末日瘟疫：回合结束时毒层翻倍
+        if (next.enemyFlags.includes('末日瘟疫') && next.enemy.poison > 0) {
+          next.enemy.poison *= 2;
+          next.history = [`【末日瘟疫】毒层翻倍至 ${next.enemy.poison}！`, ...next.history];
+        }
+        next.animations.push({
+          id: generateId(),
+          type: 'status',
+          value: '毒伤',
+          target: 'enemy'
+        });
+      }
+
+      // 敌人因毒伤死亡
+      if (next.enemy.hp <= 0) {
+        const deathTrait2 = ENEMIES.find(e => e.name === next.enemyName)?.trait || '';
+        if (deathTrait2.includes('复生') && !next.enemyFlags.includes('复生已触发') && Math.random() < 0.5) {
+          next.enemy.hp = 1;
+          next.enemyFlags = [...next.enemyFlags, '复生已触发'];
+          next.animations.push({ id: generateId(), type: 'status', value: '复活!', target: 'enemy' });
+          next.history = ['【复生】巫妖从死亡中复活了！', ...next.history];
+        } else if (deathTrait2.includes('复苏') && !next.enemyFlags.includes('复苏已触发')) {
+          next.enemy.hp = next.enemy.maxHp;
+          next.enemyFlags = [...next.enemyFlags, '复苏已触发'];
+          next.animations.push({ id: generateId(), type: 'status', value: '觉醒!', target: 'enemy' });
+          next.history = ['【复苏】觉醒者进入了觉醒形态！', ...next.history];
+        } else {
+          if (deathTrait2.includes('寄生')) { next.player.hp = Math.max(0, next.player.hp - 5); next.animations.push({ id: generateId(), type: 'damage', value: '-5', target: 'player' }); next.history = ['【寄生】敌人死后释放了剧毒！受到 5 点伤害', ...next.history]; if (next.player.hp <= 0) { next.status = '已战败'; return next; } }
+          let baseGold = next.enemyLevel === '魔王' ? 50 : next.enemyLevel === '首领' ? 30 : next.enemyLevel === '精英' ? 25 : next.enemyLevel === '劲敌' ? 20 : 15;
+          if (next.relics.some(r => r.effectType === 'bonus_gold')) {
+            baseGold += 20;
+          }
+          if (next.relics.some(r => r.effectType === 'battle_end_heal')) {
+            next.player.hp = Math.min(next.player.maxHp, next.player.hp + 5);
+            next.history = ['【医疗包】战斗结束回复了5点生命值！', ...next.history];
+          }
+          const rewards = generateRewards(next.enemyLevel, next.floor);
+          let droppedRelic2 = undefined;
+          const rDrop2 = next.enemyLevel === '魔王' ? 1 : next.enemyLevel === '首领' ? 0.5 : next.enemyLevel === '精英' ? 0.25 : next.enemyLevel === '劲敌' ? 0.12 : 0;
+          if (Math.random() < rDrop2) {
+            const av2 = RELIC_POOL.map(f => f()).filter(r => !next.relics.some(pr => pr.name === r.name));
+            if (av2.length > 0) {
+              droppedRelic2 = getRandom(av2);
+              next.relics = [...next.relics, droppedRelic2];
+              next.history = [`击败${next.enemyName}获得遗物【${droppedRelic2.name}】！`, ...next.history];
+            }
+          }
+          next.deck = (next.preBattleDeck || [...next.deck]).filter(c => c.name !== '粘液');
+          next.hand = [];
+          next.discard = [];
+          if (next.preBattleRelics) {
+            if (droppedRelic2) next.relics = [...next.preBattleRelics, droppedRelic2];
+            else next.relics = [...next.preBattleRelics];
+          }
+          return {
+            ...next,
+            gold: (next.gold || 0) + baseGold,
+            status: '收获总结',
+            battleSummary: { gold: baseGold, relic: droppedRelic2 },
+            rewards: rewards,
+            history: ['战斗胜利！', ...next.history]
+          };
+        }
+      }
+      if (next.enemy.hp > 0) {
+        const intent = next.enemyIntent;
+        if (intent.type === '攻击') {
+          let dmg = intent.value + next.enemy.strength;
+
+          // 怪物特性：贪食 (HP < 50% 伤害翻倍)
+          if (trait.includes('贪食') && next.enemy.hp < next.enemy.maxHp / 2) dmg *= 2;
+
+          // 怪物特性：终结 (玩家生命 < 20% 直接斩杀)
+          if (trait.includes('终结') && next.player.hp < next.player.maxHp * 0.2) {
+            dmg = next.player.hp + next.player.block;
+            next.history = ['【终结】生命过低，被直接斩杀！', ...next.history];
+          }
+
+          // 卡牌：精神鞭笞
+          if (next.enemyFlags.includes('精神鞭笞')) {
+            dmg = 1;
+            next.enemyFlags = next.enemyFlags.filter(f => f !== '精神鞭笞');
+            next.history = ['【精神鞭笞】使攻击威力大减！', ...next.history];
+          }
+
+          // 怪物特性：坚毅 (无视虚弱)
+          if (next.enemy.weak > 0 && !trait.includes('坚毅')) dmg = Math.floor(dmg * 0.75);
+          if (next.player.vulnerable > 0) dmg = Math.floor(dmg * 1.5);
+          // 金钟罩：本回合受到伤害减半
+          if (next.playerFlags.includes('金钟罩')) dmg = Math.floor(dmg / 2);
+
+          // 怪物特性：冲撞 (无视 50% 护甲)
+          let effectiveBlock = next.player.block;
+          if (trait.includes('冲撞')) effectiveBlock = Math.floor(effectiveBlock * 0.5);
+          if (effectiveBlock >= dmg) {
+            next.player.block -= dmg;
+            next.animations.push({
+              id: generateId(),
+              type: 'block',
+              value: `-${dmg}`,
+              target: 'player'
+            });
+            playSound('block');
+          } else {
+            const remains = dmg - effectiveBlock;
+            next.player.block = 0;
+            // 反射盾：格挡被打破时反弹伤害
+            if (next.playerFlags.includes('反射盾')) {
+              next.enemy.hp = Math.max(0, next.enemy.hp - remains);
+              next.animations.push({ id: generateId(), type: 'status', value: '反射!', target: 'enemy' });
+              next.history = [`【反射盾】反弹了 ${remains} 点伤害！`, ...next.history];
+              // 反射击杀检查
+              if (next.enemy.hp <= 0) {
+                next.player.hp = Math.max(0, next.player.hp - Math.max(0, remains - (next.player.block > 0 ? 0 : 0)));
+                let baseGold = next.enemyLevel === '魔王' ? 50 : next.enemyLevel === '首领' ? 30 : next.enemyLevel === '精英' ? 25 : next.enemyLevel === '劲敌' ? 20 : 15;
+                if (next.relics.some(r => r.effectType === 'bonus_gold')) baseGold += 20;
+                const rewards = generateRewards(next.enemyLevel, next.floor);
+                next.deck = (next.preBattleDeck || [...next.deck]).filter(c => c.name !== '粘液');
+                next.hand = []; next.discard = [];
+                if (next.preBattleRelics) next.relics = [...next.preBattleRelics];
+                return { ...next, gold: (next.gold || 0) + baseGold, status: '收获总结', battleSummary: { gold: baseGold, relic: undefined }, rewards, history: ['【反射盾】击杀了敌人！', ...next.history] };
+              }
+            }
+            next.player.hp = Math.max(0, next.player.hp - remains);
+
+            // 怪物特性：吸血 (攻击造成的伤害回复生命的一半)
+            if (trait.includes('吸血')) {
+              const heal = Math.floor(remains / 2);
+              if (heal > 0) {
+                next.enemy.hp = Math.min(next.enemy.maxHp, next.enemy.hp + heal);
+                next.history = [`【特性】吸血回复了 ${heal} 点生命值`, ...next.history];
+              }
+            }
+            // 怪物特性：贪婪 (偷取金币)
+            if (trait.includes('贪婪')) {
+              next.gold = Math.max(0, next.gold - 5);
+              next.animations.push({
+                id: generateId(),
+                type: 'damage',
+                value: '-5G',
+                target: 'player'
+              });
+              next.history = ['【特性】被地精偷走了 5 个金币！', ...next.history];
+            }
+            // 怪物特性：消噬 (有几率消耗玩家手牌)
+            if (trait.includes('消噬') && next.hand.length > 0 && Math.random() < 0.4) {
+              const idx = Math.floor(Math.random() * next.hand.length);
+              const card = next.hand[idx];
+              next.hand = next.hand.filter((_, i) => i !== idx);
+              next.discard = [...next.discard, card];
+              next.history = [`【特性】吞噬了你的 ${card.name}`, ...next.history];
+            }
+            // 怪物特性：血统 (吸取造成伤害的100%转化为生命值)
+            if (trait.includes('血统')) {
+              next.enemy.hp = Math.min(next.enemy.maxHp, next.enemy.hp + remains);
+              next.history = ['【血统】吸取了生命！', ...next.history];
+            }
+            next.animations.push({
+              id: generateId(),
+              type: 'damage',
+              value: `-${remains}`,
+              target: 'player'
+            });
+            next.animations.push({
+              id: generateId(),
+              type: 'shake',
+              value: '',
+              target: 'player'
+            });
+            playSound('hit');
+          }
+          next.history = [`敌人攻击，造成了 ${dmg} 点伤害`, ...next.history];
+
+          // 怪物特性：连击 (第二次攻击)
+          if (trait.includes('连击')) {
+            let dmg2 = intent.value + next.enemy.strength;
+            if (trait.includes('贪食') && next.enemy.hp < next.enemy.maxHp / 2) dmg2 *= 2;
+            if (trait.includes('坚毅') && next.enemy.weak > 0) {} else if (next.enemy.weak > 0) dmg2 = Math.floor(dmg2 * 0.75);
+            if (next.player.vulnerable > 0) dmg2 = Math.floor(dmg2 * 1.5);
+            let effBlock2 = next.player.block;
+            if (trait.includes('冲撞')) effBlock2 = Math.floor(effBlock2 * 0.5);
+            if (effBlock2 >= dmg2) {
+              next.player.block -= dmg2;
+            } else {
+              const rem2 = dmg2 - effBlock2;
+              next.player.block = 0;
+              next.player.hp = Math.max(0, next.player.hp - rem2);
+            }
+            next.history = ['【连击】第二次攻击！', ...next.history];
+          }
+
+          // 怪物特性：血统 (吸取造成伤害的100%转化为生命值) - removed, was using out-of-scope remains
+
+          // 怪物特性：暗影 (攻击有几率让玩家跳过下一个回合)
+          if (trait.includes('暗影') && Math.random() < 0.3) {
+            next.player.skipNextTurn = true;
+            next.history = ['【暗影】你被暗影笼罩，将跳过下一个回合！', ...next.history];
+          }
+
+          // 怪物特性：毒牙 (攻击附带中毒)
+          if (trait.includes('毒牙')) {
+            next.player.poison += 2;
+            next.animations.push({id: generateId(), type: 'status', value: '中毒 +2', target: 'player'});
+            next.history = ['【特性】毒牙使你中毒了！', ...next.history];
+          }
+        } else if (intent.type === '防御') {
+          next.enemy.block += intent.value;
+          next.animations.push({
+            id: generateId(),
+            type: 'block',
+            value: `+${intent.value}`,
+            target: 'enemy'
+          });
+          next.history = [`敌人获得了 ${intent.value} 点格挡`, ...next.history];
+          // 怪物特性：协作 (防御时反击)
+          if (trait.includes('协作')) {
+            const counterDmg = 10 + next.enemy.strength;
+            let effBlk = next.player.block;
+            if (effBlk >= counterDmg) {
+              next.player.block -= counterDmg;
+            } else {
+              const rem = counterDmg - effBlk;
+              next.player.block = 0;
+              next.player.hp = Math.max(0, next.player.hp - rem);
+              next.animations.push({ id: generateId(), type: 'damage', value: `-${rem}`, target: 'player' });
+            }
+            next.history = ['【协作】反击！造成 ' + counterDmg + ' 点伤害！', ...next.history];
+          }
+          playSound('block');
+        } else if (intent.type === '强化') {
+          next.enemy.strength += intent.value;
+          next.animations.push({
+            id: generateId(),
+            type: 'status',
+            value: `力量 +${intent.value}`,
+            target: 'enemy'
+          });
+          next.history = [`敌人获得了 ${intent.value} 点力量`, ...next.history];
+          playSound('buff');
+        } else if (intent.type === '恶化') {
+          let debuffVal = intent.value;
+          if (trait.includes('诅咒')) { debuffVal *= 2; next.history = ['【诅咒】负面状态层数翻倍！', ...next.history]; }
+          next.player.weak += debuffVal;
+          next.player.vulnerable += debuffVal;
+          next.player.poison += debuffVal;
+          next.animations.push({
+            id: generateId(),
+            type: 'status',
+            value: `异常 +${intent.value}`,
+            target: 'player'
+          });
+          next.history = [`敌人施加了层层障碍和剧毒！`, ...next.history];
+          playSound('buff');
+        }
+      }
+
+      // 玩家死亡
+      if (next.player.hp <= 0) next.status = '已战败';
+
+      // 状态持续时间减少
+      if (next.player.vulnerable > 0) next.player.vulnerable--;
+      if (next.player.weak > 0) next.player.weak--;
+      if (next.enemy.vulnerable > 0) next.enemy.vulnerable--;
+      if (next.enemy.weak > 0) next.enemy.weak--;
+      return next;
+    });
+    await new Promise(r => setTimeout(r, 600));
+
+    // 3. 敌方回合结束，准备玩家回合
+    setGameState(prev => {
+      if (prev.status !== '战斗中') return prev;
+      // 暗影领主·暗影：跳过回合
+      const isSkippingTurn = prev.player.skipNextTurn;
+      if (isSkippingTurn) {
+        prev.player.skipNextTurn = false;
+        prev.turnSkipActive = true;
+        prev.energy = 0;
+        prev.history = ['【暗影】你被暗影笼罩，跳过了一个回合！', ...prev.history];
+      } else {
+        prev.turnSkipActive = false;
+      }
+      let next = {
+        ...prev,
+        player: {
+          ...prev.player
+        },
+        enemy: {
+          ...prev.enemy
+        }
+      };
+
+      // 玩家回合开始受到毒伤
+      if (next.player.poison > 0) {
+        next.player.hp = Math.max(0, next.player.hp - next.player.poison);
+        next.animations.push({
+          id: generateId(),
+          type: 'damage',
+          value: `${next.player.poison}`,
+          target: 'player'
+        });
+        next.history = [`玩家受到 ${next.player.poison} 点毒伤`, ...next.history];
+        next.player.poison = Math.max(0, next.player.poison - 1);
+        if (next.player.hp <= 0) next.status = '已战败';
+      }
+      next.turn++;
+      next.cardsPlayedThisTurn = 0;
+      next._shurikenCount = 0;
+
+      // 抽牌前特性：残暴
+      if (next.playerFlags.includes('残暴')) {
+        next.player.strength += 1;
+        next.animations.push({
+          id: generateId(),
+          type: 'status',
+          value: '力量 +1',
+          target: 'player'
+        });
+      }
+
+      // 能量恢复与修正 (虚幻/地心等)
+      let bonusEnergy = next.player.energyBonusNextTurn || 0;
+      next.player.energyBonusNextTurn = 0; // 重置
+      // 重置每回合一次的敌人标记（隐匿闪避等）
+      next.enemyFlags = next.enemyFlags.filter(f => !['隐匿已触发'].includes(f));
+      next.playerFlags = next.playerFlags.filter(f => !['金钟罩', '反射盾', '淬毒武器'].includes(f));
+
+      const currentEnemyTrait = ENEMIES.find(e => e.name === next.enemyName)?.trait || '';
+
+      // 暗影跳过回合时能量为0
+      if (!next.turnSkipActive) {
+        // 遗物：冰淇淋 (保留能量)
+        if (prev.relics.some(r => r.effectType === 'keep_energy')) {
+          next.energy = Math.min(9, prev.energy + next.maxEnergy + bonusEnergy);
+        } else {
+          next.energy = Math.max(0, next.maxEnergy + bonusEnergy);
+        }
+      } else {
+        next.energy = 0;
+      }
+
+      // 怪物特性：虚空 (限制能量上限)
+      if (currentEnemyTrait.includes('虚空')) {
+        next.energy = Math.min(next.energy, 2);
+      }
+
+      // 怪物特性：腐蚀 (减少玩家最大能量)
+      if (currentEnemyTrait.includes('减少玩家最大能量')) {
+        next.energy = Math.min(next.energy, next.maxEnergy);
+      }
+      next.player.block = 0; // 回合开始清空玩家格挡
+
+      const getP = next.enemyActionPatterns[0];
+      next.enemyIntent = getP ? getP(next.turn) : {
+        type: '攻击',
+        value: 5
+      };
+      next.history = ['【抽牌阶段】玩家回合开始', ...next.history];
+      return next;
+    });
+    await new Promise(r => setTimeout(r, 400));
+
+    // 4. 抽牌
+    setIsEnemyActing(false);
+    setGameState(prev => {
+      if (prev.status !== '战斗中') return prev;
+      // 暗影跳过回合时不抽牌
+      if (prev.turnSkipActive) {
+        prev.turnSkipActive = false;
+        return prev;
+      }
+      const trait = ENEMIES.find(e => e.name === prev.enemyName)?.trait || '';
+      let drawCount = 4;
+      if (prev.relics.some(r => r.effectType === 'turn_start_draw')) drawCount += 1;
+      if (prev.relics.some(r => r.effectType === 'snake_ring') && prev.turn === 1) drawCount += 2;
+      if (trait.includes('迅捷')) {
+        drawCount += 1;
+        prev.history = ['【特性】迅捷使你多抽了一张牌', ...prev.history];
+      }
+      if (trait.includes('粘稠')) {
+        drawCount = Math.max(1, drawCount - 1);
+        prev.history = ['【特性】粘稠使你少抽了一张牌', ...prev.history];
+      }
+      let next = { ...prev };
+      const drawBonus = next.player.drawBonusNextTurn || 0;
+      drawCount += drawBonus;
+      drawCount = Math.max(0, drawCount);
+      next.player.drawBonusNextTurn = 0;
+      // 每回合开始遗物给予格挡
+      const startBlock = prev.relics.filter(r => r.effectType === 'turn_start_block').length * 4;
+      if (startBlock > 0) {
+        next = addBlock(next, startBlock);
+      }
+      return drawCards(next, drawCount);
+    });
+  };
+  const endTurn = async () => {
+    startRetainPhase();
+  };
+  const advanceFloor = prev => {
+    let next = {
+      ...prev,
+      history: [...prev.history]
+    };
+    const prevStatus = prev.status;
+    next.floor++;
+
+    // 确定怪物等级逻辑
+    let targetLevel = '普通';
+    if (next.floor >= 25) targetLevel = '魔王';else if (next.floor >= 20) targetLevel = '首领';else if (next.floor >= 15) targetLevel = '精英';else if (next.floor >= 8) targetLevel = '劲敌';else targetLevel = '普通';
+
+    // 生成下一步选项 (增加对上一层是否为商店的判断)
+    if (next.floor >= 30) {
+      next.status = '最终通关';
+      return next;
+    } else if (next.floor % 10 === 0) {
+      next.nextRooms = [{
+        type: '战斗',
+        label: '关卡BOSS',
+        monsterLevel: next.floor % 20 === 0 ? '首领' : '精英'
+      }];
+    } else {
+      function pickEnemy(lvl) {
+        const lst = ENEMIES.filter(e => e.level === lvl);
+        return lst.length > 0 ? getRandom(lst) : ENEMIES[0];
+      }
+      function rollMonsterLevel(floor) {
+        if (floor >= 25) return Math.random() < 0.3 ? '魔王' : '首领';
+        if (floor >= 20) return Math.random() < 0.3 ? '首领' : '精英';
+        if (floor >= 15) return Math.random() < 0.3 ? '精英' : '劲敌';
+        if (floor >= 8) return Math.random() < 0.3 ? '劲敌' : '普通';
+        return '普通';
+      }
+      let rooms = [];
+let isShop = next.floor % 4 === 0 && prevStatus !== '神秘商店';
+let isCamp = next.floor % 3 === 0;
+      // 左边
+      if (isShop && isCamp) {
+        rooms.push({ type: '商店', label: '流动商人' });
+        rooms.push({ type: '篝火', label: '林间营地' });
+      } else if (isShop) {
+        let lvl = rollMonsterLevel(next.floor);
+        let en = pickEnemy(lvl);
+        rooms.push({ type: '战斗', label: en.name, monsterLevel: lvl, enemyName: en.name });
+        rooms.push({ type: '商店', label: '流动商人' });
+      } else if (isCamp) {
+        let lvl = rollMonsterLevel(next.floor);
+        let en = pickEnemy(lvl);
+        rooms.push({ type: '战斗', label: en.name, monsterLevel: lvl, enemyName: en.name });
+        rooms.push({ type: '篝火', label: '林间营地' });
+      } else {
+        let lvl1 = rollMonsterLevel(next.floor);
+        let en1 = pickEnemy(lvl1);
+        rooms.push({ type: '战斗', label: en1.name, monsterLevel: lvl1, enemyName: en1.name });
+        let lvl2 = rollMonsterLevel(next.floor);
+        let en2 = pickEnemy(lvl2);
+        while (en2.name === en1.name) { lvl2 = rollMonsterLevel(next.floor); en2 = pickEnemy(lvl2); }
+        rooms.push({ type: '战斗', label: en2.name, monsterLevel: lvl2, enemyName: en2.name });
+      }
+      next.nextRooms = rooms;
+    }
+    next.status = '选择路线';
+    next.history = [`抵达第 ${next.floor} 层`, ...next.history];
+
+    // 合并卡牌
+    next.deck = [...next.deck, ...next.hand, ...next.discard];
+    next.hand = [];
+    next.discard = [];
+    return next;
+  };
+  const pickReward = card => {
+    setGameState(prev => {
+      if (prev.status !== '选择奖励') return prev;
+      let next = advanceFloor(prev);
+      if (card) {
+        next.deck.push(card);
+      } else {
+        // 跳过奖励 - 颂钵效果
+        if (next.relics.some(r => r.effectType === 'singing_bowl')) {
+          next.player.maxHp += 2;
+          next.history = ['【颂钵】跳过奖励，最大生命值 +2！', ...next.history];
+        }
+      }
+      return next;
+    });
+  };
+  const selectRoom = room => {
+    setGameState(prev => {
+      if (prev.status !== '选择路线') return prev;
+      let next = {
+        ...prev
+      };
+      if (room.type === '战斗' || room.type === '精英') {
+        const isBoss = next.floor % 20 === 0;
+        const isElite = room.type === '精英';
+
+        // 覆盖原本的 startCombat 逻辑，直接从 room 获取等级或重新计算
+        let targetLevel = room.monsterLevel || '普通';
+        let enemyData;
+        if (room.enemyName) {
+          enemyData = ENEMIES.find(e => e.name === room.enemyName);
+        }
+        if (!enemyData) {
+          const list = ENEMIES.filter(e => e.level === targetLevel);
+          enemyData = list.length > 0 ? getRandom(list) : ENEMIES[0];
+        }
+        const cycle = Math.floor((Math.max(1, next.floor) - 1) / 20);
+        const bonusHp = cycle * 10;
+        const bonusStr = cycle * 2;
+        next.enemy.hp = enemyData.hp + bonusHp;
+        next.enemy.maxHp = enemyData.hp + bonusHp;
+        next.enemy.block = 0;
+        next.enemy.strength = bonusStr;
+        next.enemy.vulnerable = 0;
+        next.enemy.weak = 0;
+        next.enemy.poison = 0;
+        next.enemyName = enemyData.name;
+        next.enemyLevel = enemyData.level;
+        next.enemyActionPatterns = enemyData.p;
+        next.enemyIntent = enemyData.p[0](1);
+        next.maxEnergy = 3 + next.relics.filter(r => r.effectType === 'start_turn_energy').length;
+        // 怪物特性：腐蚀 (减少玩家最大能量)
+        if ((enemyData.trait || '').includes('减少玩家最大能量')) next.maxEnergy = Math.max(1, next.maxEnergy - 1);
+        next.energy = next.maxEnergy;
+        next.player.block = next.relics.filter(r => r.effectType === 'start_battle_block').length * 10;
+        next.enemy.poison = next.relics.filter(r => r.effectType === 'start_battle_poison').length * 3;
+        next.player.strength = next.relics.filter(r => r.effectType === 'start_battle_str').length;
+        next.player.weak = 0;
+        next.player.vulnerable = 0;
+        next.player.poison = 0;
+        next.enemy.weak = next.relics.filter(r => r.effectType === 'start_battle_weak').length;
+        next.playerFlags = [];
+        next.enemyFlags = [];
+        next.turn = 1;
+        next.preBattleDeck = [...next.deck];
+        next.preBattleRelics = [...next.relics];
+        next.deck = shuffle([...next.deck, ...next.hand, ...next.discard]);
+        next.hand = [];
+        next.discard = [];
+        next.history = [`进入战斗: ${enemyData.name} (${targetLevel})！`, ...next.history];
+        next.status = '战斗中';
+        let evDraw = next.relics.filter(r => r.effectType === 'start_battle_draw').length * 2;
+        // 精英战斗额外奖励
+        if (isElite) {
+          next.gold += 10;
+          next.history = ['【精英房间】敌人更强，奖励更丰厚！', ...next.history];
+          // 30%概率获得遗物
+          if (Math.random() < 0.3) {
+            const avRelics = RELIC_POOL.map(f => f()).filter(r => !next.relics.some(pr => pr.name === r.name));
+            if (avRelics.length > 0) {
+              const bonusRelic = getRandom(avRelics);
+              next.relics = [...next.relics, bonusRelic];
+              next.history = [`【精英奖励】获得遗物：${bonusRelic.name}`, ...next.history];
+            }
+          }
+        }
+        return drawCards(next, 3 + evDraw);
+      }
+      const instantiatedCards = ALL_CARDS.map(f => f());
+      const filteredPool = instantiatedCards.filter(c => {
+        if (!c.rarity) return true;
+        if (c.rarity === 4) return next.floor >= 15;
+        if (c.rarity === 3) return next.floor >= 10;
+        if (c.rarity === 2) return next.floor >= 5;
+        return true;
+      });
+      if (room.type === '商店') {
+        next.status = '神秘商店';
+        next.shopCards = sampleSize(filteredPool, 4);
+        // 如果遗物金蛋
+        if (next.relics.some(r => r.effectType === 'shop_bonus')) next.gold += 50;
+        // 商店出售一件遗物，排除已拥有的
+        const availableRelics = RELIC_POOL.map(f => f()).filter(r => !next.relics.some(pr => pr.name === r.name));
+        next.shopRelic = availableRelics.length > 0 ? getRandom(availableRelics) : null;
+        return next;
+      }
+      if (room.type === '篝火') {
+        next.status = '篝火休息';
+        return next;
+      }
+      if (room.type === '宝藏') {
+        // 宝藏房间：随机金币或遗物
+        if (Math.random() < 0.5) {
+          next.gold += 30 + Math.floor(next.floor * 5);
+          next.history = [`发现宝箱！获得 ${30 + Math.floor(next.floor * 5)} 金币`, ...next.history];
+        } else {
+          const availableRelics2 = RELIC_POOL.map(f => f()).filter(r => !next.relics.some(pr => pr.name === r.name));
+          if (availableRelics2.length > 0) {
+            const newRelic = getRandom(availableRelics2);
+            next.relics = [...next.relics, newRelic];
+            next.history = [`发现宝箱！获得【${newRelic.name}】`, ...next.history];
+          } else {
+            next.gold += 50;
+            next.history = ['宝箱中发现了 50 金币！', ...next.history];
+          }
+        }
+        return advanceFloor(next);
+      }
+      return next;
+    });
+  };
+  const shopAction = (type, item, index) => {
+    setGameState(prev => {
+      if (prev.status !== '神秘商店') return prev;
+      let next = {
+        ...prev,
+        player: {
+          ...prev.player
+        },
+        history: [...prev.history]
+      };
+      const cardCost = next.relics.some(r => r.effectType === 'shop_discount') ? Math.max(10, (item.rarity || 1) * 15) : (item.rarity || 1) * 20;
+      const relicCost = next.relics.some(r => r.effectType === 'shop_discount') ? 75 : 100;
+      if (type === 'buyCard' && item && 'cost' in item && next.gold >= cardCost) {
+        next.gold -= cardCost;
+        next.deck.push(item);
+        next.shopCards = next.shopCards.filter((_, i) => i !== index);
+        next.history = [`购买了卡牌 ${item.name}`, ...next.history];
+        playSound('click');
+      } else if (type === 'buyRelic' && item && !('cost' in item) && next.gold >= relicCost) {
+        next.gold -= relicCost;
+        next.relics.push(item);
+        next.shopRelic = null;
+        next.history = [`购买了遗物 ${item.name}`, ...next.history];
+        playSound('relic');
+      }
+      return next;
+    });
+  };
+  const startRemoveCard = () => {
+    const cost = gameState.relics.some(r => r.effectType === 'shop_remove_discount') ? 15 : 30;
+    if (gameState.gold >= cost && gameState.deck.length > 0) {
+      setIsRemovingCard(true);
+    }
+  };
+  const confirmRemoveCard = index => {
+    setGameState(prev => {
+      let next = {
+        ...prev,
+        deck: [...prev.deck],
+        history: [...prev.history]
+      };
+      const cost = next.relics.some(r => r.effectType === 'shop_remove_discount') ? 15 : 30;
+      if (next.gold >= cost) {
+        next.gold -= cost;
+        const removed = next.deck.splice(index, 1)[0];
+        next.history = [`移除了 ${removed.name}`, ...next.history];
+      }
+      return next;
+    });
+    setIsRemovingCard(false);
+  };
+  const cancelRemoveCard = () => setIsRemovingCard(false);
+  const campfireAction = type => {
+    setGameState(prev => {
+      if (prev.status !== '篝火休息') return prev;
+      let next = advanceFloor(prev);
+      if (type === 'heal') {
+        next.player.hp = Math.min(next.player.maxHp, next.player.hp + Math.floor(next.player.maxHp * 0.3));
+        next.history = ['休息恢复了生命值', ...next.history];
+      } else if (type === 'maxhp') {
+        next.player.maxHp += 10;
+        next.history = ['最大生命值提升了 10 点！', ...next.history];
+      }
+      return next;
+    });
+  };
+  const [floatingTexts, setFloatingTexts] = useState([]);
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const restartGame = () => {
+    localStorage.removeItem('slay_state');
+    window.location.reload();
+  };
+  const pickStartingRelic = relic => {
+    setGameState(prev => ({
+      ...prev,
+      relics: [...prev.relics, relic],
+      status: '封面',
+      history: [`获得遗物【${relic.name}】！`, ...prev.history]
+    }));
+  };
+  const [showDeck, setShowDeck] = useState(false);
+  const [showRelics, setShowRelics] = useState(false);
+  const [showCompendium, setShowCompendium] = useState(false);
+  const [compendiumTab, setCompendiumTab] = useState('cards');
+  const [shakeLayer, setShakeLayer] = useState(0);
+  useEffect(() => {
+    if (gameState.status === '收获总结' || gameState.status === '选择奖励') return;
+    if (gameState.animations && gameState.animations.length > 0) {
+      const anims = [...gameState.animations];
+      setGameState(prev => ({
+        ...prev,
+        animations: []
+      }));
+      anims.forEach(anim => {
+        if (anim.type === 'damage') playSound('hit');else if (anim.type === 'block') playSound('block');else if (anim.type === 'status_block' || anim.type === 'status') playSound('buff');
+        if (anim.type === 'shake') {
+          setShakeLayer(1);
+          setTimeout(() => setShakeLayer(0), 400);
+          return;
+        }
+        const newFloating = {
+          id: anim.id,
+          text: anim.value,
+          target: anim.target,
+          type: anim.type,
+          x: Math.random() * 60 - 30,
+          y: Math.random() * 30 - 15
+        };
+        setFloatingTexts(prev => [...prev, newFloating]);
+        setTimeout(() => {
+          setFloatingTexts(prev => prev.filter(f => f.id !== newFloating.id));
+        }, 1200);
+      });
+    }
+  }, [gameState.animations]);
+  const fullDeck = gameState.status === '战斗中' ? [...gameState.deck, ...gameState.hand, ...gameState.discard] : gameState.deck;
+  if (showRestartConfirm) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-xl p-6"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "bg-slate-900 w-full max-w-[280px] rounded-3xl border border-white/10 p-8 flex flex-col items-center text-center gap-6 shadow-2xl animate-fadeInScale"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center border border-red-500/50"
+    }, /*#__PURE__*/React.createElement(RotateCcw, {
+      className: "w-8 h-8 text-red-500"
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
+      className: "text-xl font-black mb-2"
+    }, "\u91CD\u65B0\u5F00\u59CB\uFF1F"), /*#__PURE__*/React.createElement("p", {
+      className: "text-slate-400 font-bold text-xs"
+    }, "\u5F53\u524D\u7684\u5192\u9669\u8FDB\u5EA6\u5C06\u4F1A\u4E22\u5931\u3002", /*#__PURE__*/React.createElement("br", null), "\u4F60\u786E\u5B9A\u8981\u91CD\u65B0\u5F00\u59CB\u5417\uFF1F")), /*#__PURE__*/React.createElement("div", {
+      className: "w-full flex-col flex gap-2"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: restartGame,
+      className: "w-full bg-red-500 text-white py-3 rounded-xl font-black text-sm shadow-lg hover:bg-red-600 transition-colors"
+    }, "\u786E\u5B9A\u91CD\u65B0\u5F00\u59CB"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setShowRestartConfirm(false),
+      className: "w-full bg-slate-800 text-slate-300 py-3 rounded-xl font-black text-sm hover:bg-slate-700 transition-colors"
+    }, "\u53D6\u6D88"))));
+  }
+  if (isRemovingCard) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 z-[200] flex flex-col items-center justify-start p-6 overflow-y-auto",
+      style: { backgroundColor: '#020617' }
+    }, /*#__PURE__*/React.createElement("h2", {
+      className: "text-3xl font-black text-white mt-12 mb-2"
+    }, "\u9009\u62E9\u8981\u5220\u9664\u7684\u5361\u724C"), /*#__PURE__*/React.createElement("p", {
+      className: "text-slate-400 text-xs mb-8 uppercase tracking-widest font-black"
+    }, "\u82B1\u8D39 30 \u91D1\u5E01"), /*#__PURE__*/React.createElement("div", {
+      className: "flex flex-wrap justify-center gap-4 w-full max-w-2xl mb-12"
+    }, gameState.deck.map((card, idx) => /*#__PURE__*/React.createElement("div", {
+      key: card.id + idx,
+      onClick: () => confirmRemoveCard(idx),
+      className: `w-32 h-44 ${card.color} rounded-2xl shadow-xl border border-white/20 p-3 flex flex-col cursor-pointer hover:-translate-y-2 transition-transform ring-1 ring-black/30 group`
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-between items-start mb-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center font-black text-[10px] shadow-inner"
+    }, card.cost)), /*#__PURE__*/React.createElement("h3", {
+      className: "font-black text-[12px] leading-tight mb-1"
+    }, card.name), /*#__PURE__*/React.createElement("p", {
+      className: "text-[10px] leading-snug font-bold text-white/90 flex-1"
+    }, card.description), /*#__PURE__*/React.createElement("div", {
+      className: "mt-auto w-full text-center bg-red-600/90 border border-red-400 rounded text-xs py-1.5 font-black flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+    }, /*#__PURE__*/React.createElement(Scissors, {
+      className: "w-3 h-3"
+    }), " \u70B9\u51FB\u5220\u9664")))), /*#__PURE__*/React.createElement("button", {
+      onClick: cancelRemoveCard,
+      className: "text-slate-400 hover:text-white font-black underline text-sm tracking-widest uppercase pb-12 transition-colors"
+    }, "\u653E\u5F03\u5220\u9664"));
+  }
+  if (showCompendium || showRelics || showDeck) {
+    return React.createElement("div", { className: "fixed inset-0 flex items-center justify-center p-6", style: { zIndex: 99999, backgroundColor: '#020617' } },
+      React.createElement("button", { onClick: () => { setShowCompendium(false); setShowRelics(false); setShowDeck(false); }, className: "absolute top-4 right-4 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-white transition-all", style: { zIndex: 2 } }, React.createElement(X, null)),
+      showRelics && React.createElement("div", { className: "bg-slate-900 border border-white/10 p-6 rounded-3xl w-full max-w-md shadow-2xl animate-fadeInScale" },
+        React.createElement("h2", { className: "text-xl font-black text-white mb-6" }, "\u5F53\u524D\u9057\u7269"),
+        gameState.relics.length === 0 ? React.createElement("p", { className: "text-slate-500 italic" }, "\u6CA1\u6709\u4EFB\u4F55\u9057\u7269...") : React.createElement("div", { className: "grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto" }, gameState.relics.map(r => React.createElement("div", { key: r.id, className: "bg-slate-800 p-3 rounded-xl border border-white/5" }, React.createElement("h3", { className: "font-black text-sm text-yellow-400 mb-1" }, r.name), React.createElement("p", { className: "text-xs text-slate-300" }, r.description))))
+      ),
+      showDeck && React.createElement("div", { className: "bg-slate-900 border border-white/10 p-6 rounded-3xl w-full max-w-2xl shadow-2xl" },
+        React.createElement("h2", { className: "text-xl font-black text-white mb-6" }, "\u5F53\u524D\u5361\u7EC4 (", fullDeck.length, ")"),
+        React.createElement("div", { className: "grid grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto" }, fullDeck.map((card, i) => React.createElement("div", { key: card.id + "_" + i, className: card.color + " p-3 rounded-xl border border-white/10 flex flex-col" }, React.createElement("h3", { className: "font-black text-[10px] md:text-xs mb-1" }, card.name), React.createElement("span", { className: "text-yellow-400 text-[7px] font-bold" }, '\u2605'.repeat(card.rarity || 1)), React.createElement("p", { className: "text-[8px] md:text-[9px] text-white/90 font-bold overflow-hidden" }, card.description))))
+      ),
+      showCompendium && React.createElement("div", { className: "bg-slate-900 border border-white/10 p-6 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col", style: { height: '80vh', minHeight: 0 } },
+        React.createElement("div", { className: "flex justify-between items-center mb-6" }, React.createElement("h2", { className: "text-2xl font-black text-white flex items-center gap-3" }, React.createElement(BookOpen, { className: "w-6 h-6 text-emerald-400" }), " \u767E\u79D1\u56FE\u9274")),
+        React.createElement("div", { className: "flex gap-2 mb-6 overflow-x-auto pb-2" }, [{ id:'cards',label:'卡牌库',icon:Layers},{ id:'relics',label:'遗物柜',icon:Trophy},{ id:'monsters',label:'生态志',icon:Ghost},{ id:'statuses',label:'术语表',icon:Zap}].map(tab => React.createElement("button", { key: tab.id, onClick: () => setCompendiumTab(tab.id), className: "flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs transition-all whitespace-nowrap " + (compendiumTab === tab.id ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.4)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border-transparent hover:border-white/10') }, React.createElement(tab.icon, {size:14}), " ", tab.label))),
+        React.createElement("div", { className: "flex-1 overflow-y-auto" },
+          compendiumTab === 'cards' && React.createElement("div", { className: "grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-3" }, ALL_CARDS.map(f => f()).sort((a,b) => { const order = { '攻击':1,'防御':2,'毒术':3,'增益':4,'减益':5 }; return (order[a.type]||9) - (order[b.type]||9); }).map(card => React.createElement("div", { key: card.id, className: card.color + " rounded-2xl p-4 border border-white/20 shadow-2xl flex flex-col aspect-[3/4] relative overflow-hidden group" }, React.createElement("div", { className: "flex justify-between items-start mb-3 relative z-10" }, React.createElement("div", { className: "bg-blue-500 min-w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg px-1" }, card.cost)), React.createElement("h3", { className: "font-black text-sm mb-2 relative z-10 leading-tight" }, card.name), React.createElement("span", { className: "text-yellow-400 text-[9px] font-bold relative z-10" }, '\u2605'.repeat(card.rarity || 1)), React.createElement("p", { className: "text-[10px] font-bold text-white/90 leading-relaxed mb-4 relative z-10 flex-1" }, card.description)))),
+          compendiumTab === 'relics' && React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" }, RELIC_POOL.map(f => f()).map(relic => React.createElement("div", { key: relic.id, className: "bg-slate-900/60 border border-white/5 rounded-3xl p-6 flex gap-5 items-center" }, React.createElement("div", { className: "w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400" }, React.createElement(Trophy, {size:28})), React.createElement("div", { className: "flex-1" }, React.createElement("h4", { className: "font-black text-white text-base mb-1" }, relic.name), React.createElement("p", { className: "text-slate-400 text-xs font-semibold leading-relaxed" }, relic.description))))),
+          compendiumTab === 'monsters' && React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, ENEMIES.map(enemy => React.createElement("div", { key: enemy.name, className: "bg-slate-900/60 border border-white/5 rounded-3xl p-8 flex flex-col" }, React.createElement("div", { className: "flex justify-between items-end mb-6" }, React.createElement("div", null, React.createElement("p", { className: "text-[10px] font-black uppercase tracking-[0.3em] mb-1 " + getLevelColor(enemy.level) }, enemy.level), React.createElement("h4", { className: "font-black text-white text-3xl" }, enemy.name)), React.createElement("div", { className: "text-right" }, React.createElement("p", { className: "text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1" }, "\u57FA\u7840 HP"), React.createElement("span", { className: "text-2xl font-black text-white" }, enemy.hp))), React.createElement("div", { className: "space-y-4" }, React.createElement("p", { className: "text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/5 pb-2" }, "\u884C\u52A8\u6A21\u5F0F"), React.createElement("div", { className: "flex gap-2 flex-wrap" }, enemy.patterns.includes('攻击') && React.createElement("div", { className: "bg-red-500/10 text-red-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-red-500/20" }, React.createElement(Sword, {size:14}), " \u5F3A\u653B"), enemy.patterns.includes('防御') && React.createElement("div", { className: "bg-blue-500/10 text-blue-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-blue-500/20" }, React.createElement(Shield, {size:14}), " \u7A33\u5B88"), enemy.patterns.includes('\u5F3A\u5316') && React.createElement("div", { className: "bg-orange-500/10 text-orange-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-orange-500/20" }, React.createElement(Zap, {size:14}), " \u5F3A\u5316"), enemy.patterns.includes('\u6076\u5316') && React.createElement("div", { className: "bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-emerald-500/20" }, React.createElement(Skull, {size:14}), " \u8BC5\u5492")), React.createElement("div", { className: "bg-slate-950/40 p-4 rounded-2xl border border-white/5 mt-2" }, React.createElement("p", { className: "text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 opacity-70" }, "\u7279\u6B8A\u6280\u80FD (\u7279\u6027)"), React.createElement("p", { className: "text-white text-sm font-bold leading-relaxed" }, enemy.trait || '无可感知特性')))))),
+          compendiumTab === 'statuses' && React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, [{name:'力量',icon:Zap,color:'text-orange-400',desc:'提升攻击伤害。每层力量使攻击多造成一点伤害。'},{name:'虚弱',icon:Skull,color:'text-slate-400',desc:'负面状态。造成的攻击伤害降低 25%。'},{name:'易伤',icon:Swords,color:'text-red-400',desc:'致命漏洞。受到的攻击伤害提高 50%。'},{name:'中毒',icon:MessageSquare,color:'text-emerald-400',desc:'持续伤害。回合开始受到对应伤害，随后层数 -1。'},{name:'护甲',icon:Shield,color:'text-blue-400',desc:'临时防御。抵消物理伤害，回合开始时清零。'},{name:'消耗',icon:Scissors,color:'text-yellow-400',desc:'一次性使用。该卡打出后本场战斗中移除。'}].map(status => React.createElement("div", { key: status.name, className: "flex gap-6 items-start p-8 bg-slate-900/60 border border-white/5 rounded-[2.5rem]" }, React.createElement("div", { className: "p-5 rounded-3xl bg-white/5 shadow-inner " + status.color }, React.createElement(status.icon, {size:32})), React.createElement("div", { className: "flex-1" }, React.createElement("h4", { className: "font-black text-white text-xl mb-2" }, status.name), React.createElement("p", { className: "text-slate-400 text-sm font-semibold leading-relaxed" }, status.desc)))))
+        )
+      )
+    );
+  }
+  if (gameState.status === '选择遗物') {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 flex flex-col items-center justify-center bg-slate-950 p-8 text-center",
+      style: { zIndex: 99999 }
+    }, /*#__PURE__*/React.createElement(Trophy, {
+      className: "w-16 h-16 text-yellow-500 mb-6"
+    }), /*#__PURE__*/React.createElement("h2", {
+      className: "text-3xl font-black text-white mb-2"
+    }, "\u9009\u62E9\u4F60\u7684\u8D77\u59CB\u9057\u7269"), /*#__PURE__*/React.createElement("p", {
+      className: "text-slate-400 text-sm font-bold mb-8"
+    }, "\u6311\u9009\u4E00\u4EFD\u529B\u91CF\u4F34\u968F\u4F60\u5F81\u7A0B"), /*#__PURE__*/React.createElement("div", {
+      className: "grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl"
+    }, (gameState.startingRelics || []).map((relic, idx) => /*#__PURE__*/React.createElement("button", {
+      key: relic.id + idx,
+      onClick: () => pickStartingRelic(relic),
+      className: "bg-slate-800/80 hover:bg-slate-700 border border-white/10 hover:border-yellow-500/50 rounded-2xl p-6 flex flex-col items-center gap-3 transition-all hover:scale-105 shadow-xl text-center"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center"
+    }, /*#__PURE__*/React.createElement(Trophy, {
+      className: "w-6 h-6 text-yellow-500"
+    })), /*#__PURE__*/React.createElement("h3", {
+      className: "font-black text-white text-base"
+    }, relic.name), /*#__PURE__*/React.createElement("p", {
+      className: "text-slate-400 text-xs font-bold"
+    }, relic.description)))));
+  }
+  if (gameState.status === '收获总结') {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 flex items-center justify-center bg-slate-950 p-6",
+      style: { zIndex: 99999 }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "bg-slate-900 w-full max-w-md rounded-[3rem] border border-yellow-500/30 p-10 flex flex-col items-center gap-8 shadow-[0_0_100px_rgba(234,179,8,0.2)] animate-fadeInScale"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center border border-yellow-500/50"
+    }, /*#__PURE__*/React.createElement(Trophy, { className: "w-10 h-10 text-yellow-500" })), /*#__PURE__*/React.createElement("div", { className: "text-center" },
+      /*#__PURE__*/React.createElement("h2", { className: "text-3xl font-black mb-2 tracking-tight text-white" }, "\u6218\u6597\u5927\u80DC\u5229\uFF01"),
+      /*#__PURE__*/React.createElement("p", { className: "text-slate-200 font-bold text-sm" }, "\u4F60\u6210\u529F\u5728\u8FD9\u4E2A\u6B8B\u9177\u7684\u9AD8\u5854\u4E2D\u751F\u5B58\u4E86\u4E0B\u6765")
+    ), /*#__PURE__*/React.createElement("div", { className: "w-full space-y-4" },
+      /*#__PURE__*/React.createElement("div", { className: "flex items-center justify-between bg-slate-800/50 p-4 rounded-2xl border border-white/5" },
+        /*#__PURE__*/React.createElement("div", { className: "flex items-center gap-3 font-bold text-white" },
+          /*#__PURE__*/React.createElement(Coins, { className: "text-yellow-500" }), " \u83B7\u5F97\u8D4F\u91D1"),
+        /*#__PURE__*/React.createElement("div", { className: "text-xl font-mono text-yellow-400 font-black" }, "+", (gameState.battleSummary || {}).gold || 0)
+      ),
+      (gameState.battleSummary || {}).relic && /*#__PURE__*/React.createElement("div", { className: "flex flex-col bg-purple-900/20 p-4 rounded-2xl border border-purple-500/30 gap-1" },
+        /*#__PURE__*/React.createElement("div", { className: "flex items-center justify-between" },
+          /*#__PURE__*/React.createElement("div", { className: "flex items-center gap-3 font-bold text-purple-300" },
+            /*#__PURE__*/React.createElement(Flame, { className: "w-5 h-5" }), " \u83B7\u5F97\u9057\u7269"),
+          /*#__PURE__*/React.createElement("div", { className: "text-sm font-black text-purple-400 uppercase tracking-widest" }, gameState.battleSummary.relic.name)),
+        /*#__PURE__*/React.createElement("div", { className: "text-[10px] text-purple-300/60 font-bold ml-8" }, gameState.battleSummary.relic.description)
+      ),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: () => setGameState(prev => ({ ...prev, status: '选择奖励', battleSummary: null })),
+        className: "w-full bg-white text-slate-950 py-4 rounded-2xl font-black text-lg shadow-xl hover:scale-[1.02] transition-transform"
+      }, "\u6311\u9009\u6218\u5229\u54C1")
+    )));
+  }
+  if (gameState.status === '选择奖励') {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 z-[100] flex flex-col items-center justify-start md:justify-center p-4 sm:p-6 animate-fadeIn overflow-y-auto",
+      style: { backgroundColor: '#020617' }
+    }, /*#__PURE__*/React.createElement(Flame, {
+      className: "w-12 h-12 text-orange-500 mb-3 animate-pulse"
+    }), /*#__PURE__*/React.createElement("h2", {
+      className: "text-3xl font-black text-white mb-1"
+    }, "\u6311\u9009\u6218\u5229\u54C1"), /*#__PURE__*/React.createElement("p", {
+      className: "text-slate-400 text-xs font-black uppercase tracking-widest mb-10"
+    }, "\u6311\u9009\u4E00\u4EFD\u8D60\u793C\u4EE5\u7EE7\u7EED\u5F81\u7A0B"), /*#__PURE__*/React.createElement("div", {
+      className: "flex flex-col md:flex-row gap-3 md:gap-4 w-full max-w-2xl justify-center items-center mb-10"
+    }, gameState.rewards.map((card, idx) => /*#__PURE__*/React.createElement("div", {
+      key: `${card.id}_${idx}`,
+      onClick: () => pickReward(card),
+      className: `w-44 sm:w-40 h-56 p-4 rounded-3xl ${card.color} border-2 border-white/10 shadow-2xl flex flex-col cursor-pointer ring-1 ring-black/20 hover:-translate-y-2 transition-transform`
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-between items-start mb-2"
+    }, /*#__PURE__*/React.createElement("h3", {
+      className: "font-black text-sm"
+}, card.name), " ", /*#__PURE__*/React.createElement("span", {
+      className: "text-yellow-400 text-[8px] font-bold"
+    }, '\u2605'.repeat(card.rarity || 1)), /*#__PURE__*/React.createElement("span", {
+      className: "bg-blue-500 px-1.5 py-0.5 rounded-full text-[10px] font-black border border-white/30"
+    }, card.cost, "\u8D39")), /*#__PURE__*/React.createElement("p", {
+      className: "text-xs font-bold opacity-90"
+    }, card.description)))), /*#__PURE__*/React.createElement("button", {
+      onClick: () => pickReward(),
+      className: "text-slate-300 hover:text-white font-black hover:underline text-xs tracking-widest uppercase transition-colors"
+    }, "\u8DF3\u8FC7"));
+  }
+  if (gameState.status === '已战败') {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 text-center",
+      style: { backgroundColor: '#450a0a' }
+    }, /*#__PURE__*/React.createElement(Skull, {
+      className: "w-20 h-20 text-red-500 mb-6"
+    }), /*#__PURE__*/React.createElement("h2", {
+      className: "text-5xl font-black mb-2 tracking-tighter"
+    }, "\u4F60\u9668\u843D\u4E86"), /*#__PURE__*/React.createElement("p", {
+      className: "text-red-200/50 mb-12 font-black uppercase tracking-widest"
+    }, "\u6700\u7EC8\u5230\u8FBE\u5C42\u6570: ", gameState.floor), /*#__PURE__*/React.createElement("button", {
+      onClick: restartGame,
+      className: "bg-white text-red-950 font-black px-12 py-4 rounded-full text-lg shadow-2xl hover:scale-105 transition-transform flex items-center gap-2 tracking-widest"
+    }, /*#__PURE__*/React.createElement(RotateCcw, {
+      className: "w-5 h-5"
+    }), " \u91CD\u65B0\u5F00\u59CB"));
+  }
+  if (gameState.status === '最终通关') {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 text-center text-white",
+      style: { backgroundColor: '#431407' }
+    }, /*#__PURE__*/React.createElement(Trophy, {
+      className: "w-24 h-24 text-yellow-400 mb-6 animate-bounce"
+    }), /*#__PURE__*/React.createElement("h2", {
+      className: "text-5xl font-black mb-4 tracking-tighter text-yellow-400"
+    }, "\u767B\u9876\u5DC5\u5CF0"), /*#__PURE__*/React.createElement("p", {
+      className: "text-orange-200/80 mb-12 font-black text-lg tracking-widest"
+    }, "\u4F60\u6210\u529F\u5F81\u670D\u4E86\u8FD9\u5EA7\u5DE8\u5854\uFF01"), /*#__PURE__*/React.createElement("button", {
+      onClick: restartGame,
+      className: "bg-white text-orange-950 font-black px-12 py-4 rounded-full text-lg shadow-2xl hover:scale-105 transition-transform flex items-center gap-2 tracking-widest"
+    }, "\u5F00\u542F\u65B0\u7684\u8F6E\u56DE"));
+  }
+  if (gameState.status === '神秘商店') {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 z-[100] flex flex-col items-center justify-start p-4 sm:p-8 overflow-y-auto",
+      style: { backgroundColor: '#020617' }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-3 mb-2"
+    }, /*#__PURE__*/React.createElement(ShoppingCart, {
+      className: "w-8 h-8 text-yellow-500"
+    }), /*#__PURE__*/React.createElement("h2", {
+      className: "text-3xl font-black text-white"
+}, "\u6D41\u52A8\u5546\u4EBA"), "  ", /*#__PURE__*/React.createElement("span", {
+      className: "text-xs font-mono text-slate-500 bg-slate-800 px-2 py-0.5 rounded"
+    }, "\u7B2C ", gameState.floor, " \u5C42")), /*#__PURE__*/React.createElement("p", {
+      className: "text-slate-200 text-xs font-bold mb-8 uppercase tracking-[0.3em]"
+}, "\u8D2D\u4E70\u5F3A\u529B\u7269\u8D44\u4EE5\u5E94\u5BF9\u6311\u6218"), /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-4 mb-8"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2 text-yellow-500 font-bold bg-yellow-500/10 px-3 py-1.5 rounded-full text-sm font-mono"
+    }, /*#__PURE__*/React.createElement(Coins, { size: 16 }), " ", /*#__PURE__*/React.createElement("span", null, gameState.gold)), /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2 text-red-500 font-bold bg-red-500/10 px-3 py-1.5 rounded-full text-sm font-mono"
+    }, /*#__PURE__*/React.createElement(Heart, { size: 16, className: "fill-red-500" }), " ", /*#__PURE__*/React.createElement("span", null, gameState.player.hp, " / ", gameState.player.maxHp))), /*#__PURE__*/React.createElement("div", {
+      className: "grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-10 w-full max-w-4xl px-4"
+    }, gameState.shopCards.map((card, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+className: `card-hover aspect-[2/3] ${card.color} rounded-2xl shadow-xl border border-white/20 p-3 flex flex-col transition-all relative ring-1 ring-black/20 ${gameState.gold < (card.rarity || 1) * 20 ? 'opacity-50' : ''}`
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-between items-start mb-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center font-black text-[9px] shadow-inner"
+    }, card.cost)), /*#__PURE__*/React.createElement("h3", {
+      className: "font-black text-[11px] leading-tight mb-1"
+    }, card.name), " ", /*#__PURE__*/React.createElement("span", {
+      className: "text-yellow-400 text-[7px] font-bold"
+    }, '\u2605'.repeat(card.rarity || 1)), /*#__PURE__*/React.createElement("p", {
+      className: "text-[9px] leading-snug font-medium text-white/90 flex-1 overflow-hidden"
+    }, card.description), /*#__PURE__*/React.createElement("button", {
+      onClick: () => shopAction('buyCard', card, i),
+      disabled: gameState.gold < (card.rarity || 1) * 20,
+      className: "w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-1.5 rounded-lg font-black text-[10px] mt-2 active:scale-95 transition-all disabled:grayscale"
+    }, (card.rarity || 1) * 20, " \u91D1\u5E01"))), gameState.shopRelic && /*#__PURE__*/React.createElement("div", {
+      className: "aspect-[2/3] bg-indigo-950/80 rounded-2xl shadow-xl border border-indigo-500/30 p-3 flex flex-col items-center justify-center text-center ring-1 ring-black/20 relative group overflow-hidden"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors"
+    }), /*#__PURE__*/React.createElement(Trophy, {
+      className: "w-8 h-8 text-indigo-300 mb-2 relative z-10"
+    }), /*#__PURE__*/React.createElement("h3", {
+      className: "font-black text-[11px] text-indigo-200 mb-1 relative z-10"
+    }, gameState.shopRelic.name), /*#__PURE__*/React.createElement("p", {
+      className: "text-[8px] leading-tight font-bold text-indigo-300/70 mb-3 line-clamp-3 relative z-10"
+    }, gameState.shopRelic.description), /*#__PURE__*/React.createElement("button", {
+      onClick: () => shopAction('buyRelic', gameState.shopRelic),
+      disabled: gameState.gold < 100,
+      className: "w-full bg-indigo-500 hover:bg-indigo-400 text-white py-1.5 rounded-lg font-black text-[10px] active:scale-95 transition-all relative z-10 disabled:opacity-50"
+    }, "100 \u91D1\u5E01"))), /*#__PURE__*/React.createElement("div", {
+      className: "flex flex-col md:flex-row gap-4 items-center"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex gap-4"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: gameState.gold >= (gameState.relics.some(r => r.effectType === 'shop_remove_discount') ? 15 : 30) && gameState.deck.length > 0 ? startRemoveCard : null,
+      className: gameState.gold < (gameState.relics.some(r => r.effectType === 'shop_remove_discount') ? 15 : 30) || gameState.deck.length === 0 ? "bg-slate-700 text-slate-500 px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2 cursor-not-allowed" : "bg-white text-slate-950 hover:scale-105 px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2 transition-all shadow-xl group"
+    }, /*#__PURE__*/React.createElement(Scissors, {
+      className: "w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors"
+    }), " \u79FB\u9664\u5361\u724C (", gameState.relics.some(r => r.effectType === 'shop_remove_discount') ? 15 : 30, " \u91D1\u5E01)"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setGameState(prev => advanceFloor(prev)),
+      className: "bg-white text-slate-950 px-10 py-3 rounded-2xl font-black text-xs transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+    }, "\u79BB\u5F00\u5546\u5E97"))));
+  }
+  if (gameState.status === '篝火休息') {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fixed inset-0 z-[100] flex flex-col items-center justify-center p-8",
+      style: { backgroundColor: '#020617' }
+    }, /*#__PURE__*/React.createElement(Tent, {
+      className: "w-16 h-16 text-orange-600 mb-6"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2 text-red-500 font-bold bg-red-500/10 px-3 py-1.5 rounded-full text-lg font-mono mb-4"
+    }, /*#__PURE__*/React.createElement(Heart, { size: 18, className: "fill-red-500" }), " ", /*#__PURE__*/React.createElement("span", null, gameState.player.hp, " / ", gameState.player.maxHp)), /*#__PURE__*/React.createElement("h2", {
+      className: "text-3xl font-black mb-10 text-white"
+}, "\u7BDD\u706B\u8425\u5730"), "  ", /*#__PURE__*/React.createElement("span", {
+      className: "text-xs font-mono text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded mb-10"
+    }, "\u7B2C ", gameState.floor, " \u5C42"), /*#__PURE__*/React.createElement("div", {
+      className: "flex gap-6 w-full max-w-md"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => campfireAction('heal'),
+      className: "flex-1 bg-slate-800 hover:bg-slate-700 py-10 rounded-3xl border border-white/5 flex flex-col items-center gap-4 transition-all hover:scale-105"
+    }, /*#__PURE__*/React.createElement(Droplet, {
+      className: "w-8 h-8 text-green-500"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "font-black"
+    }, "\u4F11\u606F"), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-slate-200 font-bold"
+    }, "\u6062\u590D\u6700\u5927\u751F\u547D\u503C\u7684 30%")), /*#__PURE__*/React.createElement("button", {
+      onClick: () => campfireAction('maxhp'),
+      className: "flex-1 bg-slate-800 hover:bg-slate-700 py-10 rounded-3xl border border-white/5 flex flex-col items-center gap-4 transition-all hover:scale-105"
+    }, /*#__PURE__*/React.createElement(Heart, {
+      className: "w-8 h-8 text-red-500"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "font-black"
+    }, "\u953B\u70BC"), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-slate-200 font-bold"
+    }, "\u6700\u5927\u751F\u547D\u503C +10"))));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 bg-slate-950 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-100 flex flex-col font-sans overflow-hidden select-none " + (shakeLayer ? "animate-shake" : ""),
+    style: { minHeight: '100vh', display: 'flex', flexDirection: 'column' }
+  }, !(showCompendium || showRelics || showDeck || showRestartConfirm) && /*#__PURE__*/React.createElement("div", {
+    className: "w-full h-12 sm:h-14 bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-2 sm:px-4 border-b border-white/5 z-50 shrink-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 items-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 text-yellow-500 font-bold bg-yellow-500/10 px-1.5 py-1 rounded-full text-[10px] md:text-sm font-mono shadow-inner whitespace-nowrap"
+  }, /*#__PURE__*/React.createElement(Coins, {
+    size: 14,
+    className: "md:w-4 md:h-4"
+  }), " ", /*#__PURE__*/React.createElement("span", null, gameState.gold)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 text-red-500 font-bold bg-red-500/10 px-1.5 py-1 rounded-full text-[10px] md:text-sm font-mono shadow-inner whitespace-nowrap"
+  }, /*#__PURE__*/React.createElement(Heart, {
+    size: 14,
+    className: "md:w-4 md:h-4 fill-red-500"
+  }), /*#__PURE__*/React.createElement("span", null, gameState.player.hp, " / ", gameState.player.maxHp)), /*#__PURE__*/React.createElement("div", {
+    className: "hidden md:flex bg-slate-800/80 px-3 py-1 rounded-full text-xs font-black text-slate-400"
+  }, "FLOOR ", gameState.floor)), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1 sm:gap-2 items-center overflow-x-auto no-scrollbar max-w-[60%] sm:max-w-none"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowCompendium(true),
+    className: "flex items-center gap-1 text-slate-300 hover:text-white bg-white/5 hover:bg-blue-500/20 px-2 sm:px-4 py-1.5 rounded-full transition-all text-[10px] md:text-sm font-bold border border-white/5 whitespace-nowrap h-8 sm:h-9 shadow-md"
+  }, /*#__PURE__*/React.createElement(BookOpen, {
+    size: 14,
+    className: "md:w-4 md:h-4"
+  }), " ", /*#__PURE__*/React.createElement("span", null, "\u56FE\u9274")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowRelics(true),
+    className: "flex items-center gap-1 text-slate-300 hover:text-white bg-white/5 hover:bg-emerald-500/20 px-2 sm:px-4 py-1.5 rounded-full transition-all text-[10px] md:text-sm font-bold border border-white/5 whitespace-nowrap h-8 sm:h-9 shadow-md"
+  }, /*#__PURE__*/React.createElement(Shield, {
+    size: 14,
+    className: "md:w-4 md:h-4"
+  }), " ", /*#__PURE__*/React.createElement("span", null, "\u9057\u7269 (", gameState.relics.length, ")")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowDeck(true),
+    className: "flex items-center gap-1 text-slate-300 hover:text-white bg-white/5 hover:bg-blue-500/20 px-2 sm:px-4 py-1.5 rounded-full transition-all text-[10px] md:text-sm font-bold border border-white/5 whitespace-nowrap h-8 sm:h-9 shadow-md"
+  }, /*#__PURE__*/React.createElement(Layers, {
+    size: 14,
+    className: "md:w-4 md:h-4"
+  }), " ", /*#__PURE__*/React.createElement("span", null, "\u5361\u7EC4 (", fullDeck.length, ")")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowRestartConfirm(true),
+    className: "flex items-center justify-center w-8 h-8 md:w-10 md:h-10 text-slate-400 hover:text-red-400 bg-white/5 hover:bg-red-500/10 rounded-full transition-all border border-white/5",
+    title: "\u91CD\u65B0\u5F00\u59CB"
+  }, /*#__PURE__*/React.createElement(RotateCcw, {
+    size: 16
+  })))), /*#__PURE__*/React.createElement(React.Fragment, null, showRelics && /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 flex items-center justify-center p-6 animate-fadeIn",
+    style: { zIndex: 99999, backgroundColor: '#020617' }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-900 border border-white/10 p-6 rounded-3xl w-full max-w-md shadow-2xl animate-fadeInScale"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between items-center mb-6"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "text-xl font-black text-white"
+  }, "\u5F53\u524D\u9057\u7269"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowRelics(false),
+    className: "text-slate-400 hover:text-white"
+  }, /*#__PURE__*/React.createElement(X, null))), gameState.relics.length === 0 ? /*#__PURE__*/React.createElement("p", {
+    className: "text-slate-500 italic"
+  }, "\u6CA1\u6709\u4EFB\u4F55\u9057\u7269...") : /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar"
+  }, gameState.relics.map(r => /*#__PURE__*/React.createElement("div", {
+    key: r.id,
+    className: "bg-slate-800 p-3 rounded-xl border border-white/5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-black text-sm text-yellow-400 mb-1"
+  }, r.name), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-slate-300"
+  }, r.description))))))), /*#__PURE__*/React.createElement(React.Fragment, null, showDeck && /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 flex items-center justify-center p-6",
+    style: { zIndex: 99999, backgroundColor: '#020617' }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-900 border border-white/10 p-6 rounded-3xl w-full max-w-2xl shadow-2xl"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between items-center mb-6"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "text-xl font-black text-white"
+  }, "\u5F53\u524D\u5361\u7EC4 (", fullDeck.length, ")"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowDeck(false),
+    className: "text-slate-400 hover:text-white"
+  }, /*#__PURE__*/React.createElement(X, null))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto custom-scrollbar"
+  }, fullDeck.map((card, i) => /*#__PURE__*/React.createElement("div", {
+    key: `${card.id}_${i}`,
+    className: `${card.color} p-3 rounded-xl border border-white/10 flex flex-col`
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-black text-[10px] md:text-xs mb-1 line-clamp-1"
+  }, card.name), " ", /*#__PURE__*/React.createElement("span", {
+    className: "text-yellow-400 text-[7px] font-bold"
+  }, '\u2605'.repeat(card.rarity || 1)), /*#__PURE__*/React.createElement("p", {
+    className: "text-[8px] md:text-[9px] text-white/90 font-bold overflow-hidden"
+  }, card.description))))))), /*#__PURE__*/React.createElement("div", {
+    className: "w-full flex-1 flex flex-col relative overflow-hidden z-10",
+    style: { flex: "1 1 0%", minHeight: 0 }
+  }, (gameState.status === '封面' || !gameState.status) && /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 z-[60] flex flex-col items-center justify-center p-8 text-center bg-slate-950"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "relative mb-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute -inset-4 bg-orange-500/20 blur-2xl rounded-full animate-flamePulse"
+  }), /*#__PURE__*/React.createElement(Flame, {
+    className: "w-16 h-16 md:w-24 md:h-24 text-orange-500 relative z-10 drop-shadow-[0_0_15px_rgba(249,115,22,0.8)] animate-flamePulse"
+  })), /*#__PURE__*/React.createElement("h1", {
+    className: "text-5xl md:text-8xl font-black mb-3 md:mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-200 to-slate-500 drop-shadow-2xl"
+  }, "TOWER", /*#__PURE__*/React.createElement("br", null), "SLAYER"), /*#__PURE__*/React.createElement("p", {
+    className: "text-slate-400 font-bold tracking-[0.2em] md:tracking-[0.3em] uppercase mb-12 md:mb-16 px-4 text-[10px] md:text-base"
+  }, "Deck-building Roguelike RPG"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setGameState(prev => advanceFloor({
+      ...prev,
+      floor: 0
+    })),
+    className: "bg-white text-slate-950 px-8 py-3 md:px-12 md:py-4 rounded-full font-black text-lg md:text-xl hover:scale-105 transition-transform shadow-[0_0_40px_rgba(255,255,255,0.2)] flex items-center gap-3"
+  }, "\u5F00\u59CB\u5192\u9669 ", /*#__PURE__*/React.createElement(ChevronRight, {
+    className: "w-5 h-5 md:w-6 md:h-6"
+  }))), gameState.status === '选择路线' && /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-slate-900/40 w-full z-20"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-center mb-8"
+  }, /*#__PURE__*/React.createElement(MapIcon, {
+    className: "w-10 h-10 md:w-14 md:h-14 text-blue-400 border border-white/10 rounded-2xl p-2 mb-4 mx-auto shadow-2xl"
+  }), /*#__PURE__*/React.createElement("h2", {
+    className: "text-4xl md:text-6xl font-extrabold tracking-tighter text-white"
+  }, "\u7B2C ", gameState.floor, " \u5C42"), /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] md:text-xs font-black text-slate-300 uppercase tracking-widest mt-1"
+  }, "\u9009\u62E9\u4E0B\u4E00\u9636\u6BB5\u884C\u7A0B")), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col md:flex-row gap-3 md:gap-6 w-full max-w-sm md:max-w-4xl px-4"
+  }, gameState.nextRooms.map((r, i) => {
+    const levelColor = r.monsterLevel ? getLevelColor(r.monsterLevel) : 'text-slate-400';
+    const levelBorder = r.monsterLevel ? getLevelBorder(r.monsterLevel, 'border-white/5') : 'border-white/5';
+    return /*#__PURE__*/React.createElement("button", {
+      key: i,
+      onClick: () => selectRoom(r),
+      className: `flex-1 bg-slate-800/80 hover:bg-slate-700 py-4 md:py-10 rounded-2xl md:rounded-3xl border ${levelBorder} flex items-center md:flex-col justify-start md:justify-center px-6 md:px-0 gap-4 transition-all hover:scale-[1.02] shadow-xl group relative overflow-hidden backdrop-blur-md`
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"
+    }, r.type === '战斗' && /*#__PURE__*/React.createElement(Sword, {
+      className: "w-12 h-12"
+    }), r.type === '精英' && /*#__PURE__*/React.createElement(Flame, {
+      className: "w-12 h-12"
+    }), r.type === '宝藏' && /*#__PURE__*/React.createElement(Coins, {
+      className: "w-12 h-12"
+    }), r.type === '?' && /*#__PURE__*/React.createElement(MessageSquare, {
+      className: "w-12 h-12"
+    })), /*#__PURE__*/React.createElement("div", {
+      className: `p-2 rounded-xl bg-slate-900/50 ${levelColor}`
+    }, r.type === '战斗' && /*#__PURE__*/React.createElement(Sword, {
+      className: "w-6 h-6 md:w-10 md:h-10"
+    }), r.type === '精英' && /*#__PURE__*/React.createElement(Flame, {
+      className: "w-6 h-6 md:w-10 md:h-10"
+    }), r.type === '商店' && /*#__PURE__*/React.createElement(ShoppingCart, {
+      className: "w-6 h-6 md:w-10 md:h-10 text-yellow-500"
+    }), r.type === '篝火' && /*#__PURE__*/React.createElement(Tent, {
+      className: "w-6 h-6 md:w-10 md:h-10 text-orange-600"
+    }), r.type === '宝藏' && /*#__PURE__*/React.createElement(Coins, {
+      className: "w-6 h-6 md:w-10 md:h-10 text-yellow-500"
+    }), r.type === '?' && /*#__PURE__*/React.createElement(MessageSquare, {
+      className: "w-6 h-6 md:w-10 md:h-10 text-purple-500"
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "text-left md:text-center"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: `block font-black text-sm md:text-base uppercase tracking-widest ${levelColor}`
+    }, r.label), r.monsterLevel && /*#__PURE__*/React.createElement("span", {
+      className: `text-[9px] font-black uppercase opacity-60`
+    }, r.monsterLevel, "\u751F\u7269")));
+  }))), ['战斗中', '保留手牌', '弃牌'].includes(gameState.status) && /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 flex flex-col z-10 w-full items-center relative pt-24"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `bg-slate-900/60 p-5 md:p-6 rounded-3xl border w-full max-w-[320px] md:max-w-sm flex flex-col items-center shadow-2xl backdrop-blur-sm transition-all relative ${getLevelBorder(gameState.enemyLevel, 'border-white/10')}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-full flex justify-between items-start mb-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: `text-[13px] md:text-[15px] font-black uppercase ${getLevelColor(gameState.enemyLevel)}`
+  }, gameState.enemyName, " ", ['精英', '首领', '魔王'].includes(gameState.enemyLevel) && /*#__PURE__*/React.createElement(Flame, {
+    className: "inline w-3 h-3 text-orange-500 ml-1"
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] md:text-[11px] text-slate-200 font-bold leading-none tracking-tight"
+  }, ENEMIES.find(e => e.name === gameState.enemyName)?.trait || '特性加载中...')), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1"
+  }, gameState.enemy.poison > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] md:text-[10px] font-bold bg-emerald-900 text-emerald-200 px-2 py-0.5 rounded"
+  }, "\u6BD2 ", gameState.enemy.poison), gameState.enemy.weak > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] md:text-[10px] font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded"
+  }, "\u5F31 ", gameState.enemy.weak), gameState.enemy.vulnerable > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] md:text-[10px] font-bold bg-purple-900 text-purple-200 px-2 py-0.5 rounded"
+  }, "\u4F24 ", gameState.enemy.vulnerable), gameState.enemy.strength > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] md:text-[10px] font-bold bg-orange-900 text-orange-200 px-2 py-0.5 rounded"
+  }, "\u529B ", gameState.enemy.strength))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 mb-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-3xl md:text-4xl font-black tabular-nums tracking-tighter"
+  }, gameState.enemy.hp, " / ", gameState.enemy.maxHp), gameState.enemy.block > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "bg-blue-600 px-2 py-0.5 rounded-lg text-xs font-black flex items-center gap-1 shadow-lg border border-blue-400 animate-scaleIn"
+  }, /*#__PURE__*/React.createElement(Shield, {
+    className: "w-3.5 h-3.5"
+  }), " ", gameState.enemy.block)), /*#__PURE__*/React.createElement("div", {
+    className: "w-full bg-slate-800 h-2 md:h-2.5 rounded-full overflow-hidden shadow-inner border border-white/5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-red-500 h-full shadow-[0_0_10px_rgba(239,68,68,0.5)]", style: { width: (gameState.enemy.hp / gameState.enemy.maxHp * 100) + "%", transition: "width 0.5s ease-out" }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4 md:mt-5 bg-slate-950/80 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-white/10 flex items-center gap-2 md:gap-3 shadow-xl animate-bob"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-tight"
+  }, "\u610F\u56FE"), gameState.enemyIntent.type === '攻击' ? /*#__PURE__*/React.createElement(Sword, {
+    className: "w-3.5 h-3.5 md:w-4 md:h-4 text-red-500"
+  }) : gameState.enemyIntent.type === '防御' ? /*#__PURE__*/React.createElement(Shield, {
+    className: "w-3.5 h-3.5 md:w-4 md:h-4 text-blue-500"
+  }) : gameState.enemyIntent.type === '恶化' ? /*#__PURE__*/React.createElement(Skull, {
+    className: "w-3.5 h-3.5 md:w-4 md:h-4 text-purple-500"
+  }) : /*#__PURE__*/React.createElement(Zap, {
+    className: "w-3.5 h-3.5 md:w-4 md:h-4 text-orange-500"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "font-black text-lg md:text-xl text-white"
+  }, (ENEMIES.find(e => e.name === gameState.enemyName)?.trait || '').includes('幻视') ? '?' : (gameState.enemyIntent.value > 0 ? gameState.enemyIntent.value : ''))), /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 pointer-events-none z-[150] flex items-center justify-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "relative w-full max-w-xs h-64 flex items-center justify-center z-[160]"
+  }, floatingTexts.filter(f => f.target === 'enemy').map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.id,
+    className: `absolute pointer-events-none font-black text-4xl z-[100] drop-shadow-xl animate-floatUp ${f.type === 'damage' ? 'text-red-500' : f.type === 'block' ? 'text-blue-400' : 'text-emerald-400'}`
+  }, f.text))))), gameState.status === '神秘商店' && /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 flex flex-col items-center justify-start p-4 sm:p-8 bg-slate-900/80 w-full z-20 overflow-y-auto"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 mb-2"
+  }, /*#__PURE__*/React.createElement(ShoppingCart, {
+    className: "w-8 h-8 text-yellow-500"
+  }), /*#__PURE__*/React.createElement("h2", {
+    className: "text-3xl font-black text-white"
+  }, "\u6D41\u52A8\u5546\u4EBA")), /*#__PURE__*/React.createElement("p", {
+    className: "text-slate-200 text-xs font-bold mb-8 uppercase tracking-[0.3em]"
+  }, "\u8D2D\u4E70\u5F3A\u529B\u7269\u8D44\u4EE5\u5E94\u5BF9\u6311\u6218"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-10 w-full max-w-4xl px-4"
+  }, gameState.shopCards.map((card, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: `card-hover aspect-[2/3] ${card.color} rounded-2xl shadow-xl border border-white/20 p-3 flex flex-col transition-all relative ring-1 ring-black/20 ${gameState.gold < 50 ? 'opacity-50' : ''}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between items-start mb-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center font-black text-[9px] shadow-inner"
+  }, card.cost)), /*#__PURE__*/React.createElement("h3", {
+    className: "font-black text-[11px] leading-tight mb-1"
+  }, card.name), /*#__PURE__*/React.createElement("p", {
+    className: "text-[9px] leading-snug font-medium text-white/90 flex-1 overflow-hidden"
+  }, card.description), /*#__PURE__*/React.createElement("button", {
+    onClick: () => shopAction('buyCard', card, i),
+    disabled: gameState.gold < 50,
+    className: "w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-1.5 rounded-lg font-black text-[10px] mt-2 active:scale-95 transition-all disabled:grayscale"
+  }, "50 \u91D1\u5E01"))), gameState.shopRelic && /*#__PURE__*/React.createElement("div", {
+    className: "aspect-[2/3] bg-indigo-950/80 rounded-2xl shadow-xl border border-indigo-500/30 p-3 flex flex-col items-center justify-center text-center ring-1 ring-black/20 relative group overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors"
+  }), /*#__PURE__*/React.createElement(Trophy, {
+    className: "w-8 h-8 text-indigo-300 mb-2 relative z-10"
+  }), /*#__PURE__*/React.createElement("h3", {
+    className: "font-black text-[11px] text-indigo-200 mb-1 relative z-10"
+  }, gameState.shopRelic.name), /*#__PURE__*/React.createElement("p", {
+    className: "text-[8px] leading-tight font-bold text-indigo-300/70 mb-3 line-clamp-3 relative z-10"
+  }, gameState.shopRelic.description), /*#__PURE__*/React.createElement("button", {
+    onClick: () => shopAction('buyRelic', gameState.shopRelic),
+    disabled: gameState.gold < 150,
+    className: "w-full bg-indigo-500 hover:bg-indigo-400 text-white py-1.5 rounded-lg font-black text-[10px] active:scale-95 transition-all relative z-10 disabled:opacity-50"
+  }, "150 \u91D1\u5E01"))), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col md:flex-row gap-4 items-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-4"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: startRemoveCard,
+    disabled: gameState.gold < 75 || gameState.deck.length === 0,
+    className: "bg-slate-800/80 backdrop-blur-sm border border-white/10 hover:bg-slate-700 disabled:opacity-50 px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2 transition-all shadow-xl group"
+  }, /*#__PURE__*/React.createElement(Scissors, {
+    className: "w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors"
+  }), " \u79FB\u9664\u5361\u724C (75 \u91D1\u5E01)"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setGameState(prev => advanceFloor(prev)),
+    className: "bg-white text-slate-950 px-10 py-3 rounded-2xl font-black text-xs transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+  }, "\u79BB\u5F00\u5546\u5E97")))), gameState.status === '篝火休息' && /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 flex flex-col items-center justify-center p-8 bg-slate-900/80 w-full z-20"
+  }, /*#__PURE__*/React.createElement(Tent, {
+    className: "w-16 h-16 text-orange-600 mb-6"
+  }), /*#__PURE__*/React.createElement("h2", {
+    className: "text-3xl font-black mb-10 text-white"
+  }, "\u7BDD\u706B\u8425\u5730"), " ", /*#__PURE__*/React.createElement("span", {
+    className: "text-base font-mono text-red-400"
+  }, gameState.player.hp, " / ", gameState.player.maxHp), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-6 w-full max-w-md"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => campfireAction('heal'),
+    className: "flex-1 bg-slate-800 hover:bg-slate-700 py-10 rounded-3xl border border-white/5 flex flex-col items-center gap-4 transition-all hover:scale-105"
+  }, /*#__PURE__*/React.createElement(Droplet, {
+    className: "w-8 h-8 text-green-500"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "font-black"
+  }, "\u4F11\u606F"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-200 font-bold"
+  }, "\u6062\u590D\u6700\u5927\u751F\u547D\u503C\u7684 30%")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => campfireAction('maxhp'),
+    className: "flex-1 bg-slate-800 hover:bg-slate-700 py-10 rounded-3xl border border-white/5 flex flex-col items-center gap-4 transition-all hover:scale-105"
+  }, /*#__PURE__*/React.createElement(Heart, {
+    className: "w-8 h-8 text-red-500"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "font-black"
+  }, "\u953B\u70BC"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-200 font-bold"
+  }, "\u6700\u5927\u751F\u547D\u503C +10")))), ['战斗中', '保留手牌'].includes(gameState.status) && gameState.history.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-x-0 top-16 h-8 flex items-center justify-center z-[60] pointer-events-none"
+  }, /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    key: gameState.history[0],
+    className: "flex items-center gap-2 text-[10px] font-black text-white bg-slate-950/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-2xl animate-fadeIn"
+  }, /*#__PURE__*/React.createElement(MessageSquare, {
+    className: "w-3.5 h-3.5 text-emerald-400"
+  }), " ", gameState.history[0]))), /*#__PURE__*/React.createElement(React.Fragment, null, showCompendium && /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 flex flex-col p-4 md:p-8",
+    style: { zIndex: 99999, backgroundColor: '#020617' }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between items-center mb-8"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "text-2xl font-black text-white flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement(BookOpen, {
+    className: "w-6 h-6 text-emerald-400"
+  }), " \u767E\u79D1\u56FE\u9274"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowCompendium(false),
+    className: "w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-white transition-all shadow-xl"
+  }, /*#__PURE__*/React.createElement(X, null))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar scroll-smooth"
+  }, [{
+    id: 'cards',
+    label: '卡牌库',
+    icon: Layers
+  }, {
+    id: 'relics',
+    label: '遗物柜',
+    icon: Trophy
+  }, {
+    id: 'monsters',
+    label: '生态志',
+    icon: Ghost
+  }, {
+    id: 'statuses',
+    label: '术语表',
+    icon: Zap
+  }].map(tab => /*#__PURE__*/React.createElement("button", {
+    key: tab.id,
+    onClick: () => setCompendiumTab(tab.id),
+    className: `flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs transition-all whitespace-nowrap border-b-2 ${compendiumTab === tab.id ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.4)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border-transparent hover:border-white/10'}`
+  }, /*#__PURE__*/React.createElement(tab.icon, {
+    size: 14
+  }), " ", tab.label))), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 overflow-y-auto pr-2 custom-scrollbar"
+  }, compendiumTab === 'cards' && /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-3"
+  }, ALL_CARDS.map(f => f()).sort((a,b) => { const order = { '攻击':1,'防御':2,'毒术':3,'增益':4,'减益':5 }; return (order[a.type]||9) - (order[b.type]||9); }).map(card => /*#__PURE__*/React.createElement("div", {
+    key: card.id,
+    className: `${card.color} rounded-2xl p-4 border border-white/20 shadow-2xl flex flex-col aspect-[3/4] relative overflow-hidden group`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "hidden"
+  }, /*#__PURE__*/React.createElement(Layers, {
+    size: 40
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between items-start mb-3 relative z-10"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-blue-500 min-w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg px-1"
+  }, card.cost)), /*#__PURE__*/React.createElement("h3", {
+    className: "font-black text-sm mb-2 relative z-10 leading-tight"
+  }, card.name), " ", /*#__PURE__*/React.createElement("span", {
+    className: "text-yellow-400 text-[9px] font-bold relative z-10"
+  }, '\u2605'.repeat(card.rarity || 1)), /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] font-bold text-white/90 leading-relaxed mb-4 relative z-10 flex-1"
+  }, card.description), /*#__PURE__*/React.createElement("div", {
+    className: "hidden"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "hidden"
+  }, card.type))))), compendiumTab === 'relics' && /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+  }, RELIC_POOL.map(f => f()).map(relic => /*#__PURE__*/React.createElement("div", {
+    key: relic.id,
+    className: "bg-slate-900/60 backdrop-blur border border-white/5 rounded-3xl p-6 flex gap-5 items-center transition-all hover:bg-slate-900/80 hover:border-emerald-500/30 group"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform shadow-inner"
+  }, /*#__PURE__*/React.createElement(Trophy, {
+    size: 28
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1"
+  }, /*#__PURE__*/React.createElement("h4", {
+    className: "font-black text-white text-base mb-1"
+  }, relic.name), /*#__PURE__*/React.createElement("p", {
+    className: "text-slate-400 text-xs font-semibold leading-relaxed line-clamp-2"
+  }, relic.description))))), compendiumTab === 'monsters' && /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-6 pb-12"
+  }, ENEMIES.map(enemy => /*#__PURE__*/React.createElement("div", {
+    key: enemy.name,
+    className: "bg-slate-900/60 border border-white/5 rounded-3xl p-8 flex flex-col relative overflow-hidden group"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"
+  }, /*#__PURE__*/React.createElement(Ghost, {
+    size: 80
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between items-end mb-6 relative z-10"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] font-black uppercase tracking-[0.3em] mb-1 " + (enemy.level === '普通' ? 'text-slate-400' : enemy.level === '劲敌' ? 'text-emerald-400' : enemy.level === '精英' ? 'text-blue-400' : enemy.level === '首领' ? 'text-orange-400' : 'text-red-500')
+  }, enemy.level), /*#__PURE__*/React.createElement("h4", {
+    className: "font-black text-white text-3xl"
+  }, enemy.name)), /*#__PURE__*/React.createElement("div", {
+    className: "text-right"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1"
+  }, "\u57FA\u7840 HP"), /*#__PURE__*/React.createElement("span", {
+    className: "text-2xl font-black text-white"
+  }, enemy.hp))), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-4 relative z-10"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/5 pb-2"
+  }, "\u884C\u52A8\u6A21\u5F0F"), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 flex-wrap min-h-[32px]"
+  }, enemy.patterns.includes('攻击') && /*#__PURE__*/React.createElement("div", {
+    className: "bg-red-500/10 text-red-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-red-500/20"
+  }, /*#__PURE__*/React.createElement(Sword, {
+    size: 14
+  }), " \u5F3A\u653B"), enemy.patterns.includes('防御') && /*#__PURE__*/React.createElement("div", {
+    className: "bg-blue-500/10 text-blue-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-blue-500/20"
+  }, /*#__PURE__*/React.createElement(Shield, {
+    size: 14
+  }), " \u7A33\u5B88"), enemy.patterns.includes('强化') && /*#__PURE__*/React.createElement("div", {
+    className: "bg-orange-500/10 text-orange-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-orange-500/20"
+  }, /*#__PURE__*/React.createElement(Zap, {
+    size: 14
+  }), " \u5F3A\u5316"), enemy.patterns.includes('恶化') && /*#__PURE__*/React.createElement("div", {
+    className: "bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-emerald-500/20"
+  }, /*#__PURE__*/React.createElement(Skull, {
+    size: 14
+  }), " \u8BC5\u5492")), /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-950/40 p-4 rounded-2xl border border-white/5 mt-2"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 opacity-70"
+  }, "\u7279\u6B8A\u6280\u80FD (\u7279\u6027)"), /*#__PURE__*/React.createElement("p", {
+    className: "text-white text-sm font-bold leading-relaxed"
+  }, enemy.trait || '无可感知特性')))))), compendiumTab === 'statuses' && /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-6 pb-20"
+  }, [{
+    name: '力量',
+    icon: Zap,
+    color: 'text-orange-400',
+    desc: '提升攻击伤害。每层力量使攻击多造成一点伤害。'
+  }, {
+    name: '虚弱',
+    icon: Skull,
+    color: 'text-slate-400',
+    desc: '负面状态。造成的攻击伤害降低 25%。'
+  }, {
+    name: '易伤',
+    icon: Swords,
+    color: 'text-red-400',
+    desc: '致命漏洞。受到的攻击伤害提高 50%。'
+  }, {
+    name: '中毒',
+    icon: MessageSquare,
+    color: 'text-emerald-400',
+    desc: '持续伤害。回合开始受到对应伤害，随后层数 -1。'
+  }, {
+    name: '护甲',
+    icon: Shield,
+    color: 'text-blue-400',
+    desc: '临时防御。抵消物理伤害，回合开始时清零。'
+  }, {
+    name: '消耗',
+    icon: Scissors,
+    color: 'text-yellow-400',
+    desc: '一次性使用。该卡打出后本场战斗中移除。'
+  }].map(status => /*#__PURE__*/React.createElement("div", {
+    key: status.name,
+    className: "flex gap-6 items-start p-8 bg-slate-900/60 border border-white/5 rounded-[2.5rem] hover:bg-slate-800/40 transition-colors"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `p-5 rounded-3xl bg-white/5 shadow-inner ${status.color}`
+  }, /*#__PURE__*/React.createElement(status.icon, {
+    size: 32
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1"
+  }, /*#__PURE__*/React.createElement("h4", {
+    className: "font-black text-white text-xl mb-2"
+  }, status.name), /*#__PURE__*/React.createElement("p", {
+    className: "text-slate-400 text-sm font-semibold leading-relaxed"
+  }, status.desc)))))))), ['战斗中', '保留手牌'].includes(gameState.status) && /*#__PURE__*/React.createElement("div", {
+    className: "w-full flex flex-col items-center shrink-0 pt-12 z-30"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 mb-2"
+  }, gameState.player.weak > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-600 shadow-md"
+  }, "\u865A\u5F31 ", gameState.player.weak), gameState.player.vulnerable > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-bold bg-purple-900 text-purple-200 px-2 py-0.5 rounded border border-purple-700 shadow-md"
+  }, "\u6613\u4F24 ", gameState.player.vulnerable), gameState.player.strength > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-bold bg-orange-900 text-orange-200 px-2 py-0.5 rounded border border-orange-700 shadow-md"
+  }, "\u529B\u91CF ", gameState.player.strength), gameState.player.poison > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-bold bg-emerald-900 text-emerald-200 px-2 py-0.5 rounded border border-emerald-700 shadow-md"
+  }, "\u4E2D\u6BD2 ", gameState.player.poison)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-4 mb-2 relative"
+  }, gameState.player.block > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "bg-blue-600 px-3 py-0.5 rounded-full font-black text-xs flex items-center gap-1.5 shadow-xl border border-blue-400 animate-scaleIn"
+  }, /*#__PURE__*/React.createElement(Shield, {
+    className: "w-3 h-3"
+  }), " \u62A4\u7532 ", gameState.player.block), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col items-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-10 h-10 rounded-full bg-blue-600 border-[3px] border-blue-400 flex items-center justify-center font-black text-xl shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+  }, gameState.energy))), gameState.status === '\u5F03\u724C' && /*#__PURE__*/React.createElement("div", {
+    className: "absolute inset-0 bg-red-950/40 backdrop-blur-[2px] z-40 flex items-center justify-center p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-red-600/95 text-white p-8 rounded-3xl font-black text-lg shadow-2xl border-4 border-red-400 flex flex-col items-center gap-4 animate-fadeInScale"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xl"
+  }, "\u8BF7\u9009\u62E9\u5361\u724C\u4E22\u5F03 (\u5269\u4F59: ", 2 - (gameState.announcement?.count || 0), " \u5F20)"))), /*#__PURE__*/React.createElement("div", {
+    className: `w-full h-40 md:h-48 flex items-end justify-start -space-x-4 sm:-space-x-6 md:-space-x-8 overflow-visible pb-4 pt-8 relative px-12 sm:px-16 hand-scroll ${(gameState.status === '\u5F03\u724C' || gameState.status === '\u4FDD\u7559\u624B\u724C') ? 'z-50' : ''}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute -top-12 left-0 right-0 flex justify-center pointer-events-none z-[200]", style: { height: "48px" }
+  }, floatingTexts.filter(f => f.target === 'player').map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.id,
+    className: `absolute pointer-events-none font-black text-4xl z-[100] drop-shadow-xl animate-floatUp ${f.type === 'damage' ? 'text-red-500' : f.type === 'block' ? 'text-blue-400' : 'text-emerald-400'}`
+  }, f.text))), gameState.hand.map((card, idx) => {
+    const rotate = (idx - (gameState.hand.length - 1) / 2) * 5;
+    const yOrigin = Math.abs(idx - (gameState.hand.length - 1) / 2) * 4;
+    const isSelected = gameState.selectedToRetain.includes(card.id);
+    const isRetainMode = gameState.status === '\u4FDD\u7559\u624B\u724C';
+    return /*#__PURE__*/React.createElement("div", {
+      key: `${card.id}_${idx}`,
+      onClick: () => {
+        if (gameState.status === '\u4FDD\u7559\u624B\u724C') toggleRetainCard(card.id);else if (gameState.status === '\u5F03\u724C') playCard(card);else playCard(card);
+      },
+      className: `w-20 h-32 sm:w-24 sm:h-36 md:w-28 md:h-40 shrink-0 ${card.color} ${isRetainMode ? "card-hover-retain" : "card-hover"} rounded-xl md:rounded-2xl shadow-xl border p-2 md:p-2.5 flex flex-col transition-all cursor-pointer select-none origin-bottom ring-1 ring-black/40 relative
+                  ${gameState.status === '\u6218\u6597\u4E2D' && gameState.energy < card.cost ? 'opacity-40 grayscale pointer-events-none' : ''}
+                  ${(gameState.status === '\u5F03\u724C') ? 'border-red-400 ring-2 ring-red-400 z-50' : ''}
+                  ${isSelected && isRetainMode ? 'border-yellow-400 ring-2 ring-yellow-400 z-50' : 'border-white/20'}`,
+      style: {
+        zIndex: (gameState.status === '\u5F03\u724C' || gameState.status === '\u4FDD\u7559\u624B\u724C') ? 50 + idx : idx
+      }
+    }, isSelected && isRetainMode && /*#__PURE__*/React.createElement("div", {
+      className: "absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full shadow-lg z-50 whitespace-nowrap"
+    }, "\u4FDD\u7559"), /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-between items-start mb-1 md:mb-1.5"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "w-4 h-4 md:w-5 md:h-5 bg-blue-500 rounded-full flex items-center justify-center font-black text-[9px] md:text-[10px] shadow-inner"
+    }, card.cost), /*#__PURE__*/React.createElement("span", {
+      className: "text-[7px] md:text-[8px] opacity-60 font-black tracking-tighter uppercase"
+    }, card.type)), /*#__PURE__*/React.createElement("h3", {
+      className: "font-black text-[10px] md:text-[11px] leading-tight mb-1 md:mb-1.5 line-clamp-1"
+    }, card.name), " ", /*#__PURE__*/React.createElement("span", {
+      className: "text-yellow-400 text-[7px] md:text-[8px] font-bold"
+    }, '\u2605'.repeat(card.rarity || 1)), /*#__PURE__*/React.createElement("p", {
+      className: "text-[8px] md:text-[9px] leading-tight font-bold text-white/90 flex-1 overflow-hidden"
+    }, card.description));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "w-full max-w-sm px-4 md:px-6 pb-4 md:pb-6 flex justify-between items-center text-[9px] md:text-[10px] font-black tracking-widest text-slate-300 uppercase"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 md:gap-4 shrink-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-red-500 font-black bg-slate-900/80 px-3 py-1.5 rounded-full border border-red-500/20 shadow-xl backdrop-blur-sm mr-1"
+  }, /*#__PURE__*/React.createElement(Heart, {
+    size: 12,
+    className: "fill-red-500 animate-pulse"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs md:text-sm tabular-nums"
+  }, gameState.player.hp, " / ", gameState.player.maxHp)), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1.5 md:gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "bg-slate-900 px-2 md:px-3 py-1 rounded-full border border-white/5 whitespace-nowrap"
+  }, "\u62BD ", gameState.deck.length), /*#__PURE__*/React.createElement("span", {
+    className: "bg-slate-900 px-2 md:px-3 py-1 rounded-full border border-white/5 whitespace-nowrap"
+  }, "\u5F03 ", gameState.discard.length))), gameState.status === '\u6218\u6597\u4E2D' ? /*#__PURE__*/React.createElement("button", {
+    onClick: endTurn,
+    disabled: isEnemyActing,
+    className: "bg-orange-600 hover:bg-orange-500 disabled:opacity-30 text-white px-4 md:px-5 py-1.5 md:py-2 rounded-full font-black text-[10px] md:text-[11px] tracking-widest flex items-center gap-1 shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-all whitespace-nowrap"
+  }, "\u7ED3\u675F\u56DE\u5408 ", /*#__PURE__*/React.createElement(ChevronRight, {
+    className: "w-3.5 h-3.5"
+  })) : gameState.status === '\u4FDD\u7559\u624B\u724C' ? /*#__PURE__*/React.createElement("button", {
+    onClick: () => proceedToEndTurn(gameState.selectedToRetain),
+    className: "bg-yellow-500 hover:bg-yellow-400 text-slate-950 px-6 py-2 rounded-full font-black text-[11px] tracking-widest flex items-center gap-1 shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-all animate-pulse"
+  }, "\u786E\u8BA4\u4FDD\u7559 (", gameState.selectedToRetain.length, "/2) ", /*#__PURE__*/React.createElement(ChevronRight, {
+    className: "w-3.5 h-3.5"
+  })) : null)), 
+/*#__PURE__*/React.createElement(React.Fragment, null, gameState.announcement && /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 z-[200] pointer-events-none flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-900 border-2 border-yellow-500/50 rounded-3xl p-8 max-w-md w-full shadow-2xl flex flex-col items-center text-center transform shadow-yellow-900/50"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center text-yellow-400 mb-6 drop-shadow-lg"
+  }, /*#__PURE__*/React.createElement(Trophy, {
+    size: 48
+  })), /*#__PURE__*/React.createElement("h2", {
+    className: "text-3xl font-black tracking-tight text-white mb-2"
+  }, gameState.announcement.title), /*#__PURE__*/React.createElement("p", {
+    className: "text-slate-300 font-medium leading-relaxed"
+  }, gameState.announcement.desc), /*#__PURE__*/React.createElement("button", {
+    className: "mt-8 px-8 py-3 bg-white text-black rounded-full font-bold pointer-events-auto hover:bg-slate-200 transition-colors",
+    onClick: () => setGameState(prev => ({
+      ...prev,
+      announcement: null
+    }))
+  }, "\u7EE7\u7EED")))))));
+}
+
+// Render
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ErrorBoundary, null, React.createElement(App)));
+</script>
+</body>
+</html>

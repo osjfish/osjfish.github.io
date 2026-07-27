@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醉里乾坤 - 水浒猜人物</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&amp;family=Ma+Shan+Zheng&amp;family=Noto+Serif+SC:wght@400;700&amp;display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; overflow: hidden; }
+
+        body {
+            font-family: 'Noto Serif SC', 'SimSun', serif;
+            background: #1a0c08;
+            background-image:
+                radial-gradient(ellipse at 20% 60%, rgba(139, 69, 19, 0.07) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 30%, rgba(212, 165, 116, 0.04) 0%, transparent 50%);
+            color: #d4a574;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 16px;
+            border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+            background: rgba(26, 12, 8, 0.85);
+            flex-shrink: 0;
+        }
+
+        .title-group { display: flex; align-items: baseline; gap: 10px; }
+        .title-group h1 {
+            font-family: 'Ma Shan Zheng', 'ZCOOL XiaoWei', 'STKaiti', cursive;
+            font-size: 1.7em; color: #e8c9a0; letter-spacing: 3px; font-weight: normal; line-height: 1;
+        }
+        .title-group .subtitle { font-size: 0.78em; color: #a0522d; letter-spacing: 3px; }
+        .title-group .poem {
+            font-family: 'ZCOOL XiaoWei', 'STKaiti', cursive;
+            font-size: 0.76em; color: #8b6914; letter-spacing: 2px; font-style: italic;
+        }
+
+        .top-actions { display: flex; align-items: center; gap: 10px; }
+        .btn-mini {
+            font-size: 0.7em; padding: 4px 10px; border-radius: 4px;
+            border: 1px solid rgba(92, 61, 46, 0.3); background: transparent;
+            color: #8b6b4a; cursor: pointer; font-family: inherit; letter-spacing: 1px; transition: all 0.2s;
+        }
+        .btn-mini:hover { border-color: #a0522d; color: #a0522d; }
+
+        .api-toggle {
+            display: flex; align-items: center; gap: 6px; font-size: 0.7em;
+            color: #8b6b4a; cursor: pointer; letter-spacing: 1px; user-select: none;
+        }
+        .api-toggle:hover { color: #c9a87a; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #5c3d2e; display: inline-block; }
+        .status-dot.active { background: #c9a87a; box-shadow: 0 0 4px rgba(201, 168, 122, 0.5); }
+
+        .api-dropdown {
+            position: fixed; top: 38px; right: 16px;
+            background: linear-gradient(180deg, rgba(40, 20, 12, 0.98), rgba(28, 14, 8, 0.98));
+            border: 1px solid rgba(139, 69, 19, 0.4); border-radius: 8px;
+            padding: 12px 14px; width: 270px; display: none; z-index: 100;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+        }
+        .api-dropdown.show { display: block; }
+        .api-dropdown label { display: block; font-size: 0.7em; color: #a0522d; margin-bottom: 3px; letter-spacing: 1px; }
+        .api-dropdown input, .api-dropdown select {
+            width: 100%; padding: 6px 8px; border: 1px solid rgba(92, 61, 46, 0.4); border-radius: 4px;
+            background: rgba(14, 5, 3, 0.9); color: #d4a574; font-family: inherit; font-size: 0.78em; margin-bottom: 8px;
+        }
+        .api-dropdown input:focus, .api-dropdown select:focus { outline: none; border-color: #c9a87a; }
+        .api-dropdown select option { background: #2d1810; color: #d4a574; }
+
+        .main-layout { display: flex; flex: 1; overflow: hidden; padding: 8px 12px; gap: 10px; }
+
+        .side-panel { width: 185px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
+        .panel-box {
+            background: linear-gradient(180deg, rgba(42, 22, 14, 0.85), rgba(32, 16, 10, 0.9));
+            border: 1px solid rgba(139, 69, 19, 0.3); border-radius: 8px; padding: 10px 12px;
+        }
+        .box-title {
+            font-family: 'ZCOOL XiaoWei', 'STKaiti', cursive;
+            font-size: 0.8em; color: #c9a87a; margin-bottom: 8px; letter-spacing: 1px;
+            border-bottom: 1px solid rgba(139, 69, 19, 0.2); padding-bottom: 5px;
+        }
+
+        .wine-card {
+            background: linear-gradient(160deg, rgba(50, 32, 18, 0.9), rgba(35, 20, 10, 0.95));
+            border: 1px solid rgba(92, 61, 46, 0.4); border-radius: 6px; padding: 8px 10px;
+            cursor: pointer; transition: all 0.25s; text-align: left; margin-bottom: 6px;
+        }
+        .wine-card:last-child { margin-bottom: 0; }
+        .wine-card:hover { transform: translateX(3px); border-color: rgba(201, 168, 122, 0.45); }
+        .wine-card.selected {
+            border-color: #c9a87a;
+            background: linear-gradient(160deg, rgba(68, 48, 32, 0.95), rgba(50, 34, 24, 0.95));
+            box-shadow: 0 0 10px rgba(201, 168, 122, 0.1);
+        }
+        .wine-row { display: flex; align-items: center; gap: 8px; }
+        .wine-icon { font-size: 1.5em; flex-shrink: 0; }
+        .wine-info { flex: 1; }
+        .wine-name { font-family: 'ZCOOL XiaoWei', 'STKaiti', cursive; font-size: 0.9em; color: #d4a574; letter-spacing: 1px; line-height: 1.2; }
+        .wine-desc { font-size: 0.66em; color: #8b6b4a; letter-spacing: 1px; }
+
+        .stats-row { display: flex; justify-content: space-around; }
+        .stat-item { text-align: center; }
+        .stat-value { font-family: 'ZCOOL XiaoWei', 'STKaiti', cursive; font-size: 1.2em; color: #c9a87a; line-height: 1.2; }
+        .stat-label { font-size: 0.64em; color: #8b6b4a; letter-spacing: 1px; }
+
+        .chat-panel {
+            flex: 1; background: linear-gradient(180deg, rgba(42, 22, 14, 0.85), rgba(32, 16, 10, 0.9));
+            border: 1px solid rgba(139, 69, 19, 0.3); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 10px 12px; }
+
+        .message { margin-bottom: 8px; padding: 7px 10px; border-radius: 6px; max-width: 85%; line-height: 1.5; font-size: 0.82em; }
+        .msg-ai {
+            background: linear-gradient(135deg, rgba(50, 30, 18, 0.7), rgba(35, 20, 10, 0.7));
+            border: 1px solid rgba(92, 61, 46, 0.2); margin-right: auto; border-bottom-left-radius: 2px;
+        }
+        .msg-user {
+            background: linear-gradient(135deg, rgba(90, 45, 16, 0.6), rgba(62, 30, 10, 0.6));
+            border: 1px solid rgba(201, 168, 122, 0.15); margin-left: auto; border-bottom-right-radius: 2px;
+        }
+        .msg-sys {
+            background: rgba(139, 69, 19, 0.08); border: 1px dashed rgba(139, 69, 19, 0.2);
+            text-align: center; max-width: 100%; font-style: italic; color: #a08060; font-size: 0.76em;
+        }
+        .msg-label { font-size: 0.66em; color: #8b6b4a; margin-bottom: 2px; letter-spacing: 1px; }
+
+        .chat-input-area { border-top: 1px solid rgba(139, 69, 19, 0.2); padding: 8px 10px; }
+        .input-row { display: flex; gap: 6px; margin-bottom: 6px; }
+        .question-input {
+            flex: 1; padding: 7px 10px; border: 1px solid rgba(92, 61, 46, 0.4); border-radius: 4px;
+            background: rgba(14, 5, 3, 0.8); color: #d4a574; font-size: 0.82em; font-family: inherit;
+        }
+        .question-input::placeholder { color: #4a3020; }
+        .question-input:focus { outline: none; border-color: #c9a87a; }
+
+        .btn {
+            padding: 7px 12px; border: none; border-radius: 4px; cursor: pointer;
+            font-size: 0.8em; font-family: inherit; letter-spacing: 1px; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary {
+            background: linear-gradient(135deg, #7a3b14, #5c2d0e); color: #d4a574;
+            border: 1px solid rgba(201, 168, 122, 0.3);
+        }
+        .btn-primary:hover { background: linear-gradient(135deg, #8b4513, #6b3410); }
+        .btn-secondary {
+            background: transparent; color: #a0522d; border: 1px solid rgba(92, 61, 46, 0.4);
+        }
+        .btn-secondary:hover { border-color: #a0522d; }
+
+        .quick-row { display: flex; flex-wrap: wrap; gap: 4px; }
+        .quick-btn {
+            padding: 3px 8px; background: rgba(92, 61, 46, 0.18); border: 1px solid rgba(92, 61, 46, 0.2);
+            border-radius: 12px; color: #9a7a5a; cursor: pointer; font-size: 0.68em;
+            font-family: inherit; letter-spacing: 1px; transition: all 0.15s;
+        }
+        .quick-btn:hover { background: rgba(139, 69, 19, 0.12); border-color: rgba(139, 69, 19, 0.35); color: #c9a87a; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 200;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: linear-gradient(160deg, #3d2817, #2a1a0f);
+            border: 1px solid rgba(201, 168, 122, 0.4); border-radius: 12px;
+            padding: 28px 26px; text-align: center; max-width: 400px; width: 90%;
+        }
+        .modal-icon { font-size: 2.8em; margin-bottom: 8px; }
+        .modal-title { font-family: 'ZCOOL XiaoWei', 'STKaiti', cursive; font-size: 1.2em; color: #c9a87a; margin-bottom: 8px; letter-spacing: 2px; }
+        .modal-desc { color: #a08060; line-height: 1.7; margin-bottom: 16px; font-size: 0.83em; }
+        .modal-desc strong { color: #e8c9a0; font-size: 1.05em; letter-spacing: 2px; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(92, 61, 46, 0.35); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(139, 69, 19, 0.4); }
+
+        .loading {
+            display: inline-block; width: 12px; height: 12px;
+            border: 2px solid rgba(201, 168, 122, 0.2); border-radius: 50%;
+            border-top-color: #c9a87a; animation: spin 0.7s linear infinite;
+            vertical-align: middle; margin-right: 4px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="title-group">
+        <h1>醉里乾坤</h1>
+        <span class="subtitle">- 水浒猜人物 -</span>
+        <span class="poem">醉里乾坤大，壶中日月长</span>
+    </div>
+    <div class="top-actions">
+        <div class="api-toggle" id="apiToggle">
+            <span class="status-dot" id="statusDot"></span>API · 模型
+        </div>
+        <button class="btn-mini" id="btnReset">重置</button>
+    </div>
+</div>
+
+<div class="api-dropdown" id="apiDropdown">
+    <label for="apiKey">DeepSeek API Key</label>
+    <input type="password" id="apiKey" placeholder="输入 API Key">
+    <label for="model">Model</label>
+    <select id="model">
+        <option value="deepseek-chat">V4 Flash</option>
+        <option value="deepseek-reasoner">V4 PRO</option>
+    </select>
+</div>
+
+<div class="main-layout">
+    <div class="side-panel">
+        <div class="panel-box" id="wineBox">
+            <div class="box-title">选择一杯酒</div>
+            <div class="wine-card" data-wine="cold">
+                <div class="wine-row">
+                    <div class="wine-icon">&#x1F376;</div>
+                    <div class="wine-info">
+                        <div class="wine-name">冷酒</div>
+                        <div class="wine-desc">遭遇朝廷不公</div>
+                    </div>
+                </div>
+            </div>
+            <div class="wine-card" data-wine="strong">
+                <div class="wine-row">
+                    <div class="wine-icon">&#x1F376;</div>
+                    <div class="wine-info">
+                        <div class="wine-name">烈酒</div>
+                        <div class="wine-desc">正义凛然</div>
+                    </div>
+                </div>
+            </div>
+            <div class="wine-card" data-wine="poison">
+                <div class="wine-row">
+                    <div class="wine-icon">&#x1F376;</div>
+                    <div class="wine-info">
+                        <div class="wine-name">毒酒</div>
+                        <div class="wine-desc">妥协投降后惨死</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-box">
+            <div class="box-title">战况</div>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-value" id="questionCount">0</div>
+                    <div class="stat-label">提问</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="gameStatus">待开始</div>
+                    <div class="stat-label">状态</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="currentWine">-</div>
+                    <div class="stat-label">酒类</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-panel">
+        <div class="chat-messages" id="chatArea">
+            <div class="message msg-sys">
+                展开右上角「API · 模型」输入 API Key，再选择一杯酒开始游戏
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <div class="input-row">
+                <input type="text" class="question-input" id="questionInput" placeholder="请输入是 / 否问题...">
+                <button class="btn btn-primary" id="btnAsk">提问</button>
+                <button class="btn btn-secondary" id="btnGuess">猜测</button>
+            </div>
+            <div class="quick-row">
+                <button class="quick-btn" data-q="这位人物是男性吗？">是男性吗</button>
+                <button class="quick-btn" data-q="这位人物是梁山好汉吗？">梁山好汉吗</button>
+                <button class="quick-btn" data-q="这位人物武艺高强吗？">武艺高强吗</button>
+                <button class="quick-btn" data-q="这位人物的结局是悲剧吗？">结局悲剧吗</button>
+                <button class="quick-btn" data-q="这位人物被朝廷奸臣陷害过吗？">被朝廷陷害吗</button>
+                <button class="quick-btn" data-q="这位人物最后被招安了吗？">被招安了吗</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="resultModal">
+    <div class="modal-box">
+        <div class="modal-icon" id="resultIcon"></div>
+        <div class="modal-title" id="resultTitle"></div>
+        <div class="modal-desc" id="resultDesc"></div>
+        <button class="btn btn-primary" id="btnPlayAgain">再来一局</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    var STORAGE_KEY_API = 'water_margin_api_key';
+    var STORAGE_KEY_MODEL = 'water_margin_model';
+
+    var CHARACTERS = {
+        cold: [
+            { name: '林冲', desc: '八十万禁军教头，被高俅父子陷害，风雪山神庙手刃仇人后上梁山' },
+            { name: '武松', desc: '景阳冈打虎英雄，为兄报仇却被张都监陷害，血溅鸳鸯楼' },
+            { name: '卢俊义', desc: '河北玉麒麟，被吴用设计骗上梁山，招安后被奸臣毒死' },
+            { name: '杨志', desc: '杨家将后人，失陷花石纲，被高俅赶走，卖刀杀人' },
+            { name: '柴进', desc: '后周皇室后人，仗义疏财却被高廉陷害，刺配沧州' },
+            { name: '花荣', desc: '小李广，清风寨副将，被刘高陷害入狱' },
+            { name: '解珍', desc: '猎户，被毛太公陷害入狱，后被梁山好汉救出' },
+            { name: '解宝', desc: '猎户，与哥哥解珍一同被毛太公陷害入狱' }
+        ],
+        strong: [
+            { name: '鲁智深', desc: '花和尚，三拳打死镇关西救金翠莲，侠肝义胆' },
+            { name: '李逵', desc: '黑旋风，沂岭杀四虎，劫法场，对宋江忠心耿耿' },
+            { name: '史进', desc: '九纹龙，第一个出场的梁山好汉，仗义疏财' },
+            { name: '刘唐', desc: '赤发鬼，冒险送信给晁盖，智取生辰纲的功臣' },
+            { name: '阮小七', desc: '活阎罗，劫取生辰纲，痛恨贪官' },
+            { name: '石秀', desc: '拼命三郎，为杨雄打抱不平，劫法场救卢俊义' },
+            { name: '燕青', desc: '浪子，卢俊义心腹，智勇双全' },
+            { name: '关胜', desc: '大刀，关羽后人，义薄云天' },
+            { name: '朱仝', desc: '美髯公，义释宋江、雷横' },
+            { name: '张顺', desc: '浪里白条，为救宋江被方腊部将射死' }
+        ],
+        poison: [
+            { name: '宋江', desc: '及时雨，梁山之主，一心招安，被赐毒酒而死，死前骗李逵同饮' },
+            { name: '卢俊义', desc: '玉麒麟，招安后征方腊有功，被奸臣在酒中下毒，溺水而死' },
+            { name: '李逵', desc: '黑旋风，对宋江忠心耿耿，被宋江骗饮毒酒致死' },
+            { name: '吴用', desc: '智多星，梁山军师，宋江死后在墓前自缢殉义' },
+            { name: '花荣', desc: '小李广，宋江心腹，宋江死后自缢于墓前' },
+            { name: '关胜', desc: '大刀，征方腊后幸存，醉酒坠马而死' },
+            { name: '呼延灼', desc: '双鞭将，征方腊后幸存，被奸臣所害' }
+        ]
+    };
+
+    var WINE_NAMES = { cold: '冷酒', strong: '烈酒', poison: '毒酒' };
+
+    var currentWine = null;
+    var currentChar = null;
+    var questionCount = 0;
+    var active = false;
+    var history = [];
+
+    function get(id) { return document.getElementById(id); }
+
+    function chatEl() { return get('chatArea'); }
+
+    function scroll() { var c = chatEl(); c.scrollTop = c.scrollHeight; }
+
+    function msgEl(cls, label, text) {
+        var d = document.createElement('div');
+        d.className = 'message ' + cls;
+        var h = '';
+        if (label) h = '<div class="msg-label">' + label + '</div>';
+        d.innerHTML = h + text;
+        chatEl().appendChild(d);
+        scroll();
+        return d;
+    }
+
+    function addSys(t) { msgEl('msg-sys', '', t); }
+    function addUser(t) { msgEl('msg-user', '\u4f60', t); }
+    function addAi(t) { return msgEl('msg-ai', '\u9152\u4e2d\u4ed9', t); }
+
+    function saveSettings() {
+        var k = get('apiKey').value.trim();
+        var m = get('model').value;
+        if (k) localStorage.setItem(STORAGE_KEY_API, k);
+        localStorage.setItem(STORAGE_KEY_MODEL, m);
+    }
+
+    function updateDot() {
+        var dot = get('statusDot');
+        var key = get('apiKey').value.trim();
+        dot.className = 'status-dot' + (key ? ' active' : '');
+    }
+
+    function toggleApi() {
+        var d = get('apiDropdown');
+        d.classList.toggle('show');
+        if (d.classList.contains('show')) get('apiKey').focus();
+    }
+
+    function selectWine(wine) {
+        var apiKey = get('apiKey').value.trim();
+        if (!apiKey) { alert('\u8bf7\u5148\u8f93\u5165 API Key'); return; }
+        saveSettings();
+        var cards = document.querySelectorAll('.wine-card');
+        for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
+        var card = document.querySelector('[data-wine="' + wine + '"]');
+        if (card) card.classList.add('selected');
+        currentWine = wine;
+        var chars = CHARACTERS[wine];
+        currentChar = chars[Math.floor(Math.random() * chars.length)];
+        questionCount = 0;
+        active = true;
+        history = [];
+        get('currentWine').textContent = WINE_NAMES[wine];
+        get('questionCount').textContent = '0';
+        get('gameStatus').textContent = '\u8fdb\u884c\u4e2d';
+        chatEl().innerHTML = '';
+        addSys('\u6e38\u620f\u5f00\u59cb\uff01\u6211\u5df2\u9009\u5b9a\u4e00\u4f4d\u4e0e\u300c' + WINE_NAMES[wine] + '\u300d\u76f8\u5173\u7684\u4eba\u7269\u3002');
+        addAi('\u6211\u5df2\u60f3\u597d\u4e00\u4e2a\u4eba\u7269\uff0c\u8bf7\u901a\u8fc7\u662f / \u5426\u95ee\u9898\u6765\u731c\u51fa\u4ed6\u662f\u8c01\u3002');
+        get('questionInput').focus();
+        get('apiDropdown').classList.remove('show');
+    }
+
+    async function askQuestion() {
+        var q = get('questionInput').value.trim();
+        if (!q || !active) return;
+        var apiKey = get('apiKey').value.trim();
+        var model = get('model').value;
+        if (!apiKey) { alert('\u8bf7\u5148\u8f93\u5165 API Key'); return; }
+        get('questionInput').value = '';
+        questionCount++;
+        get('questionCount').textContent = questionCount;
+        addUser(q);
+        history.push({ role: 'user', content: q });
+        var load = addAi('<span class="loading"></span> \u601d\u8003\u4e2d...');
+        try {
+            var sys = buildSys();
+            var resp = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [{ role: 'system', content: sys }].concat(history),
+                    temperature: 0.7,
+                    max_tokens: 50
+                })
+            });
+            if (!resp.ok) throw new Error('API request failed');
+            var data = await resp.json();
+            var aiResp = data.choices[0].message.content.trim();
+            load.remove();
+            addAi(aiResp);
+            history.push({ role: 'assistant', content: aiResp });
+            if (aiResp.indexOf('\u731c\u5bf9\u4e86') !== -1) {
+                setTimeout(function() { showResult(true); }, 800);
+            }
+        } catch (e) {
+            load.remove();
+            addAi('\u51fa\u9519\uff1a' + e.message);
+        }
+    }
+
+    function buildSys() {
+        var cl = CHARACTERS[currentWine].map(function(c) { return c.name; }).join('\u3001');
+        return '\u4f60\u662f\u6c34\u6d52\u731c\u4eba\u7269\u4e3b\u6301\u4eba\u300c\u9152\u4e2d\u4ed9\u300d\u3002\n' +
+            '\u9152\u7c7b\uff1a' + WINE_NAMES[currentWine] + '\n' +
+            '\u4f60\u9009\u7684\u4eba\u7269\uff1a' + currentChar.name + '\n\n' +
+            '\u3010\u89c4\u5219\u3011\u53ea\u56de\u7b54\u300c\u662f\u300d\u6216\u300c\u4e0d\u662f\u300d\uff0c\u4e0d\u8bf4\u4efb\u4f55\u5176\u4ed6\u5185\u5bb9\u3002\n' +
+            '\u731c\u5bf9\u65f6\u56de\u7b54\u300c\u4f60\u731c\u5bf9\u4e86\uff01\u6b63\u662f' + currentChar.name + '\uff01\u300d\n\n' +
+            '\u53ef\u9009\u4eba\u7269\uff1a' + cl;
+    }
+
+    function quickAsk(q) {
+        get('questionInput').value = q;
+        askQuestion();
+    }
+
+    function guessAnswer() {
+        if (!active) { addSys('\u8bf7\u5148\u9009\u62e9\u4e00\u676f\u9152\u5f00\u59cb\u6e38\u620f'); return; }
+        var g = prompt('\u8bf7\u8f93\u5165\u4f60\u731c\u6d4b\u7684\u4eba\u7269\u540d\u5b57\uff1a');
+        if (!g) return;
+        questionCount++;
+        get('questionCount').textContent = questionCount;
+        addUser('\u6211\u731c\u662f\uff1a' + g);
+        if (g === currentChar.name) {
+            addAi('\u4f60\u731c\u5bf9\u4e86\uff01\u6b63\u662f' + currentChar.name + '\uff01');
+            setTimeout(function() { showResult(true); }, 800);
+        } else {
+            addAi('\u4e0d\u662f');
+        }
+    }
+
+    function showResult(ok) {
+        active = false;
+        get('resultIcon').textContent = ok ? '\uD83C\uDF89' : '';
+        get('resultTitle').textContent = ok ? '\u606d\u559c\u731c\u5bf9\u4e86\uff01' : '\u6e38\u620f\u7ed3\u675f';
+        get('resultDesc').innerHTML = '<strong>' + currentChar.name + '</strong><br><br>' + currentChar.desc + '<br><br><em>\u4f60\u7528\u4e86 ' + questionCount + ' \u6b21\u63d0\u95ee</em>';
+        get('resultModal').classList.add('show');
+        get('gameStatus').textContent = '\u5df2\u7ed3\u675f';
+    }
+
+    function resetGame() {
+        get('resultModal').classList.remove('show');
+        currentChar = null;
+        currentWine = null;
+        active = false;
+        var cards = document.querySelectorAll('.wine-card');
+        for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
+        chatEl().innerHTML = '';
+        addSys('\u5c55\u5f00\u53f3\u4e0a\u89d2\u300cAPI \u00b7 \u6a21\u578b\u300d\u8f93\u5165 API Key\uff0c\u518d\u9009\u62e9\u4e00\u676f\u9152\u5f00\u59cb\u6e38\u620f');
+        get('questionCount').textContent = '0';
+        get('gameStatus').textContent = '\u5f85\u5f00\u59cb';
+        get('currentWine').textContent = '-';
+    }
+
+    function resetAll() {
+        if (confirm('\u786e\u5b9a\u8981\u91cd\u7f6e\u5168\u90e8\u6570\u636e\u5417\uff1f')) {
+            localStorage.removeItem(STORAGE_KEY_API);
+            localStorage.removeItem(STORAGE_KEY_MODEL);
+            get('apiKey').value = '';
+            get('model').value = 'deepseek-chat';
+            updateDot();
+            resetGame();
+        }
+    }
+
+    function init() {
+        var savedKey = localStorage.getItem(STORAGE_KEY_API);
+        var savedModel = localStorage.getItem(STORAGE_KEY_MODEL);
+        if (savedKey) get('apiKey').value = savedKey;
+        if (savedModel) get('model').value = savedModel;
+        updateDot();
+
+        get('apiToggle').addEventListener('click', toggleApi);
+        get('btnReset').addEventListener('click', resetAll);
+        get('btnAsk').addEventListener('click', askQuestion);
+        get('btnGuess').addEventListener('click', guessAnswer);
+        get('btnPlayAgain').addEventListener('click', resetGame);
+
+        var inp = get('questionInput');
+        inp.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') askQuestion();
+        });
+
+        get('apiKey').addEventListener('input', function() { saveSettings(); updateDot(); });
+        get('model').addEventListener('change', saveSettings);
+
+        var wineCards = document.querySelectorAll('.wine-card');
+        for (var i = 0; i < wineCards.length; i++) {
+            wineCards[i].addEventListener('click', function() {
+                selectWine(this.getAttribute('data-wine'));
+            });
+        }
+
+        var qbs = document.querySelectorAll('.quick-btn');
+        for (var j = 0; j < qbs.length; j++) {
+            qbs[j].addEventListener('click', function() {
+                quickAsk(this.getAttribute('data-q'));
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            var dd = get('apiDropdown');
+            var at = get('apiToggle');
+            if (dd.classList.contains('show') && !dd.contains(e.target) && e.target !== at && !at.contains(e.target)) {
+                dd.classList.remove('show');
+            }
+        });
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>

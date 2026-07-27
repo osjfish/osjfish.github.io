@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>明确概念的内涵 - 《中国人失掉自信力了吗》课件</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        .reveal-box {
+            display: inline-block;
+            min-width: 60px;
+            padding: 0 8px;
+            text-align: center;
+            border-bottom: 2px solid #8a1f1f;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: rgba(138, 31, 31, 0.1);
+            color: transparent;
+            user-select: none;
+        }
+        .reveal-box.revealed {
+            color: #8a1f1f;
+            background-color: transparent;
+            font-weight: bold;
+        }
+    </style>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js" crossorigin="anonymous"></script>
+    <script>
+        window.addEventListener('error', function(e) {
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;z-index:9999;';
+            errDiv.innerText = 'Error: ' + (e.message || e.error);
+            document.body.appendChild(errDiv);
+        });
+    </script>
+</head>
+<body class="bg-[#f4f1eb]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const Settings = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+        const RefreshCw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>;
+        const RotateCcw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 2 3 10 11 10"></polyline><path d="M3 10a9 9 0 1 1 5 8"></path></svg>;
+        const ChevronDown = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 12 15 18 9"></polyline></svg>;
+        const Menu = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
+        const XInfo = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+
+        const INITIAL_ARGUMENT = `近年来，国内互联网行业的许多热门商业模式，从团购、网约车到短视频、生成式人工智能，最初都能在海外找到原型。一些国产手机品牌在外观设计上与国际大牌高度相似，某些综艺节目也被指抄袭海外版权。这些现象被反复报道后，不少人据此断言：现在的中国人只会抄袭，根本没有自主创新能力。`;
+
+        function useStickyState(defaultValue, key) {
+            const [value, setValue] = useState(() => {
+                const stickyValue = window.localStorage.getItem(key);
+                return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+            });
+            useEffect(() => {
+                window.localStorage.setItem(key, JSON.stringify(value));
+            }, [key, value]);
+            return [value, setValue];
+        }
+
+        const RevealWord = ({ word }) => {
+            const [revealed, setRevealed] = useState(false);
+            return (
+                <span 
+                    className={`reveal-box mx-1 ${revealed ? 'revealed' : ''}`}
+                    onClick={() => setRevealed(true)}
+                    title="点击显示答案"
+                >
+                    {word}
+                </span>
+            );
+        };
+
+        const Accordion = ({ title, children, defaultOpen = false }) => {
+            const [open, setOpen] = useState(defaultOpen);
+            return (
+                <div className="border border-[#d3c8ba] bg-white mb-4 shadow-sm">
+                    <button 
+                        className="w-full px-6 py-4 flex justify-between items-center bg-[#fcfbf9] hover:bg-[#f4f1eb] transition-colors"
+                        onClick={() => setOpen(!open)}
+                    >
+                        <h3 className="text-lg font-bold text-[#2c2420]">{title}</h3>
+                        <ChevronDown className={`w-5 h-5 text-[#8a1f1f] transition-transform ${open ? 'rotate-180' : ''}`} />
+                    </button>
+                    {open && (
+                        <div className="p-6 border-t border-[#d3c8ba] text-[#3d312a] leading-relaxed text-lg">
+                            {children}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        function App() {
+            const [apiKey, setApiKey] = useStickyState('', 'luxun-apikey');
+            const [argument, setArgument] = useStickyState(INITIAL_ARGUMENT, 'luxun-argument');
+            const [response, setResponse] = useStickyState('', 'luxun-response');
+            const [feedback, setFeedback] = useStickyState('', 'luxun-feedback');
+            const [model, setModel] = useStickyState('deepseek-v4-flash', 'luxun-model');
+            const [loading, setLoading] = useState(false);
+            const [generating, setGenerating] = useState(false);
+            const [activeTab, setActiveTab] = useState(0);
+            const [entered, setEntered] = useState(false);
+            const [sidebarOpen, setSidebarOpen] = useState(true);
+
+            const handleGenerateFallacy = async () => {
+                if (!apiKey.trim()) {
+                    alert("请先输入 DeepSeek API Key");
+                    return;
+                }
+                setGenerating(true);
+                setFeedback('');
+                setResponse('');
+                try {
+                    const systemPrompt = `你是一个逻辑学老师。请仿照鲁迅《中国人失掉自信力了吗》中敌方的论点结构，生成一段生活中常见的逻辑谬误。
+要求：
+1. 结构必须是：列举几个真实的、具有当代时代特征的客观事实作为迷惑性论据，最后得出一个荒谬的论点（结论只能有一句）。总字数在30到100字之间。
+2. 论点中必须包含2-3个值得“厘清内涵”的核心概念（比如类似“中国人失去自信力了”中的“中国人”、“失掉”、“自信力”）。
+3. 谬论的错误根源必须是模糊了这些核心概念的内涵：可能是以偏概全（用小部分人代表全体）、可能是前提不成立（比如谈“失去”但其实从未“拥有”）、或是偷换了能力或状态的定义。
+4. 只要学生能敏锐地抓出这几个概念，并澄清其准确定义、范围或前提，就能彻底推翻该谬论。
+5. 绝对不能包含违反道德、法律、公序良俗或不适合青少年阅读的内容。
+6. 绝不要提供任何关于如何反驳的提示或解析，不要特意指出哪句是论点论据。
+7. 生成的内容要有一定的迷惑性，最好具有时代特征。
+直接输出这段话本身，不要输出其他多余的解释、标题或前缀。`;
+
+                    const fetchResult = await fetch('https://api.deepseek.com/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [{ role: 'user', content: systemPrompt }],
+                            ...(model === 'deepseek-v4-pro' ? { reasoning_effort: 'high' } : { temperature: 0.8 })
+                        })
+                    });
+
+                    if (!fetchResult.ok) {
+                        const errObj = await fetchResult.json().catch(() => ({}));
+                        throw new Error(`DeepSeek API Error: ${fetchResult.status} - ${errObj.error?.message || fetchResult.statusText}`);
+                    }
+
+                    const data = await fetchResult.json();
+                    setArgument(data.choices[0].message.content);
+                } catch (err) {
+                    alert(`网络出了些问题：${err.message}`);
+                } finally {
+                    setGenerating(false);
+                }
+            };
+
+            const handleSubmit = async () => {
+                if (!response.trim() || loading) return;
+                if (!apiKey.trim()) {
+                    alert("请先输入 DeepSeek API Key");
+                    return;
+                }
+                setLoading(true);
+                setFeedback('');
+                try {
+                    const systemPrompt = `你是鲁迅。
+学生正在学习用“明确概念的内涵”（澄清概念的定义、范围、前提等）这一逻辑思维工具来反驳谬论。
+他们面临的错误论点及论据是：
+${argument}
+
+你的任务是：
+对学生的反驳进行百分制打分。
+
+【评分依据】
+请先在内心（或利用模型的思维演算能力）执行以下步骤，以确立评分基准：
+1. 罗列谬论中有哪些需要厘清的核心概念。
+2. 分别明确这些概念的真实内涵是什么，以及谬论中是如何偷换、收窄或模糊了它们的内涵的。
+3. 思考：基于明确后的概念内涵，应如何一针见血地驳倒对方。
+对照以上3点与学生的反驳进行比对，遵循以下评分规则：
+- 【60-69分】：学生有运用“明确概念的内涵”这个思想工具的“意识”，哪怕只模模糊糊指出了一个概念。
+- 【70-79分】：能针对性地解剖谬论中的一两个具体概念内涵，指出了部分荒谬之处。
+- 【80-89分】：找准了大部分主要核心概念的漏洞，并基于内涵逻辑进行了有力反驳。
+- 【90-100分】：对所有痛点概念都进行了精准剖析，内涵澄明，逻辑严密，无懈可击。
+给分请客观，但应当温和宽厚。
+
+【回复结构要求】
+回复必须且仅包含以下两部分（绝不输出你的打分思考过程或“概念列表”等）：
+1. 第一行必须且只能是分数数字，格式必须严格为“【得分：XX分】”。
+2. 第二部分是批语。必须使用极具鲁迅色彩的语言风格（冷峻、深沉、带些反讽、语言精炼，适当使用如“大约”、“倒是”、“其实”、“罢了”等半文辞）。在批语中，要融合你先前思考的概念内涵，犀利地指出学生的反驳好在哪里，坏在哪里（遗漏了哪些该厘清的概念，或者哪个概念的内涵没讲透亮，应当如何基于概念内涵去反驳才算通透）。莫作多余的客套。`;
+
+                    const messages = [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: `【学生的反驳】：${response}` }
+                    ];
+
+                    const fetchResult = await fetch('https://api.deepseek.com/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: messages,
+                            ...(model === 'deepseek-v4-pro' ? { reasoning_effort: 'high' } : { temperature: 0.7 })
+                        })
+                    });
+
+                    if (!fetchResult.ok) {
+                        const errObj = await fetchResult.json().catch(() => ({}));
+                        throw new Error(`DeepSeek API Error: ${fetchResult.status} - ${errObj.error?.message || fetchResult.statusText}`);
+                    }
+
+                    const data = await fetchResult.json();
+                    setFeedback(data.choices[0].message.content);
+                } catch (err) {
+                    setFeedback(`先生有言：出了些岔子，怕是网络断绝了。${err.message}`);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const TABS = [
+                { id: 0, title: '课文原文' },
+                { id: 1, title: '基础重温' },
+                { id: 2, title: '概念辨析' },
+                { id: 3, title: '实战演练' },
+                { id: 4, title: '课后拓展' },
+                { id: 5, title: '系统设置' }
+            ];
+
+            if (!entered) {
+                return (
+                    <div 
+                        className="min-h-screen bg-[#1f1a17] text-[#f4f1eb] font-serif flex flex-col justify-center items-center cursor-pointer relative overflow-hidden"
+                        onClick={() => setEntered(true)}
+                    >
+                        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #3d312a 20%, transparent 20%), radial-gradient(circle, #3d312a 20%, transparent 20%)', backgroundSize: '10px 10px', backgroundPosition: '0 0, 5px 5px' }}></div>
+                        
+                        <div className="z-10 flex flex-col items-center space-y-8 p-8 md:p-16 border-4 border-[#8a1f1f] bg-[#1f1a17] shadow-[20px_20px_0_0_#8a1f1f] transition-transform hover:-translate-y-2 hover:shadow-[24px_24px_0_0_#8a1f1f] max-w-[90vw]">
+                            <svg className="w-48 h-48 sm:w-64 sm:h-64 mb-6 bg-[#f4f1eb] p-0 border-2 border-[#1f1a17] shadow-[6px_6px_0_0_#3d312a] rounded-sm" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="200" height="200" fill="#f4f1eb"/>
+                                
+                                <g fill="#1f1a17">
+                                    {/* 烟斗斗钵 */}
+                                    <path d="M 50 85 L 100 85 L 95 130 C 93 155 65 160 50 140 C 42 128 45 100 50 85 Z" />
+                                    <rect x="40" y="75" width="70" height="12" rx="4" />
+                                    
+                                    {/* 烟斗柄 */}
+                                    <path d="M 80 140 C 120 165 155 135 170 120 L 175 115 C 180 110 172 102 165 108 L 140 130 C 120 145 95 150 80 130 Z" />
+                                </g>
+
+                                {/* 烟雾 */}
+                                <path d="M 75 60 C 60 30 110 30 85 5" stroke="#8a1f1f" strokeWidth="8" strokeLinecap="round" fill="none" opacity="0.8" />
+                                <path d="M 50 50 C 40 25 75 20 60 5" stroke="#1f1a17" strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.6" />
+                                <path d="M 100 55 C 90 30 125 25 110 10" stroke="#1f1a17" strokeWidth="6" strokeLinecap="round" fill="none" opacity="0.7" />
+                            </svg>
+                            
+                            <div className="text-center space-y-4">
+                                <h1 className="text-4xl sm:text-6xl font-black tracking-[0.2em] text-[#f4f1eb]" style={{ textShadow: '4px 4px 0 #8a1f1f' }}>
+                                    且介亭
+                                </h1>
+                                <p className="text-xl sm:text-2xl font-bold tracking-widest text-[#8a1f1f]">
+                                    《中国人失掉自信力了吗》
+                                </p>
+                                <div className="mt-8 pt-6 border-t-2 border-[#3d312a] flex items-center justify-center animate-pulse text-[#bbaea0]">
+                                    <span className="tracking-widest">点击开启思辨之旅</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="absolute bottom-6 right-6 text-right text-sm text-[#a2988b] tracking-widest font-medium z-10">
+                            <p className="mb-1">武汉市第十一中学</p>
+                            <p>喻业伟</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col md:flex-row h-screen font-serif bg-[#f4f1eb] text-[#1f1a17] overflow-hidden">
+                    {/* Header for mobile when sidebar is closed */}
+                    {!sidebarOpen && (
+                        <div className="md:hidden flex items-center p-4 border-b-2 border-[#d3c8ba] bg-[#fcfbf9] z-30">
+                            <button onClick={() => setSidebarOpen(true)} className="p-2 text-[#2c2420] hover:bg-[#eae5db] transition-colors rounded-sm shadow-sm border border-[#d3c8ba]">
+                                <Menu className="w-6 h-6" />
+                            </button>
+                            <h1 className="ml-4 font-black tracking-widest text-[#2c2420]">且介亭</h1>
+                        </div>
+                    )}
+                    
+                    {/* Persistent Toggle Button for Desktop */}
+                    <div className="hidden md:flex absolute top-6 left-6 z-30">
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 text-[#2c2420] transition-colors rounded-sm shadow-sm border border-[#d3c8ba] ${sidebarOpen ? 'bg-[#fcfbf9] hover:bg-[#eae5db]' : 'bg-[#fcfbf9] hover:bg-[#eae5db]'}`}>
+                            {sidebarOpen ? <XInfo className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                        </button>
+                    </div>
+
+                    {/* Sidebar */}
+                    {sidebarOpen && (
+                        <aside className="w-full md:w-72 border-b-2 md:border-b-0 md:border-r-2 border-[#d3c8ba] bg-[#fcfbf9] flex-shrink-0 flex flex-col z-20 transition-all duration-300">
+                            <div className="p-5 md:p-8 md:pt-20 border-b-2 border-[#d3c8ba] relative">
+                                <div className="flex justify-between items-start md:hidden mb-4">
+                                    <h1 className="font-black tracking-widest text-[#2c2420] text-xl">且介亭</h1>
+                                    <button onClick={() => setSidebarOpen(false)} className="p-1 text-[#2c2420] hover:bg-[#eae5db] transition-colors rounded-sm">
+                                        <XInfo className="w-6 h-6" />
+                                    </button>
+                                </div>
+                                <h1 className="text-2xl md:text-3xl font-black tracking-widest text-[#2c2420] mb-3 leading-tight">
+                                    《中国人失掉自信力了吗》
+                                </h1>
+                                <p className="text-base md:text-lg text-[#8a1f1f] font-bold">—— 明确概念的内涵</p>
+                            </div>
+                            <nav className="flex-1 px-4 py-4 md:p-6 flex md:flex-col overflow-x-auto md:overflow-y-auto space-x-2 md:space-x-0 md:space-y-4 shadow-[inset_0_-10px_10px_-10px_rgba(0,0,0,0.05)] md:shadow-none">
+                                {TABS.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => {
+                                            setActiveTab(tab.id);
+                                            if(window.innerWidth < 768) setSidebarOpen(false);
+                                        }}
+                                        className={`whitespace-nowrap px-6 py-3 md:py-4 text-base md:text-xl font-bold transition-all border-2 border-transparent ${activeTab === tab.id ? 'bg-[#2c2420] text-[#f4f1eb]' : 'text-[#7d6c5d] hover:border-[#d3c8ba] hover:bg-[#eae5db]'} md:text-left`}
+                                    >
+                                        {tab.title}
+                                    </button>
+                                ))}
+                            </nav>
+                        </aside>
+                    )}
+
+                    {/* Main Content */}
+                    <main className={`flex-1 overflow-y-auto w-full p-6 md:p-10 lg:p-16 pb-32 relative text-lg bg-[#f4f1eb] ${!sidebarOpen ? 'md:pl-24' : ''}`}>
+                        <div className="max-w-[1000px] mx-auto flex flex-col h-full">
+
+                        {/* 0. 课文原文 */}
+                        {activeTab === 0 && (
+                            <section className="space-y-6 animate-in fade-in duration-300">
+                                <h2 className="text-2xl font-bold border-l-4 border-[#8a1f1f] pl-4 flex items-center">
+                                    0. 课文原文
+                                </h2>
+                                <div className="bg-white border-2 border-[#d3c8ba] p-6 md:p-10 shadow-sm leading-relaxed text-[#2c2420]">
+                                    <h3 className="text-2xl font-bold text-center mb-2">中国人失掉自信力了吗</h3>
+                                    <p className="text-center font-bold mb-8">鲁迅</p>
+                                    <div className="space-y-4 text-justify indent-8">
+                                        <p>从公开的文字上看起来：两年以前，我们总自夸着“地大物博”，是事实；不久就不再自夸了，只希望着国联，也是事实；现在是既不夸自己，也不信国联，改为一味求神拜佛，怀古伤今了——却也是事实。</p>
+                                        <p>于是有人慨叹曰：中国人失掉自信力了。</p>
+                                        <p>如果单据这一点现象而论，自信其实是早就失掉了的。先前信“地”，信“物”，后来信“国联”，都没有相信过“自己”。假使这也算一种“信”，那也只能说中国人曾经有过“他信力”，自从对国联失望之后，便把这他信力都失掉了。</p>
+                                        <p>失掉了他信力，就会疑，一个转身，也许能够只相信了自己，倒是一条新生路，但不幸的是逐渐玄虚起来了。信“地”和“物”，还是切实的东西，国联就渺茫，不过这还可以令人不久就省悟到依赖它的不可靠。一到求神拜佛，可就玄虚之至了，有益或是有害，一时就找不出分明的结果来，它可以令人更长久的麻醉着自己。</p>
+                                        <p>中国人现在是在发展着“自欺力”。</p>
+                                        <p>“自欺”也并非新东西，只不过日见其明显，笼罩了一切罢了。然而，在这笼罩之下，我们有并不失掉自信力的中国人在。</p>
+                                        <p>我们从古以来，就有埋头苦干的人，有拼命硬干的人，有为民请命的人，有舍身求法的人，……虽是等于为帝王将相作家谱的所谓“正史”，也往往掩不住他们的光耀，这就是中国的脊梁。</p>
+                                        <p>这一类的人们，也何尝少呢？他们有确信，不自欺；他们在前仆后继的战斗，不过一面总在被摧残，被抹杀，消灭于黑暗中，不能为大家所知道罢了。说中国人失掉了自信力，用以指一部分人则可，倘若加于全体，那简直是诬蔑。</p>
+                                        <p>要论中国人，必须不被搽在表面的自欺欺人的脂粉所诓骗，却看看他的筋骨和脊梁。自信力的有无，状元宰相的文章是不足为据的，要自己去看地底下。</p>
+                                        <p className="text-right p-4">九月二十五日</p>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 1. 基础重温 */}
+                        {activeTab === 1 && (
+                            <section className="space-y-6 animate-in fade-in duration-300">
+                                <h2 className="text-2xl font-bold border-l-4 border-[#8a1f1f] pl-4 flex items-center">
+                                    1. 基础重温
+                                </h2>
+                                <div className="space-y-4">
+                                    <Accordion title="问题 1">
+                                        <p className="font-bold mb-2">上节课我们理清了驳论文先破后立的论证结构，概括段意时，我们在7、8、9三个自然段的概括中遇到了分歧。请回答：概括段意时不仅要概括这一段的意思，还要注意什么？</p>
+                                        <p><RevealWord word="段落之间的联系" /></p>
+                                    </Accordion>
+                                    <Accordion title="问题 2">
+                                        <p className="font-bold mb-2">议论文三要素是什么？</p>
+                                        <p><RevealWord word="论点" />、<RevealWord word="论据" />、<RevealWord word="论证" /></p>
+                                    </Accordion>
+                                    <Accordion title="问题 3">
+                                        <p className="font-bold mb-2">《中国人失掉自信力了吗》属于哪种议论文体？其基本结构分别对应哪几个自然段？</p>
+                                        <p>属于 <RevealWord word="驳论文" />。</p>
+                                        <p>结构：先 <RevealWord word="引" />，再 <RevealWord word="破" />，然后 <RevealWord word="立" />。</p>
+                                        <p>对应：<RevealWord word="1-2" /> 段，<RevealWord word="3-5" /> 段，<RevealWord word="6-9" /> 段。</p>
+                                    </Accordion>
+                                    <Accordion title="问题 4">
+                                        <p className="font-bold mb-2">文中的敌论点是什么？支撑其论点的论据是什么？</p>
+                                        <p>敌论点：<RevealWord word="中国人失掉自信力了" /></p>
+                                        <p>论据：<RevealWord word="信地，信物，信国联，求神拜佛" /></p>
+                                    </Accordion>
+                                    <Accordion title="问题 5">
+                                        <p className="font-bold mb-2">鲁迅先生的观点是什么？支撑其论点的论据是什么？</p>
+                                        <p>观点：<RevealWord word="我们有并不失掉自信力的中国人在" /></p>
+                                        <p>论据：<RevealWord word="从古至今的中国脊梁" /></p>
+                                    </Accordion>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 2. 核心概念辨析 */}
+                        {activeTab === 2 && (
+                            <section className="space-y-6 animate-in fade-in duration-300">
+                                <h2 className="text-2xl font-bold border-l-4 border-[#8a1f1f] pl-4 flex items-center">
+                                    2. 核心概念辨析
+                                </h2>
+                                <div className="space-y-4 text-lg">
+                                    
+                                    <Accordion title="【引导】本节课核心目标">
+                                        <p className="text-[#8a1f1f] font-bold p-2">请大家重读文章开头这部分。鲁迅先生连说三句“是事实”，承认了对方所描述的现象。那问题来了：对方的论据是真的，为什么对方的论点依然是错误的呢？面对生活中那些错误的观点，我们又该如何进行思辨和反驳？这节课，我们就来掌握一个有力的思维工具——明确概念的内涵。</p>
+                                    </Accordion>
+                                    
+                                    <Accordion title="（1）找概念">
+                                        <p className="font-bold mb-2">这句话中，有几个核心概念需要我们去明确？</p>
+                                        <p>论点：中国人失掉自信力了。</p>
+                                        <p className="mt-2 text-[#8a1f1f] font-bold">核心概念：<RevealWord word="中国人" />、<RevealWord word="失掉" />、<RevealWord word="自信力" /></p>
+                                    </Accordion>
+
+                                    <Accordion title="（2）定先后">
+                                        <p className="font-bold mb-4">这三者中，我们应该按什么顺序来思考？为什么？</p>
+                                        <p><strong className="text-[#8a1f1f]">1. “<RevealWord word="自信力" />”：</strong><RevealWord word="因为它是这场论战的基础话题。" /></p>
+                                        <p><strong className="text-[#8a1f1f]">2. “<RevealWord word="失掉" />”：</strong><RevealWord word="因为它和“自信力”紧密相连。" /></p>
+                                        <p><strong className="text-[#8a1f1f]">3. “<RevealWord word="中国人" />”：</strong><RevealWord word="这是最重要、最有力量的回击。" /></p>
+                                    </Accordion>
+
+                                    <Accordion title="（3）明确内涵，基于内涵反驳">
+                                        <p className="mb-2 font-bold text-[#8a1f1f]">明确一个概念，就是想清楚它“是什么”：什么是“自信力”？</p>
+                                        <p className="mb-4"><RevealWord word="自信力分为两个方面：一个是“相信”，一个是“自己”。" /></p>
+                                        <hr className="my-4 border-[#d3c8ba]" />
+                                        <p className="font-bold mb-2 mt-4 text-[#8a1f1f]">鲁迅先生是如何基于对自信力这一概念的理解来反驳呢？</p>
+                                        <p>针对“<RevealWord word="自己" />”，鲁迅指出<RevealWord word="“地大物博”和“国联”不是“自己”，拥有的是“他信力”。" /></p>
+                                        <p>针对“<RevealWord word="相信" />”，鲁迅指出<RevealWord word="“求神拜佛”根本不是“相信”，拥有的是“自欺力”。" /></p>
+                                    </Accordion>
+
+                                    <div className="ml-4 md:ml-8 pl-4 lg:pl-6 border-l-4 border-[#e63946]/30 space-y-4">
+                                        <Accordion title="【追问】手法赏析">
+                                            <p className="font-bold mb-2">鲁迅从“自信力”仿造出了他信力、自欺力两个词，这种手法好在哪里？</p>
+                                            <p className="mt-1"><RevealWord word="一字之差，精准戳破对方逻辑谬误，极具讽刺力量。" /></p>
+                                            <p className="mt-1">可以看出文章特点：<RevealWord word="深刻" />（切中要害）、<RevealWord word="精悍" />（语言凝练）。</p>
+                                        </Accordion>
+
+                                        <Accordion title="【小组讨论任务】解析“失掉”和“中国人”">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full border-collapse border border-[#d3c8ba] bg-white text-center">
+                                                    <thead>
+                                                        <tr className="bg-[#f4f1eb]">
+                                                            <th className="border border-[#d3c8ba] p-2">概念</th>
+                                                            <th className="border border-[#d3c8ba] p-2">内涵</th>
+                                                            <th className="border border-[#d3c8ba] p-2">反驳</th>
+                                                            <th className="border border-[#d3c8ba] p-2">结论</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td className="border border-[#d3c8ba] p-3 font-bold">自信力</td>
+                                                            <td className="border border-[#d3c8ba] p-3">相信自己的力量</td>
+                                                            <td className="border border-[#d3c8ba] p-3">“地、物、国联”不是自己<br/>“求神拜佛”不是相信</td>
+                                                            <td className="border border-[#d3c8ba] p-3">根本没有“自信力”</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="border border-[#d3c8ba] p-3 font-bold">失掉</td>
+                                                            <td className="border border-[#d3c8ba] p-3"><RevealWord word="失去原有的东西" /></td>
+                                                            <td className="border border-[#d3c8ba] p-3"><RevealWord word="原有的是他信力，而非自信力" /></td>
+                                                            <td className="border border-[#d3c8ba] p-3"><RevealWord word="无所谓“失掉”自信力" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="border border-[#d3c8ba] p-3 font-bold">中国人</td>
+                                                            <td className="border border-[#d3c8ba] p-3"><RevealWord word="生长在中国的人" /></td>
+                                                            <td className="border border-[#d3c8ba] p-3"><RevealWord word="对方说的只是一部分中国人" /></td>
+                                                            <td className="border border-[#d3c8ba] p-3"><RevealWord word="有并不失掉自信力的中国人在" /></td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </Accordion>
+
+                                        <Accordion title="【追问】关于“失掉”与“中国人”">
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <p className="font-bold">“失掉”和“没有”的区别？</p>
+                                                    <p className="mt-1"><RevealWord word="失掉的前提是曾经拥有，没有则不需要这个前提。" /></p>
+                                                </div>
+                                                <hr className="border-[#d3c8ba]" />
+                                                <div>
+                                                    <p className="font-bold">对方说的那些人，曾经拥有过真正的自信力吗？</p>
+                                                    <p className="mt-1"><RevealWord word="没有。他们拥有的只是他信力。" /></p>
+                                                </div>
+                                                <hr className="border-[#d3c8ba]" />
+                                                <div>
+                                                    <p className="font-bold">同样是中国人，为什么对方说的人不能代表全体，而脊梁可以代表？</p>
+                                                    <p className="mt-1"><RevealWord word="一是人数够（脊梁是沉默的大多数），二是力量足（脊梁决定了中华民族的存续）。" /></p>
+                                                </div>
+                                            </div>
+                                        </Accordion>
+                                    </div>
+
+                                    <Accordion title="（4）回顾与总结：为什么论据真，论点却是错的？">
+                                        <p className="font-bold mb-4">三个概念拆解完了。回到课初的疑问——对方的论据是真的，为什么论点却是错的？请用一段话总结。</p>
+                                        <p className="text-justify indent-8">
+                                            <RevealWord word="对方说的自信力不是真正的自信力，失掉的前提不成立，中国人不能用少数代表全体。" />
+                                            所以论据虽然是真的，但无法支撑其论点。我们全程没有否定事实，而是推翻了 <RevealWord word="从论据到论点的论证逻辑" />。
+                                        </p>
+                                        <p className="border-t border-[#d3c8ba] mt-4 pt-4 text-[#8a1f1f] font-bold">
+                                            【小结】这种抓住核心概念、逐一明确其内涵的方法，让我们在不否定事实的情况下，拆穿了对方的论证。这就是“明确概念的内涵”这个思维工具的力量。它是一把用来冷静分析似是而非论断的手术刀。
+                                        </p>
+                                    </Accordion>
+
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 3. 迁移运用与升华 */}
+                        {activeTab === 3 && (
+                            <section className="space-y-6 animate-in fade-in duration-300">
+                                <h2 className="text-2xl font-bold border-l-4 border-[#8a1f1f] pl-4 flex items-center">
+                                    3. 迁移运用与升华
+                                </h2>
+                                
+                                <Accordion title="【引导】小试牛刀" defaultOpen={true}>
+                                    <p className="text-[#8a1f1f] font-bold pb-2">
+                                        让我们再回到文章的标题。鲁迅先生用问句作标题，说明他不是想给我们一个现成的答案，而是希望我们在面对谬论时，能具备思辨精神和能力。现在我们来小试牛刀，用刚刚学会的思维工具解决实际问题：明确“中国人”“抄袭”“自主创新能力”等概念的内涵后，进行反驳。
+                                    </p>
+                                </Accordion>
+
+                                <div className="flex flex-col lg:flex-row gap-8 items-stretch pt-2">
+                                    {/* Left Column: Interaction */}
+                                    <div className="flex-1 flex flex-col space-y-6">
+                                        <div className="bg-white border-2 border-[#d3c8ba] p-6 shadow-sm relative transition-all hover:shadow-md">
+                                            <div className="absolute top-0 left-0 w-1.5 h-full bg-[#8a1f1f]"></div>
+                                            <div className="flex justify-between items-center mb-5">
+                                                <h3 className="text-xl font-bold text-[#8a1f1f]">迷惑性谬论</h3>
+                                                <div className="flex items-center space-x-3">
+                                                    <button 
+                                                        onClick={() => setArgument(INITIAL_ARGUMENT)}
+                                                        className="flex items-center space-x-1 text-sm font-bold text-[#5a4e44] hover:text-[#8a1f1f] transition-colors"
+                                                    >
+                                                        <RotateCcw className="w-4 h-4" />
+                                                        <span>初始化默认题</span>
+                                                    </button>
+                                                    <button 
+                                                        onClick={handleGenerateFallacy}
+                                                        disabled={generating}
+                                                        className="flex items-center space-x-1.5 px-3 py-1 bg-[#2c2420] text-white text-sm font-bold shadow-sm hover:bg-[#8a1f1f] transition-colors disabled:opacity-50"
+                                                    >
+                                                        <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
+                                                        <span>{generating ? '生成中...' : '换一个挑战'}</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <p className="leading-relaxed text-lg text-justify tracking-wide text-[#3d312a]">
+                                                {argument}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex flex-col space-y-3 flex-grow">
+                                            <label htmlFor="response" className="text-lg font-bold text-[#2c2420]">
+                                                基于内涵的反驳：
+                                            </label>
+                                            <textarea
+                                                id="response"
+                                                placeholder="你能看出这段话里偷换了哪几个核心概念吗？澄清它们的内涵，直击要害... (按 Ctrl+Enter 提交)"
+                                                value={response}
+                                                onChange={(e) => setResponse(e.target.value)}
+                                                onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleSubmit(); }}
+                                                className="flex-grow min-h-[220px] w-full bg-white border-2 border-[#d3c8ba] p-5 leading-relaxed text-lg focus:outline-none focus:border-[#8a1f1f] resize-y placeholder-[#c4bcb1] transition-colors shadow-sm"
+                                            />
+                                            <button
+                                                onClick={handleSubmit}
+                                                disabled={loading || !response.trim()}
+                                                className="self-end px-8 py-3 bg-[#8a1f1f] text-white font-bold tracking-widest text-lg shadow-sm flex items-center space-x-2 hover:bg-[#6b1616] transition-colors disabled:opacity-50"
+                                            >
+                                                {loading && <RefreshCw className="w-5 h-5 animate-spin" />}
+                                                <span>{loading ? '先生阅卷中...' : '递呈评判'}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Column: Feedback */}
+                                    <div className="flex-1 flex flex-col bg-[#1f1a17] text-[#ebe4dd] p-8 lg:p-10 shadow-xl min-h-[400px]">
+                                        <h3 className="text-2xl font-bold mb-6 border-b border-[#3d312a] pb-4 tracking-widest text-[#d3c8ba]">先生批语</h3>
+
+                                        {feedback ? (
+                                            <div className="animate-in fade-in duration-500 leading-relaxed text-lg whitespace-pre-wrap selection:bg-[#8a1f1f] selection:text-white flex-grow overflow-auto flex flex-col">
+                                                {feedback.split('\n').map((line, i) => {
+                                                    if (line.match(/【得分：.*分】/)) {
+                                                        return (
+                                                            <div key={i} className="text-[#e63946] font-black tracking-widest text-3xl mb-6 pb-4 border-b-2 border-dashed border-[#e63946]/30">
+                                                                {line}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return <p key={i} className="mb-3">{line}</p>;
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="flex-grow flex items-center justify-center text-[#5a4e44] tracking-widest text-lg italic opacity-50 text-center">
+                                                识破几个概念，辨明它们的内涵。<br/>写下你的反驳，得见高分者几何。
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Following questions and summary */}
+                                <div className="space-y-4 pt-8 mt-8 border-t-2 border-[#d3c8ba]">
+                                    <Accordion title="【引导】思考现实与自我" defaultOpen={false}>
+                                        <p className="font-bold text-lg mb-2">鲁迅先生这篇文章，以问句作标题，不止在拷问当时的人们，也在拷问今天的我们。今天学习这节课的我们，失掉自信力了吗？我们平时有没有失掉自信力的时候呢？</p>
+                                    </Accordion>
+
+                                    <Accordion title="【引导】真正的自信源自何处？" defaultOpen={false}>
+                                        <p className="font-bold text-lg mb-2">最后，我想请大家思考这样的问题。鲁迅先生以问句为题写下这篇文章，固然是希望我们能看到中国人的自信，希望我们本身能拥有自信。可是，我们凭什么来自信呢？如果我们没有自信，那又是为什么而失去自信呢？</p>
+                                    </Accordion>
+
+                                    <Accordion title="【总结】鲁迅先生留给我们的……" defaultOpen={false}>
+                                        <p className="leading-relaxed text-lg text-justify text-[#3d312a]">
+                                            鲁迅为什么要用一个问句作为标题？这个问句留给我们的，不是一个标准答案，而是三样东西。<br/><br/>
+                                            <strong className="text-[#e63946]">第一，独立思考的能力。</strong>面对任何论调，不盲从、不站队，自己去判断真伪；<br/>
+                                            <strong className="text-[#e63946]">第二，反躬自省的清醒。</strong>不只审视别人，更要时常审视自己；<br/>
+                                            <strong className="text-[#e63946]">第三，鼓励我们拥有自强不息的底气。</strong>毕竟，自信不是来自已经取得的成绩，而是来自我们一直在路上、一直在行动。
+                                        </p>
+                                    </Accordion>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 4. 课后拓展 */}
+                        {activeTab === 4 && (
+                            <section className="space-y-6 animate-in fade-in duration-300 h-full">
+                                <h2 className="text-2xl font-bold border-l-4 border-[#8a1f1f] pl-4 flex items-center mb-8">
+                                    4. 课后拓展
+                                </h2>
+                                
+                                <div className="space-y-8">
+                                    <div className="bg-white border-2 border-[#d3c8ba] p-6 md:p-8 shadow-sm">
+                                        <h3 className="text-xl font-bold text-[#8a1f1f] mb-4 flex items-center">
+                                            <span className="w-2 h-6 bg-[#8a1f1f] mr-3 inline-block"></span>
+                                            【基础层·全员必做】
+                                        </h3>
+                                        <ol className="list-decimal list-inside space-y-3 text-lg leading-relaxed text-[#2c2420]">
+                                            <li>背诵课文第6-9自然段</li>
+                                            <li>用思维导图的形式，梳理全文“先破后立”的论证结构，以及三个核心概念的拆解逻辑</li>
+                                        </ol>
+                                    </div>
+
+                                    <div className="bg-white border-2 border-[#d3c8ba] p-6 md:p-8 shadow-sm">
+                                        <h3 className="text-xl font-bold text-[#8a1f1f] mb-4 flex items-center">
+                                            <span className="w-2 h-6 bg-[#e63946] mr-3 inline-block"></span>
+                                            【提升层·二选一选做】
+                                        </h3>
+                                        <ol className="list-decimal list-inside space-y-3 text-lg leading-relaxed text-[#2c2420]">
+                                            <li>观察生活，找到一个常见的、似是而非的错误论调（如“读书无用论”“颜值即正义”等），运用本节课学到的思辨方法，写一段200字左右的反驳文字</li>
+                                            <li>以《新时代的中国脊梁》为题，写一段150字左右的文字，结合具体人物事例，谈谈你对新时代民族脊梁的理解</li>
+                                        </ol>
+                                    </div>
+
+                                    <div className="bg-white border-2 border-[#d3c8ba] p-6 md:p-8 shadow-sm">
+                                        <h3 className="text-xl font-bold text-[#8a1f1f] mb-4 flex items-center">
+                                            <span className="w-2 h-6 bg-[#1f1a17] mr-3 inline-block"></span>
+                                            【拓展层·学有余力选做】
+                                        </h3>
+                                        <p className="text-lg leading-relaxed text-[#2c2420] mb-6">
+                                            从以下两篇鲁迅杂文中任选一篇，用本节课学到的驳论方法梳理其反驳思路，写一段200字左右的分析文字，同时说说文中的语言手法在反驳中起了什么作用。
+                                        </p>
+                                        
+                                        <div className="space-y-6">
+                                            <Accordion title="拓展阅读一：《拿来主义》" defaultOpen={false}>
+                                                <div className="text-justify text-[#3d312a] space-y-4 indent-8 leading-relaxed">
+                                                    <p>中国一向是所谓“闭关主义”，自己不去，别人也不许来。自从给枪炮打破了大门之后，又碰了一串钉子，到现在，成了什么都是“送去主义”了。别的且不说罢，单是学艺上的东西，近来就先送一批古董到巴黎去展览，但终“不知后事如何”；还有几位“大师”们捧着几张古画和新画，在欧洲各国一路的挂过去，叫作“发扬国光”。听说不远还要送梅兰芳博士到苏联去，以催进“象征主义”，此后是顺便到欧洲传道。我在这里不想讨论梅博士演艺和象征主义的关系，总之，活人替代了古董，我敢说，也可以算得显出一点进步了。</p>
+                                                    <p>但我们没有人根据了“礼尚往来”的仪节，说道：拿来！</p>
+                                                    <p>当然，能够只是送出去，也不算坏事情，一者见得丰富，二者见得大度。尼采就自诩过他是太阳，光热无穷，只是给与，不想取得。然而尼采究竟不是太阳，他发了疯。中国也不是，虽然有人说，掘起地下的煤来，就足够全世界几百年之用，但是，几百年之后呢？几百年之后，我们当然是化为魂灵，或上天堂，或落了地狱，但我们的子孙是在的，所以还应该给他们留下一点礼品。要不然，则当佳节大典之际，他们拿不出东西来，只好磕头贺喜，讨一点残羹冷炙做奖赏。</p>
+                                                    <p>这种奖赏，不要误解为“抛来”的东西，这是“抛给”的，说得冠冕些，可以称之为“送来”，我在这里不想举出实例。</p>
+                                                    <p>我在这里也并不想对于“送去”再说什么，否则太不“摩登”了。我只想鼓吹我们再吝啬一点，“送去”之外，还得“拿来”，是为“拿来主义”。</p>
+                                                    <p>但我们被“送来”的东西吓怕了。先有英国的鸦片，德国的废枪炮，后有法国的香粉，美国的电影，日本的印着“完全国货”的各种小东西。于是连清醒的青年们，也对于洋货发生了恐怖。其实，这正是因为那是“送来”的，而不是“拿来”的缘故。</p>
+                                                    <p>所以我们要运用脑髓，放出眼光，自己来拿！</p>
+                                                    <p>譬如罢，我们之中的一个穷青年，因为祖上的阴功（姑且让我这么说说罢），得了一所大宅子，且不问他是骗来的，抢来的，或合法继承的，或是做了女婿换来的。那么，怎么办呢？我想，首先是不管三七二十一，“拿来”！但是，如果反对这宅子的旧主人，怕给他的东西染污了，徘徊不敢走进门，是孱头；勃然大怒，放一把火烧光，算是保存自己的清白，则是昏蛋。不过因为原是羡慕这宅子的旧主人的，而这回接受一切，欣欣然的蹩进卧室，大吸剩下的鸦片，那当然更是废物。“拿来主义”者是全不这样的。</p>
+                                                    <p>他占有，挑选。看见鱼翅，并不就抛在路上以显其“平民化”，只要有养料，也和朋友们像萝卜白菜一样的吃掉，只不用它来宴大宾；看见鸦片，也不当众摔在茅厕里，以见其彻底革命，只送到药房里去，以供治病之用，却不弄“出售存膏，售完即止”的玄虚。只有烟枪和烟灯，虽然形式和印度，波斯，阿剌伯的烟具都不同，确可以算是一种国粹，倘使背着周游世界，一定会有人看，但我想，除了送一点进博物馆之外，其余的是大可以毁掉的了。还有一群姨太太，也大以请她们各自走散为是，要不然，“拿来主义”怕未免有些危机。</p>
+                                                    <p>总之，我们要拿来。我们要或使用，或存放，或毁灭。那么，主人是新主人，宅子也就会成为新宅子。然而首先要这人沉着，勇猛，有辨别，不自私。没有拿来的，人不能自成为新人，没有拿来的，文艺不能自成为新文艺。</p>
+                                                </div>
+                                            </Accordion>
+
+                                            <Accordion title="拓展阅读二：《“友邦惊诧”论》" defaultOpen={false}>
+                                                <div className="text-justify text-[#3d312a] space-y-4 indent-8 leading-relaxed">
+                                                    <p>只要略有知觉的人就都知道：这回学生的请愿，是因为日本占据了辽吉，南京政府束手无策，单会去哀求国联，而国联却正和日本是一伙。读书呀，读书呀，不错，学生是应该读书的，但一面也要大人老爷们不至于葬送土地，这才能够安心读书。报上不是说过，东北大学逃散，冯庸大学逃散，日本兵看见学生模样的就枪毙吗？放下书包来请愿，真是已经可怜之至。不道国民党政府却在十二月十八日通电各地军政当局文里，又加上他们“捣毁机关，阻断交通，殴伤中委，拦劫汽车，攒击路人及公务人员，私逮刑讯，社会秩序，悉被破坏”的罪名，而且指出结果，说是“友邦人士，莫名惊诧，长此以往，国将不国”了！</p>
+                                                    <p>好个“友邦人士”！日本帝国主义的兵队强占了辽吉，炮轰机关，他们不惊诧；阻断铁路，追炸客车，捕禁官吏，枪毙人民，他们不惊诧。中国国民党治下的连年内战，空前水灾，卖儿救穷，砍头示众，秘密杀戮，电刑逼供，他们也不惊诧。在学生的请愿中有一点纷扰，他们就惊诧了！</p>
+                                                    <p>好个国民党政府的“友邦人士”！是些什么东西！即使所举的罪状是真的罢，但这些事情，是无论那一个“友邦”也都有的，他们的维持他们的“秩序”的监狱，就撕掉了他们的“文明”的面具。摆什么“惊诧”的臭脸孔呢？</p>
+                                                    <p>可是“友邦人士”一惊诧，我们的国府就怕了，“长此以往，国将不国”了，好像失了东三省，党国倒愈像一个国，失了东三省谁也不响，党国倒愈像一个国，失了东三省只有几个学生上几篇“呈文”，党国倒愈像一个国，可以博得“友邦人士”的夸奖，永远“国”下去一样。</p>
+                                                    <p>几句电文，说得明白极了：怎样的党国，怎样的“友邦”。“友邦”要我们人民身受宰割，寂然无声，略有“越轨”，便加屠戮；党国是要我们遵从这“友邦人士”的希望，否则，他就要“通电各地军政当局”，“即予紧急处置，不得于事后借口无法劝阻，敷衍塞责”了！</p>
+                                                    <p>因为“友邦人士”是知道的：日兵“无法劝阻”，学生们怎会“无法劝阻”？每月一千八百万的军费，四百万的政费，作什么用的呀，“军政当局”呀？</p>
+                                                </div>
+                                            </Accordion>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 5. 系统设置 */}
+                        {activeTab === 5 && (
+                            <section className="space-y-6 animate-in fade-in duration-300 h-full">
+                                <h2 className="text-2xl font-bold border-l-4 border-[#8a1f1f] pl-4 flex items-center mb-8">
+                                    5. 系统设置
+                                </h2>
+                                <div className="space-y-8">
+                                    <div className="bg-white border text-lg border-[#d3c8ba] p-8 shadow-sm">
+                                        <div className="mb-8">
+                                            <label className="block text-xl font-bold text-[#2c2420] mb-4">DeepSeek API Key</label>
+                                            <div className="flex items-center space-x-3 max-w-md">
+                                                <div className="flex-1 flex items-center bg-white px-4 py-3 border-2 border-[#d3c8ba] focus-within:border-[#8a1f1f] transition-colors shadow-sm">
+                                                    <Settings className="w-5 h-5 text-[#8a1f1f] mr-3" />
+                                                    <input 
+                                                        type="password" 
+                                                        placeholder="以 sk- 开头的密钥" 
+                                                        value={apiKey}
+                                                        onChange={(e) => setApiKey(e.target.value)}
+                                                        className="w-full bg-transparent outline-none text-[#2c2420] font-sans placeholder-[#a2988b]"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <p className="text-[#8a1f1f] text-base mt-4 italic">此密钥仅在您的本地浏览器中缓存，用于向模型发起请求。如果您没有 API Key，可前往 <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#e63946] transition-colors">DeepSeek 开放平台</a> 申请。</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xl font-bold text-[#2c2420] mb-4">推演引擎</label>
+                                            <select 
+                                                value={model} 
+                                                onChange={(e) => setModel(e.target.value)}
+                                                className="w-full max-w-md bg-[#fcfbf9] border-2 border-[#d3c8ba] outline-none text-[#2c2420] font-sans py-3 px-4 shadow-sm focus:border-[#8a1f1f] transition-colors cursor-pointer"
+                                            >
+                                                <option value="deepseek-v4-flash">DeepSeek Flash (速度较快)</option>
+                                                <option value="deepseek-v4-pro">DeepSeek Pro (深入思考)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+                        
+                    </div>
+                </main>
+            </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,2563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>思维锻炼与概念积累</title>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --dai-qing: #2C5F63;
+            --zhe-shi: #A65D3F;
+            --mi-bai: #F7F3E9;
+            --mo-se: #2A2A2A;
+            --hui-se: #8A8A8A;
+            --fen-ge: #E5E0D5;
+            --xuan-fu: rgba(44, 95, 99, 0.08);
+        }
+
+        body {
+            font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--mi-bai);
+            color: var(--mo-se);
+            line-height: 1.7;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1, h2, h3, .title-font {
+            font-family: "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
+            font-weight: 600;
+        }
+
+        /* 顶部导航 */
+        header {
+            height: 60px;
+            background-color: var(--dai-qing);
+            color: var(--mi-bai);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 100;
+        }
+
+        header h1 {
+            font-size: 20px;
+            letter-spacing: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: 1px solid rgba(247, 243, 233, 0.3);
+            color: var(--mi-bai);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(247, 243, 233, 0.15);
+        }
+
+        .menu-btn {
+            display: none;
+        }
+
+        /* 主体布局 */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* 侧边栏 */
+        aside {
+            width: 340px;
+            border-right: 1px solid var(--fen-ge);
+            display: flex;
+            flex-direction: column;
+            background: #FBF9F3;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--fen-ge);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tag-filter-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            max-height: 72px;
+            overflow-y: auto;
+            padding: 2px;
+        }
+
+        .tag-filter-btn {
+            font-size: 12px;
+            padding: 3px 10px;
+            border: 1px solid var(--fen-ge);
+            background: white;
+            color: var(--mo-se);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag-filter-btn:hover {
+            border-color: var(--dai-qing);
+            color: var(--dai-qing);
+        }
+
+        .tag-filter-btn.active {
+            background: var(--dai-qing);
+            color: white;
+            border-color: var(--dai-qing);
+        }
+
+
+
+        .search-box {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--fen-ge);
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .search-box:focus {
+            border-color: var(--dai-qing);
+        }
+
+        .sidebar-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .side-btn {
+            flex: 1;
+            min-width: 70px;
+            padding: 6px 8px;
+            font-size: 13px;
+            border: 1px solid var(--fen-ge);
+            background: white;
+            color: var(--mo-se);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .side-btn:hover {
+            border-color: var(--dai-qing);
+            color: var(--dai-qing);
+        }
+
+        .record-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .record-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .record-item:hover {
+            border-color: var(--dai-qing);
+            transform: translateX(2px);
+        }
+
+        .record-item.active {
+            border-color: var(--dai-qing);
+            background: var(--xuan-fu);
+        }
+
+
+
+        .record-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .record-tag-badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 3px;
+            background: var(--zhe-shi);
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .record-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .record-time {
+            font-size: 11px;
+            color: #B0B0B0;
+        }
+
+        .record-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .record-action-btn {
+            font-size: 11px;
+            padding: 2px 6px;
+            border: 1px solid var(--fen-ge);
+            background: transparent;
+            border-radius: 3px;
+            cursor: pointer;
+            color: var(--hui-se);
+        }
+
+        .record-action-btn:hover {
+            color: var(--dai-qing);
+            border-color: var(--dai-qing);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--hui-se);
+            font-size: 13px;
+        }
+
+        /* 主内容区 */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+        }
+
+        .content-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--dai-qing);
+            margin-bottom: 8px;
+            padding-left: 8px;
+            border-left: 3px solid var(--zhe-shi);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--fen-ge);
+            border-radius: 6px;
+            background: white;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--dai-qing);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.7;
+        }
+
+        textarea.viewpoint-input {
+            resize: none;
+            min-height: 35px;
+            max-height: 62px;
+            line-height: 1.5;
+            overflow: hidden;
+            padding: 10px 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        textarea.viewpoint-input.expanded {
+            overflow-y: auto;
+        }
+
+        textarea.large {
+            min-height: 120px;
+        }
+
+        /* 核心概念动态行 */
+        .concept-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .concept-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        textarea.concept-name {
+            width: 140px;
+            flex-shrink: 0;
+            resize: none;
+            overflow: hidden;
+            min-height: 35px;
+            max-height: 78px;
+            line-height: 1.5;
+            padding: 10px 6px;
+            font-size: 15px;
+        }
+
+        textarea.concept-name.expanded {
+            overflow-y: auto;
+        }
+
+        textarea.concept-meaning {
+            flex: 1;
+            resize: none;
+            overflow: hidden;
+            min-height: 35px;
+            max-height: 78px;
+            line-height: 1.5;
+            padding: 10px 6px;
+            font-size: 15px;
+        }
+
+        textarea.concept-meaning.expanded {
+            overflow-y: auto;
+        }
+
+        .concept-del-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--fen-ge);
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--hui-se);
+            flex-shrink: 0;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .concept-del-btn:hover {
+            color: #B0413E;
+            border-color: #E8C5C4;
+        }
+
+        .concept-del-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .add-concept-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            border: 1px dashed var(--dai-qing);
+            background: transparent;
+            color: var(--dai-qing);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .add-concept-btn:hover {
+            background: var(--xuan-fu);
+        }
+
+        /* 支撑事例样式 */
+        .example-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .example-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        textarea.example-case {
+            width: 50%;
+            flex-shrink: 0;
+            resize: none;
+            overflow: hidden;
+            min-height: 35px;
+            max-height: 400px;
+            line-height: 1.5;
+            padding: 10px 6px;
+            font-size: 15px;
+        }
+
+        textarea.example-case.expanded {
+            overflow-y: auto;
+        }
+
+        textarea.example-logic {
+            flex: 1;
+            resize: none;
+            overflow: hidden;
+            min-height: 35px;
+            max-height: 400px;
+            line-height: 1.5;
+            padding: 10px 6px;
+            font-size: 15px;
+        }
+
+        textarea.example-logic.expanded {
+            overflow-y: auto;
+        }
+
+        .example-del-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--fen-ge);
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--hui-se);
+            flex-shrink: 0;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .example-del-btn:hover {
+            color: #B0413E;
+            border-color: #E8C5C4;
+        }
+
+        .example-del-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* 标签输入区 */
+        .tag-input-area {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tag-input-area .form-input {
+            flex: 1;
+        }
+
+        .tag-input-area .tag-add-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--dai-qing);
+            background: white;
+            color: var(--dai-qing);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .tag-input-area .tag-add-btn:hover {
+            background: var(--xuan-fu);
+        }
+
+        .selected-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .selected-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            padding: 3px 8px;
+            background: var(--dai-qing);
+            color: white;
+            border-radius: 12px;
+        }
+
+        .selected-tag .tag-remove {
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            opacity: 0.8;
+        }
+
+        .selected-tag .tag-remove:hover {
+            opacity: 1;
+        }
+
+        /* 操作按钮区 */
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px dashed var(--fen-ge);
+        }
+
+        .primary-btn {
+            background: var(--dai-qing);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .primary-btn:hover {
+            background: #234d50;
+        }
+
+        .secondary-btn {
+            background: white;
+            color: var(--mo-se);
+            border: 1px solid var(--fen-ge);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .secondary-btn:hover {
+            border-color: var(--dai-qing);
+            color: var(--dai-qing);
+        }
+
+        .danger-btn {
+            background: white;
+            color: #B0413E;
+            border: 1px solid #E8C5C4;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .danger-btn:hover {
+            background: #FDF2F2;
+        }
+
+        /* AI建议区 */
+        .ai-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: none;
+        }
+
+        .ai-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .ai-title {
+            font-size: 16px;
+            color: var(--zhe-shi);
+            font-weight: 500;
+        }
+
+        .ai-content {
+            background: white;
+            border: 1px solid var(--fen-ge);
+            border-radius: 6px;
+            padding: 16px;
+            min-height: 100px;
+            line-height: 1.8;
+            font-size: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .ai-content textarea {
+            width: 100%;
+            min-height: 200px;
+            border: none;
+            outline: none;
+            font-family: inherit;
+            font-size: 15px;
+            line-height: 1.8;
+            resize: vertical;
+            background: transparent;
+            white-space: pre-wrap;
+        }
+
+        .ai-content p { margin: 6px 0; }
+
+        .ai-content strong { font-weight: 600; }
+        .ai-content em { font-style: italic; }
+
+        .ai-loading {
+            color: var(--hui-se);
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* 弹窗通用样式 */
+        .modal-mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-mask.show {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--mi-bai);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--fen-ge);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            color: var(--dai-qing);
+            font-weight: 500;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--hui-se);
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid var(--fen-ge);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .setting-group {
+            margin-bottom: 16px;
+        }
+
+        .setting-label {
+            display: block;
+            font-size: 13px;
+            color: var(--mo-se);
+            margin-bottom: 6px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--fen-ge);
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+            background: white;
+        }
+
+        .setting-input:focus {
+            border-color: var(--dai-qing);
+        }
+
+        /* 确认弹窗 */
+        .confirm-text {
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 8px;
+        }
+
+        .confirm-sub {
+            font-size: 13px;
+            color: var(--hui-se);
+        }
+
+        /* Toast提示 */
+        .toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(42, 42, 42, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            header {
+                padding: 0 16px;
+            }
+
+            .menu-btn {
+                display: block;
+            }
+
+            aside {
+                position: fixed;
+                left: 0;
+                top: 60px;
+                height: calc(100vh - 60px);
+                z-index: 99;
+                transform: translateX(-100%);
+                width: 85%;
+                max-width: 340px;
+                box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+            }
+
+            aside.show {
+                transform: translateX(0);
+            }
+
+            .content-area {
+                padding: 16px;
+            }
+
+            .action-bar {
+                gap: 8px;
+            }
+
+            .primary-btn, .secondary-btn, .danger-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .concept-name {
+                width: 100px;
+                min-height: 12px;
+            }
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #D0CDC3;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--hui-se);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="icon-btn menu-btn" onclick="toggleSidebar()">菜单</button>
+            <h1>思维锻炼与概念积累</h1>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="openSettings()">设置</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <div class="tag-filter-row" id="tagFilterRow">
+                    <button class="tag-filter-btn active" data-tag="" onclick="filterByTag('')">全部</button>
+                </div>
+                <input type="text" class="search-box" placeholder="搜索观点、概念、素材、标签、AI建议..." oninput="renderRecordList()">
+                <div class="sidebar-btns">
+                    <button class="side-btn" onclick="createNew()">新建</button>
+                    <button class="side-btn" onclick="exportAllWord()">输出</button>
+                    <button class="side-btn" onclick="exportAllJson()">备份</button>
+                    <button class="side-btn" onclick="document.getElementById('importFile').click()">导入</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+                </div>
+            </div>
+            <div class="record-list" id="recordList">
+                <div class="empty-state">暂无记录，点击新建开始积累</div>
+            </div>
+        </aside>
+
+        <section class="content-area">
+            <div class="content-wrapper">
+                <div class="form-group">
+                    <label class="form-label">相关素材</label>
+                    <textarea class="form-input large" id="material" placeholder="新闻案例、作文题目、阅读文本、歌词名句、历史典故等"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">事理</label>
+                    <textarea class="form-input viewpoint-input" id="viewpoint" rows="1" placeholder="用一句话提炼核心观点或客观事实"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <span>核心概念及其内涵特征</span>
+                    </label>
+                    <div class="concept-list" id="conceptList">
+                        <!-- 动态生成概念行 -->
+                    </div>
+                    <button class="add-concept-btn" onclick="addConceptRow()">+ 添加核心概念</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">支撑事例</label>
+                    <div class="example-list" id="supportingExamplesList">
+                        <!-- 动态生成事例行 -->
+                    </div>
+                    <button class="add-concept-btn" onclick="addExampleRow()">+ 添加支撑事例</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">标签</label>
+                    <div class="tag-input-area">
+                        <input type="text" class="form-input" id="tagInput" placeholder="输入标签后回车或点击添加" onkeydown="if(event.key==='Enter'){event.preventDefault();addTagToRecord()}">
+                        <button class="tag-add-btn" onclick="addTagToRecord()">添加</button>
+                    </div>
+                    <div class="selected-tags" id="selectedTags"></div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="secondary-btn" onclick="aiComplete()" style="background: var(--dai-qing); color: white; border: none;">AI补全</button>
+                    <button class="primary-btn" onclick="saveRecord()">保存记录</button>
+                    <button class="secondary-btn" onclick="copyRecord()">一键复制</button>
+                    <button class="secondary-btn" onclick="exportSingleWord()">导出Word</button>
+                </div>
+
+                <div class="ai-section">
+                    <div class="ai-header">
+                        <span class="ai-title">AI 建议</span>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button class="secondary-btn" onclick="generateAiSuggestion()" id="aiBtn">生成AI建议</button>
+                            <button class="danger-btn" onclick="clearAiSuggestion()" style="padding:8px 12px;font-size:13px;">清空建议</button>
+                        </div>
+                    </div>
+                    <div class="ai-content" id="aiContent">
+                        <span style="color: var(--hui-se);">填写内容后点击生成，AI将从逻辑、概念、素材、设问四个维度给出深化建议</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="modal-mask" id="settingsModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title">应用设置</span>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label class="setting-label">姓名</label>
+                    <input type="text" class="setting-input" id="userName" placeholder="导出文档时显示的姓名">
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">接口类型</label>
+                    <select class="setting-input" id="apiType" onchange="toggleCustomApi()">
+                        <option value="deepseek">DeepSeek 官方</option>
+                        <option value="doubao">豆包（火山引擎）</option>
+                        <option value="custom">自定义（类OpenAI格式）</option>
+                    </select>
+                </div>
+                <div class="setting-group" id="deepseekApiKeyGroup">
+                    <label class="setting-label">DeepSeek API Key</label>
+                    <input type="password" class="setting-input" id="deepseekApiKey" placeholder="输入DeepSeek API密钥，仅保存在本地">
+                </div>
+                <div class="setting-group" id="doubaoApiKeyGroup" style="display:none;">
+                    <label class="setting-label">豆包 API Key</label>
+                    <input type="password" class="setting-input" id="doubaoApiKey" placeholder="输入豆包API密钥，仅保存在本地">
+                </div>
+                <div class="setting-group" id="customApiKeyGroup" style="display:none;">
+                    <label class="setting-label">自定义 API Key</label>
+                    <input type="password" class="setting-input" id="customApiKey" placeholder="输入自定义接口的API密钥，仅保存在本地">
+                </div>
+                <div class="setting-group" id="modelGroup">
+                    <label class="setting-label">选择模型</label>
+                    <select class="setting-input" id="modelSelect">
+                        <option value="deepseek-v4-flash">DeepSeek V4 Flash（快速）</option>
+                        <option value="deepseek-v4-pro">DeepSeek V4 Pro（深度推理）</option>
+                    </select>
+                </div>
+                <div class="setting-group" id="doubaoModelGroup" style="display:none;">
+                    <label class="setting-label">接入点ID（Endpoint ID）</label>
+                    <input type="text" class="setting-input" id="doubaoModel" placeholder="例如：ep-20240xxxxx-xxxxx">
+                </div>
+                <div class="setting-group" id="customUrlGroup" style="display:none;">
+                    <label class="setting-label">接口地址</label>
+                    <input type="text" class="setting-input" id="customUrl" placeholder="https://xxx.com/v1/chat/completions">
+                </div>
+                <div class="setting-group" id="customModelGroup" style="display:none;">
+                    <label class="setting-label">模型名称</label>
+                    <input type="text" class="setting-input" id="customModel" placeholder="模型名称">
+                </div>
+                <p style="font-size: 12px; color: var(--hui-se); margin-top: 12px; line-height: 1.6;">
+                    注意：API密钥仅存储在您的浏览器本地，不会上传至任何服务器。请妥善保管您的密钥。
+                </p>
+                <button class="secondary-btn" onclick="openApiGuide()" style="margin-top:12px;width:100%;">查看 DeepSeek API 获取与使用说明</button>
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--fen-ge);">
+                    <button class="danger-btn" onclick="clearAllData()" style="width:100%;">清空所有数据</button>
+                    <p style="font-size: 12px; color: var(--hui-se); margin-top: 8px; line-height: 1.6;">清空后将恢复初始状态，所有记录和设置将被删除，此操作不可恢复。</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeSettings()">取消</button>
+                <button class="primary-btn" onclick="saveSettings()">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通用确认弹窗 -->
+    <div class="modal-mask" id="confirmModal">
+        <div class="modal-box" style="max-width: 400px;">
+            <div class="modal-header">
+                <span class="modal-title" id="confirmTitle">确认操作</span>
+                <button class="close-btn" onclick="closeConfirm()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="confirm-text" id="confirmText">确定要执行此操作吗？</div>
+                <div class="confirm-sub" id="confirmSub">此操作不可撤销，请谨慎操作。</div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeConfirm()">取消</button>
+                <button class="danger-btn" id="confirmOkBtn">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出日期选择弹窗 -->
+    <div class="modal-mask" id="exportModal">
+        <div class="modal-box" style="max-width: 400px;">
+            <div class="modal-header">
+                <span class="modal-title">导出Word文档</span>
+                <button class="close-btn" onclick="closeExportModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 12px;">
+                    <label class="setting-label">起始日期（可选）</label>
+                    <input type="date" class="setting-input" id="exportStartDate" style="width:100%;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="setting-label">结束日期（可选）</label>
+                    <input type="date" class="setting-input" id="exportEndDate" style="width:100%;">
+                </div>
+                <div style="color: var(--hui-se); font-size: 13px;">不选日期则导出全部记录</div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeExportModal()">取消</button>
+                <button class="primary-btn" onclick="confirmExport()">导出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API使用说明弹窗 -->
+    <div class="modal-mask" id="apiGuideModal">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-header">
+                <span class="modal-title">DeepSeek API 获取与使用说明</span>
+                <button class="close-btn" onclick="closeApiGuide()">×</button>
+            </div>
+            <div class="modal-body" style="font-size:14px;line-height:1.9;color:var(--mo-se);">
+                <h3 style="color:var(--dai-qing);margin:12px 0 8px;font-size:15px;">一、获取 API Key</h3>
+                <ol style="padding-left:20px;margin:8px 0;">
+                    <li>打开 DeepSeek 官网：<a href="https://platform.deepseek.com" target="_blank" style="color:var(--dai-qing);">https://platform.deepseek.com</a></li>
+                    <li>注册并登录账号</li>
+                    <li>进入「API Keys」页面，点击「创建 API Key」</li>
+                    <li>复制生成的密钥（以 <code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;">sk-</code> 开头）</li>
+                    <li>回到本应用，点击右上角「设置」，将密钥粘贴到「API Key」输入框</li>
+                </ol>
+
+                <h3 style="color:var(--dai-qing);margin:12px 0 8px;font-size:15px;">二、选择模型</h3>
+                <ul style="padding-left:20px;margin:8px 0;">
+                    <li><strong>DeepSeek V4 Flash</strong>：响应速度快，适合日常使用</li>
+                    <li><strong>DeepSeek V4 Pro</strong>：深度推理能力更强，适合复杂分析</li>
+                </ul>
+
+                <h3 style="color:var(--dai-qing);margin:12px 0 8px;font-size:15px;">三、费用说明</h3>
+                <p style="margin:8px 0;">DeepSeek API 按使用量计费，新用户通常有免费额度。具体价格请查看官网「定价」页面。</p>
+
+                <h3 style="color:var(--dai-qing);margin:12px 0 8px;font-size:15px;">四、常见问题</h3>
+                <ul style="padding-left:20px;margin:8px 0;">
+                    <li><strong>提示"请求失败 401"</strong>：API Key 填写错误，请重新检查</li>
+                    <li><strong>提示"请求失败 429"</strong>：请求过于频繁，请稍后再试</li>
+                    <li><strong>提示"请求失败 402"</strong>：余额不足，请前往官网充值</li>
+                    <li><strong>网络错误</strong>：请检查网络连接是否正常</li>
+                </ul>
+
+                <h3 style="color:var(--dai-qing);margin:12px 0 8px;font-size:15px;">五、自定义接口</h3>
+                <p style="margin:8px 0;">如您使用其他兼容 OpenAI 格式的 API 服务，可在「接口类型」中选择「自定义」，填写对应的接口地址和模型名称即可。</p>
+
+                <p style="font-size:12px;color:var(--hui-se);margin-top:16px;">所有数据仅存储在您的浏览器本地，不会上传至任何服务器。</p>
+            </div>
+            <div class="modal-footer">
+                <button class="primary-btn" onclick="closeApiGuide()">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ===================== IndexedDB 封装 =====================
+        const DB_NAME = 'conceptAccumulationV3';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'records';
+
+        let db = null;
+        let currentRecordId = null;
+        let currentFilterTag = '';
+        let confirmCallback = null;
+        let currentRecordTags = [];
+
+        function pushHistory() {
+            // 撤销功能已移除
+        }
+
+        // ===================== Markdown 渲染 =====================
+        function renderMarkdown(text) {
+            if (!text) return '';
+            let html = escapeHtml(text);
+            // 代码块
+            html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            // 行内代码
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            // 标题
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            // 粗体和斜体
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            // 无序列表
+            html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+            // 有序列表
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+            // 段落（连续换行）
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = html.replace(/\n/g, '<br>');
+            html = '<p>' + html + '</p>';
+            // 清理空段落
+            html = html.replace(/<p><\/p>/g, '');
+            html = html.replace(/<p>(<h[1-3]>)/g, '$1');
+            html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1');
+            html = html.replace(/<p>(<ul>)/g, '$1');
+            html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+            html = html.replace(/<p>(<pre>)/g, '$1');
+            html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+            return html;
+        }
+
+        function getAiTextContent() {
+            const el = document.getElementById('aiContent');
+            const textarea = el.querySelector('textarea');
+            if (textarea) return textarea.value;
+            const storedText = el.getAttribute('data-ai-text');
+            if (storedText) return storedText;
+            const text = el.textContent || '';
+            if (text.includes('填写内容后点击生成') || text.includes('暂无AI建议')) return '';
+            return text;
+        }
+
+        // ===================== AI 编辑切换 (已禁用) =====================
+        function toggleAiEdit() {
+            // 功能已移除
+        }
+
+        // ===================== 即时保存 =====================
+        let autoSaveTimer = null;
+
+        function autoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                doAutoSave();
+            }, 300);
+        }
+
+        async function doAutoSave() {
+            if (!currentRecordId) {
+                // 新建记录：如果有任何内容则自动创建
+                const viewpoint = document.getElementById('viewpoint').value.trim();
+                const material = document.getElementById('material').value.trim();
+                const concepts = getConceptsData();
+                const examples = getExamplesData();
+                const hasContent = viewpoint || material || concepts.length > 0 || examples.length > 0 || currentRecordTags.length > 0;
+                if (!hasContent) return;
+                const now = Date.now();
+                const record = {
+                    viewpoint: viewpoint || '(未填写)',
+                    concepts: concepts,
+                    examples: examples,
+                    material: material,
+                    tags: [...currentRecordTags],
+                    aiSuggestion: getAiTextContent(),
+                    createTime: now,
+                    updateTime: now
+                };
+                const id = await addRecord(record);
+                currentRecordId = id;
+                renderRecordList();
+            } else {
+                // 更新已有记录
+                const old = await getRecord(currentRecordId);
+                if (!old) return;
+                const record = {
+                    id: currentRecordId,
+                    viewpoint: document.getElementById('viewpoint').value.trim() || '(未填写)',
+                    concepts: getConceptsData(),
+                    examples: getExamplesData(),
+                    material: document.getElementById('material').value.trim(),
+                    tags: [...currentRecordTags],
+                    aiSuggestion: getAiTextContent(),
+                    createTime: old.createTime,
+                    updateTime: Date.now()
+                };
+                await updateRecord(record);
+                renderRecordList();
+            }
+        }
+
+        // ===================== 自动高度 =====================
+
+        function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            let lineHeight, maxLines;
+            if (el.classList.contains('viewpoint-input')) {
+                lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 23;
+                maxLines = 2;
+            } else if (el.classList.contains('example-case') || el.classList.contains('example-logic')) {
+                lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 18;
+                maxLines = 20;
+            } else {
+                lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 18;
+                maxLines = 3;
+            }
+            const maxHeight = lineHeight * maxLines + 14;
+            const newHeight = Math.min(el.scrollHeight, maxHeight);
+            el.style.height = newHeight + 'px';
+            
+            if (el.scrollHeight > maxHeight) {
+                el.classList.add('expanded');
+            } else {
+                el.classList.remove('expanded');
+            }
+        }
+
+        function autoResizeAllConcepts() {
+            document.querySelectorAll('.concept-name, .concept-meaning').forEach(el => {
+                autoResizeTextarea(el);
+            });
+        }
+
+        // 为所有表单元素绑定即时保存
+        function bindAutoSave() {
+            const viewpoint = document.getElementById('viewpoint');
+            viewpoint.addEventListener('input', () => { autoResizeTextarea(viewpoint); pushHistory(); autoSave(); });
+            document.getElementById('material').addEventListener('input', () => { pushHistory(); autoSave(); });
+            document.getElementById('conceptList').addEventListener('input', (e) => {
+                if (e.target.classList.contains('concept-name') || e.target.classList.contains('concept-meaning')) {
+                    autoResizeTextarea(e.target);
+                    pushHistory();
+                    autoSave();
+                }
+            });
+            document.getElementById('supportingExamplesList').addEventListener('input', (e) => {
+                if (e.target.classList.contains('example-case') || e.target.classList.contains('example-logic')) {
+                    autoResizeTextarea(e.target);
+                    pushHistory();
+                    autoSave();
+                }
+            });
+        }
+
+        // ===================== IndexedDB 封装 =====================
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        const store = database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        store.createIndex('createTime', 'createTime', { unique: false });
+                    }
+                };
+            });
+        }
+
+        function addRecord(record) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.add(record);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateRecord(record) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.put(record);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteRecord(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getRecord(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.get(id);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllRecords() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    const records = request.result.sort((a, b) => b.createTime - a.createTime);
+                    resolve(records);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function exportAllRecords() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function importRecords(records) {
+            return new Promise(async (resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                for (const record of records) {
+                    delete record.id;
+                    store.add(record);
+                }
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+            });
+        }
+
+        // ===================== 核心概念动态行 =====================
+
+        function renderConceptRows(concepts = [{name: '', meaning: ''}]) {
+            const container = document.getElementById('conceptList');
+            container.innerHTML = '';
+            concepts.forEach((c, index) => {
+                const row = document.createElement('div');
+                row.className = 'concept-row';
+                row.innerHTML = `
+                    <textarea class="form-input concept-name" placeholder="概念名称" rows="1">${escapeHtml(c.name || '')}</textarea>
+                    <textarea class="form-input concept-meaning" placeholder="内涵特征" rows="1">${escapeHtml(c.meaning || '')}</textarea>
+                    <button class="concept-del-btn" onclick="removeConceptRow(this)" ${concepts.length <= 1 ? 'disabled' : ''}>×</button>
+                `;
+                container.appendChild(row);
+            });
+            autoResizeAllConcepts();
+        }
+
+        function addConceptRow() {
+            const container = document.getElementById('conceptList');
+            const row = document.createElement('div');
+            row.className = 'concept-row';
+            row.innerHTML = `
+                <textarea class="form-input concept-name" placeholder="概念名称" rows="1"></textarea>
+                <textarea class="form-input concept-meaning" placeholder="内涵特征" rows="1"></textarea>
+                <button class="concept-del-btn" onclick="removeConceptRow(this)">×</button>
+            `;
+            container.appendChild(row);
+            updateDeleteButtons();
+            pushHistory();
+            autoSave();
+            autoResizeAllConcepts();
+        }
+
+        function removeConceptRow(btn) {
+            const container = document.getElementById('conceptList');
+            if (container.children.length <= 1) return;
+            showConfirm('删除概念行', '确定要删除这一行概念吗？', '删除后该行内容将丢失。', () => {
+                pushHistory();
+                btn.parentElement.remove();
+                updateDeleteButtons();
+                autoSave();
+            });
+        }
+
+        function updateDeleteButtons() {
+            const container = document.getElementById('conceptList');
+            const btns = container.querySelectorAll('.concept-del-btn');
+            btns.forEach(btn => {
+                btn.disabled = container.children.length <= 1;
+            });
+        }
+
+        function getConceptsData() {
+            const rows = document.querySelectorAll('.concept-row');
+            const concepts = [];
+            rows.forEach(row => {
+                const name = row.querySelector('.concept-name').value.trim();
+                const meaning = row.querySelector('.concept-meaning').value.trim();
+                if (name || meaning) {
+                    concepts.push({ name, meaning });
+                }
+            });
+            return concepts;
+        }
+
+        // ===================== 支撑事例动态行 =====================
+
+        function renderExampleRows(examples = [{case: '', logic: ''}]) {
+            const container = document.getElementById('supportingExamplesList');
+            container.innerHTML = '';
+            examples.forEach((e, index) => {
+                const row = document.createElement('div');
+                row.className = 'example-row';
+                row.innerHTML = `
+                    <textarea class="form-input example-case" placeholder="具体事例（真实人物/事件，完整故事）" rows="1">${escapeHtml(e.case || '')}</textarea>
+                    <textarea class="form-input example-logic" placeholder="事理逻辑链（抽象事理）" rows="1">${escapeHtml(e.logic || '')}</textarea>
+                    <button class="example-del-btn" onclick="removeExampleRow(this)" ${examples.length <= 1 ? 'disabled' : ''}>×</button>
+                `;
+                container.appendChild(row);
+            });
+            autoResizeAllExamples();
+        }
+
+        function addExampleRow() {
+            const container = document.getElementById('supportingExamplesList');
+            const row = document.createElement('div');
+            row.className = 'example-row';
+            row.innerHTML = `
+                <textarea class="form-input example-case" placeholder="具体事例（真实人物/事件，完整故事）" rows="1"></textarea>
+                <textarea class="form-input example-logic" placeholder="事理逻辑链（抽象事理）" rows="1"></textarea>
+                <button class="example-del-btn" onclick="removeExampleRow(this)">×</button>
+            `;
+            container.appendChild(row);
+            updateExampleDeleteButtons();
+            pushHistory();
+            autoSave();
+            autoResizeAllExamples();
+        }
+
+        function removeExampleRow(btn) {
+            const container = document.getElementById('supportingExamplesList');
+            if (container.children.length <= 1) return;
+            showConfirm('删除事例行', '确定要删除这一行事例吗？', '删除后该行内容将丢失。', () => {
+                pushHistory();
+                btn.parentElement.remove();
+                updateExampleDeleteButtons();
+                autoSave();
+            });
+        }
+
+        function updateExampleDeleteButtons() {
+            const container = document.getElementById('supportingExamplesList');
+            const btns = container.querySelectorAll('.example-del-btn');
+            btns.forEach(btn => {
+                btn.disabled = container.children.length <= 1;
+            });
+        }
+
+        function getExamplesData() {
+            const rows = document.querySelectorAll('.example-row');
+            const examples = [];
+            rows.forEach(row => {
+                const caseText = row.querySelector('.example-case').value.trim();
+                const logicText = row.querySelector('.example-logic').value.trim();
+                if (caseText || logicText) {
+                    examples.push({ case: caseText, logic: logicText });
+                }
+            });
+            return examples;
+        }
+
+        function autoResizeAllExamples() {
+            document.querySelectorAll('.example-case, .example-logic').forEach(el => {
+                autoResizeTextarea(el);
+            });
+        }
+
+        // ===================== 标签管理 =====================
+
+        function loadAllTags() {
+            const saved = localStorage.getItem('conceptAllTags');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        function saveAllTags(tags) {
+            localStorage.setItem('conceptAllTags', JSON.stringify(tags));
+        }
+
+        function addNewTag(tagName) {
+            const tags = loadAllTags();
+            if (!tags.includes(tagName)) {
+                tags.push(tagName);
+                saveAllTags(tags);
+            }
+        }
+
+        function addTagToRecord() {
+            const input = document.getElementById('tagInput');
+            const tagName = input.value.trim();
+            if (!tagName) return;
+            if (!currentRecordTags.includes(tagName)) {
+                pushHistory();
+                currentRecordTags.push(tagName);
+                addNewTag(tagName);
+                renderSelectedTags();
+                renderTagFilter();
+                autoSave();
+            }
+            input.value = '';
+            input.focus();
+        }
+
+        function removeTagFromRecord(tagName) {
+            pushHistory();
+            currentRecordTags = currentRecordTags.filter(t => t !== tagName);
+            renderSelectedTags();
+            autoSave();
+        }
+
+        function renderSelectedTags() {
+            const container = document.getElementById('selectedTags');
+            container.innerHTML = currentRecordTags.map(tag => {
+                const safeTag = tag.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                return `
+                <span class="selected-tag">
+                    ${escapeHtml(tag)}
+                    <span class="tag-remove" onclick="removeTagFromRecord('${safeTag}')">×</span>
+                </span>
+            `}).join('');
+        }
+
+        async function renderTagFilter() {
+            const records = await getAllRecords();
+            const tagSet = new Set();
+            records.forEach(r => {
+                (r.tags || []).forEach(t => tagSet.add(t));
+            });
+            const allTags = Array.from(tagSet).sort();
+            const container = document.getElementById('tagFilterRow');
+            container.innerHTML = `<button class="tag-filter-btn ${currentFilterTag === '' ? 'active' : ''}" data-tag="" onclick="filterByTag('')">全部</button>`;
+            allTags.forEach(tag => {
+                const safeTag = tag.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                container.innerHTML += `<button class="tag-filter-btn ${currentFilterTag === tag ? 'active' : ''}" data-tag="${escapeHtml(tag)}" onclick="filterByTag('${safeTag}')">${escapeHtml(tag)}</button>`;
+            });
+        }
+
+        function filterByTag(tag) {
+            currentFilterTag = tag;
+            document.querySelectorAll('.tag-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tag === tag);
+            });
+            renderRecordList();
+        }
+
+        // ===================== 业务逻辑 =====================
+
+        async function renderRecordList() {
+            const keyword = document.querySelector('.search-box').value.trim().toLowerCase();
+            const records = await getAllRecords();
+            const listEl = document.getElementById('recordList');
+            
+            const filtered = records.filter(r => {
+                const conceptText = (r.concepts || []).map(c => c.name + c.meaning).join(' ');
+                const tagsText = (r.tags || []).join(' ');
+                const aiText = (r.aiSuggestion || '');
+                const matchKeyword = r.viewpoint.toLowerCase().includes(keyword) ||
+                       conceptText.toLowerCase().includes(keyword) ||
+                       (r.material || '').toLowerCase().includes(keyword) ||
+                       tagsText.toLowerCase().includes(keyword) ||
+                       aiText.toLowerCase().includes(keyword);
+                const matchTag = !currentFilterTag || (r.tags || []).includes(currentFilterTag);
+                return matchKeyword && matchTag;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">暂无匹配记录</div>';
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(r => {
+                const tags = r.tags || [];
+                const tagHtml = tags.length > 0 ? `<span class="record-tag-badge">${escapeHtml(tags[0])}</span>` : '';
+                return `
+                <div class="record-item ${currentRecordId === r.id ? 'active' : ''}" onclick="loadRecord(${r.id}, event)">
+                    <div class="record-title">${escapeHtml(r.viewpoint)}</div>
+                    ${tagHtml}
+                    <div class="record-bottom">
+                        <span class="record-time">${formatTime(r.createTime)}</span>
+                        <div class="record-actions">
+                            <button class="record-action-btn" onclick="event.stopPropagation(); confirmDeleteRecord(${r.id})">删除</button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function createNew() {
+            currentRecordId = null;
+            currentRecordTags = [];
+            document.getElementById('viewpoint').value = '';
+            autoResizeTextarea(document.getElementById('viewpoint'));
+            renderConceptRows([{name: '', meaning: ''}]);
+            renderExampleRows([{case: '', logic: ''}]);
+            document.getElementById('material').value = '';
+            document.getElementById('tagInput').value = '';
+            renderSelectedTags();
+            const aiContentEl = document.getElementById('aiContent');
+            aiContentEl.removeAttribute('data-ai-text');
+            aiContentEl.innerHTML = '<span style="color: var(--hui-se);">填写内容后点击生成，AI将从逻辑、概念、素材、设问四个维度给出深化建议</span>';
+            renderRecordList();
+            if (window.innerWidth <= 768) toggleSidebar();
+        }
+
+        async function loadRecord(id, event) {
+            const record = await getRecord(id);
+            if (!record) return;
+            currentRecordId = id;
+            currentRecordTags = record.tags || [];
+            document.getElementById('viewpoint').value = record.viewpoint || '';
+            renderConceptRows(record.concepts && record.concepts.length > 0 ? record.concepts : [{name: '', meaning: ''}]);
+            renderExampleRows(record.examples && record.examples.length > 0 ? record.examples : [{case: '', logic: ''}]);
+            document.getElementById('material').value = record.material || '';
+            renderSelectedTags();
+            autoResizeTextarea(document.getElementById('viewpoint'));
+            // AI内容渲染
+            const aiContentEl = document.getElementById('aiContent');
+            if (record.aiSuggestion) {
+                aiContentEl.setAttribute('data-ai-text', record.aiSuggestion);
+                aiContentEl.innerHTML = escapeHtml(record.aiSuggestion).replace(/\n/g, '<br>');
+            } else {
+                aiContentEl.removeAttribute('data-ai-text');
+                aiContentEl.innerHTML = '<span style="color: var(--hui-se);">填写内容后点击生成，AI将从逻辑、概念、素材、设问四个维度给出深化建议</span>';
+            }
+            renderRecordList();
+            if (window.innerWidth <= 768) toggleSidebar();
+        }
+
+        // 保存按钮 = 清空右侧
+        function saveRecord() {
+            currentRecordId = null;
+            currentRecordTags = [];
+            document.getElementById('viewpoint').value = '';
+            autoResizeTextarea(document.getElementById('viewpoint'));
+            renderConceptRows([{name: '', meaning: ''}]);
+            renderExampleRows([{case: '', logic: ''}]);
+            document.getElementById('material').value = '';
+            renderSelectedTags();
+            const aiContentEl = document.getElementById('aiContent');
+            aiContentEl.removeAttribute('data-ai-text');
+            aiContentEl.innerHTML = '<span style="color: var(--hui-se);">填写内容后点击生成，AI将从逻辑、概念、素材、设问四个维度给出深化建议</span>';
+            renderRecordList();
+            showToast('已保存并清空');
+        }
+
+        function confirmDeleteCurrent() {
+            if (!currentRecordId) {
+                showToast('请先选择一条记录');
+                return;
+            }
+            showConfirm('删除记录', '确定要删除这条记录吗？', '删除后无法恢复，请谨慎操作。', async () => {
+                await deleteRecord(currentRecordId);
+                currentRecordId = null;
+                createNew();
+                renderTagFilter();
+                showToast('已删除');
+            });
+        }
+
+        function confirmDeleteRecord(id) {
+            showConfirm('删除记录', '确定要删除这条记录吗？', '删除后无法恢复，请谨慎操作。', async () => {
+                await deleteRecord(id);
+                if (currentRecordId === id) {
+                    currentRecordId = null;
+                    createNew();
+                }
+                renderRecordList();
+                renderTagFilter();
+                showToast('已删除');
+            });
+        }
+
+        function copyRecord() {
+            const viewpoint = document.getElementById('viewpoint').value.trim();
+            const concepts = getConceptsData();
+            const examples = getExamplesData();
+            const material = document.getElementById('material').value.trim();
+            const ai = getAiTextContent();
+
+            if (!viewpoint && !material && concepts.length === 0 && examples.length === 0) {
+                showToast('没有可复制的内容');
+                return;
+            }
+
+            const config = loadSettings();
+            const userName = config.userName || '';
+            const dateStr = formatDateCN(Date.now());
+            
+            let text = '';
+            if (userName) {
+                text += `概念积累（${userName} - ${dateStr}）\n\n`;
+            } else {
+                text += `概念积累（${dateStr}）\n\n`;
+            }
+            
+            // 按照页面顺序：相关素材、事理、核心概念、支撑事例、标签、AI建议
+            text += `【相关素材】\n${material || '无'}\n\n`;
+            text += `【事理】\n${viewpoint || '无'}\n\n`;
+            if (concepts.length > 0) {
+                text += `【核心概念及内涵】\n`;
+                concepts.forEach((c, i) => {
+                    text += `${i+1}. ${c.name}：${c.meaning}\n`;
+                });
+                text += '\n';
+            }
+            if (examples.length > 0) {
+                text += `【支撑事例】\n`;
+                examples.forEach((e, i) => {
+                    text += `${i+1}. 具体事例：${e.case || '无'}\n`;
+                    text += `   事理逻辑链：${e.logic || '无'}\n\n`;
+                });
+            }
+            if (currentRecordTags.length > 0) {
+                text += `【标签】\n${currentRecordTags.join('、')}\n\n`;
+            }
+            if (ai) {
+                text += `【AI建议】\n${ai}`;
+            }
+
+            navigator.clipboard.writeText(text.trim()).then(() => {
+                showToast('已复制到剪贴板');
+            }).catch(() => {
+                showToast('复制失败，请手动复制');
+            });
+        }
+
+        // ===================== AI 功能 =====================
+
+        function clearAiSuggestion() {
+            showConfirm('清空AI建议', '确定要清空AI建议内容吗？', '清空后无法恢复。', () => {
+                const aiContentEl = document.getElementById('aiContent');
+                aiContentEl.removeAttribute('data-ai-text');
+                aiContentEl.innerHTML = '<span style="color: var(--hui-se);">填写内容后点击生成，AI将从逻辑、概念、素材、设问四个维度给出深化建议</span>';
+                autoSave();
+                showToast('已清空AI建议');
+            });
+        }
+
+        async function generateAiSuggestion() {
+            const viewpoint = document.getElementById('viewpoint').value.trim();
+            const concepts = getConceptsData();
+            const material = document.getElementById('material').value.trim();
+
+            if (!viewpoint) {
+                showToast('请先填写观点/事实');
+                return;
+            }
+
+            const config = loadSettings();
+            let apiKey = '';
+            if (config.apiType === 'deepseek') {
+                apiKey = config.deepseekApiKey;
+            } else if (config.apiType === 'doubao') {
+                apiKey = config.doubaoApiKey;
+            } else {
+                apiKey = config.customApiKey;
+            }
+            if (!apiKey) {
+                showToast('请先在设置中填写对应的API Key');
+                openSettings();
+                return;
+            }
+
+            const btn = document.getElementById('aiBtn');
+            const contentEl = document.getElementById('aiContent');
+            btn.disabled = true;
+            btn.textContent = '生成中...';
+            contentEl.innerHTML = '<div class="ai-loading">AI正在思考中，请稍候...</div>';
+
+            const systemPrompt = `你是一位资深的语文思维训练导师。请针对用户提供的观点事实、核心概念和相关素材，从以下四个维度给出专业建议：
+（1）观点逻辑评析：点评观点的逻辑严谨性、视角局限性，指出思维亮点与可完善之处
+（2）核心概念深化：补充概念的延伸内涵、相似概念辨析、适用边界
+（3）素材拓展方向：给出可补充的素材类型、关联议题、可迁移的应用场景
+（4）思考设问：抛出1-2个递进式问题，引导深度思考
+
+要求：
+- 语言精炼、专业，符合中文表达习惯
+- 总字数控制在1000字以内
+- 使用（1）（2）（3）（4）分条表述
+- 使用中文标点符号
+- 禁止使用任何Markdown语法和符号（如#、*、**、-、>等）`;
+
+            const conceptText = concepts.map((c,i) => `${i+1}. ${c.name}：${c.meaning}`).join('\n');
+            const examples = getExamplesData();
+            const examplesText = examples.map((e,i) => `${i+1}. 事例：${e.case || '未填写'}\n   逻辑链：${e.logic || '未填写'}`).join('\n');
+            const userContent = `观点/事实：${viewpoint}
+核心概念：
+${conceptText || '未填写'}
+支撑事例：
+${examplesText || '未填写'}
+相关素材：${material || '未填写'}`;
+
+            try {
+                let url, model;
+                if (config.apiType === 'deepseek') {
+                    url = 'https://api.deepseek.com/chat/completions';
+                    model = config.model;
+                } else if (config.apiType === 'doubao') {
+                    url = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+                    model = config.doubaoModel;
+                } else {
+                    url = config.customUrl;
+                    model = config.customModel;
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userContent }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 5000
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`请求失败：${response.status} ${response.statusText}\n${errorText}`);
+                }
+
+                const data = await response.json();
+                const result = data.choices[0].message.content.trim();
+                contentEl.setAttribute('data-ai-text', result);
+                contentEl.innerHTML = escapeHtml(result).replace(/\n/g, '<br>');
+                // 自动保存AI建议
+                pushHistory();
+                autoSave();
+            } catch (e) {
+                contentEl.removeAttribute('data-ai-text');
+                contentEl.innerHTML = `<span style="color: #B0413E;">生成失败：${e.message}<br>请检查API密钥、网络连接或接口地址是否正确</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成AI建议';
+            }
+        }
+
+        // ===================== AI补全 =====================
+
+        async function aiComplete() {
+            const viewpoint = document.getElementById('viewpoint').value.trim();
+            const material = document.getElementById('material').value.trim();
+            const concepts = getConceptsData();
+            const examples = getExamplesData();
+
+            if (!viewpoint && !material && concepts.length === 0 && examples.length === 0) {
+                showToast('请先填写一些内容，AI才能进行补全');
+                return;
+            }
+
+            const config = loadSettings();
+            let apiKey = '';
+            let model = '';
+            if (config.apiType === 'deepseek') {
+                apiKey = config.deepseekApiKey;
+                model = config.model;
+            } else if (config.apiType === 'doubao') {
+                apiKey = config.doubaoApiKey;
+                model = config.doubaoModel;
+            } else {
+                apiKey = config.customApiKey;
+                model = config.customModel;
+            }
+            if (!apiKey) {
+                showToast('请先在设置中填写对应的API Key');
+                openSettings();
+                return;
+            }
+            if (!model) {
+                showToast('请先在设置中填写模型名称/接入点ID');
+                openSettings();
+                return;
+            }
+
+            const btn = document.querySelector('.action-bar .secondary-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'AI补全中...';
+
+            const systemPrompt = `你是一位资深的语文思维训练导师。请根据用户提供的事理、相关素材、已有概念和支撑事例，进行智能补全。
+
+任务：
+0. 概括事理：如果用户没有提供事理，请根据相关素材概括出一句话的事理（上位观点或事实，或者逻辑链）
+   - 事理要求：一句话的上位观点或事实，或者逻辑链
+   - 不能出现具体的概念或内容（如"AI"、"互联网"等具体名词）
+   - 例如：如果素材是关于小周的故事，事理应该是"放慢节奏能发现生活中的美好"这样的抽象观点
+1. 核心概念：从事理中提取原词或原词组作为概念名称（必须是事理中出现的词汇），并解释其内涵特征。
+   - 重要：概念必须拆分到最小词单位，不能保留短语
+   - 例如："满招损，谦受益"应拆分为四个概念：满、损、谦、益
+   - 而不是"满招损"、"谦受益"两个概念
+   - 再如："生活的丰富与美好"应拆分为：生活、丰富、美好
+2. 支撑事例：生成3个支撑事例，每个事例包括：
+   - 左侧（具体事例）：完整的故事叙述，包含真实的人物、企业、国家等，最好有出处来源
+   - 右侧（事理逻辑链）：从该事例中抽象出的事理，解释事例如何支撑观点
+   - 重要：支撑事例必须是与用户提供的"相关素材"不同的新素材，不能重复
+
+要求：
+- 核心概念名称必须是事理中的原词或原词组，不能自行创造
+- 概念必须拆分到最小词单位（单字或双字词），不能保留长短语
+- 内涵特征只解释概念本身的含义，不要包含实现方式、前提条件、感受主体等额外内容
+- 支撑事例必须是真实发生的，涉及真实的人物、企业、国家等
+- 支撑事例必须与用户提供的"相关素材"完全不同，要找新的素材
+- 每个支撑事例要有具体的背景、时间、地点、事件经过、结果，故事要具体、详细、下位
+- 事理逻辑链要简洁，说明事例如何印证观点
+- 如果已有概念或事例，则只补充缺少的
+- 不要限制输出长度，完整输出所有内容
+- 使用以下格式输出（严格遵循）：
+VIEWPOINT:
+概括出的事理（如果没有提供事理时输出）
+CONCEPTS:
+1. 概念名称：内涵特征解释
+2. 概念名称：内涵特征解释
+...
+EXAMPLES:
+1. 具体事例（完整故事）||事理逻辑链（抽象事理）
+2. 具体事例（完整故事）||事理逻辑链（抽象事理）
+3. 具体事例（完整故事）||事理逻辑链（抽象事理）
+
+注意：具体事例和事理逻辑链之间用"||"分隔`;
+
+            const conceptText = concepts.map((c,i) => `${i+1}. ${c.name}：${c.meaning}`).join('\n');
+            const examplesText = examples.map((e,i) => `${i+1}. 事例：${e.case || '未填写'}：${e.logic || '未填写'}`).join('\n');
+            const userContent = `事理：${viewpoint || '未填写'}
+相关素材：${material || '未填写'}
+已有概念：
+${conceptText || '无'}
+已有支撑事例：
+${examplesText || '无'}`;
+
+            try {
+                let url;
+                if (config.apiType === 'deepseek') {
+                    url = 'https://api.deepseek.com/chat/completions';
+                } else if (config.apiType === 'doubao') {
+                    url = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+                } else {
+                    url = config.customUrl;
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userContent }
+                        ],
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`请求失败：${response.status} ${response.statusText}\n${errorText}`);
+                }
+
+                const data = await response.json();
+                const result = data.choices[0].message.content.trim();
+                
+                // 解析返回结果
+                const parsed = parseAiCompleteResult(result);
+                
+                // 合并现有数据
+                const mergedConcepts = mergeConcepts(concepts, parsed.concepts);
+                const mergedExamples = mergeExamples(examples, parsed.examples);
+                
+                // 更新表单
+                if (parsed.viewpoint && !viewpoint) {
+                    document.getElementById('viewpoint').value = parsed.viewpoint;
+                    autoResizeTextarea(document.getElementById('viewpoint'));
+                }
+                renderConceptRows(mergedConcepts);
+                renderExampleRows(mergedExamples);
+                
+                pushHistory();
+                autoSave();
+                showToast('AI补全完成');
+            } catch (e) {
+                showToast('AI补全失败：' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        function parseAiCompleteResult(text) {
+            const result = { viewpoint: '', concepts: [], examples: [] };
+            const lines = text.split('\n');
+            let section = '';
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (line === 'VIEWPOINT:') {
+                    section = 'viewpoint';
+                    continue;
+                } else if (line === 'CONCEPTS:') {
+                    section = 'concepts';
+                    continue;
+                } else if (line === 'EXAMPLES:') {
+                    section = 'examples';
+                    continue;
+                }
+                
+                if (section === 'viewpoint' && line) {
+                    result.viewpoint = line;
+                    section = ''; // 观点只需要一行
+                } else if (section === 'concepts' && line) {
+                    const match = line.match(/^\d+\.\s*(.+?)：(.+)$/);
+                    if (match) {
+                        result.concepts.push({ name: match[1].trim(), meaning: match[2].trim() });
+                    }
+                } else if (section === 'examples' && line) {
+                    // 使用"||"分隔具体事例和事理逻辑链
+                    const match = line.match(/^\d+\.\s*(.+?)\|\|(.+)$/);
+                    if (match) {
+                        result.examples.push({ case: match[1].trim(), logic: match[2].trim() });
+                    }
+                }
+            }
+            
+            return result;
+        }
+
+        function mergeConcepts(existing, newConcepts) {
+            // 简单合并：如果新概念名称已存在则跳过
+            const merged = [...existing];
+            for (const nc of newConcepts) {
+                if (!merged.some(c => c.name === nc.name)) {
+                    merged.push(nc);
+                }
+            }
+            return merged;
+        }
+
+        function mergeExamples(existing, newExamples) {
+            // 简单合并：如果新事例内容已存在则跳过
+            const merged = [...existing];
+            for (const ne of newExamples) {
+                if (!merged.some(e => e.case === ne.case && e.logic === ne.logic)) {
+                    merged.push(ne);
+                }
+            }
+            // 限制最多3个事例
+            return merged.slice(0, 3);
+        }
+
+        // ===================== 设置相关 =====================
+
+        function openSettings() {
+            const config = loadSettings();
+            document.getElementById('userName').value = config.userName || '';
+            document.getElementById('apiType').value = config.apiType || 'deepseek';
+            document.getElementById('deepseekApiKey').value = config.deepseekApiKey || '';
+            document.getElementById('doubaoApiKey').value = config.doubaoApiKey || '';
+            document.getElementById('customApiKey').value = config.customApiKey || '';
+            document.getElementById('modelSelect').value = config.model || 'deepseek-v4-flash';
+            document.getElementById('doubaoModel').value = config.doubaoModel || '';
+            document.getElementById('customUrl').value = config.customUrl || '';
+            document.getElementById('customModel').value = config.customModel || '';
+            toggleCustomApi();
+            document.getElementById('settingsModal').classList.add('show');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+
+        function toggleCustomApi() {
+            const type = document.getElementById('apiType').value;
+            // API Key 输入框显示/隐藏
+            document.getElementById('deepseekApiKeyGroup').style.display = type === 'deepseek' ? 'block' : 'none';
+            document.getElementById('doubaoApiKeyGroup').style.display = type === 'doubao' ? 'block' : 'none';
+            document.getElementById('customApiKeyGroup').style.display = type === 'custom' ? 'block' : 'none';
+            // 模型设置显示/隐藏
+            document.getElementById('modelGroup').style.display = type === 'deepseek' ? 'block' : 'none';
+            document.getElementById('doubaoModelGroup').style.display = type === 'doubao' ? 'block' : 'none';
+            document.getElementById('customUrlGroup').style.display = type === 'custom' ? 'block' : 'none';
+            document.getElementById('customModelGroup').style.display = type === 'custom' ? 'block' : 'none';
+        }
+
+        function clearAllData() {
+            showConfirm('清空所有数据', '确定要清空所有数据吗？', '此操作将删除所有记录、设置和标签，且不可恢复。', async () => {
+                try {
+                    indexedDB.deleteDatabase(DB_NAME);
+                    localStorage.clear();
+                    closeSettings();
+                    showToast('已清空所有数据，页面将刷新');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } catch (e) {
+                    showToast('清空失败：' + e.message);
+                }
+            });
+        }
+
+        function saveSettings() {
+            const config = {
+                userName: document.getElementById('userName').value.trim(),
+                apiType: document.getElementById('apiType').value,
+                deepseekApiKey: document.getElementById('deepseekApiKey').value.trim(),
+                doubaoApiKey: document.getElementById('doubaoApiKey').value.trim(),
+                customApiKey: document.getElementById('customApiKey').value.trim(),
+                model: document.getElementById('modelSelect').value,
+                doubaoModel: document.getElementById('doubaoModel').value.trim(),
+                customUrl: document.getElementById('customUrl').value.trim(),
+                customModel: document.getElementById('customModel').value.trim()
+            };
+            localStorage.setItem('conceptAppSettings', JSON.stringify(config));
+            showToast('设置已保存');
+            closeSettings();
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('conceptAppSettings');
+            return saved ? JSON.parse(saved) : {};
+        }
+
+        // ===================== API使用说明 =====================
+
+        function openApiGuide() {
+            document.getElementById('apiGuideModal').classList.add('show');
+        }
+
+        function closeApiGuide() {
+            document.getElementById('apiGuideModal').classList.remove('show');
+        }
+
+        // ===================== 确认弹窗 =====================
+
+        function showConfirm(title, text, sub, callback) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmText').textContent = text;
+            document.getElementById('confirmSub').textContent = sub || '';
+            confirmCallback = callback;
+            document.getElementById('confirmModal').classList.add('show');
+        }
+
+        function closeConfirm() {
+            document.getElementById('confirmModal').classList.remove('show');
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirmOkBtn').addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirm();
+        });
+
+        // ===================== Word 导出 =====================
+
+        function createWordDocument(records) {
+            const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, PageBreak } = docx;
+            const config = loadSettings();
+            const userName = config.userName || '';
+            
+            const children = [];
+
+            records.forEach((record, index) => {
+                if (index > 0) {
+                    children.push(new Paragraph({
+                        children: [new PageBreak()]
+                    }));
+                }
+
+                // 每篇标题
+                const recordDate = formatDateCN(record.createTime || Date.now());
+                const titleText = userName ? `概念积累（${userName} - ${recordDate}）` : `概念积累（${recordDate}）`;
+                children.push(new Paragraph({
+                    text: titleText,
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 300 },
+                    run: { font: '黑体', size: 28, bold: true, color: '333333' }
+                }));
+
+                // 一、相关素材（页面顺序：相关素材在最上面）
+                children.push(new Paragraph({
+                    children: [new TextRun({ text: '一、相关素材', bold: true, font: '黑体', size: 24, color: '444444' })],
+                    spacing: { before: 200, after: 80 }
+                }));
+                const materialLines = (record.material || '').split('\n').filter(l => l.trim());
+                if (materialLines.length === 0) {
+                    children.push(new Paragraph({ text: '无', indent: { firstLine: 480 }, run: { font: '宋体', size: 22 } }));
+                } else {
+                    materialLines.forEach(line => {
+                        children.push(new Paragraph({
+                            text: line,
+                            spacing: { after: 60 },
+                            indent: { firstLine: 480 },
+                            run: { font: '宋体', size: 22 }
+                        }));
+                    });
+                }
+
+                // 二、事理
+                children.push(new Paragraph({
+                    children: [new TextRun({ text: '二、事理', bold: true, font: '黑体', size: 24, color: '444444' })],
+                    spacing: { before: 200, after: 80 }
+                }));
+                children.push(new Paragraph({
+                    text: record.viewpoint || '无',
+                    spacing: { after: 160 },
+                    indent: { firstLine: 480 },
+                    run: { font: '宋体', size: 22 }
+                }));
+
+                // 三、核心概念及内涵
+                children.push(new Paragraph({
+                    children: [new TextRun({ text: '三、核心概念及内涵', bold: true, font: '黑体', size: 24, color: '444444' })],
+                    spacing: { before: 200, after: 80 }
+                }));
+                const concepts = record.concepts || [];
+                if (concepts.length === 0) {
+                    children.push(new Paragraph({ text: '无', indent: { firstLine: 480 }, run: { font: '宋体', size: 22 } }));
+                } else {
+                    concepts.forEach((c, i) => {
+                        children.push(new Paragraph({
+                            children: [
+                                new TextRun({ text: `${i+1}. ${c.name}：`, bold: true, font: '宋体', size: 22 }),
+                                new TextRun({ text: c.meaning, font: '宋体', size: 22 })
+                            ],
+                            spacing: { after: 60 },
+                            indent: { firstLine: 480 }
+                        }));
+                    });
+                }
+
+                // 四、支撑事例
+                children.push(new Paragraph({
+                    children: [new TextRun({ text: '四、支撑事例', bold: true, font: '黑体', size: 24, color: '444444' })],
+                    spacing: { before: 200, after: 80 }
+                }));
+                const examples = record.examples || [];
+                if (examples.length === 0) {
+                    children.push(new Paragraph({ text: '无', indent: { firstLine: 480 }, run: { font: '宋体', size: 22 } }));
+                } else {
+                    examples.forEach((e, i) => {
+                        // 具体事例
+                        children.push(new Paragraph({
+                            children: [
+                                new TextRun({ text: `${i+1}. 具体事例：`, bold: true, font: '宋体', size: 22 }),
+                            ],
+                            spacing: { after: 60 },
+                            indent: { firstLine: 480 }
+                        }));
+                        const caseLines = (e.case || '').split('\n').filter(l => l.trim());
+                        caseLines.forEach(line => {
+                            children.push(new Paragraph({
+                                text: line,
+                                spacing: { after: 60 },
+                                indent: { firstLine: 480 },
+                                run: { font: '宋体', size: 22 }
+                            }));
+                        });
+                        // 事理逻辑链
+                        children.push(new Paragraph({
+                            children: [
+                                new TextRun({ text: `事理逻辑链：`, bold: true, font: '宋体', size: 22 }),
+                                new TextRun({ text: e.logic || '无', font: '宋体', size: 22 })
+                            ],
+                            spacing: { after: 120 },
+                            indent: { firstLine: 480 }
+                        }));
+                    });
+                }
+
+                // 五、标签
+                const tags = record.tags || [];
+                if (tags.length > 0) {
+                    children.push(new Paragraph({
+                        children: [new TextRun({ text: '五、标签', bold: true, font: '黑体', size: 24, color: '444444' })],
+                        spacing: { before: 200, after: 80 }
+                    }));
+                    children.push(new Paragraph({
+                        text: tags.join('、'),
+                        spacing: { after: 60 },
+                        indent: { firstLine: 480 },
+                        run: { font: '宋体', size: 22 }
+                    }));
+                }
+
+                // 六、AI建议
+                if (record.aiSuggestion) {
+                    children.push(new Paragraph({
+                        children: [new TextRun({ text: '六、AI建议', bold: true, font: '黑体', size: 24, color: '444444' })],
+                        spacing: { before: 200, after: 80 }
+                    }));
+                    const aiLines = record.aiSuggestion.split('\n').filter(l => l.trim());
+                    aiLines.forEach(line => {
+                        children.push(new Paragraph({
+                            text: line,
+                            spacing: { after: 60 },
+                            indent: { firstLine: 480 },
+                            run: { font: '宋体', size: 22 }
+                        }));
+                    });
+                }
+            });
+
+            return new Document({
+                sections: [{
+                    properties: {
+                        page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } }
+                    },
+                    children: children
+                }],
+                styles: {
+                    default: {
+                        document: {
+                            run: { font: '宋体', size: 22 },
+                            paragraph: { spacing: { line: 300 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function exportSingleWord() {
+            const config = loadSettings();
+            const userName = config.userName || '';
+            
+            if (!currentRecordId) {
+                const viewpoint = document.getElementById('viewpoint').value.trim();
+                if (!viewpoint) {
+                    showToast('请先填写内容或选择一条记录');
+                    return;
+                }
+                const record = {
+                    viewpoint,
+                    concepts: getConceptsData(),
+                    examples: getExamplesData(),
+                    material: document.getElementById('material').value,
+                    tags: [...currentRecordTags],
+                    aiSuggestion: getAiTextContent(),
+                    createTime: Date.now()
+                };
+                const doc = createWordDocument([record]);
+                const blob = await docx.Packer.toBlob(doc);
+                const dateStr = formatDateCN(Date.now());
+                const fileName = userName ? `概念积累（${userName}-${dateStr}）.docx` : `概念积累（${dateStr}）.docx`;
+                saveAs(blob, fileName);
+            } else {
+                const record = await getRecord(currentRecordId);
+                const doc = createWordDocument([record]);
+                const blob = await docx.Packer.toBlob(doc);
+                const dateStr = formatDateCN(record.createTime || Date.now());
+                const fileName = userName ? `概念积累（${userName}-${dateStr}）.docx` : `概念积累（${dateStr}）.docx`;
+                saveAs(blob, fileName);
+            }
+            showToast('导出成功');
+        }
+
+        // ===================== 导出弹窗 =====================
+
+        function openExportModal() {
+            document.getElementById('exportStartDate').value = '';
+            document.getElementById('exportEndDate').value = '';
+            document.getElementById('exportModal').classList.add('show');
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.remove('show');
+        }
+
+        async function confirmExport() {
+            const config = loadSettings();
+            const userName = config.userName || '';
+            
+            const startDate = document.getElementById('exportStartDate').value;
+            const endDate = document.getElementById('exportEndDate').value;
+            closeExportModal();
+            
+            let records = await getAllRecords();
+            if (records.length === 0) {
+                showToast('暂无记录，无可导出内容');
+                return;
+            }
+
+            if (startDate) {
+                const startTimestamp = new Date(startDate).getTime();
+                records = records.filter(r => r.createTime >= startTimestamp);
+            }
+            if (endDate) {
+                const endTimestamp = new Date(endDate).getTime() + 86400000;
+                records = records.filter(r => r.createTime < endTimestamp);
+            }
+
+            if (records.length === 0) {
+                showToast('所选日期范围内无记录');
+                return;
+            }
+
+            const doc = createWordDocument(records);
+            const blob = await docx.Packer.toBlob(doc);
+            
+            let fileName;
+            if (startDate && endDate) {
+                const startStr = formatDateCN(new Date(startDate).getTime());
+                const endStr = formatDateCN(new Date(endDate).getTime());
+                fileName = userName ? `概念积累（${userName}-${startStr}至${endStr}）.docx` : `概念积累（${startStr}至${endStr}）.docx`;
+            } else if (startDate) {
+                const startStr = formatDateCN(new Date(startDate).getTime());
+                fileName = userName ? `概念积累（${userName}-${startStr}起）.docx` : `概念积累（${startStr}起）.docx`;
+            } else if (endDate) {
+                const endStr = formatDateCN(new Date(endDate).getTime());
+                fileName = userName ? `概念积累（${userName}-至${endStr}）.docx` : `概念积累（至${endStr}）.docx`;
+            } else {
+                fileName = userName ? `概念积累（${userName}-全部）.docx` : `概念积累（全部）.docx`;
+            }
+            
+            saveAs(blob, fileName);
+            showToast('导出成功');
+        }
+
+        async function exportAllWord() {
+            openExportModal();
+        }
+
+        // ===================== 数据备份 =====================
+
+        async function exportAllJson() {
+            const records = await exportAllRecords();
+            const data = {
+                version: '3.0',
+                exportTime: Date.now(),
+                records: records
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            saveAs(blob, `思维积累备份_${formatDate(Date.now())}.json`);
+            showToast('备份成功');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.records || !Array.isArray(data.records)) {
+                        throw new Error('文件格式不正确');
+                    }
+                    showConfirm('导入数据', `将导入 ${data.records.length} 条记录，是否继续？`, '导入的记录会追加到现有数据中。', async () => {
+                        await importRecords(data.records);
+                        renderRecordList();
+                        showToast('导入成功');
+                    });
+                } catch (err) {
+                    showToast('导入失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ===================== 工具函数 =====================
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            const h = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            return `${m}-${d} ${h}:${min}`;
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}${m}${d}`;
+        }
+
+        function formatDateCN(timestamp) {
+            const date = new Date(timestamp);
+            const y = date.getFullYear();
+            const m = date.getMonth() + 1;
+            const d = date.getDate();
+            return `${y}年${m}月${d}日`;
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+        }
+
+        // 点击遮罩关闭弹窗
+        document.querySelectorAll('.modal-mask').forEach(mask => {
+            mask.addEventListener('click', (e) => {
+                if (e.target === mask) {
+                    mask.classList.remove('show');
+                }
+            });
+        });
+
+        // 初始化
+        window.onload = async () => {
+            await initDB();
+            renderConceptRows([{name: '', meaning: ''}]);
+            renderTagFilter();
+            renderRecordList();
+            bindAutoSave();
+        };
+    </script>
+</body>
+</html>
