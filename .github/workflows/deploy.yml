@@ -12,21 +12,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
-        chmod 700 ~/.ssh
-        chmod 600 ~/.ssh/deploy_key
-        
-    - name: Get server fingerprint
-      run: |
-        ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-        
     - name: Test SSH connection
-      run: |
-        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "echo 'SSH OK'"
+      uses: appleboy/ssh-action@v1
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: echo "SSH connection OK"
         
-    - name: Deploy files
-      run: |
-        scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r ./* ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.DEPLOY_PATH }}
+    - name: Deploy via SCP
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: "./*"
+        target: ${{ secrets.DEPLOY_PATH }}
+        strip_components: 0
