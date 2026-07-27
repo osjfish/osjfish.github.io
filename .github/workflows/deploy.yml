@@ -12,13 +12,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup SSH
+    - name: Setup SSH key
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        
+    - name: Add server to known hosts
+      run: |
         ssh-keyscan -H ${{ secrets.REMOTE_HOST }} >> ~/.ssh/known_hosts
         
-    - name: Deploy files
+    - name: Deploy via SCP
       run: |
-        rsync -avzr --delete -e "ssh -i ~/.ssh/deploy_key" ./ ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.DEPLOY_PATH }}
+        scp -i ~/.ssh/id_ed25519 -r ./* ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.DEPLOY_PATH }}
