@@ -76,7 +76,7 @@ input:checked+.slider:before{transform:translateX(16px)}
 .picker-item.selected{color:var(--text);transform:scale(1.1)}
 .picker-label{font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:3px}
 /* overlay */
-.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:1000;padding:2rem;overflow:hidden}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:1000;padding:2rem;overflow-y:auto;overflow-x:hidden}
 .overlay.active{display:flex}
 .overlay-title{font-size:2rem;font-weight:800;margin-bottom:.8rem}
 .overlay-time{font-size:1.5rem;margin-bottom:2rem;color:var(--muted)}
@@ -462,7 +462,7 @@ function switchPomMode(mode){
 function setPomodoro(work,break_,longBreak,btn){if(pom.running)return;pom.workMin=work;pom.breakMin=break_;pom.longBreakMin=longBreak||15;pom.sessions=0;pom.setCount=0;pom.phase='work';pom.totalSeconds=work*60;pom.remainingSeconds=pom.totalSeconds;pom.finished=false;document.getElementById('pomWorkMin').value=work;document.getElementById('pomBreakMin').value=break_;document.getElementById('pomLongBreakMin').value=pom.longBreakMin;updatePomDisplay();document.querySelectorAll('#tab-pomodoro .timer-presets .preset-btn').forEach(function(b){b.classList.remove('active')});if(btn)btn.classList.add('active')}
 function updatePomDisplay(){
     var d=document.getElementById('pomDisplay'),ph=document.getElementById('pomPhase'),pb=document.getElementById('pomProgressBar'),ss=document.getElementById('pomSessions'),si=document.getElementById('pomSetInfo');
-    var secs=pom.running?pom.remainingSeconds:pom.totalSeconds;d.textContent=formatTimeP(secs);
+    d.textContent=formatTimeP(pom.remainingSeconds);
     if(pom.phase==='work'){ph.textContent='专注时间';ph.style.color='var(--danger)'}
     else if(pom.phase==='break'){ph.textContent='短休息';ph.style.color='var(--success)'}
     else{ph.textContent='长休息';ph.style.color='var(--blue)'}
@@ -476,7 +476,7 @@ function updatePomDisplay(){
 }
 function updateTabTitle(){
     if(pom.running||pom.remainingSeconds>0){
-        var secs=pom.running?pom.remainingSeconds:pom.totalSeconds;
+        var secs=pom.remainingSeconds;
         var phaseText=pom.phase==='work'?'专注':pom.phase==='break'?'短休':'长休';
         document.title=formatTimeP(secs)+' - '+phaseText+' | 考试计时';
     }
@@ -545,7 +545,7 @@ function updatePomFs(){
     if(pom.phase==='work'){ph.textContent='专注时间';ph.style.color='var(--danger)'}
     else if(pom.phase==='break'){ph.textContent='短休息';ph.style.color='var(--success)'}
     else{ph.textContent='长休息';ph.style.color='var(--blue)'}
-    document.getElementById('pomFsTime').textContent=formatTimeP(pom.running?pom.remainingSeconds:(parseInt(document.getElementById('pomWorkMin').value)||25)*60);
+    document.getElementById('pomFsTime').textContent=formatTimeP(pom.remainingSeconds);
     document.getElementById('pomFsSessions').textContent='已完成 '+pom.sessions+' 个番茄 · 当前组 '+Math.min(pom.setCount+1,4)+'/4';
     var progress=pom.totalSeconds>0?(pom.remainingSeconds/pom.totalSeconds)*100:100;
     var pb=document.getElementById('pomFsProgressBar');pb.style.width=progress+'%';
