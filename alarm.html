@@ -294,6 +294,7 @@ var state={theme:localStorage.getItem('theme')||'light',alarms:JSON.parse(localS
 var timer={totalSeconds:0,remainingSeconds:0,elapsedSeconds:0,interval:null,running:false,finished:false};
 var pom={totalSeconds:0,remainingSeconds:0,interval:null,running:false,phase:'work',workMin:25,breakMin:5,sessions:0,finished:false,_fsInterval:null};
 var exam={running:false,interval:null,endTime:0,startTime:0,warningMin:15,warningSent:false,duration:0};
+var ringTimer=null;
 
 function switchTab(tab){document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});document.querySelector('.tab-btn[onclick="switchTab(\''+tab+'\')"]').classList.add('active');document.getElementById('tab-'+tab).classList.add('active')}
 function updateTabIndicators(){var tabs=document.querySelectorAll('.tab-btn');tabs.forEach(function(t){t.classList.remove('has-running')});if(state.isRinging||exam.running)tabs[0].classList.add('has-running');if(timer.running)tabs[1].classList.add('has-running');if(pom.running)tabs[2].classList.add('has-running')}
@@ -343,7 +344,7 @@ function updateClock(){
     else document.getElementById('audioHint').style.display='none';
     if(!lastTimeString){lastTimeString=ct;return}
     if(s==='00')renderAlarms();
-    state.alarms.forEach(function(a){if(!a.enabled)return;var at=a.time,triggered=false;if(ct>=lastTimeString){if(at>lastTimeString&&at<=ct)triggered=true}else{if(at>lastTimeString||at<=ct)triggered=true}if(triggered&&!state.isRinging)ring(a.label||'闹钟',a.time)});
+    state.alarms.forEach(function(a){if(!a.enabled)return;var at=a.time,triggered=false;if(ct>=lastTimeString){if(at>lastTimeString&&at<=ct)triggered=true}else{if(at>lastTimeString||at<=ct)triggered=true}if(triggered&&!state.isRinging)ring(a.label||'闹钟',a.time,300000)});
     lastTimeString=ct;
     updateTabIndicators();
     if(exam.running)updateExamFs();
@@ -372,7 +373,7 @@ function startExam(){
             if(!exam.warningSent&&exam.warningMin>0&&(exam.endTime-now)<=exam.warningMin*60000){exam.warningSent=true;playDing()}
         }else{
             /* exam over */
-            clearInterval(exam.interval);exam.running=false;document.getElementById('examOverlay').classList.remove('active');ring('考试时间到','请停止作答');return;
+            clearInterval(exam.interval);exam.running=false;document.getElementById('examOverlay').classList.remove('active');ring('考试时间到','请停止作答',10000);return;
         }
         updateExamFs();
     },500);
@@ -410,8 +411,8 @@ function renderAlarms(){
     awd.sort(function(a,b){return a.diff-b.diff});
     list.innerHTML=awd.map(function(a){var h=Math.floor(a.diff/3600),mi=Math.floor((a.diff%3600)/60);var ct_=a.enabled?'还有 '+(h>0?h+'小时':'')+mi+'分钟响铃':'已暂停';return '<div class="alarm-item '+(a.enabled?'':'disabled')+'"><div class="alarm-info"><span class="alarm-time">'+a.time+'</span><span class="alarm-label">'+a.label+'</span><span class="alarm-countdown">'+ct_+'</span></div><div class="alarm-controls"><label class="switch"><input type="checkbox" '+(a.enabled?'checked':'')+' onchange="toggleAlarm('+a.id+')"><span class="slider"></span></label><button class="danger" onclick="deleteAlarm('+a.id+')" style="padding:4px 7px;font-size:.68rem">删除</button></div></div>'}).join('');
 }
-function ring(label,time){state.isRinging=true;document.getElementById('overlayLabel').textContent=label;document.getElementById('ringingTime').textContent=time||'';document.getElementById('ringingOverlay').classList.add('active');if('vibrate' in navigator)navigator.vibrate([500,300,500,300,500]);startBeep()}
-function stopRinging(){state.isRinging=false;document.getElementById('ringingOverlay').classList.remove('active');stopBeep();if('vibrate' in navigator)navigator.vibrate(0);updateTabIndicators()}
+function ring(label,time,maxMs){state.isRinging=true;document.getElementById('overlayLabel').textContent=label;document.getElementById('ringingTime').textContent=time||'';document.getElementById('ringingOverlay').classList.add('active');if('vibrate' in navigator)navigator.vibrate([500,300,500,300,500]);startBeep();if(ringTimer)clearTimeout(ringTimer);if(maxMs)ringTimer=setTimeout(function(){if(state.isRinging)stopRinging()},maxMs)}
+function stopRinging(){state.isRinging=false;document.getElementById('ringingOverlay').classList.remove('active');stopBeep();if('vibrate' in navigator)navigator.vibrate(0);if(ringTimer){clearTimeout(ringTimer);ringTimer=null}updateTabIndicators()}
 
 /* timer */
 function setTimer(minutes,btn){if(timer.running)return;timer.totalSeconds=minutes*60;timer.remainingSeconds=timer.totalSeconds;timer.elapsedSeconds=0;timer.finished=false;updateTimerDisplay();document.querySelectorAll('#tab-timer .preset-btn').forEach(function(b){b.classList.remove('active')});if(btn)btn.classList.add('active')}
@@ -429,7 +430,7 @@ function updateTimerDisplay(){
 }
 function formatTime(ts){return String(Math.floor(ts/3600)).padStart(2,'0')+':'+String(Math.floor((ts%3600)/60)).padStart(2,'0')+':'+String(ts%60).padStart(2,'0')}
 function formatFull(ms){var s=Math.floor(ms/1000);return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
-function startTimer(){if(timer.totalSeconds<=0||timer.finished)return;timer.running=true;document.getElementById('timerStartBtn').style.display='none';document.getElementById('timerPauseBtn').style.display='inline-flex';timer.interval=setInterval(function(){timer.remainingSeconds--;timer.elapsedSeconds++;updateTimerDisplay();if(timer.remainingSeconds<=0){clearInterval(timer.interval);timer.running=false;timer.finished=true;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';updateTimerDisplay();ring('计时结束','')}},1000)}
+function startTimer(){if(timer.totalSeconds<=0||timer.finished)return;timer.running=true;document.getElementById('timerStartBtn').style.display='none';document.getElementById('timerPauseBtn').style.display='inline-flex';timer.interval=setInterval(function(){timer.remainingSeconds--;timer.elapsedSeconds++;updateTimerDisplay();if(timer.remainingSeconds<=0){clearInterval(timer.interval);timer.running=false;timer.finished=true;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';updateTimerDisplay();ring('计时结束','',10000)}},1000)}
 function pauseTimer(){if(!timer.running)return;clearInterval(timer.interval);timer.running=false;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';updateTimerDisplay();updateTabIndicators()}
 function resetTimer(){clearInterval(timer.interval);timer.running=false;timer.finished=false;timer.totalSeconds=0;timer.remainingSeconds=0;timer.elapsedSeconds=0;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';document.querySelectorAll('#tab-timer .preset-btn').forEach(function(b){b.classList.remove('active')});updateTimerDisplay();updateTabIndicators()}
 
@@ -457,8 +458,8 @@ function startPomodoro(){
     pom.interval=setInterval(function(){
         pom.remainingSeconds--;updatePomDisplay();
         if(pom.remainingSeconds<=0){clearInterval(pom.interval);pom.running=false;
-            if(pom.phase==='work'){pom.sessions++;pom.phase='break';pom.totalSeconds=pom.breakMin*60;pom.remainingSeconds=pom.totalSeconds;ring('专注结束','休息一下');startPomodoro()}
-            else{pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds;pom.finished=false;ring('休息结束','开始下一个番茄');startPomodoro()}
+            if(pom.phase==='work'){pom.sessions++;pom.phase='break';pom.totalSeconds=pom.breakMin*60;pom.remainingSeconds=pom.totalSeconds;ring('专注结束','休息一下',10000);startPomodoro()}
+            else{pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds;pom.finished=false;ring('休息结束','开始下一个番茄',10000);startPomodoro()}
         }
     },1000);
 }
