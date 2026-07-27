@@ -32,6 +32,7 @@ h1::after{content:'';display:block;width:40px;height:3px;background:linear-gradi
 .thumb .del{position:absolute;top:4px;right:4px;width:20px;height:20px;line-height:18px;text-align:center;background:rgba(184,69,58,.9);color:#fff;border-radius:50%;font-size:14px;cursor:pointer;z-index:2;transition:transform .2s}
 .thumb .del:hover{transform:scale(1.15)}
 .thumb.dragging{opacity:.3;transform:scale(.95)}
+.thumb-touch-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.85;border:2px solid var(--primary);box-shadow:0 8px 32px rgba(0,0,0,.25);transition:none}
 .thumb.drag-left{border-left:4px solid var(--primary);box-shadow:inset 4px 0 0 var(--primary-light)}
 .thumb.drag-left::before{content:'◀';position:absolute;left:-20px;top:50%;transform:translateY(-50%);color:var(--primary);font-size:16px;z-index:10}
 .thumb.drag-right{border-right:4px solid var(--primary);box-shadow:inset -4px 0 0 var(--primary-light)}
@@ -170,7 +171,7 @@ drop.addEventListener('click',()=>fileIn.click());
 drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag-over')});
 drop.addEventListener('dragleave',()=>drop.classList.remove('drag-over'));
 drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag-over');addFiles(e.dataTransfer.files)});
-fileIn.addEventListener('change',e=>addFiles(e.target.files));
+fileIn.addEventListener('change',e=>{addFiles(e.target.files);e.target.value=''});
 
 function addFiles(files){
     const arr=Array.from(files).filter(f=>f.type.startsWith('image/'));
@@ -211,6 +212,61 @@ function renderThumbs(){
             imgs.splice(t,0,item);renderThumbs();stitchBtn.disabled=imgs.length<2;
         });
         d.querySelector('.del').onclick=e=>{e.stopPropagation();URL.revokeObjectURL(imgs[+e.target.dataset.i].url);imgs.splice(+e.target.dataset.i,1);renderThumbs();stitchBtn.disabled=imgs.length<2};
+
+        let touchState=null,ghostEl=null;
+        d.addEventListener('touchstart',e=>{
+            const t=e.touches[0];
+            touchState={idx:i,startX:t.clientX,startY:t.clientY,started:false};
+        },{passive:true});
+        d.addEventListener('touchmove',e=>{
+            if(!touchState)return;
+            const t=e.touches[0];
+            const dx=t.clientX-touchState.startX,dy=t.clientY-touchState.startY;
+            if(!touchState.started){
+                if(Math.abs(dx)<10&&Math.abs(dy)<10)return;
+                touchState.started=true;
+                ghostEl=d.cloneNode(true);
+                ghostEl.classList.add('thumb-touch-ghost');
+                ghostEl.style.width=d.offsetWidth+'px';
+                ghostEl.style.height=d.offsetHeight+'px';
+                document.body.appendChild(ghostEl);
+                d.classList.add('dragging');
+            }
+            e.preventDefault();
+            ghostEl.style.left=(t.clientX-d.offsetWidth/2)+'px';
+            ghostEl.style.top=(t.clientY-d.offsetHeight/2)+'px';
+            imgList.querySelectorAll('.thumb').forEach(t=>t.classList.remove('drag-left','drag-right'));
+            const el=document.elementFromPoint(t.clientX,t.clientY);
+            const over=el?el.closest('.thumb'):null;
+            if(over&&over!==d){
+                const r=over.getBoundingClientRect();
+                over.classList.add(t.clientX<r.left+r.width/2?'drag-left':'drag-right');
+            }
+        },{passive:false});
+        d.addEventListener('touchend',e=>{
+            if(!touchState||!touchState.started){
+                touchState=null;
+                if(ghostEl){ghostEl.remove();ghostEl=null}
+                return;
+            }
+            const t=e.changedTouches[0];
+            imgList.querySelectorAll('.thumb').forEach(x=>{x.classList.remove('dragging','drag-left','drag-right')});
+            if(ghostEl){ghostEl.remove();ghostEl=null}
+            const el=document.elementFromPoint(t.clientX,t.clientY);
+            const over=el?el.closest('.thumb'):null;
+            if(over&&over!==d){
+                const r=over.getBoundingClientRect();
+                const before=t.clientX<r.left+r.width/2;
+                let targetIdx=+over.querySelector('.del').dataset.i;
+                const item=imgs.splice(touchState.idx,1)[0];
+                if(touchState.idx<targetIdx)targetIdx=before?targetIdx-1:targetIdx;
+                imgs.splice(targetIdx,0,item);
+                renderThumbs();
+                stitchBtn.disabled=imgs.length<2;
+            }
+            touchState=null;
+        },{passive:true});
+
         imgList.appendChild(d);
     });
 }
