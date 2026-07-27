@@ -31,13 +31,7 @@
   .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
   .logo{font-size:20px;font-weight:700;color:var(--xuan);letter-spacing:4px}
   .logo span{color:var(--zhu);font-size:26px;margin-right:2px}
-  .tab-bar{display:flex;gap:0;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden}
-  .tab{
-    padding:6px 16px;font-size:13px;color:rgba(255,255,255,.6);cursor:pointer;
-    transition:all .2s;border:none;background:none;
-  }
-  .tab.active{background:var(--zhu);color:#fff}
-  .tab:hover:not(.active){color:rgba(255,255,255,.9)}
+
 
   .search-box{
     display:flex;gap:8px;align-items:center;
@@ -143,10 +137,6 @@
   <div class="header">
     <div class="header-top">
       <div class="logo"><span>U</span> 导航</div>
-      <div class="tab-bar">
-        <button class="tab active" data-tab="all">全部</button>
-        <button class="tab" data-tab="fav">收藏</button>
-      </div>
     </div>
     <div class="search-box">
       <div class="search-wrap">
@@ -166,14 +156,14 @@
     const LS_KEY_FAV='nav_favorites';
     const LS_KEY_HIST='nav_history';
     let apps=[], favs=getLS(LS_KEY_FAV), history=getLS(LS_KEY_HIST);
-    let currentTab='all', searchQuery='';
+    let searchQuery='';
 
     function getLS(k){try{return JSON.parse(localStorage.getItem(k))||[]}catch(e){return[]}}
     function setLS(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
     function renderHistory(){
       const bar=document.getElementById('historyBar');
-      if(!history.length||currentTab!=='all'||searchQuery){bar.style.display='none';return}
+      if(!history.length||searchQuery){bar.style.display='none';return}
       bar.style.display='flex';
       bar.innerHTML=history.map(h=>
         `<span class="history-tag" onclick="doSearch('${h}')">${h}<span class="del" onclick="event.stopPropagation();delHistory('${h}')">&times;</span></span>`
@@ -188,7 +178,6 @@
       const c=document.getElementById('content');
       renderHistory();
       let list=apps;
-      if(currentTab==='fav')list=list.filter(a=>favs.includes(a.path));
       if(searchQuery){
         const q=searchQuery.toLowerCase();
         list=list.filter(a=>a.name.toLowerCase().includes(q)||a.path.toLowerCase().includes(q));
@@ -198,7 +187,7 @@
       const others=list.filter(a=>!favs.includes(a.path));
 
       let html='';
-      if(currentTab==='all'&&favsList.length&&!searchQuery){
+      if(favsList.length&&!searchQuery){
         html+=`<div class="section-title">收藏</div><div class="grid">${favsList.map(cardHTML).join('')}</div>`;
         html+=`<div class="section-title">全部</div><div class="grid">${others.map(cardHTML).join('')}</div>`;
       }else{
@@ -236,13 +225,6 @@
     });
     document.getElementById('searchClear').addEventListener('click',function(){
       document.getElementById('searchInput').value='';searchQuery='';this.classList.remove('show');renderApps();
-    });
-
-    document.querySelectorAll('.tab').forEach(t=>{
-      t.addEventListener('click',function(){
-        document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-        this.classList.add('active');currentTab=this.dataset.tab;renderApps();
-      });
     });
 
     fetch('./_list.json').then(r=>r.json()).then(d=>{
