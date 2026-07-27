@@ -302,12 +302,13 @@ function switchTab(tab){document.querySelectorAll('.tab-btn').forEach(function(b
 function updateTabIndicators(){var tabs=document.querySelectorAll('.tab-btn');tabs.forEach(function(t){t.classList.remove('has-running')});if(state.isRinging||exam.running)tabs[0].classList.add('has-running');if(timer.running)tabs[1].classList.add('has-running');if(pom.running)tabs[2].classList.add('has-running')}
 function isAnyRunning(){return state.isRinging||exam.running||timer.running||pom.running}
 
-var audioCtx=null,oscillator=null,heartbeatOsc=null,isTesting=false;
+var audioCtx=null,oscillator=null,osc2=null,heartbeatOsc=null,isTesting=false;
 function startHeartbeat(){if(!audioCtx||heartbeatOsc)return;try{heartbeatOsc=audioCtx.createOscillator();var g=audioCtx.createGain();heartbeatOsc.type='sine';heartbeatOsc.frequency.setValueAtTime(20,audioCtx.currentTime);g.gain.setValueAtTime(.001,audioCtx.currentTime);heartbeatOsc.connect(g);g.connect(audioCtx.destination);heartbeatOsc.start()}catch(e){}}
 
 function startBeep(type,isChime){
     type=type||state.ringtone;activateAudio();
     if(oscillator){try{oscillator.stop()}catch(e){}oscillator=null}
+    if(osc2){try{osc2.stop()}catch(e){}osc2=null}
     var bv=state.volume;oscillator=audioCtx.createOscillator();
     var mg=audioCtx.createGain();mg.gain.setValueAtTime(bv,audioCtx.currentTime);
     oscillator.connect(mg);mg.connect(audioCtx.destination);
@@ -322,16 +323,16 @@ function startBeep(type,isChime){
         oscillator.start();oscillator.stop(audioCtx.currentTime+14);
     }else if(type==='crystal'){
         oscillator.type='sine';
-        var o2=audioCtx.createOscillator();o2.type='sine';
+        osc2=audioCtx.createOscillator();osc2.type='sine';
         var mg2=audioCtx.createGain();mg2.gain.setValueAtTime(bv*.35,audioCtx.currentTime);
-        o2.connect(mg2);mg2.connect(audioCtx.destination);
+        osc2.connect(mg2);mg2.connect(audioCtx.destination);
         var chords=[[523.25,659.25],[659.25,783.99],[783.99,1046.5],[659.25,523.25]];
-        for(var i=0;i<30;i++){var t=audioCtx.currentTime+i*.7;var ch=chords[i%chords.length];oscillator.frequency.setValueAtTime(ch[0],t);o2.frequency.setValueAtTime(ch[1],t);mg.gain.setValueAtTime(0,t);mg.gain.linearRampToValueAtTime(bv*.45,t+.02);mg.gain.exponentialRampToValueAtTime(.001,t+.6);mg2.gain.setValueAtTime(0,t);mg2.gain.linearRampToValueAtTime(bv*.25,t+.02);mg2.gain.exponentialRampToValueAtTime(.001,t+.6)}
-        oscillator.start();o2.start();oscillator.stop(audioCtx.currentTime+21);o2.stop(audioCtx.currentTime+21);
+        for(var i=0;i<30;i++){var t=audioCtx.currentTime+i*.7;var ch=chords[i%chords.length];oscillator.frequency.setValueAtTime(ch[0],t);osc2.frequency.setValueAtTime(ch[1],t);mg.gain.setValueAtTime(0,t);mg.gain.linearRampToValueAtTime(bv*.45,t+.02);mg.gain.exponentialRampToValueAtTime(.001,t+.6);mg2.gain.setValueAtTime(0,t);mg2.gain.linearRampToValueAtTime(bv*.25,t+.02);mg2.gain.exponentialRampToValueAtTime(.001,t+.6)}
+        oscillator.start();osc2.start();oscillator.stop(audioCtx.currentTime+21);osc2.stop(audioCtx.currentTime+21);
     }
 }
 function playDing(){startBeep('ding',true)}
-function stopBeep(){if(oscillator){try{oscillator.stop()}catch(e){}oscillator=null}}
+function stopBeep(){if(oscillator){try{oscillator.stop()}catch(e){}oscillator=null}if(osc2){try{osc2.stop()}catch(e){}osc2=null}}
 function testRingtone(){if(isTesting){stopBeep();isTesting=false;document.getElementById('testBtn').textContent='试听';return}isTesting=true;document.getElementById('testBtn').textContent='停止';startBeep();setTimeout(function(){if(isTesting){stopBeep();isTesting=false;document.getElementById('testBtn').textContent='试听'}},3000)}
 function updateRingtone(){state.ringtone=document.getElementById('ringtoneSelect').value;localStorage.setItem('ringtone',state.ringtone)}
 function updateVolume(){state.volume=parseFloat(document.getElementById('volumeSlider').value);localStorage.setItem('volume',state.volume)}
@@ -456,10 +457,9 @@ function startPomodoro(){
     pom.workMin=parseInt(document.getElementById('pomWorkMin').value)||25;
     pom.breakMin=parseInt(document.getElementById('pomBreakMin').value)||5;
     pom.longBreakMin=parseInt(document.getElementById('pomLongBreakMin').value)||15;
-    if(!pom.running){
+    if(pom.totalSeconds<=0||pom.finished){
         pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds;
     }
-    if(pom.totalSeconds<=0||pom.finished)return;
     pom.running=true;document.getElementById('pomStartBtn').style.display='none';document.getElementById('pomPauseBtn').style.display='inline-flex';
     pom.interval=setInterval(function(){
         pom.remainingSeconds--;updatePomDisplay();
