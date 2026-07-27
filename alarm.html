@@ -211,6 +211,11 @@ input:checked+.slider:before{transform:translateX(16px)}
     <!-- 番茄钟 -->
     <div id="tab-pomodoro" class="tab-content">
         <div class="card">
+            <div style="display:flex;gap:6px;margin-bottom:10px">
+                <button class="preset-btn active" id="pomModeWork" onclick="switchPomMode('work')" style="flex:1">专注</button>
+                <button class="preset-btn" id="pomModeBreak" onclick="switchPomMode('break')" style="flex:1">短休</button>
+                <button class="preset-btn" id="pomModeLongBreak" onclick="switchPomMode('longBreak')" style="flex:1">长休</button>
+            </div>
             <div id="pomPhase" class="pomodoro-phase">专注时间</div>
             <div id="pomDisplay" class="timer-display">25:00</div>
             <div class="timer-progress"><div id="pomProgressBar" class="timer-progress-bar" style="width:100%"></div></div>
@@ -223,7 +228,6 @@ input:checked+.slider:before{transform:translateX(16px)}
                     <button class="preset-btn" onclick="setPomodoro(45,10,20,this)">45/10/20</button>
                     <button class="preset-btn" onclick="setPomodoro(50,10,20,this)">50/10/20</button>
                     <button class="preset-btn" onclick="setPomodoro(15,3,10,this)">15/3/10</button>
-                    <button class="preset-btn active" onclick="setPomodoro(25,5,15,this)">自定义</button>
                 </div>
                 <div style="display:flex;gap:6px;margin-bottom:8px">
                     <div style="flex:1"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">专注(分)</div><input type="number" id="pomWorkMin" value="25" min="1" max="120" style="width:100%;text-align:center"></div>
@@ -294,7 +298,7 @@ input:checked+.slider:before{transform:translateX(16px)}
 var lastTimeString="";
 var state={theme:localStorage.getItem('theme')||'light',alarms:JSON.parse(localStorage.getItem('alarms'))||[],ringtone:localStorage.getItem('ringtone')||'ding',volume:parseFloat(localStorage.getItem('volume'))||0.5,isRinging:false};
 var timer={totalSeconds:0,remainingSeconds:0,elapsedSeconds:0,interval:null,running:false,finished:false};
-var pom={totalSeconds:0,remainingSeconds:0,interval:null,running:false,phase:'work',workMin:25,breakMin:5,longBreakMin:15,sessions:0,setCount:0,finished:false,_fsInterval:null};
+var pom={totalSeconds:0,remainingSeconds:0,interval:null,running:false,phase:'work',workMin:25,breakMin:5,longBreakMin:15,sessions:0,setCount:0,finished:false,_fsInterval:null,endTime:0,autoStartBreak:true};
 var exam={running:false,interval:null,endTime:0,startTime:0,warningMin:15,warningSent:false,duration:0};
 var ringTimer=null;
 
@@ -438,7 +442,24 @@ function pauseTimer(){if(!timer.running)return;clearInterval(timer.interval);tim
 function resetTimer(){clearInterval(timer.interval);timer.running=false;timer.finished=false;timer.totalSeconds=0;timer.remainingSeconds=0;timer.elapsedSeconds=0;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';document.querySelectorAll('#tab-timer .preset-btn').forEach(function(b){b.classList.remove('active')});updateTimerDisplay();updateTabIndicators()}
 
 /* pomodoro */
-function setPomodoro(work,break_,longBreak,btn){if(pom.running)return;pom.workMin=work;pom.breakMin=break_;pom.longBreakMin=longBreak||15;pom.sessions=0;pom.setCount=0;pom.phase='work';pom.totalSeconds=work*60;pom.remainingSeconds=pom.totalSeconds;pom.finished=false;document.getElementById('pomWorkMin').value=work;document.getElementById('pomBreakMin').value=break_;document.getElementById('pomLongBreakMin').value=pom.longBreakMin;updatePomDisplay();document.querySelectorAll('#tab-pomodoro .preset-btn').forEach(function(b){b.classList.remove('active')});if(btn)btn.classList.add('active')}
+function switchPomMode(mode){
+    if(pom.running){clearInterval(pom.interval);pom.running=false}
+    pom.phase=mode;
+    pom.workMin=parseInt(document.getElementById('pomWorkMin').value)||25;
+    pom.breakMin=parseInt(document.getElementById('pomBreakMin').value)||5;
+    pom.longBreakMin=parseInt(document.getElementById('pomLongBreakMin').value)||15;
+    if(mode==='work'){pom.totalSeconds=pom.workMin*60}
+    else if(mode==='break'){pom.totalSeconds=pom.breakMin*60}
+    else{pom.totalSeconds=pom.longBreakMin*60}
+    pom.remainingSeconds=pom.totalSeconds;pom.finished=false;
+    document.getElementById('pomStartBtn').style.display='inline-flex';
+    document.getElementById('pomPauseBtn').style.display='none';
+    document.getElementById('pomModeWork').className=mode==='work'?'preset-btn active':'preset-btn';
+    document.getElementById('pomModeBreak').className=mode==='break'?'preset-btn active':'preset-btn';
+    document.getElementById('pomModeLongBreak').className=mode==='longBreak'?'preset-btn active':'preset-btn';
+    updatePomDisplay();updateTabTitle();
+}
+function setPomodoro(work,break_,longBreak,btn){if(pom.running)return;pom.workMin=work;pom.breakMin=break_;pom.longBreakMin=longBreak||15;pom.sessions=0;pom.setCount=0;pom.phase='work';pom.totalSeconds=work*60;pom.remainingSeconds=pom.totalSeconds;pom.finished=false;document.getElementById('pomWorkMin').value=work;document.getElementById('pomBreakMin').value=break_;document.getElementById('pomLongBreakMin').value=pom.longBreakMin;updatePomDisplay();document.querySelectorAll('#tab-pomodoro .timer-presets .preset-btn').forEach(function(b){b.classList.remove('active')});if(btn)btn.classList.add('active')}
 function updatePomDisplay(){
     var d=document.getElementById('pomDisplay'),ph=document.getElementById('pomPhase'),pb=document.getElementById('pomProgressBar'),ss=document.getElementById('pomSessions'),si=document.getElementById('pomSetInfo');
     var secs=pom.running?pom.remainingSeconds:pom.totalSeconds;d.textContent=formatTimeP(secs);
@@ -451,6 +472,14 @@ function updatePomDisplay(){
     else{d.className='timer-display';pb.className='timer-progress-bar'}
     ss.textContent='已完成 '+pom.sessions+' 个番茄';
     si.textContent='当前组 '+Math.min(pom.setCount+1,4)+'/4';
+    updateTabTitle();
+}
+function updateTabTitle(){
+    if(pom.running||pom.remainingSeconds>0){
+        var secs=pom.running?pom.remainingSeconds:pom.totalSeconds;
+        var phaseText=pom.phase==='work'?'专注':pom.phase==='break'?'短休':'长休';
+        document.title=formatTimeP(secs)+' - '+phaseText+' | 考试计时';
+    }
 }
 function formatTimeP(ts){return String(Math.floor(ts/60)).padStart(2,'0')+':'+String(ts%60).padStart(2,'0')}
 function startPomodoro(){
@@ -459,33 +488,51 @@ function startPomodoro(){
     pom.longBreakMin=parseInt(document.getElementById('pomLongBreakMin').value)||15;
     if(pom.totalSeconds<=0||pom.finished){
         pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds;
+        document.getElementById('pomModeWork').className='preset-btn active';
+        document.getElementById('pomModeBreak').className='preset-btn';
+        document.getElementById('pomModeLongBreak').className='preset-btn';
     }
-    pom.running=true;document.getElementById('pomStartBtn').style.display='none';document.getElementById('pomPauseBtn').style.display='inline-flex';
+    pom.running=true;pom.endTime=Date.now()+pom.remainingSeconds*1000;
+    document.getElementById('pomStartBtn').style.display='none';
+    document.getElementById('pomPauseBtn').style.display='inline-flex';
     pom.interval=setInterval(function(){
-        pom.remainingSeconds--;updatePomDisplay();
-        if(pom.remainingSeconds<=0){clearInterval(pom.interval);pom.running=false;
+        var remain=Math.max(0,Math.ceil((pom.endTime-Date.now())/1000));
+        pom.remainingSeconds=remain;updatePomDisplay();
+        if(remain<=0){clearInterval(pom.interval);pom.running=false;
             if(pom.phase==='work'){
                 pom.sessions++;pom.setCount++;
                 if(pom.setCount>=4){
                     pom.phase='longBreak';pom.totalSeconds=pom.longBreakMin*60;pom.remainingSeconds=pom.totalSeconds;
+                    document.getElementById('pomModeLongBreak').className='preset-btn active';
+                    document.getElementById('pomModeWork').className='preset-btn';
                     ring('完成4个番茄','长休息一下',10000);
                 }else{
                     pom.phase='break';pom.totalSeconds=pom.breakMin*60;pom.remainingSeconds=pom.totalSeconds;
+                    document.getElementById('pomModeBreak').className='preset-btn active';
+                    document.getElementById('pomModeWork').className='preset-btn';
                     ring('专注结束','休息一下',10000);
                 }
-                startPomodoro();
+                if(pom.autoStartBreak){pom.endTime=Date.now()+pom.remainingSeconds*1000;startPomodoro()}
             }else if(pom.phase==='break'){
                 pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds;
-                ring('休息结束','开始下一个番茄',10000);startPomodoro();
+                document.getElementById('pomModeWork').className='preset-btn active';
+                document.getElementById('pomModeBreak').className='preset-btn';
+                ring('休息结束','开始下一个番茄',10000);
+                if(pom.autoStartBreak){pom.endTime=Date.now()+pom.remainingSeconds*1000;startPomodoro()}
             }else{
                 pom.phase='work';pom.setCount=0;pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds;
-                ring('长休息结束','继续加油',10000);startPomodoro();
+                document.getElementById('pomModeWork').className='preset-btn active';
+                document.getElementById('pomModeLongBreak').className='preset-btn';
+                ring('长休息结束','继续加油',10000);
+                if(pom.autoStartBreak){pom.endTime=Date.now()+pom.remainingSeconds*1000;startPomodoro()}
             }
+            document.getElementById('pomStartBtn').style.display='inline-flex';
+            document.getElementById('pomPauseBtn').style.display='none';
         }
     },1000);
 }
 function pausePomodoro(){if(!pom.running)return;clearInterval(pom.interval);pom.running=false;document.getElementById('pomStartBtn').style.display='inline-flex';document.getElementById('pomPauseBtn').style.display='none';updatePomDisplay();updateTabIndicators()}
-function resetPomodoro(){clearInterval(pom.interval);pom.running=false;pom.finished=false;pom.phase='work';pom.totalSeconds=0;pom.remainingSeconds=0;pom.sessions=0;pom.setCount=0;document.getElementById('pomStartBtn').style.display='inline-flex';document.getElementById('pomPauseBtn').style.display='none';document.querySelectorAll('#tab-pomodoro .preset-btn').forEach(function(b){b.classList.remove('active')});updatePomDisplay();updateTabIndicators()}
+function resetPomodoro(){clearInterval(pom.interval);pom.running=false;pom.finished=false;pom.phase='work';pom.totalSeconds=0;pom.remainingSeconds=0;pom.sessions=0;pom.setCount=0;document.getElementById('pomStartBtn').style.display='inline-flex';document.getElementById('pomPauseBtn').style.display='none';document.getElementById('pomModeWork').className='preset-btn active';document.getElementById('pomModeBreak').className='preset-btn';document.getElementById('pomModeLongBreak').className='preset-btn';updatePomDisplay();updateTabIndicators();document.title='考试计时闹钟'}
 function fullscreenPomodoro(){
     document.getElementById('pomOverlay').classList.add('active');
     updatePomFs();
@@ -526,7 +573,7 @@ document.body.addEventListener('mousedown',activateAudio);document.body.addEvent
 window.switchTab=switchTab;window.setTimer=setTimer;window.setCustomTimer=setCustomTimer;window.startTimer=startTimer;window.pauseTimer=pauseTimer;window.resetTimer=resetTimer;
 window.adjustTime=adjustTime;window.addAlarm=addAlarm;window.toggleAlarm=toggleAlarm;window.deleteAlarm=deleteAlarm;
 window.toggleExamMode=toggleExamMode;window.onExamDurationPreset=onExamDurationPreset;window.startExam=startExam;window.exitExam=exitExam;
-window.setPomodoro=setPomodoro;window.startPomodoro=startPomodoro;window.pausePomodoro=pausePomodoro;window.resetPomodoro=resetPomodoro;window.fullscreenPomodoro=fullscreenPomodoro;window.exitPomFs=exitPomFs;
+window.setPomodoro=setPomodoro;window.startPomodoro=startPomodoro;window.pausePomodoro=pausePomodoro;window.resetPomodoro=resetPomodoro;window.fullscreenPomodoro=fullscreenPomodoro;window.exitPomFs=exitPomFs;window.switchPomMode=switchPomMode;
 window.toggleTheme=toggleTheme;window.testRingtone=testRingtone;window.updateRingtone=updateRingtone;window.updateVolume=updateVolume;
 window.stopRinging=stopRinging;window.activateAudio=activateAudio;window.openSettings=openSettings;window.closeSettings=closeSettings;
 })();
