@@ -447,10 +447,12 @@ function updatePomDisplay(){
 }
 function formatTimeP(ts){return String(Math.floor(ts/60)).padStart(2,'0')+':'+String(ts%60).padStart(2,'0')}
 function startPomodoro(){
-    if(pom.totalSeconds<=0||pom.finished)return;
     pom.workMin=parseInt(document.getElementById('pomWorkMin').value)||25;
     pom.breakMin=parseInt(document.getElementById('pomBreakMin').value)||5;
-    if(pom.totalSeconds===0){pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds}
+    if(!pom.running){
+        pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds;
+    }
+    if(pom.totalSeconds<=0||pom.finished)return;
     pom.running=true;document.getElementById('pomStartBtn').style.display='none';document.getElementById('pomPauseBtn').style.display='inline-flex';
     pom.interval=setInterval(function(){
         pom.remainingSeconds--;updatePomDisplay();
