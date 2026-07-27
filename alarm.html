@@ -1,339 +1,520 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>考试计时闹钟</title>
-    <style>
-        :root{--bg:#f8f9fa;--text:#212529;--muted:#6c757d;--accent:#000000;--card-bg:#ffffff;--danger:#dc3545;--success:#198754;--border:#dee2e6;--shadow:rgba(0,0,0,.05);--warning:#e67e22}
-        [data-theme="dark"]{--bg:#121212;--text:#e9ecef;--muted:#adb5bd;--accent:#ffffff;--card-bg:#1e1e1e;--danger:#ff4d4d;--success:#2ecc71;--border:#333;--shadow:rgba(0,0,0,.3);--warning:#f39c12}
-        [data-theme="dark"] input::-webkit-calendar-picker-indicator{filter:invert(1)}
-        *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
-        body{background-color:var(--bg);color:var(--text);display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px}
-        .container{width:100%;max-width:450px;text-align:center}
-        .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
-        .clock-display{font-size:4rem;font-weight:200;margin-bottom:.3rem;letter-spacing:-2px;font-variant-numeric:tabular-nums}
-        .date-display{font-size:1rem;color:var(--muted);margin-bottom:1.5rem}
-        .card{background:var(--card-bg);padding:1.2rem;border-radius:20px;box-shadow:0 10px 30px var(--shadow);margin-bottom:1rem;border:1px solid var(--border);text-align:left}
-        .card-title{font-weight:700;font-size:.95rem;margin-bottom:.8rem;display:flex;align-items:center;gap:6px}
-        .input-group{display:flex;flex-direction:column;gap:12px}
-        .time-input-wrapper{display:flex;align-items:center;gap:10px}
-        input[type="text"],input[type="time"],input[type="number"],select{padding:10px;border:1px solid var(--border);border-radius:10px;font-size:.95rem;background:var(--bg);color:var(--text);outline:none;flex:1}
-        .quick-add{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-        .quick-btn{padding:7px;font-size:.78rem;background:var(--border);color:var(--text);border-radius:8px;font-weight:500}
-        .ringtone-selector{display:flex;gap:8px;align-items:center}
-        button{padding:10px 16px;background:var(--accent);color:var(--card-bg);border:none;border-radius:10px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:.9rem}
-        button.secondary{background:var(--border);color:var(--text)}
-        button.danger{background:var(--danger);color:#fff}
-        button.success{background:var(--success);color:#fff}
-        button.warning{background:var(--warning);color:#fff}
-        .timer-display{font-size:4.5rem;font-weight:200;font-variant-numeric:tabular-nums;letter-spacing:-2px;margin:10px 0;text-align:center;transition:color .3s}
-        .timer-display.warning{color:var(--warning)}
-        .timer-display.danger{color:var(--danger);animation:timerPulse 1s infinite}
-        @keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.5}}
-        .timer-status{text-align:center;font-size:.85rem;color:var(--muted);margin-bottom:10px}
-        .timer-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
-        .preset-btn{padding:8px 4px;font-size:.8rem;background:var(--border);color:var(--text);border-radius:8px;font-weight:500}
-        .preset-btn.active{background:var(--accent);color:var(--card-bg)}
-        .timer-controls{display:flex;gap:8px;justify-content:center}
-        .timer-controls button{flex:1;padding:12px;font-size:.9rem}
-        .timer-progress{width:100%;height:6px;background:var(--border);border-radius:3px;margin:10px 0;overflow:hidden}
-        .timer-progress-bar{height:100%;background:var(--accent);border-radius:3px;transition:width 1s linear,background-color .3s}
-        .timer-progress-bar.warning{background:var(--warning)}
-        .timer-progress-bar.danger{background:var(--danger)}
-        .timer-meta{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)}
-        .switch{position:relative;display:inline-block;width:40px;height:22px}
-        .switch input{opacity:0;width:0;height:0}
-        .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:var(--border);transition:.4s;border-radius:22px}
-        .slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background-color:#fff;transition:.4s;border-radius:50%}
-        input:checked+.slider{background-color:var(--success)}
-        input:checked+.slider:before{transform:translateX(18px)}
-        .theme-toggle{background:transparent;color:var(--text);padding:6px;border-radius:50%;font-size:1.1rem}
-        .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:1000;padding:2rem}
-        .overlay.active{display:flex;animation:ringPulse 1.5s infinite}
-        @keyframes ringPulse{0%{background-color:var(--bg)}50%{background-color:rgba(220,53,69,.2)}100%{background-color:var(--bg)}}
-        .overlay-title{font-size:3rem;font-weight:800;margin-bottom:1rem}
-        .overlay-time{font-size:2rem;margin-bottom:3rem;color:var(--muted)}
-        .overlay-controls{display:flex;gap:20px}
-        .alarm-list{margin-top:.5rem}
-        .alarm-item{display:flex;justify-content:space-between;align-items:center;padding:.8rem;background:var(--bg);border-radius:14px;margin-bottom:.6rem;border:1px solid transparent}
-        .alarm-item.disabled{opacity:.5;filter:grayscale(.5)}
-        .alarm-info{display:flex;flex-direction:column;gap:2px}
-        .alarm-time{font-size:1.3rem;font-weight:800;color:var(--text);line-height:1}
-        .alarm-label{font-size:.78rem;color:var(--muted)}
-        .alarm-countdown{font-size:.7rem;color:var(--success);font-weight:600;margin-top:2px}
-        .alarm-controls{display:flex;align-items:center;gap:10px}
-        .empty-state{text-align:center;color:var(--muted);padding:1.5rem 0;font-size:.85rem}
-        .volume-control{display:flex;align-items:center;gap:8px;margin-top:8px}
-        .volume-control input[type="range"]{flex:1}
-        .audio-hint{position:fixed;top:0;left:0;width:100%;background:var(--danger);color:#fff;padding:10px;text-align:center;font-size:.9rem;font-weight:600;z-index:2000;cursor:pointer;display:none}
-        .tab-bar{display:flex;gap:0;background:var(--border);border-radius:10px;overflow:hidden;margin-bottom:1rem}
-        .tab-btn{flex:1;padding:8px;font-size:.85rem;background:transparent;color:var(--muted);border-radius:0;font-weight:600}
-        .tab-btn.active{background:var(--accent);color:var(--card-bg)}
-        .tab-content{display:none}
-        .tab-content.active{display:block}
-        @media(max-width:480px){.clock-display{font-size:3rem}.timer-display{font-size:3.5rem}}
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>鑰冭瘯璁℃椂闂归挓</title>
+<style>
+:root{--bg:#f8f9fa;--text:#212529;--muted:#6c757d;--accent:#000;--card-bg:#fff;--danger:#dc3545;--success:#198754;--border:#dee2e6;--shadow:rgba(0,0,0,.05);--warning:#e67e22;--blue:#3498db}
+[data-theme="dark"]{--bg:#121212;--text:#e9ecef;--muted:#adb5bd;--accent:#fff;--card-bg:#1e1e1e;--danger:#ff4d4d;--success:#2ecc71;--border:#333;--shadow:rgba(0,0,0,.3);--warning:#f39c12;--blue:#5dade2}
+[data-theme="dark"] input::-webkit-calendar-picker-indicator{filter:invert(1)}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body{background-color:var(--bg);color:var(--text);display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px}
+.container{width:100%;max-width:450px;text-align:center}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem}
+.clock-display{font-size:4rem;font-weight:200;margin-bottom:.3rem;letter-spacing:-2px;font-variant-numeric:tabular-nums}
+.date-display{font-size:1rem;color:var(--muted);margin-bottom:1.2rem}
+.card{background:var(--card-bg);padding:1.2rem;border-radius:20px;box-shadow:0 10px 30px var(--shadow);margin-bottom:1rem;border:1px solid var(--border);text-align:left}
+.card-title{font-weight:700;font-size:.95rem;margin-bottom:.8rem}
+.input-group{display:flex;flex-direction:column;gap:12px}
+.time-input-wrapper{display:flex;align-items:center;gap:10px}
+input[type="text"],input[type="time"],input[type="number"],select{padding:10px;border:1px solid var(--border);border-radius:10px;font-size:.95rem;background:var(--bg);color:var(--text);outline:none;flex:1}
+.quick-add{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.quick-btn{padding:7px;font-size:.78rem;background:var(--border);color:var(--text);border-radius:8px;font-weight:500}
+.ringtone-selector{display:flex;gap:8px;align-items:center}
+button{padding:10px 16px;background:var(--accent);color:var(--card-bg);border:none;border-radius:10px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:.9rem}
+button.secondary{background:var(--border);color:var(--text)}
+button.danger{background:var(--danger);color:#fff}
+button.success{background:var(--success);color:#fff}
+button.warning{background:var(--warning);color:#fff}
+button.blue{background:var(--blue);color:#fff}
+.timer-display{font-size:4.5rem;font-weight:200;font-variant-numeric:tabular-nums;letter-spacing:-2px;margin:10px 0;text-align:center;transition:color .3s}
+.timer-display.warning{color:var(--warning)}
+.timer-display.danger{color:var(--danger);animation:timerPulse 1s infinite}
+@keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.5}}
+.timer-status{text-align:center;font-size:.85rem;color:var(--muted);margin-bottom:10px}
+.timer-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.preset-btn{padding:8px 4px;font-size:.8rem;background:var(--border);color:var(--text);border-radius:8px;font-weight:500}
+.preset-btn.active{background:var(--accent);color:var(--card-bg)}
+.timer-controls{display:flex;gap:8px;justify-content:center}
+.timer-controls button{flex:1;padding:12px;font-size:.9rem}
+.timer-progress{width:100%;height:6px;background:var(--border);border-radius:3px;margin:10px 0;overflow:hidden}
+.timer-progress-bar{height:100%;background:var(--accent);border-radius:3px;transition:width 1s linear,background-color .3s}
+.timer-progress-bar.warning{background:var(--warning)}
+.timer-progress-bar.danger{background:var(--danger)}
+.timer-meta{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)}
+.switch{position:relative;display:inline-block;width:40px;height:22px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:var(--border);transition:.4s;border-radius:22px}
+.slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background-color:#fff;transition:.4s;border-radius:50%}
+input:checked+.slider{background-color:var(--success)}
+input:checked+.slider:before{transform:translateX(18px)}
+.theme-toggle{background:transparent;color:var(--text);padding:6px;border-radius:50%;font-size:1.1rem}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:1000;padding:2rem}
+.overlay.active{display:flex;animation:ringPulse 1.5s infinite}
+@keyframes ringPulse{0%{background-color:var(--bg)}50%{background-color:rgba(220,53,69,.2)}100%{background-color:var(--bg)}}
+.overlay-title{font-size:3rem;font-weight:800;margin-bottom:1rem}
+.overlay-time{font-size:2rem;margin-bottom:3rem;color:var(--muted)}
+.overlay-controls{display:flex;gap:20px}
+.alarm-list{margin-top:.5rem}
+.alarm-item{display:flex;justify-content:space-between;align-items:center;padding:.8rem;background:var(--bg);border-radius:14px;margin-bottom:.6rem;border:1px solid transparent}
+.alarm-item.disabled{opacity:.5;filter:grayscale(.5)}
+.alarm-info{display:flex;flex-direction:column;gap:2px}
+.alarm-time{font-size:1.3rem;font-weight:800;color:var(--text);line-height:1}
+.alarm-label{font-size:.78rem;color:var(--muted)}
+.alarm-countdown{font-size:.7rem;color:var(--success);font-weight:600;margin-top:2px}
+.alarm-controls{display:flex;align-items:center;gap:10px}
+.empty-state{text-align:center;color:var(--muted);padding:1.5rem 0;font-size:.85rem}
+.volume-control{display:flex;align-items:center;gap:8px;margin-top:8px}
+.volume-control input[type="range"]{flex:1}
+.audio-hint{position:fixed;top:0;left:0;width:100%;background:var(--danger);color:#fff;padding:10px;text-align:center;font-size:.9rem;font-weight:600;z-index:2000;cursor:pointer;display:none}
+.tab-bar{display:flex;gap:0;background:var(--border);border-radius:10px;overflow:hidden;margin-bottom:1rem}
+.tab-btn{flex:1;padding:8px;font-size:.82rem;background:transparent;color:var(--muted);border-radius:0;font-weight:600;transition:background .2s,color .2s}
+.tab-btn.active{background:var(--accent);color:var(--card-bg)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.exam-mode-toggle{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;background:var(--bg);border-radius:10px;font-size:.85rem}
+.exam-fields{display:none;flex-direction:column;gap:10px;margin-top:10px}
+.exam-fields.show{display:flex}
+.field-row{display:flex;align-items:center;gap:8px}
+.field-label{font-size:.8rem;color:var(--muted);min-width:60px}
+.fullscreen-btn{width:100%;padding:12px;font-size:1rem;margin-top:8px}
+.pomodoro-phase{text-align:center;font-size:1rem;font-weight:700;margin-bottom:6px;color:var(--accent)}
+.pomodoro-sessions{text-align:center;font-size:.8rem;color:var(--muted);margin-top:6px}
+@media(max-width:480px){.clock-display{font-size:3rem}.timer-display{font-size:3.5rem}}
+</style>
 </head>
 <body>
-    <div id="audioHint" class="audio-hint" onclick="activateAudio()">浏览器已限制音频，请点击此处激活，以确保闹钟正常响铃</div>
-    <div class="container">
-        <div class="header">
-            <h2 style="font-weight:800;letter-spacing:-1px">考试计时</h2>
-            <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">&#127769;</button>
-        </div>
-        <div id="clock" class="clock-display">00:00:00</div>
-        <div id="date" class="date-display"></div>
-        <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('timer')">计时器</button>
-            <button class="tab-btn" onclick="switchTab('alarm')">闹钟</button>
-        </div>
-        <div id="tab-timer" class="tab-content active">
-            <div class="card">
-                <div id="timerStatus" class="timer-status">选择考试时长开始计时</div>
-                <div id="timerDisplay" class="timer-display">00:00:00</div>
-                <div class="timer-progress"><div id="timerProgressBar" class="timer-progress-bar" style="width:100%"></div></div>
-                <div class="timer-meta"><span id="timerElapsed">已用 00:00:00</span><span id="timerRemaining">剩余 00:00:00</span></div>
-                <div style="margin-top:12px">
-                    <div class="timer-presets">
-                        <button class="preset-btn" onclick="setTimer(30,this)">30分钟</button>
-                        <button class="preset-btn" onclick="setTimer(45,this)">45分钟</button>
-                        <button class="preset-btn" onclick="setTimer(60,this)">60分钟</button>
-                        <button class="preset-btn" onclick="setTimer(90,this)">90分钟</button>
-                        <button class="preset-btn" onclick="setTimer(120,this)">120分钟</button>
-                        <button class="preset-btn" onclick="setTimer(150,this)">150分钟</button>
-                    </div>
-                    <div class="time-input-wrapper" style="margin-bottom:10px">
-                        <input type="number" id="customMinutes" placeholder="自定义(分钟)" min="1" max="600" style="text-align:center">
-                        <button class="secondary" onclick="setCustomTimer()">设置</button>
-                    </div>
-                </div>
-                <div class="timer-controls">
-                    <button id="timerStartBtn" class="success" onclick="startTimer()">开始</button>
-                    <button id="timerPauseBtn" class="warning" onclick="pauseTimer()" style="display:none">暂停</button>
-                    <button id="timerResetBtn" class="secondary" onclick="resetTimer()">重置</button>
-                </div>
+<div id="audioHint" class="audio-hint" onclick="activateAudio()">娴忚鍣ㄥ凡闄愬埗闊抽锛岃鐐瑰嚮姝ゅ婵€娲伙紝浠ョ‘淇濋椆閽熸甯稿搷閾?/div>
+<div class="container">
+    <div class="header">
+        <h2 style="font-weight:800;letter-spacing:-1px">鑰冭瘯璁℃椂</h2>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">&#127769;</button>
+    </div>
+    <div id="clock" class="clock-display">00:00:00</div>
+    <div id="date" class="date-display"></div>
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('alarm')">闂归挓</button>
+        <button class="tab-btn" onclick="switchTab('timer')">璁℃椂鍣?/button>
+        <button class="tab-btn" onclick="switchTab('pomodoro')">鐣寗閽?/button>
+    </div>
+
+    <!-- 闂归挓 -->
+    <div id="tab-alarm" class="tab-content active">
+        <div class="card">
+            <div class="exam-mode-toggle">
+                <label class="switch"><input type="checkbox" id="examModeToggle" onchange="toggleExamMode()"><span class="slider"></span></label>
+                <span>鑰冭瘯妯″紡</span>
             </div>
-        </div>
-        <div id="tab-alarm" class="tab-content">
-            <div class="card">
-                <div class="input-group">
-                    <input type="text" id="alarmLabel" placeholder="闹钟标签 (如：开考、收卷)">
+            <div class="input-group">
+                <input type="text" id="alarmLabel" placeholder="闂归挓鏍囩 (濡傦細寮€鑰冦€佹敹鍗?">
+                <div id="normalAlarm">
                     <div style="display:flex;flex-direction:column;gap:8px">
                         <div class="time-input-wrapper">
                             <input type="time" id="alarmTime" step="1">
-                            <button onclick="addAlarm()">添加</button>
+                            <button onclick="addAlarm()">娣诲姞</button>
                         </div>
                         <div class="quick-add">
-                            <button class="quick-btn" onclick="adjustTime(5)">+5分</button>
-                            <button class="quick-btn" onclick="adjustTime(10)">+10分</button>
-                            <button class="quick-btn" onclick="adjustTime(30)">+30分</button>
-                            <button class="quick-btn" onclick="adjustTime(60)">+1小时</button>
+                            <button class="quick-btn" onclick="adjustTime(5)">+5鍒?/button>
+                            <button class="quick-btn" onclick="adjustTime(10)">+10鍒?/button>
+                            <button class="quick-btn" onclick="adjustTime(30)">+30鍒?/button>
+                            <button class="quick-btn" onclick="adjustTime(60)">+1灏忔椂</button>
                         </div>
                     </div>
                 </div>
+                <div id="examFields" class="exam-fields">
+                    <div class="field-row">
+                        <span class="field-label">寮€濮嬫椂闂?/span>
+                        <input type="time" id="examStartTime" step="60">
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">鑰冭瘯鏃堕暱</span>
+                        <select id="examDuration">
+                            <option value="30">30鍒嗛挓</option>
+                            <option value="45">45鍒嗛挓</option>
+                            <option value="60" selected>60鍒嗛挓</option>
+                            <option value="90">90鍒嗛挓</option>
+                            <option value="120">120鍒嗛挓</option>
+                            <option value="150">150鍒嗛挓</option>
+                            <option value="180">180鍒嗛挓</option>
+                        </select>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-label">缁撴潫鍓嶆彁閱?/span>
+                        <select id="examWarning">
+                            <option value="0">涓嶆彁閱?/option>
+                            <option value="5">5鍒嗛挓鍓?/option>
+                            <option value="10">10鍒嗛挓鍓?/option>
+                            <option value="15" selected>15鍒嗛挓鍓?/option>
+                        </select>
+                    </div>
+                    <button class="success fullscreen-btn" onclick="startExam()">寮€濮嬭€冭瘯锛堝叏灞忥級</button>
+                </div>
             </div>
-            <div class="card">
-                <div class="card-title">铃声与音量</div>
-                <div class="ringtone-selector">
-                    <select id="ringtoneSelect" onchange="updateRingtone()">
-                        <option value="classic">经典蜂鸣</option>
-                        <option value="pulse">电子脉冲</option>
-                        <option value="soft">柔和铃声</option>
-                    </select>
-                    <button class="secondary" onclick="testRingtone()" id="testBtn">试听</button>
+        </div>
+        <div class="card">
+            <div class="card-title">閾冨０涓庨煶閲?/div>
+            <div class="ringtone-selector">
+                <select id="ringtoneSelect" onchange="updateRingtone()">
+                    <option value="melody">鏃嬪緥椋庨搩</option>
+                    <option value="chime">姘存櫠鍜屽鸡</option>
+                    <option value="digital">鐢靛瓙閫氱煡</option>
+                </select>
+                <button class="secondary" onclick="testRingtone()" id="testBtn">璇曞惉</button>
+            </div>
+            <div class="volume-control">
+                <span style="font-size:.8rem;color:var(--muted)">闊抽噺</span>
+                <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="0.5" onchange="updateVolume()">
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">鎴戠殑闂归挓</div>
+            <div id="alarmList" class="alarm-list"></div>
+        </div>
+    </div>
+
+    <!-- 璁℃椂鍣?-->
+    <div id="tab-timer" class="tab-content">
+        <div class="card">
+            <div id="timerStatus" class="timer-status">閫夋嫨鏃堕暱寮€濮嬭鏃?/div>
+            <div id="timerDisplay" class="timer-display">00:00:00</div>
+            <div class="timer-progress"><div id="timerProgressBar" class="timer-progress-bar" style="width:100%"></div></div>
+            <div class="timer-meta"><span id="timerElapsed">宸茬敤 00:00:00</span><span id="timerRemaining">鍓╀綑 00:00:00</span></div>
+            <div style="margin-top:12px">
+                <div class="timer-presets">
+                    <button class="preset-btn" onclick="setTimer(1,this)">1鍒嗛挓</button>
+                    <button class="preset-btn" onclick="setTimer(5,this)">5鍒嗛挓</button>
+                    <button class="preset-btn" onclick="setTimer(15,this)">15鍒嗛挓</button>
+                    <button class="preset-btn" onclick="setTimer(30,this)">30鍒嗛挓</button>
+                    <button class="preset-btn" onclick="setTimer(45,this)">45鍒嗛挓</button>
+                    <button class="preset-btn" onclick="setTimer(60,this)">60鍒嗛挓</button>
                 </div>
-                <div class="volume-control">
-                    <span style="font-size:.8rem;color:var(--muted)">音量</span>
-                    <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="0.5" onchange="updateVolume()">
-                </div>
-                <div style="display:flex;gap:15px;margin-top:8px;flex-wrap:wrap">
-                    <label style="font-size:.8rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted)"><input type="checkbox" id="chimeToggle" onchange="toggleChime()"> 整点报时</label>
-                    <label style="font-size:.8rem;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted)"><input type="checkbox" id="fadeInToggle" onchange="toggleFadeIn()"> 渐进音量</label>
+                <div class="time-input-wrapper" style="margin-bottom:10px">
+                    <input type="number" id="customMinutes" placeholder="鑷畾涔?鍒嗛挓)" min="1" max="600" style="text-align:center">
+                    <button class="secondary" onclick="setCustomTimer()">璁剧疆</button>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-title">我的闹钟</div>
-                <div id="alarmList" class="alarm-list"></div>
+            <div class="timer-controls">
+                <button id="timerStartBtn" class="success" onclick="startTimer()">寮€濮?/button>
+                <button id="timerPauseBtn" class="warning" onclick="pauseTimer()" style="display:none">鏆傚仠</button>
+                <button class="secondary" onclick="resetTimer()">閲嶇疆</button>
             </div>
         </div>
     </div>
-    <div id="ringingOverlay" class="overlay">
-        <div id="overlayLabel" class="overlay-title">时间到！</div>
-        <div id="ringingTime" class="overlay-time">00:00:00</div>
-        <div class="overlay-controls">
-            <button onclick="stopRinging()" class="danger" style="padding:15px 40px;font-size:1.1rem;font-weight:700">停止</button>
+
+    <!-- 鐣寗閽?-->
+    <div id="tab-pomodoro" class="tab-content">
+        <div class="card">
+            <div id="pomPhase" class="pomodoro-phase">涓撴敞鏃堕棿</div>
+            <div id="pomDisplay" class="timer-display">25:00</div>
+            <div class="timer-progress"><div id="pomProgressBar" class="timer-progress-bar" style="width:100%"></div></div>
+            <div id="pomSessions" class="pomodoro-sessions">宸插畬鎴?0 涓暘鑼?/div>
+            <div style="margin-top:12px">
+                <div class="timer-presets">
+                    <button class="preset-btn" onclick="setPomodoro(25,5,this)">25/5</button>
+                    <button class="preset-btn" onclick="setPomodoro(30,5,this)">30/5</button>
+                    <button class="preset-btn" onclick="setPomodoro(45,10,this)">45/10</button>
+                    <button class="preset-btn" onclick="setPomodoro(50,10,this)">50/10</button>
+                    <button class="preset-btn" onclick="setPomodoro(15,3,this)">15/3</button>
+                    <button class="preset-btn active" onclick="setPomodoro(25,5,this)">鑷畾涔?/button>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:10px">
+                    <div style="flex:1"><div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">涓撴敞(鍒?</div><input type="number" id="pomWorkMin" value="25" min="1" max="120" style="width:100%;text-align:center"></div>
+                    <div style="flex:1"><div style="font-size:.75rem;color:var(--muted);margin-bottom:4px">浼戞伅(鍒?</div><input type="number" id="pomBreakMin" value="5" min="1" max="30" style="width:100%;text-align:center"></div>
+                </div>
+            </div>
+            <div class="timer-controls">
+                <button id="pomStartBtn" class="success" onclick="startPomodoro()">寮€濮?/button>
+                <button id="pomPauseBtn" class="warning" onclick="pausePomodoro()" style="display:none">鏆傚仠</button>
+                <button class="secondary" onclick="resetPomodoro()">閲嶇疆</button>
+                <button class="blue fullscreen-btn" onclick="fullscreenPomodoro()" style="flex:none;width:auto;padding:10px 20px">鍏ㄥ睆</button>
+            </div>
         </div>
     </div>
-    <script>
-    (function(){
-        var lastTimeString="";
-        var state={
-            theme:localStorage.getItem('theme')||'light',
-            alarms:JSON.parse(localStorage.getItem('alarms'))||[],
-            hourlyChime:localStorage.getItem('hourlyChime')==='true',
-            ringtone:localStorage.getItem('ringtone')||'classic',
-            volume:parseFloat(localStorage.getItem('volume'))||0.5,
-            fadeIn:localStorage.getItem('fadeIn')!=='false',
-            isRinging:false
-        };
-        var timer={totalSeconds:0,remainingSeconds:0,elapsedSeconds:0,interval:null,running:false,finished:false};
+</div>
 
-        function switchTab(tab){
-            document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
-            document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
-            document.querySelector('.tab-btn[onclick="switchTab(\''+tab+'\')"]').classList.add('active');
-            document.getElementById('tab-'+tab).classList.add('active');
+<!-- 鍝嶉搩/鑰冭瘯 overlay -->
+<div id="ringingOverlay" class="overlay">
+    <div id="overlayLabel" class="overlay-title">鏃堕棿鍒帮紒</div>
+    <div id="ringingTime" class="overlay-time">00:00:00</div>
+    <div class="overlay-controls">
+        <button onclick="stopRinging()" class="danger" style="padding:15px 40px;font-size:1.1rem;font-weight:700">鍋滄</button>
+    </div>
+</div>
+
+<!-- 鑰冭瘯鍏ㄥ睆 overlay -->
+<div id="examOverlay" class="overlay" style="animation:none">
+    <div id="examOverlayLabel" style="font-size:1.2rem;font-weight:600;margin-bottom:20px;color:var(--muted)">鑰冭瘯杩涜涓?/div>
+    <div id="examCountdown" class="timer-display" style="font-size:6rem;margin:0">00:00:00</div>
+    <div id="examInfo" style="font-size:1rem;color:var(--muted);margin:10px 0 30px"></div>
+    <div class="timer-progress" style="width:80%;max-width:400px"><div id="examProgressBar" class="timer-progress-bar" style="width:100%"></div></div>
+    <button onclick="exitExam()" class="secondary" style="margin-top:30px;padding:12px 30px;font-size:1rem">閫€鍑鸿€冭瘯</button>
+</div>
+
+<script>
+(function(){
+var lastTimeString="";
+var state={theme:localStorage.getItem('theme')||'light',alarms:JSON.parse(localStorage.getItem('alarms'))||[],ringtone:localStorage.getItem('ringtone')||'melody',volume:parseFloat(localStorage.getItem('volume'))||0.5,isRinging:false};
+var timer={totalSeconds:0,remainingSeconds:0,elapsedSeconds:0,interval:null,running:false,finished:false};
+var pom={totalSeconds:0,remainingSeconds:0,interval:null,running:false,phase:'work',workMin:25,breakMin:5,sessions:0,finished:false};
+var examState={running:false,interval:null,endTime:0,warningMin:15,warningSent:false};
+
+function switchTab(tab){document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});document.querySelector('.tab-btn[onclick="switchTab(\''+tab+'\')"]').classList.add('active');document.getElementById('tab-'+tab).classList.add('active')}
+
+var audioCtx=null,oscillator=null,heartbeatOsc=null,isTesting=false;
+function startHeartbeat(){if(!audioCtx||heartbeatOsc)return;try{heartbeatOsc=audioCtx.createOscillator();var g=audioCtx.createGain();heartbeatOsc.type='sine';heartbeatOsc.frequency.setValueAtTime(20,audioCtx.currentTime);g.gain.setValueAtTime(.001,audioCtx.currentTime);heartbeatOsc.connect(g);g.connect(audioCtx.destination);heartbeatOsc.start()}catch(e){}}
+
+/* ===== 鏂伴搩澹?===== */
+function startBeep(type,isChime){
+    type=type||state.ringtone;activateAudio();
+    if(oscillator){try{oscillator.stop()}catch(e){}oscillator=null}
+    var bv=state.volume;
+    oscillator=audioCtx.createOscillator();
+    var mg=audioCtx.createGain();mg.gain.setValueAtTime(bv,audioCtx.currentTime);
+    oscillator.connect(mg);mg.connect(audioCtx.destination);
+
+    if(type==='melody'){
+        /* 鏃嬪緥椋庨搩锛氫簲澹伴煶闃朵笂琛?涓嬭锛屾瘡涓煶鐙珛鍖呯粶 */
+        var notes=[523.25,587.33,659.25,783.99,880,783.99,659.25,587.33];
+        oscillator.type='sine';
+        for(var i=0;i<40;i++){
+            var t=audioCtx.currentTime+i*0.4;
+            var freq=notes[i%notes.length];
+            oscillator.frequency.setValueAtTime(freq,t);
+            mg.gain.setValueAtTime(0,t);
+            mg.gain.linearRampToValueAtTime(bv*0.6,t+0.05);
+            mg.gain.exponentialRampToValueAtTime(0.001,t+0.35);
         }
-
-        var audioCtx=null,oscillator=null,heartbeatOsc=null,isTesting=false;
-
-        function startHeartbeat(){
-            if(!audioCtx||heartbeatOsc)return;
-            try{heartbeatOsc=audioCtx.createOscillator();var g=audioCtx.createGain();heartbeatOsc.type='sine';heartbeatOsc.frequency.setValueAtTime(20,audioCtx.currentTime);g.gain.setValueAtTime(.001,audioCtx.currentTime);heartbeatOsc.connect(g);g.connect(audioCtx.destination);heartbeatOsc.start()}catch(e){}
+        oscillator.start();oscillator.stop(audioCtx.currentTime+40*0.4);
+    }else if(type==='chime'){
+        /* 姘存櫠鍜屽鸡锛氬弻鎸崱鍣ㄥ彔缃骇鐢熸硾闊虫晥鏋?*/
+        oscillator.type='sine';
+        var osc2=audioCtx.createOscillator();osc2.type='sine';
+        var mg2=audioCtx.createGain();mg2.gain.setValueAtTime(bv*0.4,audioCtx.currentTime);
+        osc2.connect(mg2);mg2.connect(audioCtx.destination);
+        var chords=[[523.25,659.25],[659.25,783.99],[783.99,1046.5],[659.25,523.25]];
+        for(var i=0;i<30;i++){
+            var t=audioCtx.currentTime+i*0.8;
+            var ch=chords[i%chords.length];
+            oscillator.frequency.setValueAtTime(ch[0],t);
+            osc2.frequency.setValueAtTime(ch[1],t);
+            mg.gain.setValueAtTime(0,t);mg.gain.linearRampToValueAtTime(bv*0.5,t+0.03);mg.gain.exponentialRampToValueAtTime(0.001,t+0.7);
+            mg2.gain.setValueAtTime(0,t);mg2.gain.linearRampToValueAtTime(bv*0.3,t+0.03);mg2.gain.exponentialRampToValueAtTime(0.001,t+0.7);
         }
-
-        function startBeep(type,isChime){
-            type=type||state.ringtone;activateAudio();
-            if(oscillator){try{oscillator.stop()}catch(e){}oscillator=null}
-            oscillator=audioCtx.createOscillator();
-            var pg=audioCtx.createGain(),fg=audioCtx.createGain(),bv=state.volume;
-            if(state.fadeIn&&!isTesting&&!isChime){fg.gain.setValueAtTime(0,audioCtx.currentTime);fg.gain.linearRampToValueAtTime(1,audioCtx.currentTime+10)}else{fg.gain.setValueAtTime(1,audioCtx.currentTime)}
-            if(type==='classic'){oscillator.type='square';oscillator.frequency.setValueAtTime(880,audioCtx.currentTime);for(var i=0;i<300;i++){var t=audioCtx.currentTime+i*.5;pg.gain.setTargetAtTime(bv*.2,t,.01);pg.gain.setTargetAtTime(0,t+.25,.01)}}
-            else if(type==='pulse'){oscillator.type='sawtooth';oscillator.frequency.setValueAtTime(1200,audioCtx.currentTime);for(var i=0;i<600;i++){var t=audioCtx.currentTime+i*.2;pg.gain.setTargetAtTime(bv*.15,t,.005);pg.gain.setTargetAtTime(0,t+.1,.005)}}
-            else if(type==='soft'){oscillator.type='sine';var notes=[523.25,659.25,783.99,659.25];for(var i=0;i<100;i++){var t=audioCtx.currentTime+i*1.5;oscillator.frequency.setValueAtTime(notes[i%notes.length],t);pg.gain.setTargetAtTime(bv*.4,t,.05);pg.gain.setTargetAtTime(0,t+.8,.15)}}
-            oscillator.connect(pg);pg.connect(fg);fg.connect(audioCtx.destination);oscillator.start();
+        oscillator.start();osc2.start();oscillator.stop(audioCtx.currentTime+30*0.8);osc2.stop(audioCtx.currentTime+30*0.8);
+    }else if(type==='digital'){
+        /* 鐢靛瓙閫氱煡锛氱煭淇冩竻鑴嗙殑鏁板瓧闊?*/
+        oscillator.type='square';
+        for(var i=0;i<50;i++){
+            var t=audioCtx.currentTime+i*0.25;
+            var freq=(i%2===0)?1200:1600;
+            oscillator.frequency.setValueAtTime(freq,t);
+            mg.gain.setValueAtTime(0,t);
+            mg.gain.linearRampToValueAtTime(bv*0.12,t+0.02);
+            mg.gain.exponentialRampToValueAtTime(0.001,t+0.12);
         }
+        oscillator.start();oscillator.stop(audioCtx.currentTime+50*0.25);
+    }
+}
 
-        function stopBeep(){if(oscillator){oscillator.stop();oscillator=null}}
+function stopBeep(){if(oscillator){try{oscillator.stop()}catch(e){}oscillator=null}}
 
-        function testRingtone(){
-            if(isTesting){stopBeep();isTesting=false;document.getElementById('testBtn').textContent='试听';return}
-            isTesting=true;document.getElementById('testBtn').textContent='停止';startBeep();
-            setTimeout(function(){if(isTesting){stopBeep();isTesting=false;document.getElementById('testBtn').textContent='试听'}},3000);
+function testRingtone(){if(isTesting){stopBeep();isTesting=false;document.getElementById('testBtn').textContent='\u8BD5\u542C';return}isTesting=true;document.getElementById('testBtn').textContent='\u505C\u6B62';startBeep();setTimeout(function(){if(isTesting){stopBeep();isTesting=false;document.getElementById('testBtn').textContent='\u8BD5\u542C'}},4000)}
+function updateRingtone(){state.ringtone=document.getElementById('ringtoneSelect').value;localStorage.setItem('ringtone',state.ringtone)}
+function updateVolume(){state.volume=parseFloat(document.getElementById('volumeSlider').value);localStorage.setItem('volume',state.volume)}
+
+/* ===== 鏃堕挓 ===== */
+function updateClock(){
+    var now=new Date(),h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0'),s=String(now.getSeconds()).padStart(2,'0'),ct=h+':'+m+':'+s;
+    document.getElementById('clock').textContent=ct;
+    document.getElementById('date').textContent=now.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+    var ah=document.getElementById('audioHint');
+    if(!audioCtx||audioCtx.state==='suspended'){ah.style.display='block'}else{ah.style.display='none'}
+    if(!lastTimeString){lastTimeString=ct;return}
+    if(s==='00')renderAlarms();
+    state.alarms.forEach(function(a){if(!a.enabled)return;var at=a.time,triggered=false;if(ct>=lastTimeString){if(at>lastTimeString&&at<=ct)triggered=true}else{if(at>lastTimeString||at<=ct)triggered=true}if(triggered&&!state.isRinging)ring(a.label||'\u95F9\u949F',a.time)});
+    lastTimeString=ct;
+}
+
+/* ===== 鑰冭瘯妯″紡 ===== */
+function toggleExamMode(){
+    var on=document.getElementById('examModeToggle').checked;
+    document.getElementById('normalAlarm').style.display=on?'none':'block';
+    document.getElementById('examFields').classList.toggle('show',on);
+    if(on){var now=new Date();document.getElementById('examStartTime').value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')}
+}
+
+function startExam(){
+    var st=document.getElementById('examStartTime').value;
+    var dur=parseInt(document.getElementById('examDuration').value);
+    var warn=parseInt(document.getElementById('examWarning').value);
+    if(!st)return;
+    var parts=st.split(':').map(Number);
+    var now=new Date();
+    var startDT=new Date(now.getFullYear(),now.getMonth(),now.getDate(),parts[0],parts[1],0);
+    var endDT=new Date(startDT.getTime()+dur*60000);
+    if(now>=endDT)return;
+    examState={running:true,interval:null,endTime:endDT.getTime(),warningMin:warn,warningSent:false,duration:dur,startTime:startDT.getTime()};
+    document.getElementById('examOverlay').classList.add('active');
+    updateExamDisplay();
+    examState.interval=setInterval(function(){
+        var remain=examState.endTime-Date.now();
+        if(remain<=0){clearInterval(examState.interval);examState.running=false;document.getElementById('examOverlay').classList.remove('active');ring('\u8003\u8BD5\u65F6\u95F4\u5230','\u8BF7\u505C\u6B62\u4F5C\u7B54');return}
+        if(!examState.warningSent&&examState.warningMin>0&&remain<=examState.warningMin*60000){examState.warningSent=true;ring('\u63D0\u9192','\u8FD8\u5269\u4F59\u0020'+examState.warningMin+'\u0020\u5206\u949F')}
+        updateExamDisplay();
+    },1000);
+    /* 璇锋眰鍏ㄥ睆 */
+    try{var el=document.documentElement;if(el.requestFullscreen)el.requestFullscreen();else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen()}catch(e){}
+}
+
+function updateExamDisplay(){
+    var remain=Math.max(0,examState.endTime-Date.now());
+    var h=Math.floor(remain/3600000),m=Math.floor((remain%3600000)/60000),s=Math.floor((remain%60000)/1000);
+    document.getElementById('examCountdown').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    var elapsed=Date.now()-examState.startTime;
+    var progress=Math.max(0,1-elapsed/(examState.duration*60000))*100;
+    var pb=document.getElementById('examProgressBar');
+    pb.style.width=progress+'%';
+    if(remain<=60000){pb.className='timer-progress-bar danger';document.getElementById('examCountdown').className='timer-display danger'}
+    else if(remain<=300000){pb.className='timer-progress-bar warning';document.getElementById('examCountdown').className='timer-display warning'}
+    else{pb.className='timer-progress-bar';document.getElementById('examCountdown').className='timer-display'}
+    document.getElementById('examInfo').textContent='\u8003\u8BD5\u65F6\u957F '+examState.duration+'\u5206\u949F';
+}
+
+function exitExam(){
+    if(examState.interval)clearInterval(examState.interval);
+    examState.running=false;
+    document.getElementById('examOverlay').classList.remove('active');
+    try{if(document.exitFullscreen)document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen()}catch(e){}
+}
+
+/* ===== 鏅€氶椆閽?===== */
+function adjustTime(minutes){var ti=document.getElementById('alarmTime'),now=new Date();if(ti.value){var p=ti.value.split(':');now.setHours(parseInt(p[0]),parseInt(p[1]),0)}now.setMinutes(now.getMinutes()+minutes);ti.value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')}
+function addAlarm(){var ti=document.getElementById('alarmTime'),li=document.getElementById('alarmLabel'),t=ti.value;if(!t)return;if(t.split(':').length===2)t+=':00';state.alarms.push({id:Date.now(),time:t,label:li.value||'\u95F9\u949F',enabled:true});saveAlarms();renderAlarms();ti.value='';li.value=''}
+function toggleAlarm(id){var a=state.alarms.find(function(x){return x.id===id});if(a){a.enabled=!a.enabled;saveAlarms()}}
+function deleteAlarm(id){state.alarms=state.alarms.filter(function(x){return x.id!==id});saveAlarms();renderAlarms()}
+function saveAlarms(){localStorage.setItem('alarms',JSON.stringify(state.alarms))}
+function renderAlarms(){
+    var list=document.getElementById('alarmList');
+    if(state.alarms.length===0){list.innerHTML='<div class="empty-state">\u6682\u65E0\u95F9\u949F\uFF0C\u70B9\u51FB\u4E0A\u65B9\u6DFB\u52A0</div>';return}
+    var now=new Date(),cs=now.getHours()*3600+now.getMinutes()*60+now.getSeconds();
+    var awd=state.alarms.filter(function(a){return!a.isSnooze}).map(function(a){var p=a.time.split(':').map(Number),as_=p[0]*3600+p[1]*60+(p[2]||0),d=as_-cs;if(d<=0)d+=86400;var c={};for(var k in a)c[k]=a[k];c.diff=d;return c});
+    awd.sort(function(a,b){return a.diff-b.diff});
+    list.innerHTML=awd.map(function(a){var h=Math.floor(a.diff/3600),mi=Math.floor((a.diff%3600)/60);var ct_=a.enabled?'\u8FD8\u6709 '+(h>0?h+'\u5C0F\u65F6':'')+mi+'\u5206\u949F\u54CD\u94C3':'\u5DF2\u6682\u505C';return '<div class="alarm-item '+(a.enabled?'':'disabled')+'"><div class="alarm-info"><span class="alarm-time">'+a.time+'</span><span class="alarm-label">'+a.label+'</span><span class="alarm-countdown">'+ct_+'</span></div><div class="alarm-controls"><label class="switch"><input type="checkbox" '+(a.enabled?'checked':'')+' onchange="toggleAlarm('+a.id+')"><span class="slider"></span></label><button class="danger" onclick="deleteAlarm('+a.id+')" style="padding:5px 8px;font-size:.72rem">\u5220\u9664</button></div></div>'}).join('');
+}
+
+function ring(label,time){state.isRinging=true;document.getElementById('overlayLabel').textContent=label;document.getElementById('ringingTime').textContent=time||'';document.getElementById('ringingOverlay').classList.add('active');if('vibrate' in navigator)navigator.vibrate([500,300,500,300,500]);startBeep()}
+function stopRinging(){state.isRinging=false;document.getElementById('ringingOverlay').classList.remove('active');stopBeep();if('vibrate' in navigator)navigator.vibrate(0)}
+
+/* ===== 璁℃椂鍣?===== */
+function setTimer(minutes,btn){if(timer.running)return;timer.totalSeconds=minutes*60;timer.remainingSeconds=timer.totalSeconds;timer.elapsedSeconds=0;timer.finished=false;updateTimerDisplay();document.querySelectorAll('#tab-timer .preset-btn').forEach(function(b){b.classList.remove('active')});if(btn)btn.classList.add('active')}
+function setCustomTimer(){var inp=document.getElementById('customMinutes'),mins=parseInt(inp.value);if(!mins||mins<1)return;setTimer(mins,null);inp.value=''}
+function updateTimerDisplay(){
+    var d=document.getElementById('timerDisplay'),st=document.getElementById('timerStatus'),el=document.getElementById('timerElapsed'),rm=document.getElementById('timerRemaining'),pb=document.getElementById('timerProgressBar');
+    if(timer.finished){d.textContent='00:00:00';d.className='timer-display danger';st.textContent='\u65F6\u95F4\u5230\uFF01';pb.style.width='0%';pb.className='timer-progress-bar danger';el.textContent='\u5DF2\u7528 '+formatTime(timer.totalSeconds);rm.textContent='\u5269\u4F59 00:00:00';return}
+    var secs=timer.running?timer.remainingSeconds:timer.totalSeconds;d.textContent=formatTime(secs);
+    if(timer.running&&timer.remainingSeconds<=60){d.className='timer-display danger';pb.className='timer-progress-bar danger'}
+    else if(timer.running&&timer.remainingSeconds<=300){d.className='timer-display warning';pb.className='timer-progress-bar warning'}
+    else{d.className='timer-display';pb.className='timer-progress-bar'}
+    if(timer.running){st.textContent='\u8BA1\u65F6\u4E2D...'}else if(timer.totalSeconds>0){st.textContent='\u5DF2\u8BBE\u7F6E\uFF0C\u70B9\u51FB\u5F00\u59CB'}else{st.textContent='\u9009\u62E9\u65F6\u957F\u5F00\u59CB\u8BA1\u65F6'}
+    pb.style.width=(timer.totalSeconds>0?(timer.remainingSeconds/timer.totalSeconds)*100:100)+'%';
+    el.textContent='\u5DF2\u7528 '+formatTime(timer.elapsedSeconds);rm.textContent='\u5269\u4F59 '+formatTime(timer.remainingSeconds);
+}
+function formatTime(ts){return String(Math.floor(ts/3600)).padStart(2,'0')+':'+String(Math.floor((ts%3600)/60)).padStart(2,'0')+':'+String(ts%60).padStart(2,'0')}
+function startTimer(){if(timer.totalSeconds<=0||timer.finished)return;timer.running=true;document.getElementById('timerStartBtn').style.display='none';document.getElementById('timerPauseBtn').style.display='inline-flex';timer.interval=setInterval(function(){timer.remainingSeconds--;timer.elapsedSeconds++;updateTimerDisplay();if(timer.remainingSeconds<=0){clearInterval(timer.interval);timer.running=false;timer.finished=true;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';updateTimerDisplay();ring('\u8BA1\u65F6\u7ED3\u675F','')}},1000)}
+function pauseTimer(){if(!timer.running)return;clearInterval(timer.interval);timer.running=false;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';updateTimerDisplay()}
+function resetTimer(){clearInterval(timer.interval);timer.running=false;timer.finished=false;timer.totalSeconds=0;timer.remainingSeconds=0;timer.elapsedSeconds=0;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';document.querySelectorAll('#tab-timer .preset-btn').forEach(function(b){b.classList.remove('active')});updateTimerDisplay()}
+
+/* ===== 鐣寗閽?===== */
+function setPomodoro(work,break_,btn){if(pom.running)return;pom.workMin=work;pom.breakMin=break_;pom.sessions=0;pom.phase='work';pom.totalSeconds=work*60;pom.remainingSeconds=pom.totalSeconds;pom.finished=false;document.getElementById('pomWorkMin').value=work;document.getElementById('pomBreakMin').value=break_;updatePomDisplay();document.querySelectorAll('#tab-pomodoro .preset-btn').forEach(function(b){b.classList.remove('active')});if(btn)btn.classList.add('active')}
+function updatePomDisplay(){
+    var d=document.getElementById('pomDisplay'),ph=document.getElementById('pomPhase'),pb=document.getElementById('pomProgressBar'),ss=document.getElementById('pomSessions');
+    var secs=pom.running?pom.remainingSeconds:pom.totalSeconds;
+    d.textContent=formatTimeP(secs);
+    ph.textContent=pom.phase==='work'?'\u4E13\u6CE8\u65F6\u95F4':'\u4F11\u606F\u65F6\u95F4';
+    ph.style.color=pom.phase==='work'?'var(--danger)':'var(--success)';
+    var progress=pom.totalSeconds>0?(pom.remainingSeconds/pom.totalSeconds)*100:100;
+    pb.style.width=progress+'%';
+    pb.className=pom.phase==='work'?'timer-progress-bar':'timer-progress-bar';
+    if(pom.running&&pom.remainingSeconds<=60){pb.className='timer-progress-bar danger';d.className='timer-display danger'}
+    else if(pom.running&&pom.remainingSeconds<=300){pb.className='timer-progress-bar warning';d.className='timer-display warning'}
+    else{d.className='timer-display'}
+    ss.textContent='\u5DF2\u5B8C\u6210 '+pom.sessions+' \u4E2A\u756A\u8304';
+}
+function formatTimeP(ts){return String(Math.floor(ts/60)).padStart(2,'0')+':'+String(ts%60).padStart(2,'0')}
+function startPomodoro(){
+    if(pom.totalSeconds<=0||pom.finished)return;
+    pom.workMin=parseInt(document.getElementById('pomWorkMin').value)||25;
+    pom.breakMin=parseInt(document.getElementById('pomBreakMin').value)||5;
+    if(pom.totalSeconds===0){pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds}
+    pom.running=true;
+    document.getElementById('pomStartBtn').style.display='none';
+    document.getElementById('pomPauseBtn').style.display='inline-flex';
+    pom.interval=setInterval(function(){
+        pom.remainingSeconds--;updatePomDisplay();
+        if(pom.remainingSeconds<=0){
+            clearInterval(pom.interval);pom.running=false;
+            if(pom.phase==='work'){pom.sessions++;pom.phase='break';pom.totalSeconds=pom.breakMin*60;pom.remainingSeconds=pom.totalSeconds;ring('\u4E13\u6CE8\u7ED3\u675F','\u4F11\u606F\u4E00\u4E0B');startPomodoro()}
+            else{pom.phase='work';pom.totalSeconds=pom.workMin*60;pom.remainingSeconds=pom.totalSeconds;pom.finished=false;ring('\u4F11\u606F\u7ED3\u675F','\u5F00\u59CB\u4E0B\u4E00\u4E2A\u756A\u8304');startPomodoro()}
         }
+    },1000);
+}
+function pausePomodoro(){if(!pom.running)return;clearInterval(pom.interval);pom.running=false;document.getElementById('pomStartBtn').style.display='inline-flex';document.getElementById('pomPauseBtn').style.display='none';updatePomDisplay()}
+function resetPomodoro(){clearInterval(pom.interval);pom.running=false;pom.finished=false;pom.phase='work';pom.totalSeconds=0;pom.remainingSeconds=0;pom.sessions=0;document.getElementById('pomStartBtn').style.display='inline-flex';document.getElementById('pomPauseBtn').style.display='none';document.querySelectorAll('#tab-pomodoro .preset-btn').forEach(function(b){b.classList.remove('active')});updatePomDisplay()}
+function fullscreenPomodoro(){
+    /* 灏嗙暘鑼勯挓璁℃椂鏀惧叆鍏ㄥ睆overlay */
+    document.getElementById('examOverlayLabel').textContent=pom.phase==='work'?'\u4E13\u6CE8\u65F6\u95F4':'\u4F11\u606F\u65F6\u95F4';
+    document.getElementById('examCountdown').textContent=formatTimeP(pom.running?pom.remainingSeconds:(parseInt(document.getElementById('pomWorkMin').value)||25)*60);
+    document.getElementById('examInfo').textContent='\u5DF2\u5B8C\u6210 '+pom.sessions+' \u4E2A\u756A\u8304';
+    document.getElementById('examProgressBar').style.width='100%';
+    document.getElementById('examOverlay').classList.add('active');
+    /* 鏇存柊鍏ㄥ睆鏄剧ず */
+    if(pom._fsInterval)clearInterval(pom._fsInterval);
+    pom._fsInterval=setInterval(function(){
+        if(!pom.running){clearInterval(pom._fsInterval);return}
+        document.getElementById('examCountdown').textContent=formatTimeP(pom.remainingSeconds);
+        document.getElementById('examInfo').textContent=pom.phase==='work'?'\u4E13\u6CE8\u4E2D \u00B7 \u5DF2\u5B8C\u6210 '+pom.sessions+' \u4E2A\u756A\u8304':'\u4F11\u606F\u4E2D \u00B7 \u5DF2\u5B8C\u6210 '+pom.sessions+' \u4E2A\u756A\u8304';
+        document.getElementById('examOverlayLabel').textContent=pom.phase==='work'?'\u4E13\u6CE8\u65F6\u95F4':'\u4F11\u606F\u65F6\u95F4';
+        var progress=pom.totalSeconds>0?(pom.remainingSeconds/pom.totalSeconds)*100:100;
+        document.getElementById('examProgressBar').style.width=progress+'%';
+        var pb=document.getElementById('examProgressBar');
+        if(pom.remainingSeconds<=60)pb.className='timer-progress-bar danger';
+        else if(pom.remainingSeconds<=300)pb.className='timer-progress-bar warning';
+        else pb.className='timer-progress-bar';
+    },1000);
+    try{var el=document.documentElement;if(el.requestFullscreen)el.requestFullscreen();else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen()}catch(e){}
+    /* override exitExam for pomodoro */
+    window._origExitExam=window.exitExam;
+    window.exitExam=function(){clearInterval(pom._fsInterval);try{if(document.exitFullscreen)document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen()}catch(e){}document.getElementById('examOverlay').classList.remove('active');window.exitExam=window._origExitExam||exitExam};
+}
 
-        function updateRingtone(){state.ringtone=document.getElementById('ringtoneSelect').value;localStorage.setItem('ringtone',state.ringtone)}
-        function updateVolume(){state.volume=parseFloat(document.getElementById('volumeSlider').value);localStorage.setItem('volume',state.volume)}
+/* ===== 璁剧疆 ===== */
+function toggleTheme(){state.theme=state.theme==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',state.theme);localStorage.setItem('theme',state.theme);document.getElementById('themeBtn').textContent=state.theme==='light'?'\u{1F319}':'\u2600\uFE0F'}
 
-        function updateClock(){
-            var now=new Date(),h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0'),s=String(now.getSeconds()).padStart(2,'0'),ct=h+':'+m+':'+s;
-            document.getElementById('clock').textContent=ct;
-            document.getElementById('date').textContent=now.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-            var ah=document.getElementById('audioHint');
-            if(!audioCtx||audioCtx.state==='suspended'){ah.style.display='block'}else{ah.style.display='none'}
-            if(!lastTimeString){lastTimeString=ct;return}
-            if(state.hourlyChime&&m==='00'&&s==='00'&&!state.isRinging)playChime();
-            if(s==='00')renderAlarms();
-            state.alarms.forEach(function(a){
-                if(!a.enabled)return;var at=a.time,triggered=false;
-                if(ct>=lastTimeString){if(at>lastTimeString&&at<=ct)triggered=true}else{if(at>lastTimeString||at<=ct)triggered=true}
-                if(triggered&&!state.isRinging)ring(a.label||'闹钟',a.time);
-            });
-            lastTimeString=ct;
-        }
+/* init */
+document.documentElement.setAttribute('data-theme',state.theme);
+document.getElementById('themeBtn').textContent=state.theme==='light'?'\u{1F319}':'\u2600\uFE0F';
+document.getElementById('ringtoneSelect').value=state.ringtone;
+document.getElementById('volumeSlider').value=state.volume;
+var io=new Date();document.getElementById('alarmTime').value=String(io.getHours()).padStart(2,'0')+':'+String(io.getMinutes()).padStart(2,'0');
+renderAlarms();updateTimerDisplay();updatePomDisplay();setInterval(updateClock,1000);updateClock();
 
-        function playChime(){startBeep('soft',true);setTimeout(stopBeep,1000)}
+window.addEventListener('keydown',function(e){if(state.isRinging&&e.code==='Escape'){e.preventDefault();stopRinging()}});
+var wakeLock=null;
+async function requestWakeLock(){try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',function(){wakeLock=null})}}catch(err){if(err.name!=='NotAllowedError')console.error(err.name+', '+err.message)}}
+function activateAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended'){audioCtx.resume().then(function(){startHeartbeat();requestWakeLock()})}else{startHeartbeat();requestWakeLock()}}
+document.body.addEventListener('mousedown',activateAudio);
+document.body.addEventListener('keydown',activateAudio);
+document.body.addEventListener('touchstart',activateAudio);
 
-        function setTimer(minutes,btn){
-            if(timer.running)return;timer.totalSeconds=minutes*60;timer.remainingSeconds=timer.totalSeconds;timer.elapsedSeconds=0;timer.finished=false;
-            updateTimerDisplay();document.querySelectorAll('.preset-btn').forEach(function(b){b.classList.remove('active')});if(btn)btn.classList.add('active');
-        }
-        function setCustomTimer(){var inp=document.getElementById('customMinutes'),mins=parseInt(inp.value);if(!mins||mins<1)return;setTimer(mins,null);inp.value=''}
-        function updateTimerDisplay(){
-            var d=document.getElementById('timerDisplay'),st=document.getElementById('timerStatus'),el=document.getElementById('timerElapsed'),rm=document.getElementById('timerRemaining'),pb=document.getElementById('timerProgressBar');
-            if(timer.finished){d.textContent='00:00:00';d.className='timer-display danger';st.textContent='时间到！';pb.style.width='0%';pb.className='timer-progress-bar danger';el.textContent='已用 '+formatTime(timer.totalSeconds);rm.textContent='剩余 00:00:00';return}
-            var secs=timer.running?timer.remainingSeconds:timer.totalSeconds;d.textContent=formatTime(secs);
-            if(timer.running&&timer.remainingSeconds<=60){d.className='timer-display danger';pb.className='timer-progress-bar danger'}
-            else if(timer.running&&timer.remainingSeconds<=300){d.className='timer-display warning';pb.className='timer-progress-bar warning'}
-            else{d.className='timer-display';pb.className='timer-progress-bar'}
-            if(timer.running){st.textContent='计时中...'}else if(timer.totalSeconds>0){st.textContent='已设置，点击开始'}else{st.textContent='选择考试时长开始计时'}
-            pb.style.width=(timer.totalSeconds>0?(timer.remainingSeconds/timer.totalSeconds)*100:100)+'%';
-            el.textContent='已用 '+formatTime(timer.elapsedSeconds);rm.textContent='剩余 '+formatTime(timer.remainingSeconds);
-        }
-        function formatTime(ts){return String(Math.floor(ts/3600)).padStart(2,'0')+':'+String(Math.floor((ts%3600)/60)).padStart(2,'0')+':'+String(ts%60).padStart(2,'0')}
-
-        function startTimer(){
-            if(timer.totalSeconds<=0||timer.finished)return;timer.running=true;
-            document.getElementById('timerStartBtn').style.display='none';document.getElementById('timerPauseBtn').style.display='inline-flex';
-            timer.interval=setInterval(function(){
-                timer.remainingSeconds--;timer.elapsedSeconds++;updateTimerDisplay();
-                if(timer.remainingSeconds<=0){clearInterval(timer.interval);timer.running=false;timer.finished=true;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';updateTimerDisplay();ring('考试时间到','请停止作答')}
-            },1000);
-        }
-        function pauseTimer(){if(!timer.running)return;clearInterval(timer.interval);timer.running=false;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';updateTimerDisplay()}
-        function resetTimer(){clearInterval(timer.interval);timer.running=false;timer.finished=false;timer.totalSeconds=0;timer.remainingSeconds=0;timer.elapsedSeconds=0;document.getElementById('timerStartBtn').style.display='inline-flex';document.getElementById('timerPauseBtn').style.display='none';document.querySelectorAll('.preset-btn').forEach(function(b){b.classList.remove('active')});updateTimerDisplay()}
-
-        function adjustTime(minutes){
-            var ti=document.getElementById('alarmTime'),now=new Date();
-            if(ti.value){var p=ti.value.split(':');now.setHours(parseInt(p[0]),parseInt(p[1]),0)}
-            now.setMinutes(now.getMinutes()+minutes);ti.value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-        }
-        function addAlarm(){
-            var ti=document.getElementById('alarmTime'),li=document.getElementById('alarmLabel'),t=ti.value;if(!t)return;if(t.split(':').length===2)t+=':00';
-            state.alarms.push({id:Date.now(),time:t,label:li.value||'闹钟',enabled:true});saveAlarms();renderAlarms();ti.value='';li.value='';
-        }
-        function toggleAlarm(id){var a=state.alarms.find(function(x){return x.id===id});if(a){a.enabled=!a.enabled;saveAlarms()}}
-        function deleteAlarm(id){state.alarms=state.alarms.filter(function(x){return x.id!==id});saveAlarms();renderAlarms()}
-        function saveAlarms(){localStorage.setItem('alarms',JSON.stringify(state.alarms))}
-
-        function renderAlarms(){
-            var list=document.getElementById('alarmList');
-            if(state.alarms.length===0){list.innerHTML='<div class="empty-state">暂无闹钟，点击上方添加</div>';return}
-            var now=new Date(),cs=now.getHours()*3600+now.getMinutes()*60+now.getSeconds();
-            var awd=state.alarms.filter(function(a){return!a.isSnooze}).map(function(a){var p=a.time.split(':').map(Number),as_=p[0]*3600+p[1]*60+(p[2]||0),d=as_-cs;if(d<=0)d+=86400;var c={};for(var k in a)c[k]=a[k];c.diff=d;return c});
-            awd.sort(function(a,b){return a.diff-b.diff});
-            list.innerHTML=awd.map(function(a){
-                var h=Math.floor(a.diff/3600),mi=Math.floor((a.diff%3600)/60);
-                var ct_=a.enabled?'还有 '+(h>0?h+'小时':'')+mi+'分钟响铃':'已暂停';
-                return '<div class="alarm-item '+(a.enabled?'':'disabled')+'"><div class="alarm-info"><span class="alarm-time">'+a.time+'</span><span class="alarm-label">'+a.label+'</span><span class="alarm-countdown">'+ct_+'</span></div><div class="alarm-controls"><label class="switch"><input type="checkbox" '+(a.enabled?'checked':'')+' onchange="toggleAlarm('+a.id+')"><span class="slider"></span></label><button class="danger" onclick="deleteAlarm('+a.id+')" style="padding:5px 8px;font-size:.72rem">删除</button></div></div>';
-            }).join('');
-        }
-
-        function ring(label,time){state.isRinging=true;document.getElementById('overlayLabel').textContent=label;document.getElementById('ringingTime').textContent=time;document.getElementById('ringingOverlay').classList.add('active');if('vibrate' in navigator)navigator.vibrate([500,300,500,300,500]);startBeep()}
-        function stopRinging(){state.isRinging=false;document.getElementById('ringingOverlay').classList.remove('active');stopBeep();if('vibrate' in navigator)navigator.vibrate(0)}
-
-        function toggleTheme(){state.theme=state.theme==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',state.theme);localStorage.setItem('theme',state.theme);document.getElementById('themeBtn').textContent=state.theme==='light'?'\u{1F319}':'\u2600\uFE0F'}
-        function toggleChime(){state.hourlyChime=document.getElementById('chimeToggle').checked;localStorage.setItem('hourlyChime',state.hourlyChime)}
-        function toggleFadeIn(){state.fadeIn=document.getElementById('fadeInToggle').checked;localStorage.setItem('fadeIn',state.fadeIn)}
-
-        document.documentElement.setAttribute('data-theme',state.theme);
-        document.getElementById('themeBtn').textContent=state.theme==='light'?'\u{1F319}':'\u2600\uFE0F';
-        document.getElementById('chimeToggle').checked=state.hourlyChime;
-        document.getElementById('fadeInToggle').checked=state.fadeIn;
-        document.getElementById('ringtoneSelect').value=state.ringtone;
-        document.getElementById('volumeSlider').value=state.volume;
-        var io=new Date();document.getElementById('alarmTime').value=String(io.getHours()).padStart(2,'0')+':'+String(io.getMinutes()).padStart(2,'0');
-        renderAlarms();updateTimerDisplay();setInterval(updateClock,1000);updateClock();
-
-        window.addEventListener('keydown',function(e){if(state.isRinging&&e.code==='Escape'){e.preventDefault();stopRinging()}});
-
-        var wakeLock=null;
-        async function requestWakeLock(){try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',function(){wakeLock=null})}}catch(err){if(err.name!=='NotAllowedError')console.error(err.name+', '+err.message)}}
-        function activateAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended'){audioCtx.resume().then(function(){startHeartbeat();requestWakeLock()})}else{startHeartbeat();requestWakeLock()}}
-        document.body.addEventListener('mousedown',activateAudio);
-        document.body.addEventListener('keydown',activateAudio);
-        document.body.addEventListener('touchstart',activateAudio);
-
-        window.switchTab=switchTab;
-        window.setTimer=setTimer;
-        window.setCustomTimer=setCustomTimer;
-        window.startTimer=startTimer;
-        window.pauseTimer=pauseTimer;
-        window.resetTimer=resetTimer;
-        window.adjustTime=adjustTime;
-        window.addAlarm=addAlarm;
-        window.toggleAlarm=toggleAlarm;
-        window.deleteAlarm=deleteAlarm;
-        window.toggleTheme=toggleTheme;
-        window.toggleChime=toggleChime;
-        window.toggleFadeIn=toggleFadeIn;
-        window.testRingtone=testRingtone;
-        window.updateRingtone=updateRingtone;
-        window.updateVolume=updateVolume;
-        window.stopRinging=stopRinging;
-        window.activateAudio=activateAudio;
-    })();
-    </script>
+/* expose */
+window.switchTab=switchTab;window.setTimer=setTimer;window.setCustomTimer=setCustomTimer;window.startTimer=startTimer;window.pauseTimer=pauseTimer;window.resetTimer=resetTimer;
+window.adjustTime=adjustTime;window.addAlarm=addAlarm;window.toggleAlarm=toggleAlarm;window.deleteAlarm=deleteAlarm;
+window.toggleExamMode=toggleExamMode;window.startExam=startExam;window.exitExam=exitExam;
+window.setPomodoro=setPomodoro;window.startPomodoro=startPomodoro;window.pausePomodoro=pausePomodoro;window.resetPomodoro=resetPomodoro;window.fullscreenPomodoro=fullscreenPomodoro;
+window.toggleTheme=toggleTheme;window.testRingtone=testRingtone;window.updateRingtone=updateRingtone;window.updateVolume=updateVolume;
+window.stopRinging=stopRinging;window.activateAudio=activateAudio;
+})();
+</script>
 </body>
 </html>
