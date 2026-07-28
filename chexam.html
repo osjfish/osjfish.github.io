@@ -30,7 +30,10 @@
         .dark ::-webkit-scrollbar-thumb { background: #3f444a; }
         .dark ::-webkit-scrollbar-track { background: #1a1c1e; }
         textarea { border: none; outline: none !important; resize: none; }
-        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .modal-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;background:rgba(0,0,0,.12);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .2s ease}
+        .modal-backdrop.show{opacity:1;pointer-events:auto}
+        .modal-box{transform:scale(.92) translateY(12px);opacity:0;transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s ease}
+        .modal-backdrop.show .modal-box{transform:scale(1) translateY(0);opacity:1}
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
     </style>
 </head>
@@ -1438,21 +1441,9 @@ ${tempPrompt}
                         </footer>
 
                         {/* Modals */}
-                        <AnimatePresence>
-                            {modalType !== 'none' && (
-                                <motion.div 
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm"
-                                >
-                                    <motion.div 
-                                        initial={{ scale: 0.9, opacity: 0, y: 20 }} 
-                                        animate={{ scale: 1, opacity: 1, y: 0 }} 
-                                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                                        className={`${colors.card} rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border ${colors.border} transition-colors duration-300`}
-                                    >
+                        {modalType !== 'none' && (
+                            <div className={`modal-backdrop ${modalType !== 'none' ? 'show' : ''}`}>
+                                <div className={`modal-box ${colors.card} rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border ${colors.border} transition-colors duration-300 max-h-[90vh] flex flex-col`}>
                                         {modalType === 'settings' && (
                                             <div className="p-8 max-w-xl mx-auto">
                                                 <h3 className={`text-xl font-bold mb-6 ${colors.text}`}>接口设置</h3>
@@ -1827,10 +1818,10 @@ ${tempPrompt}
                                                 </div>
                                             </div>
                                         )}
-                                    </motion.div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Notification */ }
                         <AnimatePresence>
