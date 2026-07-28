@@ -465,12 +465,45 @@ ${extraInstructions ? `4. **【用户补充要求】**：${extraInstructions}\n`
             };
 
             const parseContent = (text) => {
-                const markers = ['K', 'Q', 'X', 'Y', 'A', 'C', 'MAT_LIFE', 'MAT_HISTORY', 'MAT_CROSS', 'NARRATIVE', 'ARGUMENTATIVE'];
+                const allPatterns = [
+                    '[K]', '【K】', '[客观境遇]', '【客观境遇】',
+                    '[Q]', '【Q】', '[核心前提]', '【核心前提】',
+                    '[X]', '【X】', '[现状对比]', '【现状对比】',
+                    '[Y]', '【Y】', '[核心理法]', '【核心理法】',
+                    '[A]', '【A】', '[行动路径]', '【行动路径】',
+                    '[C]', '【C】', '[价值重塑]', '【价值重塑】',
+                    '[MAT_LIFE]', '【MAT_LIFE】', '[生活素材]', '【生活素材】', '[生活情境素材]', '【生活情境素材】',
+                    '[MAT_HISTORY]', '【MAT_HISTORY】', '[历史素材]', '【历史素材】', '[历史文化素材]', '【历史文化素材】',
+                    '[MAT_CROSS]', '【MAT_CROSS】', '[跨界素材]', '【跨界素材】', '[跨界启发素材]', '【跨界启发素材】',
+                    '[NARRATIVE]', '【NARRATIVE】', '[记叙文]', '【记叙文】',
+                    '[ARGUMENTATIVE]', '【ARGUMENTATIVE】', '[议论文]', '【议论文】'
+                ];
+                const escapedAll = allPatterns.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                const lookahead = escapedAll.join('|');
+                const markerToKey = {
+                    'K': 'K', '客观境遇': 'K',
+                    'Q': 'Q', '核心前提': 'Q',
+                    'X': 'X', '现状对比': 'X',
+                    'Y': 'Y', '核心理法': 'Y',
+                    'A': 'A', '行动路径': 'A',
+                    'C': 'C', '价值重塑': 'C',
+                    'MAT_LIFE': 'MAT_LIFE', '生活素材': 'MAT_LIFE', '生活情境素材': 'MAT_LIFE',
+                    'MAT_HISTORY': 'MAT_HISTORY', '历史素材': 'MAT_HISTORY', '历史文化素材': 'MAT_HISTORY',
+                    'MAT_CROSS': 'MAT_CROSS', '跨界素材': 'MAT_CROSS', '跨界启发素材': 'MAT_CROSS',
+                    'NARRATIVE': 'NARRATIVE', '记叙文': 'NARRATIVE',
+                    'ARGUMENTATIVE': 'ARGUMENTATIVE', '议论文': 'ARGUMENTATIVE'
+                };
                 const result = {};
-                markers.forEach(m => {
-                    const regex = new RegExp(`\\[${m}\\]([\\s\\S]*?)(?=\\[|$)`, 'i');
-                    const match = text.match(regex);
-                    if (match) result[m] = match[1].trim();
+                const re = new RegExp(`\\[([\\u4e00-\\u9fa5A-Z_]+)\\]|【([\\u4e00-\\u9fa5A-Z_]+)】`, 'gi');
+                const matches = [...text.matchAll(re)];
+                matches.forEach((m, i) => {
+                    const marker = m[1] || m[2];
+                    const key = markerToKey[marker];
+                    if (!key) return;
+                    const start = m.index + m[0].length;
+                    const end = (i + 1 < matches.length) ? matches[i + 1].index : text.length;
+                    const content = text.slice(start, end).trim();
+                    if (content) result[key] = content;
                 });
                 return result;
             };
