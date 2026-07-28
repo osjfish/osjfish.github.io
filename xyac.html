@@ -220,7 +220,7 @@ ${extraInstructions ? `4. **【用户补充要求】**：${extraInstructions}\n`
                 const defaultConf = { 
                     currentProvider: "deepseek",
                     providers: {
-                        deepseek: { apiKey: "", model: "deepseek-chat" }, kimi: { apiKey: "" }, zhipu: { apiKey: "" },
+                        deepseek: { apiKey: "", model: "deepseek-v4-flash" }, kimi: { apiKey: "" }, zhipu: { apiKey: "" },
                         qwen: { apiKey: "" }, baidu: { apiKey: "" },
                         doubao: { apiKey: "", endpointId: "" }, ollama: { apiKey: "", ollamaModel: "qwen2" }
                     }
@@ -287,7 +287,7 @@ ${extraInstructions ? `4. **【用户补充要求】**：${extraInstructions}\n`
                 if (creds.apiKey) headers["Authorization"] = `Bearer ${creds.apiKey}`;
 
                 switch (provider) {
-                    case "deepseek": endpoint = "https://api.deepseek.com/chat/completions"; model = creds.model || "deepseek-chat"; break;
+                    case "deepseek": endpoint = "https://api.deepseek.com/chat/completions"; model = creds.model || "deepseek-v4-flash"; break;
                     case "kimi": endpoint = "https://api.moonshot.cn/v1/chat/completions"; model = "moonshot-v1-8k"; break;
                     case "zhipu": endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions"; model = "glm-4"; break;
                     case "qwen": endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"; model = "qwen-plus"; break;
@@ -1248,11 +1248,9 @@ ${extraInstructions ? `4. **【用户补充要求】**：${extraInstructions}\n`
                                 {config.currentProvider === 'deepseek' && (
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-[#2d5a52]">模型选择</label>
-                                        <select className="w-full border rounded-lg px-3 py-2" value={config.providers.deepseek.model || "deepseek-chat"} onChange={(e) => setConfig({...config, providers: {...config.providers, deepseek: {...config.providers.deepseek, model: e.target.value}}})}>
-                                            <option value="deepseek-chat">DeepSeek Chat (默认)</option>
-                                            <option value="deepseek-reasoner">DeepSeek Reasoner (R1)</option>
-                                            <option value="deepseek-v4-flash">DeepSeek V4 Flash</option>
-                                            <option value="deepseek-v4-pro">DeepSeek V4 Pro</option>
+                                        <select className="w-full border rounded-lg px-3 py-2" value={config.providers.deepseek.model || "deepseek-v4-flash"} onChange={(e) => setConfig({...config, providers: {...config.providers, deepseek: {...config.providers.deepseek, model: e.target.value}}})}>
+                                            <option value="deepseek-v4-flash">DeepSeek V4 Flash (默认)</option>
+                                            <option value="deepseek-v4-pro">DeepSeek V4 Pro (深入思考)</option>
                                         </select>
                                     </div>
                                 )}

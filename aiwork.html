@@ -460,8 +460,8 @@ const $=id=>document.getElementById(id);
 
 const PROVIDERS={
   deepseek:{name:'DeepSeek',apiUrl:'https://api.deepseek.com',models:[
-    {id:'deepseek-chat',name:'DeepSeek V4 Flash'},
-    {id:'deepseek-reasoner',name:'DeepSeek V4 PRO'}
+    {id:'deepseek-v4-flash',name:'DeepSeek V4 Flash'},
+    {id:'deepseek-v4-pro',name:'DeepSeek V4 PRO'}
   ]},
   doubao:{name:'豆包',models:[]},
   kimi:{name:'Kimi',apiUrl:'https://api.moonshot.cn/v1',models:[
@@ -519,7 +519,7 @@ async function load(){
       if(ls){d=JSON.parse(ls);await dbSave('wfNodes',d);localStorage.removeItem('wfNodes')}
     }
     if(!d)return;
-    nodes=(d.nodes||[]).map(n=>({id:n.id,name:n.name||'新节点',type:n.type||'normal',provider:n.provider||'deepseek',model:n.model||'deepseek-chat',prompt:n.prompt||'',output:n.output||'',loading:false,files:n.files||[],judgeSourceId:n.judgeSourceId||'',judgeCriteria:n.judgeCriteria||'wordcount_min',judgeValue:n.judgeValue||'100',judgeFailJumpId:n.judgeFailJumpId||'',maxRetries:n.maxRetries!=null?n.maxRetries:3}));
+    nodes=(d.nodes||[]).map(n=>({id:n.id,name:n.name||'新节点',type:n.type||'normal',provider:n.provider||'deepseek',model:n.model||'deepseek-v4-flash',prompt:n.prompt||'',output:n.output||'',loading:false,files:n.files||[],judgeSourceId:n.judgeSourceId||'',judgeCriteria:n.judgeCriteria||'wordcount_min',judgeValue:n.judgeValue||'100',judgeFailJumpId:n.judgeFailJumpId||'',maxRetries:n.maxRetries!=null?n.maxRetries:3}));
     nodeIdCnt=d.nodeIdCnt||0;
     activeNode=d.activeNode||null;
     globalPrompt=d.globalPrompt||'';
@@ -603,7 +603,7 @@ function appPrompt(text,defaultVal){
 }
 
 function genUniqueName(){const base='新节点';let n=base,cnt=2;while(nodes.some(x=>x.name===n))n=base+(cnt++);return n}
-function createNode(){pushUndo();const id=++nodeIdCnt;nodes.push({id,name:genUniqueName(),type:'normal',provider:'deepseek',model:'deepseek-chat',prompt:'',output:'',loading:false,files:[],judgeSourceId:'',judgeCriteria:'wordcount_min',judgeValue:'100',judgeFailJumpId:'',maxRetries:3});activeNode=id;renderAll();save()}
+function createNode(){pushUndo();const id=++nodeIdCnt;nodes.push({id,name:genUniqueName(),type:'normal',provider:'deepseek',model:'deepseek-v4-flash',prompt:'',output:'',loading:false,files:[],judgeSourceId:'',judgeCriteria:'wordcount_min',judgeValue:'100',judgeFailJumpId:'',maxRetries:3});activeNode=id;renderAll();save()}
 async function deleteNode(id){if(!await appConfirm('确定删除此节点？'))return;pushUndo();nodes=nodes.filter(n=>n.id!==id);if(activeNode===id)activeNode=nodes[0]?.id||null;renderAll();save()}
 function clearOutputs(){pushUndo();nodes.forEach(n=>n.output='');renderAll();save()}
 async function initWorkflow(){if(!await appConfirm('确定初始化？将清空所有节点，已保存的模板不受影响。'))return;pushUndo();nodes=[];nodeIdCnt=0;activeNode=null;save();renderAll();toast('已初始化','s')}
