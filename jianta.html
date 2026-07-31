@@ -2016,9 +2016,10 @@ function App() {
             next.player.block = 0;
             // 反射盾：格挡被打破时反弹伤害
             if (next.playerFlags.includes('反射盾')) {
-              next.enemy.hp = Math.max(0, next.enemy.hp - remains);
+              const reflectDmg = capDamageByTrait(remains, next.enemyName);
+              next.enemy.hp = Math.max(0, next.enemy.hp - reflectDmg);
               next.animations.push({ id: generateId(), type: 'status', value: '反射!', target: 'enemy' });
-              next.history = [`【反射盾】反弹了 ${remains} 点伤害！`, ...next.history];
+              next.history = [`【反射盾】反弹了 ${reflectDmg} 点伤害！`, ...next.history];
               // 反射击杀检查
               if (next.enemy.hp <= 0) {
                 next.player.hp = Math.max(0, next.player.hp - Math.max(0, remains - (next.player.block > 0 ? 0 : 0)));
@@ -2156,7 +2157,7 @@ function App() {
           next.animations.push({
             id: generateId(),
             type: 'status',
-            value: `异常 +${intent.value}`,
+            value: `异常 +${debuffVal}`,
             target: 'player'
           });
           next.history = [`敌人施加了层层障碍和剧毒！`, ...next.history];
@@ -2433,7 +2434,7 @@ let isCamp = next.floor % 3 === 0;
         next.energy = next.maxEnergy;
         next.player.block = next.relics.filter(r => r.effectType === 'start_battle_block').length * 10;
         next.enemy.poison = next.relics.filter(r => r.effectType === 'start_battle_poison').length * 3;
-        next.player.strength = next.relics.filter(r => r.effectType === 'start_battle_str').length;
+        next.player.strength = next.relics.filter(r => r.effectType === 'start_battle_str').length + next.relics.filter(r => r.effectType === 'start_battle_str_2').length * 2;
         next.player.weak = 0;
         next.player.vulnerable = 0;
         next.player.poison = 0;
