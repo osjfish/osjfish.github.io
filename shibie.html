@@ -176,8 +176,8 @@ async function extractPdf(file){
         let line='',lastY=null;
         for(const item of content.items){
             if(item.str===undefined||item.str==='')continue;
-            const y=Math.round(item.transform[5]);
-            if(lastY!==null&&y!==lastY){
+            const y=item.transform[5];
+            if(lastY!==null&&(Math.abs(y-lastY)>2||item.hasEOL)){
                 text+=line.trim()+'\n';
                 line='';
             }
@@ -246,7 +246,7 @@ function fmtBlock(lines){
     }
     const isObjective=options.length>=2;
     const out=[];
-    if(stem.length)out.push(stripNum(stem.join(' ')));
+    if(stem.length)out.push(stripNum(stem.join('\n')));
     for(const o of options)out.push(o);
     if(answer.length){
         out.push((isObjective?'答案：':'参考答案：')+answer.join(' ').trim());
@@ -261,17 +261,20 @@ function fmtBlock(lines){
 function parseQuestions(raw){
     const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
     const blocks=[];
-    let cur=[];
+    let cur=[],prefix=[];
     for(const line of lines){
         if(qStartRe.test(line)){
             if(cur.length)blocks.push(cur);
             cur=[line];
         }else if(cur.length){
             cur.push(line);
+        }else{
+            prefix.push(line);
         }
     }
     if(cur.length)blocks.push(cur);
     if(!blocks.length)return raw.trim();
+    if(prefix.length)blocks[0]=prefix.concat(blocks[0]);
     return blocks.map(fmtBlock).filter(Boolean).join('\n\n');
 }
 
@@ -360,7 +363,8 @@ aiCleanBtn.onclick=async()=>{
         +'5. 客观题识别方式：题干后出现 A. 开头选项即为客观题；\n'
         +'6. 必须完整保留题干与选项的原文内容，不得增删改题目文字，只调整排版与补充缺失的标签行；\n'
         +'7. 严禁使用任何 Markdown 符号（#、*、-、``` 等）；\n'
-        +'8. 不要输出任何无关解释，直接输出整理后的纯文本。\n\n'
+        +'8. 不要输出任何无关解释，直接输出整理后的纯文本；\n'
+        +'9. 阅读材料、文章段落等长文本必须保留原始换行与段落结构，不得压成一行。\n\n'
         +'===原始文本开始===\n'+raw+'\n===原始文本结束===';
     aiCleanBtn.disabled=true;
     const oldText=aiCleanBtn.textContent;
