@@ -40,6 +40,19 @@ textarea:focus{border-color:var(--primary)}
 .raw-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .raw-head b{color:var(--text-light);font-size:14px}
 .raw-head .btn{padding:6px 14px;font-size:13px}
+.modal-mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(44,36,32,.55);display:none;justify-content:center;align-items:center;z-index:1000}
+.modal-mask.show{display:flex}
+.modal-box{background:var(--card);border-radius:14px;width:90%;max-width:420px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.2);border:1px solid var(--border-light)}
+.modal-header{padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:16px;font-weight:600;color:var(--text)}
+.close-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-light);line-height:1}
+.modal-body{padding:18px 20px;overflow-y:auto}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:10px}
+.setting-group{margin-bottom:14px}
+.setting-label{display:block;font-size:13px;color:var(--text-light);margin-bottom:6px}
+.setting-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;font-family:inherit;background:#fff}
+.setting-input:focus{border-color:var(--primary)}
+.setting-note{font-size:12px;color:var(--text-light);line-height:1.7}
 </style>
 </head>
 <body>
@@ -55,6 +68,8 @@ textarea:focus{border-color:var(--primary)}
     </div>
     <div class="controls">
         <button class="btn btn-outline" id="viewRawBtn" disabled>查看原文</button>
+        <button class="btn btn-outline" id="aiCleanBtn" disabled>AI 智能整理</button>
+        <button class="btn btn-outline" id="settingsBtn">AI 设置</button>
         <button class="btn btn-primary" id="copyBtn" disabled>复制结果</button>
         <button class="btn btn-accent" id="dlBtn" disabled>下载 TXT</button>
     </div>
@@ -76,7 +91,9 @@ D. 选项四
 
 标签：（可选，逗号或空格分隔）
 
-主观题（填空/简答）：无 A. 开头选项时自动识别</div>
+主观题（填空/简答）：无 A. 开头选项时自动识别
+
+规则解析识别失败或排版不规则时，可点击「AI 智能整理」交由 DeepSeek 处理。</div>
 </div>
 
 <div class="card" id="outputCard" style="display:none">
@@ -90,6 +107,33 @@ D. 选项四
     </div>
     <textarea id="rawText" style="min-height:200px"></textarea>
 </div>
+</div>
+
+<div class="modal-mask" id="settingsModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">AI 设置</span>
+            <button class="close-btn" onclick="closeSettings()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="setting-group">
+                <label class="setting-label">DeepSeek API Key</label>
+                <input type="password" class="setting-input" id="apiKey" placeholder="输入 API Key，仅保存在本地">
+            </div>
+            <div class="setting-group">
+                <label class="setting-label">模型</label>
+                <select class="setting-input" id="modelSelect">
+                    <option value="deepseek-v4-flash">DeepSeek V4 Flash（快速）</option>
+                    <option value="deepseek-v4-pro">DeepSeek V4 Pro（深度）</option>
+                </select>
+            </div>
+            <p class="setting-note">API Key 仅存储在浏览器本地，不会上传至任何服务器。获取地址：platform.deepseek.com</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeSettings()">取消</button>
+            <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
@@ -269,6 +313,120 @@ dlBtn.onclick=()=>{
     a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 };
+
+// ===================== AI 设置 =====================
+const settingsModal=$('settingsModal');
+const apiKeyInput=$('apiKey'),modelSelect=$('modelSelect');
+const aiCleanBtn=$('aiCleanBtn'),settingsBtn=$('settingsBtn');
+
+function loadSettings(){
+    try{
+        const s=JSON.parse(localStorage.getItem('shibie_ai')||'{}');
+        apiKeyInput.value=s.apiKey||'';
+        modelSelect.value=s.model||'deepseek-v4-flash';
+    }catch(e){}
+}
+function saveSettings(){
+    localStorage.setItem('shibie_ai',JSON.stringify({apiKey:apiKeyInput.value.trim(),model:modelSelect.value}));
+    settingsModal.classList.remove('show');
+    statusEl.textContent='AI 设置已保存';
+}
+function closeSettings(){settingsModal.classList.remove('show')}
+window.openSettings=()=>{loadSettings();settingsModal.classList.add('show')};
+window.saveSettings=saveSettings;
+window.closeSettings=closeSettings;
+
+settingsBtn.onclick=()=>window.openSettings();
+apiKeyInput.addEventListener('keydown',e=>{if(e.key==='Enter')saveSettings()});
+
+// ===================== AI 智能整理 =====================
+aiCleanBtn.onclick=async()=>{
+    const s=JSON.parse(localStorage.getItem('shibie_ai')||'{}');
+    if(!s.apiKey){
+        statusEl.textContent='请先在「AI 设置」中填写 API Key';
+        window.openSettings();
+        return;
+    }
+    const raw=rawText.value.trim();
+    if(!raw){
+        statusEl.textContent='没有可整理的文本，请先上传文档';
+        return;
+    }
+    const prompt='你是一位文档整理专家。请将下面的原始文本整理为标准题目格式，规则如下：\n'
+        +'1. 每道题之间用空行分隔；\n'
+        +'2. 每道题内容依次为：题干（首行）、客观题选项（A. B. C. D.，每个一行）、答案行、解析（可选）、标签（可选）；\n'
+        +'3. 客观题答案行格式为「答案：AB」（可多选）；无选项的主观题（填空/简答）答案行格式为「参考答案：...」；\n'
+        +'4. 解析行格式为「解析：...」，标签行格式为「标签：...」（逗号或空格分隔）；\n'
+        +'5. 客观题识别方式：题干后出现 A. 开头选项即为客观题；\n'
+        +'6. 必须完整保留题干与选项的原文内容，不得增删改题目文字，只调整排版与补充缺失的标签行；\n'
+        +'7. 严禁使用任何 Markdown 符号（#、*、-、``` 等）；\n'
+        +'8. 不要输出任何无关解释，直接输出整理后的纯文本。\n\n'
+        +'===原始文本开始===\n'+raw+'\n===原始文本结束===';
+    aiCleanBtn.disabled=true;
+    const oldText=aiCleanBtn.textContent;
+    aiCleanBtn.textContent='AI 整理中...';
+    statusEl.textContent='正在调用 DeepSeek 智能整理...';
+    try{
+        const result=await callAI(prompt,s.apiKey,s.model||'deepseek-v4-flash',chunk=>{
+            output.value=chunk;
+            outputCard.style.display='block';
+        });
+        output.value=result;
+        outputCard.style.display='block';
+        const qCount=result.split('\n\n').filter(b=>b.trim()).length;
+        statusEl.textContent='AI 整理完成：共 '+qCount+' 题';
+    }catch(err){
+        statusEl.textContent='AI 整理失败：'+err.message;
+        showAlert('AI 整理失败',err.message);
+    }finally{
+        aiCleanBtn.disabled=false;
+        aiCleanBtn.textContent=oldText;
+    }
+};
+
+async function callAI(prompt,apiKey,model,onChunk){
+    const res=await fetch('https://api.deepseek.com/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+        body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:!!onChunk})
+    });
+    if(!res.ok){
+        const err=await res.json().catch(()=>({}));
+        throw new Error(err.error?.message||'HTTP '+res.status);
+    }
+    if(!onChunk){
+        const json=await res.json();
+        return json.choices[0].message.content;
+    }
+    const reader=res.body.getReader();
+    const decoder=new TextDecoder('utf-8');
+    let full='';
+    while(true){
+        const {done,value}=await reader.read();
+        if(done)break;
+        const chunk=decoder.decode(value,{stream:true});
+        const lines=chunk.split('\n');
+        for(const line of lines){
+            const trimmed=line.trim();
+            if(!trimmed||!trimmed.startsWith('data: '))continue;
+            const dataStr=trimmed.slice(6);
+            if(dataStr==='[DONE]')continue;
+            try{
+                const data=JSON.parse(dataStr);
+                const delta=data.choices[0]?.delta||{};
+                if(delta.content){
+                    full+=delta.content;
+                    onChunk(full);
+                }
+            }catch(e){}
+        }
+    }
+    return full;
+}
+
+function showAlert(title,msg){
+    alert(title+'\n\n'+msg);
+}
 })();
 </script>
 </body>
