@@ -20,6 +20,9 @@
 @keyframes flamePulse{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.05) rotate(2deg)}75%{transform:scale(1.05) rotate(-2deg)}}
 @keyframes scaleIn{from{transform:scale(0)}to{transform:scale(1)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes enemyFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-6px) scale(1.03)}}
+@keyframes heartbeat{0%,100%{transform:scale(1)}25%{transform:scale(1.12)}50%{transform:scale(1)}75%{transform:scale(1.12)}}
+@keyframes glowPulse{0%,100%{opacity:.5}50%{opacity:.9}}
 .animate-floatUp{animation:floatUp 1.2s ease-out forwards;position:absolute;left:50%;top:50%;pointer-events:none}
 .animate-fadeIn{animation:fadeIn .3s ease-out}
 .animate-fadeInScale{animation:fadeInScale .3s ease-out}
@@ -28,6 +31,9 @@
 .animate-flamePulse{animation:flamePulse 4s infinite}
 .animate-scaleIn{animation:scaleIn .3s ease-out}
 .animate-pulse-slow{animation:pulse 2s infinite}
+.animate-enemyFloat{animation:enemyFloat 3s ease-in-out infinite}
+.animate-heartbeat{animation:heartbeat 1s infinite}
+.animate-glowPulse{animation:glowPulse 2.5s ease-in-out infinite}
 .card-hover:hover{transform:translateY(-8px) scale(1.05);z-index:50!important}
 .card-hover:active{transform:scale(.95)}
 .card-hover-retain:hover{transform:translateY(-12px) scale(1.1);z-index:50!important}
@@ -138,6 +144,21 @@ const getLevelBorder = (level, defaultBorder) => {
     default:
       return defaultBorder;
   }
+};
+const getEnemyEmoji = name => {
+  const map = {
+    '酸液史莱姆':'🟢','邪教徒':'🔮','下颚虫':'🐛','寻宝地精':'🧌','蓝色史莱姆':'🦠','小偷地精':'💰','尖刺史莱姆':'🌵','弱小蝙蝠':'🦇','真菌兽':'🍄','贪婪的妖精':'🧚',
+    '护卫兵':'🛡️','狂暴地精':'😡','多刺怪':'🦔','黑史莱姆':'⚫','巫女':'🧙','毒蛇':'🐍','装甲巨剑士':'⚔️','食人花':'🌸','大鄂虫':'🐜','重装战士':'🪖',
+    '巨型史莱姆':'🐘','地精首领':'👑','巨角魔':'🐂','刺客':'🗡️','大祭司':'🕯️','地狱犬':'🐕','石像鬼':'🗿','幻影刺客':'🌫️','红史莱姆王':'🔴','堕落骑士':'♞',
+    '死亡骑士':'💀','巫妖':'☠️','骸骨巨龙':'🐉','混沌元素':'🌀','暗影领主':'🌑','深渊爬行者':'🕳️','钢铁行者':'🤖','灾厄兽':'👹','鲜血暴君':'🩸','恐惧之眼':'👁️',
+    '六火亡魂':'🔥','远古守护者':'🏛️','时间吞噬者':'⏳','觉醒者':'✨','甜圈与八角':'🍩','腐化之心':'💜','堕落神明':'😈','虚空之眼':'🕳️','末日巨兽':'🌋','终焉使者':'💀'
+  };
+  return map[name] || '👾';
+};
+const getHpBarColor = ratio => {
+  if (ratio > 0.5) return 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]';
+  if (ratio > 0.25) return 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]';
+  return 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]';
 };
 const playSound = type => {
   try {
@@ -2888,7 +2909,9 @@ className: `card-hover aspect-[2/3] ${card.color} rounded-2xl shadow-xl border b
     className: "md:w-4 md:h-4 fill-red-500"
   }), /*#__PURE__*/React.createElement("span", null, gameState.player.hp, " / ", gameState.player.maxHp)), /*#__PURE__*/React.createElement("div", {
     className: "hidden md:flex bg-slate-800/80 px-3 py-1 rounded-full text-xs font-black text-slate-400"
-  }, "FLOOR ", gameState.floor)), /*#__PURE__*/React.createElement("div", {
+  }, "FLOOR ", gameState.floor)), ['战斗中', '保留手牌', '弃牌'].includes(gameState.status) && /*#__PURE__*/React.createElement("div", {
+    className: "hidden md:flex bg-orange-900/40 px-3 py-1 rounded-full text-xs font-black text-orange-300 border border-orange-500/20"
+  }, "\u56DE\u5408 ", gameState.turn), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-1 sm:gap-2 items-center overflow-x-auto no-scrollbar max-w-[60%] sm:max-w-none"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowCompendium(true),
@@ -3065,11 +3088,18 @@ className: `card-hover aspect-[2/3] ${card.color} rounded-2xl shadow-xl border b
     className: "bg-blue-600 px-2 py-0.5 rounded-lg text-xs font-black flex items-center gap-1 shadow-lg border border-blue-400 animate-scaleIn"
   }, /*#__PURE__*/React.createElement(Shield, {
     className: "w-3.5 h-3.5"
-  }), " ", gameState.enemy.block)), /*#__PURE__*/React.createElement("div", {
+  }), " ", gameState.enemy.block)),   /*#__PURE__*/React.createElement("div", {
     className: "w-full bg-slate-800 h-2 md:h-2.5 rounded-full overflow-hidden shadow-inner border border-white/5"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-red-500 h-full shadow-[0_0_10px_rgba(239,68,68,0.5)]", style: { width: (gameState.enemy.hp / gameState.enemy.maxHp * 100) + "%", transition: "width 0.5s ease-out" }
+    className: getHpBarColor(gameState.enemy.hp / gameState.enemy.maxHp) + " h-full transition-all", style: { width: (gameState.enemy.hp / gameState.enemy.maxHp * 100) + "%", transition: "width 0.5s ease-out" }
   })), /*#__PURE__*/React.createElement("div", {
+    key: gameState.enemyName + '_' + gameState.floor,
+    className: "relative w-full flex justify-center items-center my-2 pointer-events-none select-none"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute w-20 h-20 md:w-28 md:h-28 rounded-full bg-red-500/15 blur-2xl animate-glowPulse"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "relative text-5xl md:text-7xl animate-scaleIn animate-enemyFloat transition-all " + (gameState.enemyIntent.type === '攻击' ? "drop-shadow-[0_0_28px_rgba(239,68,68,0.65)]" : gameState.enemyIntent.type === '强化' ? "drop-shadow-[0_0_28px_rgba(249,115,22,0.55)]" : gameState.enemyIntent.type === '恶化' ? "drop-shadow-[0_0_28px_rgba(168,85,247,0.55)]" : "drop-shadow-[0_0_18px_rgba(239,68,68,0.35)]")
+  }, getEnemyEmoji(gameState.enemyName))), /*#__PURE__*/React.createElement("div", {
     className: "mt-4 md:mt-5 bg-slate-950/80 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-white/10 flex items-center gap-2 md:gap-3 shadow-xl animate-bob"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-tight"
@@ -3421,7 +3451,7 @@ className: `card-hover aspect-[2/3] ${card.color} rounded-2xl shadow-xl border b
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2 md:gap-4 shrink-0"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-2 text-red-500 font-black bg-slate-900/80 px-3 py-1.5 rounded-full border border-red-500/20 shadow-xl backdrop-blur-sm mr-1"
+    className: "flex items-center gap-2 text-red-500 font-black px-3 py-1.5 rounded-full border shadow-xl backdrop-blur-sm mr-1 " + (gameState.player.hp / gameState.player.maxHp <= 0.25 ? "bg-red-900/80 border-red-400 animate-heartbeat" : "bg-slate-900/80 border-red-500/20")
   }, /*#__PURE__*/React.createElement(Heart, {
     size: 12,
     className: "fill-red-500 animate-pulse"
@@ -3430,10 +3460,14 @@ className: `card-hover aspect-[2/3] ${card.color} rounded-2xl shadow-xl border b
   }, gameState.player.hp, " / ", gameState.player.maxHp)), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-1.5 md:gap-2"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "bg-slate-900 px-2 md:px-3 py-1 rounded-full border border-white/5 whitespace-nowrap"
-  }, "\u62BD ", gameState.deck.length), /*#__PURE__*/React.createElement("span", {
-    className: "bg-slate-900 px-2 md:px-3 py-1 rounded-full border border-white/5 whitespace-nowrap"
-  }, "\u5F03 ", gameState.discard.length))), gameState.status === '\u6218\u6597\u4E2D' ? /*#__PURE__*/React.createElement("button", {
+    className: "bg-slate-900 px-2 md:px-3 py-1 rounded-full border border-white/5 whitespace-nowrap flex items-center gap-1.5"
+  }, /*#__PURE__*/React.createElement(Layers, {
+    className: "w-3 h-3 text-blue-400"
+  }), gameState.deck.length), /*#__PURE__*/React.createElement("span", {
+    className: "bg-slate-900 px-2 md:px-3 py-1 rounded-full border border-white/5 whitespace-nowrap flex items-center gap-1.5"
+  }, /*#__PURE__*/React.createElement(Scissors, {
+    className: "w-3 h-3 text-red-400"
+  }), gameState.discard.length))), gameState.status === '\u6218\u6597\u4E2D' ? /*#__PURE__*/React.createElement("button", {
     onClick: endTurn,
     disabled: isEnemyActing,
     className: "bg-orange-600 hover:bg-orange-500 disabled:opacity-30 text-white px-4 md:px-5 py-1.5 md:py-2 rounded-full font-black text-[10px] md:text-[11px] tracking-widest flex items-center gap-1 shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-all whitespace-nowrap"
