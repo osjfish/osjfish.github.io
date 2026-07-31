@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>题目识别转换</title>
+<style>
+:root{
+    --bg:#F5F0E8;--card:#FFFDF7;--primary:#B8453A;--primary-light:#D4645A;
+    --accent:#C8A951;--accent-light:#E8D48B;--text:#2C2420;--text-light:#6B5D52;
+    --border:#D4C5B0;--border-light:#E8DDD0;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+.container{max-width:960px;margin:0 auto;padding:16px}
+h1{font-size:clamp(20px,5vw,28px);font-weight:700;text-align:center;padding:20px 16px 16px;color:var(--text);letter-spacing:1px}
+h1::after{content:'';display:block;width:40px;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent));margin:10px auto 0;border-radius:2px}
+.card{background:var(--card);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 4px 20px rgba(44,36,32,.08);border:1px solid var(--border-light)}
+.drop-area{border:2px dashed var(--border);border-radius:12px;padding:clamp(24px,6vw,40px) 16px;text-align:center;color:var(--text-light);cursor:pointer;transition:all .3s ease;background:linear-gradient(135deg,#FFFDF7 0%,#F8F3EB 100%)}
+.drop-area:hover,.drop-area.drag-over{border-color:var(--primary);color:var(--primary);background:linear-gradient(135deg,#FFF8F5 0%,#FEF0EC 100%);transform:translateY(-2px);box-shadow:0 6px 24px rgba(184,69,58,.1)}
+.drop-area svg{width:48px;height:48px;margin-bottom:12px;opacity:.5;pointer-events:none}
+.drop-area .main-text{font-size:16px;font-weight:500;margin-bottom:6px}
+.drop-area .sub-text{font-size:13px;opacity:.7}
+.drop-area input{display:none}
+.status{font-size:13px;color:var(--text-light);margin:10px 0;padding:8px 12px;background:rgba(200,169,81,.08);border-radius:8px;border-left:3px solid var(--accent)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin-top:14px}
+.btn{padding:10px 20px;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);color:#fff;box-shadow:0 4px 12px rgba(184,69,58,.25)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(184,69,58,.35)}
+.btn-primary:disabled{background:#ccc;box-shadow:none;cursor:not-allowed;transform:none}
+.btn-accent{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-light) 100%);color:#fff;box-shadow:0 4px 12px rgba(200,169,81,.25)}
+.btn-accent:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(200,169,81,.35)}
+.btn-accent:disabled{background:#ccc;box-shadow:none;cursor:not-allowed;transform:none}
+.btn-outline{background:transparent;color:var(--text-light);border:1.5px solid var(--border)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+.btn-outline:disabled{background:#eee;box-shadow:none;cursor:not-allowed;transform:none}
+textarea{width:100%;min-height:320px;border:1px solid var(--border);border-radius:12px;padding:14px;font-size:14px;line-height:1.8;font-family:inherit;background:#fff;resize:vertical;outline:none}
+textarea:focus{border-color:var(--primary)}
+.format-hint{font-size:13px;line-height:1.9;color:var(--text-light);background:rgba(200,169,81,.06);border-radius:10px;padding:12px 14px;margin-top:12px;white-space:pre-line}
+.raw-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.raw-head b{color:var(--text-light);font-size:14px}
+.raw-head .btn{padding:6px 14px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>题目识别转换</h1>
+
+<div class="card">
+    <div class="drop-area" id="dropArea">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><path d="M24 32V16m0 0l-8 8m8-8l8 8M8 40h32"/><rect x="4" y="4" width="40" height="40" rx="4"/></svg>
+        <div class="main-text">点击或拖拽上传文档</div>
+        <div class="sub-text">支持 .docx / .pdf（可多选）</div>
+        <input type="file" id="fileIn" multiple accept=".docx,.pdf,.txt">
+    </div>
+    <div class="controls">
+        <button class="btn btn-outline" id="viewRawBtn" disabled>查看原文</button>
+        <button class="btn btn-primary" id="copyBtn" disabled>复制结果</button>
+        <button class="btn btn-accent" id="dlBtn" disabled>下载 TXT</button>
+    </div>
+    <div class="status" id="status">请上传 docx 或 pdf 文档</div>
+    <div class="format-hint" id="formatHint">格式说明（题目之间用空行分隔）：
+题干内容（首行）
+
+A. 选项一（客观题）
+
+B. 选项二
+
+C. 选项三
+
+D. 选项四
+
+答案：AB（客观题）或 参考答案（主观题）
+
+解析：（可选）
+
+标签：（可选，逗号或空格分隔）
+
+主观题（填空/简答）：无 A. 开头选项时自动识别</div>
+</div>
+
+<div class="card" id="outputCard" style="display:none">
+    <textarea id="output" placeholder="转换结果将显示在这里"></textarea>
+</div>
+
+<div class="card" id="rawCard" style="display:none">
+    <div class="raw-head">
+        <b>提取的原始文本</b>
+        <button class="btn btn-outline" id="rawClose">收起</button>
+    </div>
+    <textarea id="rawText" style="min-height:200px"></textarea>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const drop=$('dropArea'),fileIn=$('fileIn');
+const statusEl=$('status'),output=$('output');
+const copyBtn=$('copyBtn'),dlBtn=$('dlBtn'),viewRawBtn=$('viewRawBtn');
+const outputCard=$('outputCard'),rawCard=$('rawCard'),rawText=$('rawText'),rawClose=$('rawClose');
+
+let parsedText='';
+
+drop.addEventListener('click',()=>fileIn.click());
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag-over')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('drag-over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag-over');handleFiles(e.dataTransfer.files)});
+fileIn.addEventListener('change',e=>{handleFiles(e.target.files);e.target.value=''});
+
+async function extractDocx(file){
+    const buf=await file.arrayBuffer();
+    const result=await mammoth.convertToHtml({arrayBuffer:buf});
+    let html=result.value;
+    html=html.replace(/<p[^>]*>/gi,'\n').replace(/<br[^>]*>/gi,'\n');
+    html=html.replace(/<tr[^>]*>/gi,'\n').replace(/<\/tr>/gi,'\n');
+    html=html.replace(/<td[^>]*>/gi,'\t').replace(/<\/td>/gi,'');
+    html=html.replace(/<[^>]+>/g,'');
+    return html.replace(/\t+/g,' ').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+async function extractPdf(file){
+    const buf=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    let text='';
+    for(let i=1;i<=pdf.numPages;i++){
+        const page=await pdf.getPage(i);
+        const content=await page.getTextContent();
+        let line='',lastY=null;
+        for(const item of content.items){
+            if(item.str===undefined||item.str==='')continue;
+            const y=Math.round(item.transform[5]);
+            if(lastY!==null&&y!==lastY){
+                text+=line.trim()+'\n';
+                line='';
+            }
+            lastY=y;
+            line+=item.str;
+        }
+        if(line.trim())text+=line.trim()+'\n';
+        text+='\n';
+    }
+    return text.replace(/\n{3,}/g,'\n\n').trim();
+}
+
+async function handleFiles(files){
+    const arr=Array.from(files);
+    if(!arr.length)return;
+    statusEl.textContent='正在解析文档...';
+    let allRaw='';
+    for(const f of arr){
+        const ext=f.name.split('.').pop().toLowerCase();
+        try{
+            let txt='';
+            if(ext==='docx')txt=await extractDocx(f);
+            else if(ext==='pdf')txt=await extractPdf(f);
+            else if(ext==='txt')txt=await f.text();
+            else{statusEl.textContent='跳过不支持的文件：'+f.name;continue}
+            allRaw+=txt.trim()+'\n\n';
+        }catch(err){
+            statusEl.textContent='解析 '+f.name+' 失败：'+err.message;
+            return;
+        }
+    }
+    rawText.value=allRaw.trim();
+    parsedText=parseQuestions(allRaw);
+    output.value=parsedText;
+    outputCard.style.display='block';
+    const qCount=parsedText.split('\n\n').filter(b=>b.trim()).length;
+    statusEl.textContent='解析完成：共 '+qCount+' 题（原始文本 '+allRaw.length+' 字符）';
+    copyBtn.disabled=false;dlBtn.disabled=false;viewRawBtn.disabled=false;
+}
+
+const qStartRe=/^(?:第\s*\d+\s*题\s*[:：.、]?|\(\s*\d{1,3}\s*\)\s*|【\s*\d{1,3}\s*】\s*|\d{1,3}\s*[.、．](?!\d))/;
+const optRe=/^[A-Ha-h]\s*[.、．]\s*\S/;
+const ansRe=/^(?:答案|参考答案|标准答案|正确答案|【答案】|【参考答案】)\s*[:：]?\s*\S/;
+const anaRe=/^(?:解析|分析|详解|解题思路|试题解析)\s*[:：]?\s*\S/;
+const tagRe=/^(?:标签|考点|知识点|所属知识点)\s*[:：]?\s*\S/;
+
+function stripNum(line){
+    return line.replace(/^(?:第\s*\d+\s*题\s*[:：.、]?|\(\s*\d{1,3}\s*\)\s*|【\s*\d{1,3}\s*】\s*|\d{1,3}\s*[.、．]\s*)/,'');
+}
+
+function fmtBlock(lines){
+    const stem=[],options=[],answer=[],analysis=[],tags=[];
+    let mode='stem';
+    for(const line of lines){
+        if(optRe.test(line)){mode='options';options.push(line);}
+        else if(ansRe.test(line)){mode='answer';answer.push(line.replace(ansRe,''));}
+        else if(anaRe.test(line)){mode='analysis';analysis.push(line.replace(anaRe,''));}
+        else if(tagRe.test(line)){mode='tags';tags.push(line.replace(tagRe,''));}
+        else{
+            if(mode==='stem')stem.push(line);
+            else if(mode==='options')options[options.length-1]+=' '+line;
+            else if(mode==='answer')answer[answer.length-1]+=' '+line;
+            else if(mode==='analysis')analysis[analysis.length-1]+=' '+line;
+            else if(mode==='tags')tags[tags.length-1]+=' '+line;
+        }
+    }
+    const isObjective=options.length>=2;
+    const out=[];
+    if(stem.length)out.push(stripNum(stem.join(' ')));
+    for(const o of options)out.push(o);
+    if(answer.length){
+        out.push((isObjective?'答案：':'参考答案：')+answer.join(' ').trim());
+    }else{
+        out.push(isObjective?'答案：':'参考答案：');
+    }
+    if(analysis.length)out.push('解析：'+analysis.join(' ').trim());
+    if(tags.length)out.push('标签：'+tags.join(' ').trim());
+    return out.join('\n');
+}
+
+function parseQuestions(raw){
+    const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
+    const blocks=[];
+    let cur=[];
+    for(const line of lines){
+        if(qStartRe.test(line)){
+            if(cur.length)blocks.push(cur);
+            cur=[line];
+        }else if(cur.length){
+            cur.push(line);
+        }
+    }
+    if(cur.length)blocks.push(cur);
+    if(!blocks.length)return raw.trim();
+    return blocks.map(fmtBlock).filter(Boolean).join('\n\n');
+}
+
+viewRawBtn.onclick=()=>{
+    if(rawCard.style.display==='none'){
+        rawCard.style.display='block';
+        viewRawBtn.textContent='收起原文';
+    }else{
+        rawCard.style.display='none';
+        viewRawBtn.textContent='查看原文';
+    }
+};
+rawClose.onclick=()=>{rawCard.style.display='none';viewRawBtn.textContent='查看原文'};
+
+copyBtn.onclick=()=>{
+    if(!output.value)return;
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(output.value).then(()=>{statusEl.textContent='已复制到剪贴板'}).catch(()=>fallbackCopy());
+    }else fallbackCopy();
+};
+function fallbackCopy(){
+    const ta=document.createElement('textarea');
+    ta.value=output.value;
+    ta.style.position='fixed';ta.style.left='-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try{
+        if(document.execCommand('copy'))statusEl.textContent='已复制到剪贴板';
+        else statusEl.textContent='复制失败，请手动复制';
+    }catch(e){statusEl.textContent='复制失败，请手动复制'}
+    document.body.removeChild(ta);
+}
+
+dlBtn.onclick=()=>{
+    const blob=new Blob([output.value],{type:'text/plain;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='题目转换结果.txt';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+})();
+</script>
+</body>
+</html>
