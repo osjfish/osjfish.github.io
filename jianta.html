@@ -449,34 +449,34 @@ const createCard = (name, cost, type, desc, effect, rarity = 1, exhaust = false)
 const ALL_CARDS = [
 // ===== 攻击 (Attack) 20张 =====
 // 1★ 基础攻击
-createCard('打击', 1, '攻击', '造成 8 点伤害。', s => dealDamage(s, 8 + (s.relics && s.relics.some(r => r.effectType === 'whetstone') ? 3 : 0)), 1),
+createCard('打击', 1, '攻击', '造成 9 点伤害。', s => dealDamage(s, 9 + (s.relics && s.relics.some(r => r.effectType === 'whetstone') ? 3 : 0)), 1),
 createCard('穿刺', 1, '攻击', '造成 7 点伤害，无视护甲。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; n.enemy.hp = Math.max(0, n.enemy.hp - 7); n.animations.push({ id: generateId(), type: 'damage', value: '-7', target: 'enemy' }); return n; }, 1),
 createCard('火花', 0, '攻击', '造成 3 点伤害，抽 1 张牌。', s => drawCards(dealDamage(s, 3), 1), 1),
 createCard('硫磺', 0, '攻击', '造成 10 点伤害，受到 3 点伤害。', s => { let n = dealDamage(s, 10); n.player.hp = Math.max(0, n.player.hp - 3); n.animations.push({ id: generateId(), type: 'damage', value: '-3', target: 'player' }); n.history = ['【硫磺】反噬 3 点伤害', ...n.history]; if (n.player.hp <= 0) n.status = '已战败'; return n; }, 1),
 // 2★ 进阶攻击
-createCard('重锤', 2, '攻击', '造成 22 点伤害，给予 1 层易伤。', s => applyStatus(dealDamage(s, 22), 'enemy', 'vulnerable', 1, '易伤'), 2),
-createCard('刀扇', 1, '攻击', '造成 3 点伤害 4 次。', s => dealDamage(s, 3, 4), 2),
+createCard('重锤', 2, '攻击', '造成 24 点伤害，给予 1 层易伤。', s => applyStatus(dealDamage(s, 24), 'enemy', 'vulnerable', 1, '易伤'), 2),
+createCard('刀扇', 1, '攻击', '造成 4 点伤害 4 次。', s => dealDamage(s, 4, 4), 2),
 createCard('吸血之触', 1, '攻击', '造成 6 点伤害，回复 3 点生命。', s => { let n = dealDamage(s, 6); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 3); n.history = ['吸回 3 点生命', ...n.history]; return n; }, 2),
-createCard('致死打击', 3, '攻击', '造成 35 点伤害。', s => dealDamage(s, 35), 2),
+createCard('致死打击', 3, '攻击', '造成 40 点伤害。', s => dealDamage(s, 40), 2),
 // 3★ 强力攻击
 createCard('虚空爆裂', 2, '攻击', '造成 12 点伤害，给予 2 层易伤和 2 层虚弱。', s => applyStatus(applyStatus(dealDamage(s, 12), 'enemy', 'vulnerable', 2, '易伤'), 'enemy', 'weak', 2, '虚弱'), 3),
 createCard('连斩', 1, '攻击', '造成 8 点伤害 2 次，抽 1 张牌。', s => drawCards(dealDamage(s, 8, 2), 1), 3),
 createCard('万剑归宗', 1, '攻击', '打出所有手牌中攻击牌的复本。消耗。', s => { let ns = { ...s }; const atks = ns.hand.filter(c => c.type === '攻击' && c.name !== '万剑归宗'); atks.forEach(c => { ns = c.effect(ns); }); ns.history = ['【万剑归宗】爆发！', ...ns.history]; return ns; }, 3, true),
 createCard('血怒', 0, '攻击', '造成 15 点伤害，受到 5 点伤害。下次攻击伤害翻倍。', s => { let n = dealDamage(s, 15); n.player.hp = Math.max(0, n.player.hp - 5); n.animations.push({ id: generateId(), type: 'damage', value: '-5', target: 'player' }); n.penNibActive = true; n.history = ['【血怒】下次攻击伤害翻倍！', ...n.history]; if (n.player.hp <= 0) n.status = '已战败'; return n; }, 3),
 // 4★ 高等攻击
-createCard('神之怒', 2, '攻击', '造成 10 点伤害 5 次。', s => dealDamage(s, 10, 5), 4),
+createCard('神之怒', 2, '攻击', '造成 11 点伤害 5 次。', s => dealDamage(s, 11, 5), 4),
 createCard('破甲重击', 2, '攻击', '造成 18 点伤害，无视护甲，给予 2 层易伤。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; n.enemy.hp = Math.max(0, n.enemy.hp - 18); n.enemy.vulnerable = (n.enemy.vulnerable || 0) + 2; n.animations.push({ id: generateId(), type: 'damage', value: '-18', target: 'enemy' }); n.history = ['【破甲】击穿了防御！', ...n.history]; return n; }, 4),
 createCard('闪电链', 2, '攻击', '造成 6 点伤害 3 次。若敌人有易伤，额外 2 次。', s => { const hits = 3 + (s.enemy.vulnerable > 0 ? 2 : 0); return dealDamage(s, 6, hits); }, 4),
-createCard('旋风斩', 1, '攻击', '造成 5 点伤害 4 次，抽 1 张牌。', s => drawCards(dealDamage(s, 5, 4), 1), 4),
+createCard('旋风斩', 1, '攻击', '造成 6 点伤害 4 次，抽 1 张牌。', s => drawCards(dealDamage(s, 6, 4), 1), 4),
 // 5★ 终极攻击
 createCard('致命一击', 3, '攻击', '造成 60 点伤害。消耗。', s => dealDamage(s, 60), 5, true),
-createCard('剑刃风暴', 3, '攻击', '造成 8 点伤害 6 次。', s => dealDamage(s, 8, 6), 5),
+createCard('剑刃风暴', 3, '攻击', '造成 9 点伤害 6 次。', s => dealDamage(s, 9, 6), 5),
 createCard('处决', 3, '攻击', '敌人生命低于 30% 时直接斩杀。否则 15 点伤害。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; if (n.enemy.hp <= n.enemy.maxHp * 0.3) { n.enemy.hp = 0; n.animations.push({ id: generateId(), type: 'damage', value: '斩杀！', target: 'enemy' }); n.history = ['【处决】一击必杀！', ...n.history]; } else { n.enemy.hp = Math.max(0, n.enemy.hp - 15); n.animations.push({ id: generateId(), type: 'damage', value: '-15', target: 'enemy' }); } return n; }, 5),
-createCard('终极爆破', 3, '攻击', '造成 25 点伤害。若敌人有中毒，中毒层数翻倍。消耗。', s => { let n = dealDamage(s, 25); if (n.enemy.poison > 0) { n.enemy.poison *= 2; n.history = [`【爆破】中毒翻倍至 ${n.enemy.poison} 层！`, ...n.history]; } return n; }, 5, true),
+createCard('终极爆破', 3, '攻击', '造成 28 点伤害。若敌人有中毒，中毒层数翻倍。消耗。', s => { let n = dealDamage(s, 28); if (n.enemy.poison > 0) { n.enemy.poison *= 2; n.history = [`【爆破】中毒翻倍至 ${n.enemy.poison} 层！`, ...n.history]; } return n; }, 5, true),
 
 // ===== 防御 (Defense) 20张 =====
 // 1★ 基础防御
-createCard('防御', 1, '防御', '获得 6 点格挡。', s => addBlock(s, 6), 1),
+createCard('防御', 1, '防御', '获得 7 点格挡。', s => addBlock(s, 7), 1),
 createCard('灵动', 1, '防御', '获得 5 点格挡，抽 1 张牌。', s => drawCards(addBlock(s, 5), 1), 1),
 createCard('不屈', 1, '防御', '格挡 +8，已受伤则 +14。', s => addBlock(s, s.player.hp < s.player.maxHp ? 14 : 8), 1),
 createCard('战术性撤退', 1, '防御', '格挡 +7，下回合抽牌 +1。', s => { let n = addBlock(s, 7); n.player.drawBonusNextTurn = (n.player.drawBonusNextTurn || 0) + 1; return n; }, 1),
@@ -491,51 +491,51 @@ createCard('虚幻', 1, '防御', '格挡 +25，下轮能量 -1。', s => { let 
 createCard('双重防线', 1, '防御', '格挡 +10 两次。', s => addBlock(addBlock(s, 10), 10), 3),
 createCard('荆棘护甲', 2, '防御', '获得 15 点格挡，给予 10 层中毒。消耗。', s => applyStatus(addBlock(s, 15), 'enemy', 'poison', 10, '中毒'), 3, true),
 // 4★ 高等防御
-createCard('绝对防御', 2, '防御', '获得 30 点格挡。消耗。', s => addBlock(s, 30), 4, true),
+createCard('绝对防御', 2, '防御', '获得 32 点格挡。消耗。', s => addBlock(s, 32), 4, true),
 createCard('铁壁', 1, '防御', '格挡 +12，获得 1 点力量。', s => applyStatus(addBlock(s, 12), 'player', 'strength', 1, '力量'), 4),
-createCard('反射盾', 2, '防御', '格挡 +10。本回合格挡被打破时，造成等同于破防量的伤害。', s => addBlock(s, 10), 4),
-createCard('圣盾', 2, '防御', '格挡 +20，回复 5 点生命。消耗。', s => { let n = addBlock(s, 20); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 5); n.history = ['【圣盾】神圣之光回复了 5 点生命', ...n.history]; return n; }, 4, true),
+createCard('反射盾', 2, '防御', '格挡 +12。本回合格挡被打破时，造成等同于破防量的伤害。', s => addBlock(s, 12), 4),
+createCard('圣盾', 2, '防御', '格挡 +22，回复 6 点生命。消耗。', s => { let n = addBlock(s, 22); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 6); n.history = ['【圣盾】神圣之光回复了 6 点生命', ...n.history]; return n; }, 4, true),
 // 5★ 终极防御
-createCard('不朽', 3, '防御', '获得 40 点格挡。消耗。', s => addBlock(s, 40), 5, true),
+createCard('不朽', 3, '防御', '获得 45 点格挡。消耗。', s => addBlock(s, 45), 5, true),
 createCard('堡垒', 2, '防御', '格挡 +18，给予 3 层虚弱和 3 层易伤。', s => applyStatus(applyStatus(addBlock(s, 18), 'enemy', 'weak', 3, '虚弱'), 'enemy', 'vulnerable', 3, '易伤'), 5),
-createCard('生命屏障', 2, '防御', '格挡 +15，回复 10 点生命。消耗。', s => { let n = addBlock(s, 15); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 10); n.history = ['【生命屏障】回复 10 点生命', ...n.history]; return n; }, 5, true),
+createCard('生命屏障', 2, '防御', '格挡 +18，回复 10 点生命。消耗。', s => { let n = addBlock(s, 18); const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 10); n.history = ['【生命屏障】回复 10 点生命', ...n.history]; return n; }, 5, true),
 createCard('金钟罩', 2, '防御', '格挡 +25。本回合受到伤害减半。', s => { let n = addBlock(s, 25); n.playerFlags = [...n.playerFlags, '金钟罩']; n.history = ['【金钟罩】伤害减免已激活', ...n.history]; return n; }, 5),
 
 // ===== 毒术 (Poison) 20张 =====
 // 1★ 基础毒术
-createCard('毒雾', 0, '毒术', '给予 6 层中毒。', s => applyStatus(s, 'enemy', 'poison', 6, '中毒'), 1),
+createCard('毒雾', 0, '毒术', '给予 5 层中毒。', s => applyStatus(s, 'enemy', 'poison', 5, '中毒'), 1),
 createCard('毒针', 1, '毒术', '造成 3 点伤害，给予 6 层中毒。', s => applyStatus(dealDamage(s, 3), 'enemy', 'poison', 6, '中毒'), 1),
 createCard('腐蚀之触', 1, '毒术', '给予 10 层中毒。', s => applyStatus(s, 'enemy', 'poison', 10, '中毒'), 1),
-createCard('毒蛇之吻', 1, '毒术', '给予 10 层中毒。若敌人有易伤，改为 20 层。', s => applyStatus(s, 'enemy', 'poison', s.enemy.vulnerable > 0 ? 20 : 10, '中毒'), 1),
+createCard('毒蛇之吻', 1, '毒术', '给予 8 层中毒。若敌人有易伤，改为 16 层。', s => applyStatus(s, 'enemy', 'poison', s.enemy.vulnerable > 0 ? 16 : 8, '中毒'), 1),
 // 2★ 进阶毒术
-createCard('污染', 1, '毒术', '给予敌人 15 层中毒，抽 1 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 15, '中毒'), 1), 2),
-createCard('毒液喷溅', 1, '毒术', '给予 12 层中毒和 1 层易伤。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 12, '中毒'), 'enemy', 'vulnerable', 1, '易伤'), 2),
-createCard('慢性毒药', 0, '毒术', '给予 8 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 8, '中毒'), 2, true),
+createCard('污染', 1, '毒术', '给予敌人 12 层中毒，抽 1 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 12, '中毒'), 1), 2),
+createCard('毒液喷溅', 1, '毒术', '给予 10 层中毒和 1 层易伤。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 10, '中毒'), 'enemy', 'vulnerable', 1, '易伤'), 2),
+createCard('慢性毒药', 0, '毒术', '给予 6 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 6, '中毒'), 2, true),
 createCard('毒爆', 2, '毒术', '造成等同于毒层数的伤害，毒层减半。消耗。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; const d = n.enemy.poison; n.enemy.hp = Math.max(0, n.enemy.hp - d); n.enemy.poison = Math.floor(n.enemy.poison / 2); n.animations.push({ id: generateId(), type: 'damage', value: '-'+d, target: 'enemy' }); n.history = [`【毒爆】引爆 ${d} 点毒伤`, ...n.history]; return n; }, 2, true),
 // 3★ 强力毒术
-createCard('剧毒瘟疫', 2, '毒术', '给予 25 层中毒，抽 2 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 25, '中毒'), 2), 3),
-createCard('催化剂', 1, '毒术', '中毒层数翻 3 倍。消耗。', s => { let e = { ...s.enemy }; e.poison *= 3; return { ...s, enemy: e }; }, 3, true),
-createCard('毒素蔓延', 2, '毒术', '给予 20 层中毒。下回合毒伤 +50%。', s => { let n = applyStatus(s, 'enemy', 'poison', 20, '中毒'); n.enemyFlags = [...n.enemyFlags, '毒素蔓延']; n.history = ['【蔓延】毒素深入体内...', ...n.history]; return n; }, 3),
+createCard('剧毒瘟疫', 2, '毒术', '给予 18 层中毒，抽 2 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 18, '中毒'), 2), 3),
+createCard('催化剂', 1, '毒术', '中毒层数翻 2 倍。消耗。', s => { let e = { ...s.enemy }; e.poison *= 2; return { ...s, enemy: e }; }, 3, true),
+createCard('毒素蔓延', 2, '毒术', '给予 15 层中毒。下回合毒伤 +50%。', s => { let n = applyStatus(s, 'enemy', 'poison', 15, '中毒'); n.enemyFlags = [...n.enemyFlags, '毒素蔓延']; n.history = ['【蔓延】毒素深入体内...', ...n.history]; return n; }, 3),
 createCard('麻痹毒雾', 1, '毒术', '给予 10 层中毒和 2 层虚弱。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 10, '中毒'), 'enemy', 'weak', 2, '虚弱'), 3),
 // 4★ 高等毒术
-createCard('致命剧毒', 2, '毒术', '给予 35 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 35, '中毒'), 4, true),
-createCard('灵魂链接', 2, '毒术', '给予 15 层中毒。敌人每次毒伤回复 1 点生命。', s => { let n = applyStatus(s, 'enemy', 'poison', 15, '中毒'); n.playerFlags = [...n.playerFlags, '灵魂链接']; n.history = ['【灵魂链接】与毒素共生...', ...n.history]; return n; }, 4),
+createCard('致命剧毒', 2, '毒术', '给予 25 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 25, '中毒'), 4, true),
+createCard('灵魂链接', 2, '毒术', '给予 12 层中毒。敌人每次毒伤回复 1 点生命。', s => { let n = applyStatus(s, 'enemy', 'poison', 12, '中毒'); n.playerFlags = [...n.playerFlags, '灵魂链接']; n.history = ['【灵魂链接】与毒素共生...', ...n.history]; return n; }, 4),
 createCard('淬毒武器', 1, '毒术', '给予 5 层中毒。本回合所有攻击牌额外给予 2 层中毒。', s => { let n = applyStatus(s, 'enemy', 'poison', 5, '中毒'); n.playerFlags = [...n.playerFlags, '淬毒武器']; n.history = ['【淬毒】武器涂抹了剧毒', ...n.history]; return n; }, 4),
-createCard('瘟疫风暴', 3, '毒术', '给予 20 层中毒。抽 3 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 20, '中毒'), 3), 4),
+createCard('瘟疫风暴', 3, '毒术', '给予 15 层中毒。抽 2 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 15, '中毒'), 2), 4),
 // 5★ 终极毒术
-createCard('致死毒素', 2, '毒术', '给予 40 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 40, '中毒'), 5, true),
-createCard('毒素共鸣', 1, '毒术', '中毒层数变为当前 ×4。消耗。', s => { let e = { ...s.enemy }; e.poison *= 4; return { ...s, enemy: e }; }, 5, true),
-createCard('末日瘟疫', 3, '毒术', '给予 20 层中毒。每回合结束时毒层翻倍。消耗。', s => { let n = applyStatus(s, 'enemy', 'poison', 20, '中毒'); n.enemyFlags = [...n.enemyFlags, '末日瘟疫']; n.history = ['【末日】瘟疫开始蔓延...', ...n.history]; return n; }, 5, true),
-createCard('毒云笼罩', 2, '毒术', '给予 20 层中毒和 3 层虚弱。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 20, '中毒'), 'enemy', 'weak', 3, '虚弱'), 5),
+createCard('致死毒素', 2, '毒术', '给予 28 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 28, '中毒'), 5, true),
+createCard('毒素共鸣', 1, '毒术', '中毒层数变为当前 ×2。消耗。', s => { let e = { ...s.enemy }; e.poison *= 2; return { ...s, enemy: e }; }, 5, true),
+createCard('末日瘟疫', 3, '毒术', '给予 12 层中毒。每回合结束时毒层翻倍。消耗。', s => { let n = applyStatus(s, 'enemy', 'poison', 12, '中毒'); n.enemyFlags = [...n.enemyFlags, '末日瘟疫']; n.history = ['【末日】瘟疫开始蔓延...', ...n.history]; return n; }, 5, true),
+createCard('毒云笼罩', 2, '毒术', '给予 15 层中毒和 3 层虚弱。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 15, '中毒'), 'enemy', 'weak', 3, '虚弱'), 5),
 
 // ===== 增益 (Buff) 20张 =====
 // 1★ 基础增益
-createCard('弱点分析', 1, '增益', '力量 +2。', s => applyStatus(s, 'player', 'strength', 2, '力量'), 1),
+createCard('弱点分析', 1, '增益', '力量 +3。', s => applyStatus(s, 'player', 'strength', 3, '力量'), 1),
 createCard('战吼', 0, '增益', '抽 2 张牌。消耗。', s => drawCards(s, 2), 1, true),
 createCard('专注', 1, '增益', '抽 4 张牌。', s => drawCards(s, 4), 1),
 createCard('振奋', 1, '增益', '力量 +1，抽 1 张牌。', s => drawCards(applyStatus(s, 'player', 'strength', 1, '力量'), 1), 1),
 // 2★ 进阶增益
-createCard('燃烧', 1, '增益', '力量 +3。', s => applyStatus(s, 'player', 'strength', 3, '力量'), 2),
+createCard('燃烧', 1, '增益', '力量 +4。', s => applyStatus(s, 'player', 'strength', 4, '力量'), 2),
 createCard('精密计算', 1, '增益', '能量 +1，抽 1 张。消耗。', s => { let n = drawCards(s, 1); n.energy = Math.min(n.maxEnergy, n.energy + 1); return n; }, 2, true),
 createCard('肾上腺素', 0, '增益', '本回合能量 +1。消耗。', s => { let n = { ...s }; n.energy += 1; return n; }, 2, true),
 createCard('快速治疗', 1, '增益', '回复 4 点生命。消耗。', s => { let n = { ...s, player: { ...s.player } }; const ht = ENEMIES.find(e => e.name === n.enemyName)?.trait || ''; if (!ht.includes('灾祸')) n.player.hp = Math.min(n.player.maxHp, n.player.hp + 4); else n.history = ['【灾祸】无法回复生命！', ...n.history]; return n; }, 2, true),
@@ -1031,7 +1031,7 @@ const ENEMIES = [
     type: '强化',
     value: 2
   }],
-  trait: '【连击】每次攻击命中两次',
+  trait: '【连击】每次攻击命中两次【毒抗】受到的毒伤减半',
   patterns: ['攻击', '强化']
 }, {
   name: '石像鬼',
@@ -1124,7 +1124,7 @@ const ENEMIES = [
     type: '防御',
     value: 15
   }],
-  trait: '【龙吟】使玩家所有卡牌消耗增加 1 点',
+  trait: '【龙吟】使玩家所有卡牌消耗增加 1 点【毒抗】受到的毒伤减半',
   patterns: ['攻击', '防御']
 }, {
   name: '混沌元素',
@@ -1163,7 +1163,7 @@ const ENEMIES = [
     type: '攻击',
     value: 20
   }],
-  trait: '【吞噬】血量每减少 20% 吞噬一张遗物效果',
+  trait: '【吞噬】血量每减少 20% 吞噬一张遗物效果【毒抗】受到的毒伤减半',
   patterns: ['攻击', '强化']
 }, {
   name: '钢铁行者',
@@ -1176,7 +1176,7 @@ const ENEMIES = [
     type: '攻击',
     value: 16
   }],
-  trait: '【坚不可摧】单次受到的攻击伤害不会超过 15 点（毒伤与穿透伤害不受限制）',
+  trait: '【坚不可摧】单次受到的攻击伤害不会超过 15 点（毒伤与穿透伤害不受限制）【毒抗】受到的毒伤减半',
   patterns: ['攻击', '防御']
 }, {
   name: '灾厄兽',
@@ -1277,7 +1277,7 @@ const ENEMIES = [
       value: 26
     };
   }],
-  trait: '【时之刻印】玩家每出 10 张牌强行结束回合',
+  trait: '【时之刻印】玩家每出 10 张牌强行结束回合【毒抗】受到的毒伤减半',
   patterns: ['攻击', '强化']
 }, {
   name: '觉醒者',
@@ -1293,7 +1293,7 @@ const ENEMIES = [
       value: 28
     };
   }],
-  trait: '【复苏】第一次死亡后进入觉醒形态，满血复活',
+  trait: '【复苏】第一次死亡后进入觉醒形态，满血复活【毒抗】受到的毒伤减半',
   patterns: ['攻击', '恶化']
 }, {
   name: '甜圈与八角',
@@ -1329,7 +1329,7 @@ const ENEMIES = [
       value: 35
     };
   }],
-  trait: '【律法】玩家每次出牌都要受到 2 点伤害',
+  trait: '【律法】玩家每次出牌都要受到 2 点伤害【毒抗】受到的毒伤减半',
   patterns: ['攻击', '强化', '恶化']
 }, {
   name: '堕落神明',
@@ -1365,7 +1365,7 @@ const ENEMIES = [
       value: 25
     };
   }],
-  trait: '【虚空】玩家能量上限减为 2',
+  trait: '【虚空】玩家能量上限减为 2【毒抗】受到的毒伤减半',
   patterns: ['攻击', '防御']
 }, {
   name: '末日巨兽',
@@ -1381,7 +1381,7 @@ const ENEMIES = [
       value: 40
     };
   }],
-  trait: '【毁灭】每 5 回合对玩家造成 100 点伤害',
+  trait: '【毁灭】每 5 回合对玩家造成 100 点伤害【毒抗】受到的毒伤减半',
   patterns: ['攻击', '强化']
 }, {
   name: '终焉使者',
@@ -1401,7 +1401,7 @@ const ENEMIES = [
       value: 38
     };
   }],
-  trait: '【终结】当玩家生命低于 20% 时直接斩杀',
+  trait: '【终结】当玩家生命低于 20% 时直接斩杀【毒抗】受到的毒伤减半',
   patterns: ['攻击', '防御', '恶化']
 }];
 const RELIC_CATALOG = RELIC_POOL.map(f => f());
@@ -1887,7 +1887,7 @@ function App() {
       // 敌人回合开始，受到毒伤
       if (next.enemy.poison > 0) {
         let pDmg = next.enemy.poison;
-        if (trait.includes('反射')) pDmg = Math.floor(pDmg * 0.5);
+        if (trait.includes('反射') || trait.includes('毒抗')) pDmg = Math.floor(pDmg * 0.5);
         // 毒素蔓延：下回合毒伤+50%
         if (next.enemyFlags.includes('毒素蔓延')) { pDmg = Math.floor(pDmg * 1.5); next.enemyFlags = next.enemyFlags.filter(f => f !== '毒素蔓延'); }
         if (trait.includes('神力')) {
