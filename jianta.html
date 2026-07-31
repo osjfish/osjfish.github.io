@@ -1523,31 +1523,32 @@ function App() {
   });
   const saveTimerRef = useRef(null);
   const persistState = () => {
+    const gs = gameStateRef.current || gameState;
     const serialized = {
-      ...gameState,
-      deck: gameState.deck.map(c => ({
+      ...gs,
+      deck: gs.deck.map(c => ({
         name: c.name,
         id: c.id
       })),
-      hand: gameState.hand.map(c => ({
+      hand: gs.hand.map(c => ({
         name: c.name,
         id: c.id
       })),
-      discard: gameState.discard.map(c => ({
+      discard: gs.discard.map(c => ({
         name: c.name,
         id: c.id
       })),
-      rewards: gameState.rewards.map(c => ({
+      rewards: gs.rewards.map(c => ({
         name: c.name,
         id: c.id
       })),
-      shopCards: gameState.shopCards.map(c => ({
+      shopCards: gs.shopCards.map(c => ({
         name: c.name,
         id: c.id
       })),
-      relics: gameState.relics.map(r => r.name),
+      relics: gs.relics.map(r => r.name),
       enemyActionPatterns: [],
-      history: (gameState.history || []).slice(0, 60),
+      history: (gs.history || []).slice(0, 60),
       animations: []
     };
     try {
@@ -1556,7 +1557,7 @@ function App() {
   };
   useEffect(() => {
     clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(persistState, 600);
+    saveTimerRef.current = setTimeout(persistState, 300);
     return () => clearTimeout(saveTimerRef.current);
   }, [gameState]);
   useEffect(() => {
@@ -1567,6 +1568,9 @@ function App() {
     };
     window.addEventListener('beforeunload', flush);
     window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush();
+    });
     return () => {
       window.removeEventListener('beforeunload', flush);
       window.removeEventListener('pagehide', flush);
