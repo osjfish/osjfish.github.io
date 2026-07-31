@@ -207,6 +207,11 @@ const playSound = type => {
 };
 let cardIdCounter = 0;
 const generateId = () => `card_${Date.now()}_${++cardIdCounter}_${Math.random().toString(36).substring(2)}${Math.random().toString(36).substring(2)}`;
+let persistSuspended = false;
+const capDamageByTrait = (dmg, enemyName) => {
+  const t = ENEMIES.find(e => e.name === enemyName)?.trait || '';
+  return t.includes('坚不可摧') ? Math.min(dmg, 15) : dmg;
+};
 const dealDamage = (state, amount, times = 1) => {
   let ns = {
     ...state,
@@ -445,7 +450,7 @@ const ALL_CARDS = [
 // ===== 攻击 (Attack) 20张 =====
 // 1★ 基础攻击
 createCard('打击', 1, '攻击', '造成 8 点伤害。', s => dealDamage(s, 8 + (s.relics && s.relics.some(r => r.effectType === 'whetstone') ? 3 : 0)), 1),
-createCard('穿刺', 1, '攻击', '造成 7 点伤害，无视护甲。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; n.enemy.hp = Math.max(0, n.enemy.hp - 7); n.animations.push({ id: generateId(), type: 'damage', value: '-7', target: 'enemy' }); return n; }, 1),
+createCard('穿刺', 1, '攻击', '造成 7 点伤害，无视护甲。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; const d = capDamageByTrait(7, n.enemyName); n.enemy.hp = Math.max(0, n.enemy.hp - d); n.animations.push({ id: generateId(), type: 'damage', value: '-'+d, target: 'enemy' }); return n; }, 1),
 createCard('火花', 0, '攻击', '造成 3 点伤害，抽 1 张牌。', s => drawCards(dealDamage(s, 3), 1), 1),
 createCard('硫磺', 0, '攻击', '造成 10 点伤害，受到 3 点伤害。', s => { let n = dealDamage(s, 10); n.player.hp = Math.max(0, n.player.hp - 3); n.animations.push({ id: generateId(), type: 'damage', value: '-3', target: 'player' }); n.history = ['【硫磺】反噬 3 点伤害', ...n.history]; if (n.player.hp <= 0) n.status = '已战败'; return n; }, 1),
 // 2★ 进阶攻击
@@ -460,7 +465,7 @@ createCard('万剑归宗', 1, '攻击', '打出所有手牌中攻击牌的复本
 createCard('血怒', 0, '攻击', '造成 15 点伤害，受到 5 点伤害。下次攻击伤害翻倍。', s => { let n = dealDamage(s, 15); n.player.hp = Math.max(0, n.player.hp - 5); n.animations.push({ id: generateId(), type: 'damage', value: '-5', target: 'player' }); n.penNibActive = true; n.history = ['【血怒】下次攻击伤害翻倍！', ...n.history]; if (n.player.hp <= 0) n.status = '已战败'; return n; }, 3),
 // 4★ 高等攻击
 createCard('神之怒', 2, '攻击', '造成 10 点伤害 5 次。', s => dealDamage(s, 10, 5), 4),
-createCard('破甲重击', 2, '攻击', '造成 18 点伤害，无视护甲，给予 2 层易伤。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; n.enemy.hp = Math.max(0, n.enemy.hp - 18); n.enemy.vulnerable = (n.enemy.vulnerable || 0) + 2; n.animations.push({ id: generateId(), type: 'damage', value: '-18', target: 'enemy' }); n.history = ['【破甲】击穿了防御！', ...n.history]; return n; }, 4),
+createCard('破甲重击', 2, '攻击', '造成 18 点伤害，无视护甲，给予 2 层易伤。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; const d = capDamageByTrait(18, n.enemyName); n.enemy.hp = Math.max(0, n.enemy.hp - d); n.enemy.vulnerable = (n.enemy.vulnerable || 0) + 2; n.animations.push({ id: generateId(), type: 'damage', value: '-'+d, target: 'enemy' }); n.history = ['【破甲】击穿了防御！', ...n.history]; return n; }, 4),
 createCard('闪电链', 2, '攻击', '造成 6 点伤害 3 次。若敌人有易伤，额外 2 次。', s => { const hits = 3 + (s.enemy.vulnerable > 0 ? 2 : 0); return dealDamage(s, 6, hits); }, 4),
 createCard('旋风斩', 1, '攻击', '造成 5 点伤害 4 次，抽 1 张牌。', s => drawCards(dealDamage(s, 5, 4), 1), 4),
 // 5★ 终极攻击
@@ -506,7 +511,7 @@ createCard('毒蛇之吻', 1, '毒术', '给予 10 层中毒。若敌人有易�
 createCard('污染', 1, '毒术', '给予敌人 15 层中毒，抽 1 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 15, '中毒'), 1), 2),
 createCard('毒液喷溅', 1, '毒术', '给予 12 层中毒和 1 层易伤。', s => applyStatus(applyStatus(s, 'enemy', 'poison', 12, '中毒'), 'enemy', 'vulnerable', 1, '易伤'), 2),
 createCard('慢性毒药', 0, '毒术', '给予 8 层中毒。消耗。', s => applyStatus(s, 'enemy', 'poison', 8, '中毒'), 2, true),
-createCard('毒爆', 2, '毒术', '造成等同于毒层数的伤害，毒层减半。消耗。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; const d = n.enemy.poison; n.enemy.hp = Math.max(0, n.enemy.hp - d); n.enemy.poison = Math.floor(n.enemy.poison / 2); n.animations.push({ id: generateId(), type: 'damage', value: '-'+d, target: 'enemy' }); n.history = [`【毒爆】引爆 ${d} 点毒伤`, ...n.history]; return n; }, 2, true),
+createCard('毒爆', 2, '毒术', '造成等同于毒层数的伤害，毒层减半。消耗。', s => { let n = { ...s, enemy: { ...s.enemy }, history: [...s.history], animations: [...s.animations] }; const d = capDamageByTrait(n.enemy.poison, n.enemyName); n.enemy.hp = Math.max(0, n.enemy.hp - d); n.enemy.poison = Math.floor(n.enemy.poison / 2); n.animations.push({ id: generateId(), type: 'damage', value: '-'+d, target: 'enemy' }); n.history = [`【毒爆】引爆 ${d} 点毒伤`, ...n.history]; return n; }, 2, true),
 // 3★ 强力毒术
 createCard('剧毒瘟疫', 2, '毒术', '给予 25 层中毒，抽 2 张牌。', s => drawCards(applyStatus(s, 'enemy', 'poison', 25, '中毒'), 2), 3),
 createCard('催化剂', 1, '毒术', '中毒层数翻 3 倍。消耗。', s => { let e = { ...s.enemy }; e.poison *= 3; return { ...s, enemy: e }; }, 3, true),
@@ -1556,6 +1561,7 @@ function App() {
   }, [gameState]);
   useEffect(() => {
     const flush = () => {
+      if (persistSuspended) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       persistState();
     };
@@ -1889,8 +1895,9 @@ function App() {
           next.enemy.hp = Math.min(next.enemy.maxHp, next.enemy.hp + pDmg);
           next.history = [`【特性】毒素转化为生命 +${pDmg}`, ...next.history];
         } else {
-          next.enemy.hp = Math.max(0, next.enemy.hp - pDmg);
-          next.history = [`敌人受到 ${pDmg} 点毒伤`, ...next.history];
+          let cappedDmg = capDamageByTrait(pDmg, next.enemyName);
+          next.enemy.hp = Math.max(0, next.enemy.hp - cappedDmg);
+          next.history = [`敌人受到 ${cappedDmg} 点毒伤`, ...next.history];
         }
         // 灵魂链接：毒伤时回复生命
         if (next.playerFlags.includes('灵魂链接')) {
@@ -2570,6 +2577,8 @@ let isCamp = next.floor % 3 === 0;
   const [floatingTexts, setFloatingTexts] = useState([]);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const restartGame = () => {
+    persistSuspended = true;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     localStorage.removeItem('slay_state');
     window.location.reload();
   };
