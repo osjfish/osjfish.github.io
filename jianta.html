@@ -580,6 +580,7 @@ createCard('末日降临', 3, '减益', '给予 3 层虚弱、3 层易伤，造�
 
 const CARD_STRIKE = ALL_CARDS[0];
 const CARD_DEFEND = ALL_CARDS[20];
+const CARD_CATALOG = ALL_CARDS.map(f => f());
 const CARD_NEUTRALIZE = createCard('中和', 0, '减益', '造成 4 点伤害，给予 1 层虚弱和 1 层易伤。', s => applyStatus(applyStatus(dealDamage(s, 4), 'enemy', 'weak', 1, '虚弱'), 'enemy', 'vulnerable', 1, '易伤'));
 const INITIAL_DECK = [CARD_STRIKE, CARD_STRIKE, CARD_STRIKE, CARD_STRIKE, CARD_STRIKE, CARD_DEFEND, CARD_DEFEND, CARD_DEFEND, CARD_DEFEND, CARD_NEUTRALIZE];
 const RELIC_POOL = [() => ({
@@ -1398,6 +1399,7 @@ const ENEMIES = [
   trait: '【终结】当玩家生命低于 20% 时直接斩杀',
   patterns: ['攻击', '防御', '恶化']
 }];
+const RELIC_CATALOG = RELIC_POOL.map(f => f());
 const shuffle = array => [...array].sort(() => Math.random() - 0.5);
 const getRandom = arr => arr[Math.floor(Math.random() * arr.length)];
 const sampleSize = (arr, n) => shuffle([...arr]).slice(0, n);
@@ -1514,7 +1516,8 @@ function App() {
       turnSkipActive: false
     };
   });
-  useEffect(() => {
+  const saveTimerRef = useRef(null);
+  const persistState = () => {
     const serialized = {
       ...gameState,
       deck: gameState.deck.map(c => ({
@@ -1538,10 +1541,31 @@ function App() {
         id: c.id
       })),
       relics: gameState.relics.map(r => r.name),
-      enemyActionPatterns: []
+      enemyActionPatterns: [],
+      history: (gameState.history || []).slice(0, 60),
+      animations: []
     };
-    localStorage.setItem('slay_state', JSON.stringify(serialized));
+    try {
+      localStorage.setItem('slay_state', JSON.stringify(serialized));
+    } catch (e) {}
+  };
+  useEffect(() => {
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(persistState, 600);
+    return () => clearTimeout(saveTimerRef.current);
   }, [gameState]);
+  useEffect(() => {
+    const flush = () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      persistState();
+    };
+    window.addEventListener('beforeunload', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('beforeunload', flush);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, []);
   const [isEnemyActing, setIsEnemyActing] = useState(false);
   useEffect(() => { if (gameState.status === '战斗中') setIsEnemyActing(false); }, [gameState.status]);
   const [isRemovingCard, setIsRemovingCard] = useState(false);
@@ -2591,7 +2615,7 @@ let isCamp = next.floor % 3 === 0;
         }, 1200);
       });
     }
-  }, [gameState.animations]);
+  }, [gameState.animations ? gameState.animations.length : 0]);
   const fullDeck = gameState.status === '战斗中' ? [...gameState.deck, ...gameState.hand, ...gameState.discard] : gameState.deck;
   if (showRestartConfirm) {
     return /*#__PURE__*/React.createElement("div", {
@@ -2662,8 +2686,8 @@ let isCamp = next.floor % 3 === 0;
         React.createElement("div", { className: "flex justify-between items-center mb-6" }, React.createElement("h2", { className: "text-2xl font-black text-white flex items-center gap-3" }, React.createElement(BookOpen, { className: "w-6 h-6 text-emerald-400" }), " \u767E\u79D1\u56FE\u9274")),
         React.createElement("div", { className: "flex gap-2 mb-6 overflow-x-auto pb-2" }, [{ id:'cards',label:'卡牌库',icon:Layers},{ id:'relics',label:'遗物柜',icon:Trophy},{ id:'monsters',label:'生态志',icon:Ghost},{ id:'statuses',label:'术语表',icon:Zap}].map(tab => React.createElement("button", { key: tab.id, onClick: () => setCompendiumTab(tab.id), className: "flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-xs transition-all whitespace-nowrap " + (compendiumTab === tab.id ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.4)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 border-transparent hover:border-white/10') }, React.createElement(tab.icon, {size:14}), " ", tab.label))),
         React.createElement("div", { className: "flex-1 overflow-y-auto" },
-          compendiumTab === 'cards' && React.createElement("div", { className: "grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-3" }, ALL_CARDS.map(f => f()).sort((a,b) => { const order = { '攻击':1,'防御':2,'毒术':3,'增益':4,'减益':5 }; return (order[a.type]||9) - (order[b.type]||9); }).map(card => React.createElement("div", { key: card.id, className: card.color + " rounded-2xl p-4 border border-white/20 shadow-2xl flex flex-col aspect-[3/4] relative overflow-hidden group" }, React.createElement("div", { className: "flex justify-between items-start mb-3 relative z-10" }, React.createElement("div", { className: "bg-blue-500 min-w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg px-1" }, card.cost)), React.createElement("h3", { className: "font-black text-sm mb-2 relative z-10 leading-tight" }, card.name), React.createElement("span", { className: "text-yellow-400 text-[9px] font-bold relative z-10" }, '\u2605'.repeat(card.rarity || 1)), React.createElement("p", { className: "text-[10px] font-bold text-white/90 leading-relaxed mb-4 relative z-10 flex-1" }, card.description)))),
-          compendiumTab === 'relics' && React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" }, RELIC_POOL.map(f => f()).map(relic => React.createElement("div", { key: relic.id, className: "bg-slate-900/60 border border-white/5 rounded-3xl p-6 flex gap-5 items-center" }, React.createElement("div", { className: "w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400" }, React.createElement(Trophy, {size:28})), React.createElement("div", { className: "flex-1" }, React.createElement("h4", { className: "font-black text-white text-base mb-1" }, relic.name), React.createElement("p", { className: "text-slate-400 text-xs font-semibold leading-relaxed" }, relic.description))))),
+          compendiumTab === 'cards' && React.createElement("div", { className: "grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-3" }, [...CARD_CATALOG].sort((a,b) => { const order = { '攻击':1,'防御':2,'毒术':3,'增益':4,'减益':5 }; return (order[a.type]||9) - (order[b.type]||9); }).map(card => React.createElement("div", { key: card.id, className: card.color + " rounded-2xl p-4 border border-white/20 shadow-2xl flex flex-col aspect-[3/4] relative overflow-hidden group" }, React.createElement("div", { className: "flex justify-between items-start mb-3 relative z-10" }, React.createElement("div", { className: "bg-blue-500 min-w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg px-1" }, card.cost)), React.createElement("h3", { className: "font-black text-sm mb-2 relative z-10 leading-tight" }, card.name), React.createElement("span", { className: "text-yellow-400 text-[9px] font-bold relative z-10" }, '\u2605'.repeat(card.rarity || 1)), React.createElement("p", { className: "text-[10px] font-bold text-white/90 leading-relaxed mb-4 relative z-10 flex-1" }, card.description)))),
+          compendiumTab === 'relics' && React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" }, RELIC_CATALOG.map(relic => React.createElement("div", { key: relic.id, className: "bg-slate-900/60 border border-white/5 rounded-3xl p-6 flex gap-5 items-center" }, React.createElement("div", { className: "w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400" }, React.createElement(Trophy, {size:28})), React.createElement("div", { className: "flex-1" }, React.createElement("h4", { className: "font-black text-white text-base mb-1" }, relic.name), React.createElement("p", { className: "text-slate-400 text-xs font-semibold leading-relaxed" }, relic.description))))),
           compendiumTab === 'monsters' && React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, ENEMIES.map(enemy => React.createElement("div", { key: enemy.name, className: "bg-slate-900/60 border border-white/5 rounded-3xl p-8 flex flex-col" }, React.createElement("div", { className: "flex justify-between items-end mb-6" }, React.createElement("div", null, React.createElement("p", { className: "text-[10px] font-black uppercase tracking-[0.3em] mb-1 " + getLevelColor(enemy.level) }, enemy.level), React.createElement("h4", { className: "font-black text-white text-3xl" }, enemy.name)), React.createElement("div", { className: "text-right" }, React.createElement("p", { className: "text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1" }, "\u57FA\u7840 HP"), React.createElement("span", { className: "text-2xl font-black text-white" }, enemy.hp))), React.createElement("div", { className: "space-y-4" }, React.createElement("p", { className: "text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/5 pb-2" }, "\u884C\u52A8\u6A21\u5F0F"), React.createElement("div", { className: "flex gap-2 flex-wrap" }, enemy.patterns.includes('攻击') && React.createElement("div", { className: "bg-red-500/10 text-red-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-red-500/20" }, React.createElement(Sword, {size:14}), " \u5F3A\u653B"), enemy.patterns.includes('防御') && React.createElement("div", { className: "bg-blue-500/10 text-blue-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-blue-500/20" }, React.createElement(Shield, {size:14}), " \u7A33\u5B88"), enemy.patterns.includes('\u5F3A\u5316') && React.createElement("div", { className: "bg-orange-500/10 text-orange-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-orange-500/20" }, React.createElement(Zap, {size:14}), " \u5F3A\u5316"), enemy.patterns.includes('\u6076\u5316') && React.createElement("div", { className: "bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 border border-emerald-500/20" }, React.createElement(Skull, {size:14}), " \u8BC5\u5492")), React.createElement("div", { className: "bg-slate-950/40 p-4 rounded-2xl border border-white/5 mt-2" }, React.createElement("p", { className: "text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 opacity-70" }, "\u7279\u6B8A\u6280\u80FD (\u7279\u6027)"), React.createElement("p", { className: "text-white text-sm font-bold leading-relaxed" }, enemy.trait || '无可感知特性')))))),
           compendiumTab === 'statuses' && React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6" }, [{name:'力量',icon:Zap,color:'text-orange-400',desc:'提升攻击伤害。每层力量使攻击多造成一点伤害。'},{name:'虚弱',icon:Skull,color:'text-slate-400',desc:'负面状态。造成的攻击伤害降低 25%。'},{name:'易伤',icon:Swords,color:'text-red-400',desc:'致命漏洞。受到的攻击伤害提高 50%。'},{name:'中毒',icon:MessageSquare,color:'text-emerald-400',desc:'持续伤害。回合开始受到对应伤害，随后层数 -1。'},{name:'护甲',icon:Shield,color:'text-blue-400',desc:'临时防御。抵消物理伤害，回合开始时清零。'},{name:'消耗',icon:Scissors,color:'text-yellow-400',desc:'一次性使用。该卡打出后本场战斗中移除。'}].map(status => React.createElement("div", { key: status.name, className: "flex gap-6 items-start p-8 bg-slate-900/60 border border-white/5 rounded-[2.5rem]" }, React.createElement("div", { className: "p-5 rounded-3xl bg-white/5 shadow-inner " + status.color }, React.createElement(status.icon, {size:32})), React.createElement("div", { className: "flex-1" }, React.createElement("h4", { className: "font-black text-white text-xl mb-2" }, status.name), React.createElement("p", { className: "text-slate-400 text-sm font-semibold leading-relaxed" }, status.desc)))))
         )
@@ -3249,7 +3273,7 @@ className: `card-hover aspect-[2/3] ${card.color} rounded-2xl shadow-xl border b
     className: "flex-1 overflow-y-auto pr-2 custom-scrollbar"
   }, compendiumTab === 'cards' && /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-3"
-  }, ALL_CARDS.map(f => f()).sort((a,b) => { const order = { '攻击':1,'防御':2,'毒术':3,'增益':4,'减益':5 }; return (order[a.type]||9) - (order[b.type]||9); }).map(card => /*#__PURE__*/React.createElement("div", {
+  }, [...CARD_CATALOG].sort((a,b) => { const order = { '攻击':1,'防御':2,'毒术':3,'增益':4,'减益':5 }; return (order[a.type]||9) - (order[b.type]||9); }).map(card => /*#__PURE__*/React.createElement("div", {
     key: card.id,
     className: `${card.color} rounded-2xl p-4 border border-white/20 shadow-2xl flex flex-col aspect-[3/4] relative overflow-hidden group`
   }, /*#__PURE__*/React.createElement("div", {
@@ -3272,7 +3296,7 @@ className: `card-hover aspect-[2/3] ${card.color} rounded-2xl shadow-xl border b
     className: "hidden"
   }, card.type))))), compendiumTab === 'relics' && /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-  }, RELIC_POOL.map(f => f()).map(relic => /*#__PURE__*/React.createElement("div", {
+  }, RELIC_CATALOG.map(relic => /*#__PURE__*/React.createElement("div", {
     key: relic.id,
     className: "bg-slate-900/60 backdrop-blur border border-white/5 rounded-3xl p-6 flex gap-5 items-center transition-all hover:bg-slate-900/80 hover:border-emerald-500/30 group"
   }, /*#__PURE__*/React.createElement("div", {
