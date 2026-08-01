@@ -440,6 +440,21 @@ function makePicker(col,items,onChange){
         col.scrollTop=PAD+idx*ITEM;
     }
     var deb=null;
+    var wheelAcc=0;
+    col.addEventListener('wheel',function(e){
+        if(!e.deltaY)return;
+        e.preventDefault();
+        var dy=e.deltaY;
+        if(Math.abs(dy)>=50){
+            var steps=Math.max(1,Math.round(Math.abs(dy)/100))*Math.sign(dy);
+            col.scrollTop+=steps*ITEM;
+            wheelAcc=0;
+        }else{
+            wheelAcc+=dy;
+            while(wheelAcc>=ITEM){col.scrollTop+=ITEM;wheelAcc-=ITEM}
+            while(wheelAcc<=-ITEM){col.scrollTop-=ITEM;wheelAcc+=ITEM}
+        }
+    },{passive:false});
     col.addEventListener('scroll',function(){
         if(deb)clearTimeout(deb);
         deb=setTimeout(function(){
