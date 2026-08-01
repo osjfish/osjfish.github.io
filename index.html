@@ -193,15 +193,17 @@
         list=list.filter(a=>a.name.toLowerCase().includes(q)||a.path.toLowerCase().includes(q));
       }
       if(!list.length){c.innerHTML='<div class="empty">暂无应用</div>';return}
-      const favsList=list.filter(a=>favs.includes(a.path));
-      const others=list.filter(a=>!favs.includes(a.path));
-
+      const catOrder=['工作','生活','游戏','其他'];
+      const catIcons={'工作':'&#128188;','生活':'&#127807;','游戏':'&#127918;','其他':'&#128230;'};
       let html='';
+      const favsList=list.filter(a=>favs.includes(a.path));
       if(favsList.length&&!searchQuery){
-        html+=`<div class="section-title">收藏</div><div class="grid">${favsList.map(cardHTML).join('')}</div>`;
-        html+=`<div class="section-title">全部</div><div class="grid">${others.map(cardHTML).join('')}</div>`;
-      }else{
-        html=`<div class="grid">${list.map(cardHTML).join('')}</div>`;
+        html+=`<div class="section-title">&#11088; 收藏</div><div class="grid">${favsList.map(cardHTML).join('')}</div>`;
+      }
+      for(const cat of catOrder){
+        const items=list.filter(a=>(a.category||'其他')===cat);
+        if(!items.length)continue;
+        html+=`<div class="section-title">${catIcons[cat]||''} ${cat} <span style="opacity:.5;font-weight:400">${items.length}</span></div><div class="grid">${items.map(cardHTML).join('')}</div>`;
       }
       c.innerHTML=html;
     }
