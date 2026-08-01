@@ -72,7 +72,8 @@ input:checked+.slider:before{transform:translateX(16px)}
 .scroll-picker{display:flex;gap:6px;justify-content:center}
 .picker-box{position:relative}
 .picker-box::after{content:'';position:absolute;left:0;right:0;top:50%;height:32px;transform:translateY(-50%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);pointer-events:none}
-.picker-col{width:60px;height:60px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 28%,#000 72%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 28%,#000 72%,transparent 100%)}
+.picker-col{width:60px;height:60px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 28%,#000 72%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 28%,#000 72%,transparent 100%);user-select:none;-webkit-user-select:none;cursor:grab}
+.picker-col:active{cursor:grabbing}
 .picker-col::-webkit-scrollbar{width:0}
 .picker-item{height:32px;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:500;color:var(--muted);scroll-snap-align:center;transition:color .15s}
 .picker-item.selected{color:var(--text);font-weight:700}
@@ -441,6 +442,25 @@ function makePicker(col,items,onChange){
     }
     var deb=null;
     var wheelAcc=0;
+    var dragTop=0,dragY=0,dragging=false;
+    col.addEventListener('mousedown',function(e){
+        if(e.button!==0)return;
+        e.preventDefault();
+        dragging=true;dragY=e.clientY;dragTop=col.scrollTop;
+        col.style.scrollSnapType='none';
+        function move(ev){
+            if(!dragging)return;
+            col.scrollTop=dragTop+(ev.clientY-dragY);
+        }
+        function up(){
+            dragging=false;
+            document.removeEventListener('mousemove',move);
+            document.removeEventListener('mouseup',up);
+            col.style.scrollSnapType='';
+        }
+        document.addEventListener('mousemove',move);
+        document.addEventListener('mouseup',up);
+    });
     col.addEventListener('wheel',function(e){
         if(!e.deltaY)return;
         e.preventDefault();
