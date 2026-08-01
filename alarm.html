@@ -70,11 +70,9 @@ input:checked+.slider:before{transform:translateX(16px)}
 .audio-hint{position:fixed;top:0;left:0;width:100%;background:var(--danger);color:#fff;padding:8px;text-align:center;font-size:.85rem;font-weight:600;z-index:2000;cursor:pointer;display:none}
 /* scroll picker */
 .scroll-picker{display:flex;gap:6px;justify-content:center}
-.picker-box{position:relative}
-.picker-box::after{content:'';position:absolute;left:0;right:0;top:50%;height:40px;transform:translateY(-50%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(128,128,128,.04);pointer-events:none}
-.picker-col{width:60px;height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg);-webkit-overflow-scrolling:touch}
+.picker-col{width:60px;height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg);scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}
 .picker-col::-webkit-scrollbar{width:0}
-.picker-item{height:40px;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:600;color:var(--muted);transition:color .2s,transform .2s}
+.picker-item{height:40px;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:600;scroll-snap-align:center;color:var(--muted);transition:color .2s,transform .2s}
 .picker-item.selected{color:var(--text);transform:scale(1.1)}
 .picker-label{font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:3px}
 /* overlay */
@@ -149,16 +147,7 @@ input:checked+.slider:before{transform:translateX(16px)}
                 <div class="input-group">
                     <input type="text" id="alarmLabel" placeholder="闹钟标签">
                     <div class="time-input-wrapper">
-                        <div class="scroll-picker" id="alarmTimePicker">
-                            <div>
-                                <div class="picker-label">时</div>
-                                <div class="picker-box"><div class="picker-col" id="alarmPickerH" data-type="hour"></div></div>
-                            </div>
-                            <div>
-                                <div class="picker-label">分</div>
-                                <div class="picker-box"><div class="picker-col" id="alarmPickerM" data-type="minute"></div></div>
-                            </div>
-                        </div>
+                        <input type="time" id="alarmTime" step="1">
                         <button onclick="addAlarm()">添加</button>
                     </div>
                     <div class="quick-add">
@@ -170,18 +159,7 @@ input:checked+.slider:before{transform:translateX(16px)}
                 </div>
             </div>
             <div id="examFields" class="exam-fields">
-                <div class="field-row"><span class="field-label">开始时间</span>
-                    <div class="scroll-picker" id="examStartPicker" style="flex:1;justify-content:flex-start">
-                        <div>
-                            <div class="picker-label">时</div>
-                            <div class="picker-box"><div class="picker-col" id="examPickerH" data-type="hour"></div></div>
-                        </div>
-                        <div>
-                            <div class="picker-label">分</div>
-                            <div class="picker-box"><div class="picker-col" id="examPickerM" data-type="minute"></div></div>
-                        </div>
-                    </div>
-                </div>
+                <div class="field-row"><span class="field-label">开始时间</span><input type="time" id="examStartTime" step="60"></div>
                 <div class="field-row"><span class="field-label">考试时长</span>
                     <select id="examDurationPreset" onchange="onExamDurationPreset()">
                         <option value="30">30分钟</option><option value="45">45分钟</option><option value="60" selected>60分钟</option>
@@ -322,7 +300,6 @@ var timer={totalSeconds:0,remainingSeconds:0,elapsedSeconds:0,interval:null,runn
 var pom={totalSeconds:0,remainingSeconds:0,interval:null,running:false,phase:'work',workMin:25,breakMin:5,longBreakMin:15,sessions:0,setCount:0,finished:false,_fsInterval:null,endTime:0,autoStartBreak:true};
 var exam={running:false,interval:null,endTime:0,startTime:0,warningMin:15,warningSent:false,duration:0};
 var ringTimer=null;
-var alarmPicker=null,examPicker=null,alarmTimeValue='',examStartValue='';
 
 function switchTab(tab){document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});document.querySelector('.tab-btn[onclick="switchTab(\''+tab+'\')"]').classList.add('active');document.getElementById('tab-'+tab).classList.add('active')}
 function updateTabIndicators(){var tabs=document.querySelectorAll('.tab-btn');tabs.forEach(function(t){t.classList.remove('has-running')});if(state.isRinging||exam.running)tabs[0].classList.add('has-running');if(timer.running)tabs[1].classList.add('has-running');if(pom.running)tabs[2].classList.add('has-running')}
@@ -381,11 +358,11 @@ function updateClock(){
 }
 
 /* exam mode */
-function toggleExamMode(){var on=document.getElementById('examModeToggle').checked;document.getElementById('normalAlarm').style.display=on?'none':'block';document.getElementById('examFields').classList.toggle('show',on);if(on){var now=new Date();examStartValue=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');examPicker.setVal(examStartValue,false)}}
+function toggleExamMode(){var on=document.getElementById('examModeToggle').checked;document.getElementById('normalAlarm').style.display=on?'none':'block';document.getElementById('examFields').classList.toggle('show',on);if(on){var now=new Date();document.getElementById('examStartTime').value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')}}
 function onExamDurationPreset(){var v=document.getElementById('examDurationPreset').value;document.getElementById('examCustomDurRow').style.display=v==='custom'?'flex':'none'}
 function getExamDuration(){var v=document.getElementById('examDurationPreset').value;return v==='custom'?parseInt(document.getElementById('examCustomDuration').value)||60:parseInt(v)}
 function startExam(){
-    var st=examStartValue;if(!st)return;
+    var st=document.getElementById('examStartTime').value;if(!st)return;
     var dur=getExamDuration();var warn=parseInt(document.getElementById('examWarning').value);
     var parts=st.split(':').map(Number);var now=new Date();
     var startDT=new Date(now.getFullYear(),now.getMonth(),now.getDate(),parts[0],parts[1],0);
@@ -427,44 +404,8 @@ function updateExamFs(){
 function exitExam(){if(exam.interval)clearInterval(exam.interval);exam.running=false;document.getElementById('examOverlay').classList.remove('active');try{if(document.exitFullscreen)document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen()}catch(e){}updateTabIndicators()}
 
 /* alarm */
-function makePicker(col,items,onChange){
-    var ITEM=40,PAD=40;
-    col.innerHTML='<div style="height:'+PAD+'px"></div>'+items.map(function(v){return '<div class="picker-item" data-val="'+v+'">'+v+'</div>'}).join('')+'<div style="height:'+PAD+'px"></div>';
-    var els=col.querySelectorAll('.picker-item');
-    function nearestIdx(){
-        var idx=Math.round((col.scrollTop-PAD)/ITEM);
-        return Math.max(0,Math.min(items.length-1,idx));
-    }
-    function setVal(v,animate){
-        var idx=items.indexOf(v);
-        if(idx<0)return;
-        for(var i=0;i<els.length;i++)els[i].classList.remove('selected');
-        els[idx].classList.add('selected');
-        var st=PAD+idx*ITEM;
-        if(animate&&'scrollBehavior' in document.documentElement.style)col.scrollTo({top:st,behavior:'smooth'});
-        else col.scrollTop=st;
-    }
-    var deb=null;
-    col.addEventListener('scroll',function(){
-        if(deb)clearTimeout(deb);
-        deb=setTimeout(function(){
-            var idx=nearestIdx();
-            for(var i=0;i<els.length;i++)els[i].classList.toggle('selected',i===idx);
-            onChange();
-        },60);
-    },{passive:true});
-    return {setVal:setVal,getVal:function(){return items[nearestIdx()]}};
-}
-function initTimePicker(picker,onChange){
-    var hours=[],mins=[],h,m;
-    for(h=0;h<24;h++)hours.push(String(h).padStart(2,'0'));
-    for(m=0;m<60;m++)mins.push(String(m).padStart(2,'0'));
-    var H=makePicker(picker.querySelector('[data-type="hour"]'),hours,onChange);
-    var M=makePicker(picker.querySelector('[data-type="minute"]'),mins,onChange);
-    return {setVal:function(v,animate){var p=String(v).split(':');H.setVal(p[0],animate);M.setVal(p[1],animate)},getVal:function(){return H.getVal()+':'+M.getVal()}};
-}
-function adjustTime(minutes){var p=alarmTimeValue.split(':');var d=new Date();d.setHours(parseInt(p[0]),parseInt(p[1])+minutes,0);alarmTimeValue=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');alarmPicker.setVal(alarmTimeValue,true)}
-function addAlarm(){var li=document.getElementById('alarmLabel'),t=alarmTimeValue;if(!t)return;if(t.split(':').length===2)t+=':00';state.alarms.push({id:Date.now(),time:t,label:li.value||'闹钟',enabled:true});saveAlarms();renderAlarms();li.value=''}
+function adjustTime(minutes){var ti=document.getElementById('alarmTime'),now=new Date();if(ti.value){var p=ti.value.split(':');now.setHours(parseInt(p[0]),parseInt(p[1]),0)}now.setMinutes(now.getMinutes()+minutes);ti.value=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')}
+function addAlarm(){var ti=document.getElementById('alarmTime'),li=document.getElementById('alarmLabel'),t=ti.value;if(!t)return;if(t.split(':').length===2)t+=':00';state.alarms.push({id:Date.now(),time:t,label:li.value||'闹钟',enabled:true});saveAlarms();renderAlarms();ti.value='';li.value=''}
 function toggleAlarm(id){var a=state.alarms.find(function(x){return x.id===id});if(a){a.enabled=!a.enabled;saveAlarms()}}
 function deleteAlarm(id){state.alarms=state.alarms.filter(function(x){return x.id!==id});saveAlarms();renderAlarms()}
 function saveAlarms(){localStorage.setItem('alarms',JSON.stringify(state.alarms))}
@@ -620,12 +561,7 @@ document.documentElement.setAttribute('data-theme',state.theme);
 document.getElementById('themeBtn').textContent=state.theme==='light'?'\u{1F319}':'\u2600\uFE0F';
 document.getElementById('ringtoneSelect').value=state.ringtone;
 document.getElementById('volumeSlider').value=state.volume;
-var io=new Date();
-var initTime=String(io.getHours()).padStart(2,'0')+':'+String(io.getMinutes()).padStart(2,'0');
-alarmTimeValue=initTime;examStartValue=initTime;
-alarmPicker=initTimePicker(document.getElementById('alarmTimePicker'),function(){alarmTimeValue=alarmPicker.getVal()});
-examPicker=initTimePicker(document.getElementById('examStartPicker'),function(){examStartValue=examPicker.getVal()});
-alarmPicker.setVal(initTime,false);examPicker.setVal(initTime,false);
+var io=new Date();document.getElementById('alarmTime').value=String(io.getHours()).padStart(2,'0')+':'+String(io.getMinutes()).padStart(2,'0');
 renderAlarms();updateTimerDisplay();updatePomDisplay();setInterval(updateClock,1000);updateClock();
 window.addEventListener('keydown',function(e){if(state.isRinging&&e.code==='Escape'){e.preventDefault();stopRinging()}});
 var wakeLock=null;
