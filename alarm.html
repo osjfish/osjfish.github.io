@@ -71,10 +71,10 @@ input:checked+.slider:before{transform:translateX(16px)}
 /* scroll picker */
 .scroll-picker{display:flex;gap:6px;justify-content:center}
 .picker-box{position:relative}
-.picker-box::after{content:'';position:absolute;left:0;right:0;top:50%;height:34px;transform:translateY(-50%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);pointer-events:none}
-.picker-col{width:60px;height:66px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%)}
+.picker-box::after{content:'';position:absolute;left:0;right:0;top:50%;height:32px;transform:translateY(-50%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);pointer-events:none}
+.picker-col{width:60px;height:60px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 28%,#000 72%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 28%,#000 72%,transparent 100%)}
 .picker-col::-webkit-scrollbar{width:0}
-.picker-item{height:34px;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:500;color:var(--muted);scroll-snap-align:center;transition:color .15s,transform .15s}
+.picker-item{height:32px;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:500;color:var(--muted);scroll-snap-align:center;transition:color .15s,transform .15s}
 .picker-item.selected{color:var(--text);font-weight:700;transform:scale(1.08)}
 .picker-label{font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:3px}
 /* overlay */
@@ -426,18 +426,18 @@ function exitExam(){if(exam.interval)clearInterval(exam.interval);exam.running=f
 
 /* alarm */
 function makePicker(col,items,onChange){
-    var ITEM=34,PAD=16;
+    var ITEM=32,PAD=14;
     col.innerHTML='<div style="height:'+PAD+'px"></div>'+items.map(function(v){return '<div class="picker-item" data-val="'+v+'">'+v+'</div>'}).join('')+'<div style="height:'+PAD+'px"></div>';
     var els=col.querySelectorAll('.picker-item');
     function nearestIdx(){
-        return Math.max(0,Math.min(items.length-1,Math.round((col.scrollTop-PAD)/ITEM)));
+        return Math.max(0,Math.min(items.length-1,Math.round(col.scrollTop/ITEM)));
     }
     function setVal(v){
         var idx=items.indexOf(v);
         if(idx<0)return;
         for(var i=0;i<els.length;i++)els[i].classList.remove('selected');
         els[idx].classList.add('selected');
-        col.scrollTop=PAD+idx*ITEM;
+        col.scrollTop=idx*ITEM;
     }
     var deb=null;
     var wheelAcc=0;
