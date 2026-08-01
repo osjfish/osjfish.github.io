@@ -71,8 +71,8 @@ input:checked+.slider:before{transform:translateX(16px)}
 /* scroll picker */
 .scroll-picker{display:flex;gap:6px;justify-content:center}
 .picker-box{position:relative}
-.picker-box::after{content:'';position:absolute;left:0;right:0;top:50%;height:34px;transform:translateY(-50%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(128,128,128,.05);pointer-events:none;border-radius:8px}
-.picker-col{width:64px;height:68px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg);scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 28%,#000 72%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 28%,#000 72%,transparent 100%)}
+.picker-box::after{content:'';position:absolute;left:0;right:0;top:50%;height:34px;transform:translateY(-50%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);pointer-events:none}
+.picker-col{width:60px;height:66px;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%)}
 .picker-col::-webkit-scrollbar{width:0}
 .picker-item{height:34px;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:500;color:var(--muted);scroll-snap-align:center;transition:color .15s,transform .15s}
 .picker-item.selected{color:var(--text);font-weight:700;transform:scale(1.08)}
@@ -148,19 +148,17 @@ input:checked+.slider:before{transform:translateX(16px)}
             <div id="normalAlarm">
                 <div class="input-group">
                     <input type="text" id="alarmLabel" placeholder="闹钟标签">
-                    <div class="time-input-wrapper">
-                        <div class="scroll-picker" id="alarmTimePicker">
-                            <div>
-                                <div class="picker-label">时</div>
-                                <div class="picker-box"><div class="picker-col" id="alarmPickerH" data-type="hour"></div></div>
-                            </div>
-                            <div>
-                                <div class="picker-label">分</div>
-                                <div class="picker-box"><div class="picker-col" id="alarmPickerM" data-type="minute"></div></div>
-                            </div>
+                    <div class="scroll-picker" id="alarmTimePicker">
+                        <div>
+                            <div class="picker-label">时</div>
+                            <div class="picker-box"><div class="picker-col" id="alarmPickerH" data-type="hour"></div></div>
                         </div>
-                        <button onclick="addAlarm()">添加</button>
+                        <div>
+                            <div class="picker-label">分</div>
+                            <div class="picker-box"><div class="picker-col" id="alarmPickerM" data-type="minute"></div></div>
+                        </div>
                     </div>
+                    <button onclick="addAlarm()" style="padding:10px">添加</button>
                     <div class="quick-add">
                         <button class="quick-btn" onclick="adjustTime(5)">+5分</button>
                         <button class="quick-btn" onclick="adjustTime(10)">+10分</button>
@@ -428,7 +426,7 @@ function exitExam(){if(exam.interval)clearInterval(exam.interval);exam.running=f
 
 /* alarm */
 function makePicker(col,items,onChange){
-    var ITEM=34,PAD=17;
+    var ITEM=34,PAD=16;
     col.innerHTML='<div style="height:'+PAD+'px"></div>'+items.map(function(v){return '<div class="picker-item" data-val="'+v+'">'+v+'</div>'}).join('')+'<div style="height:'+PAD+'px"></div>';
     var els=col.querySelectorAll('.picker-item');
     function nearestIdx(){
