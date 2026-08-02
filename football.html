@@ -535,14 +535,14 @@ var oppIdx=opponentOf(round);
   }
   spawnMatch(match);
   document.getElementById('screen').classList.add('hide');
-  document.getElementById('homeName').textContent=myClub.name;
-  document.getElementById('awayName').textContent=opp.name;
-  var dh=document.getElementById('dotHome'); if(dh) dh.style.background=myClub?myClub.color:'#3a7bff';
-  var da=document.getElementById('dotAway'); if(da) da.style.background=opp.color;
+  document.getElementById('homeName').textContent=match.home.name;
+  document.getElementById('awayName').textContent=match.away.name;
+  var dh=document.getElementById('dotHome'); if(dh) dh.style.background=match.home.color;
+  var da=document.getElementById('dotAway'); if(da) da.style.background=match.away.color;
   document.getElementById('score0').textContent='0';
   document.getElementById('score1').textContent='0';
-  document.getElementById('mtTxt').textContent='我的战术：'+({att:'进攻',bal:'平衡',def:'防守'})[myClub.mentality];
-  addEvent(0,'开球 · '+myClub.name+'（实力'+Math.round(myAb)+'）vs '+opp.name+'（实力'+Math.round(oppAb)+'）');
+  document.getElementById('mtTxt').textContent='我的战术：'+tacticById(myClub.tactic||'balanced').name;
+  addEvent(0,'开球 · '+match.home.name+'（实力'+Math.round(myAb)+'）vs '+match.away.name+'（实力'+Math.round(oppAb)+'）');
   updateControls();
   if(round===1){ showMsg('🎯 赛季目标：进入前四！'); }
   else if(round===TOTAL_ROUNDS){
@@ -596,6 +596,27 @@ function doKickoff(m,team){
   if(taker){ taker.x=W/2-18*(team===0?1:-1); taker.y=MIDY; m.ball.owner=taker; }
   if(partner&&partner!==taker){ partner.x=taker.x-34*(team===0?1:-1); partner.y=MIDY+22; }
   m.kickoffPair={taker:taker,partner:partner,team:team};
+}
+// 半场换边：队伍编号、场地位置、比分统计全部对调
+function swapSides(m){
+  for(var i=0;i<m.players.length;i++){
+    var p=m.players[i];
+    p.team=1-p.team;
+    p.homeX=W-p.homeX;
+    p.x=W-p.x;
+    p.face=Math.PI-p.face;
+    p.vx=-p.vx; p.vy=-p.vy;
+  }
+  var th=m.home; m.home=m.away; m.away=th;
+  var tp=m.paramsHome; m.paramsHome=m.paramsAway; m.paramsAway=tp;
+  var ts=m.score[0]; m.score[0]=m.score[1]; m.score[1]=ts;
+  var tsh=m.shots[0]; m.shots[0]=m.shots[1]; m.shots[1]=tsh;
+  var tot=m.onTarget[0]; m.onTarget[0]=m.onTarget[1]; m.onTarget[1]=tot;
+  var tpo=m.poss[0]; m.poss[0]=m.poss[1]; m.poss[1]=tpo;
+  m.lastTouch=1-m.lastTouch;
+  if(m.lastGoal!==undefined) m.lastGoal=1-m.lastGoal;
+  if(m.counterTeam!==null&&m.counterTeam!==undefined) m.counterTeam=1-m.counterTeam;
+  m.awayIdx=m.away?m.away.idx:m.awayIdx;
 }
 function kickoffPass(m){
   var kp=m.kickoffPair;
@@ -1423,8 +1444,13 @@ function updateMatch(m,dt){
       for(var hi2=0;hi2<m.players.length;hi2++){ if(m.players[hi2].team===1) m.players[hi2].pl.mor=clamp(m.players[hi2].pl.mor-3,20,100); }
       for(var ai2=0;ai2<m.players.length;ai2++){ if(m.players[ai2].team===0) m.players[ai2].pl.mor=clamp(m.players[ai2].pl.mor+5,20,100); }
     }
-    // 半场休息：暂停后重新开球（不交换场地）
-    doKickoff(m,1); // 下半场由客队开球
+    // 半场休息：暂停、换边、重新开球
+    swapSides(m);
+    var hh=document.getElementById('homeName'); if(hh) hh.textContent=m.home.name;
+    var an=document.getElementById('awayName'); if(an) an.textContent=m.away.name;
+    var dhh=document.getElementById('dotHome'); if(dhh) dhh.style.background=m.home.color;
+    var daa=document.getElementById('dotAway'); if(daa) daa.style.background=m.away.color;
+    doKickoff(m,0); // 换边后由另一队开球
     return;
   }
   for(var i=0;i<m.players.length;i++){
@@ -2217,6 +2243,11 @@ document.getElementById('btnSfx').onclick=function(){ toggleSfx(); saveGame(); }
 document.getElementById('btnStartMatch').onclick=function(){
   if(round>TOTAL_ROUNDS) return;
   if(myClub.eleven.length<11){ showMsg('首发不足 11 人'); return; }
+  // 本轮已打完则不允许重开（防重复计分）
+  var played=resultsByRound[round]&&resultsByRound[round][myTier]?resultsByRound[round][myTier].some(function(mr){
+    return (mr.home===myIdx||mr.away===myIdx)&&mr.home!==mr.away;
+  }):false;
+  if(played){ showMsg('本轮比赛已完成，请进入下一轮'); return; }
   startMatch();
 };
 function selectTeam(idx){
