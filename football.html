@@ -402,6 +402,9 @@ function simAIMatch(hIdx,aIdx){
   hr.p++; ar.p++;
   hr.pts=hr.w*3+hr.d; ar.pts=ar.w*3+ar.d;
   if(hr.form.length>5) hr.form.shift(); if(ar.form.length>5) ar.form.shift();
+  // 记录所有比赛结果
+  if(!resultsByRound[round]) resultsByRound[round]={A:[],B:[]};
+  resultsByRound[round][myTier].push({home:hIdx,away:aIdx,hs:hg,as:ag});
 }
 function simulateAIGames(){
   var pairs=fixtures[myTier]&&fixtures[myTier][round];
@@ -1429,7 +1432,8 @@ function endMatch(){
     }
   }
   for(var n in m.rating){ m.rating[n]=Math.round(clamp(m.rating[n],3.5,10)*10)/10; }
-  resultsByRound[round]={hs:m.score[0],as:m.score[1]};
+  if(!resultsByRound[round]) resultsByRound[round]={A:[],B:[]};
+  resultsByRound[round][myTier].push({home:myIdx,away:m.awayIdx,hs:m.score[0],as:m.score[1]});
   window.ensureEleven();
   SFX.whistle(false);
   showFinal(m);
@@ -1977,24 +1981,30 @@ function renderTransfer(){
 }
 function renderFixtures(){
   var el=document.getElementById('view-fixtures');
-  var html='<table><tr><th>轮次</th><th>主队</th><th>比分</th><th>客队</th><th>对手实力</th></tr>';
-  for(var r=1;r<=TOTAL_ROUNDS;r++){
-    var opp=opponentOf(r);
-    var played=r<round;
-    var res=resultsByRound[r];
-    var scoreCell='vs';
-    if(res) scoreCell='<b>'+res.hs+' : '+res.as+'</b>';
-    else if(r===round) scoreCell='→';
-    var oppClub=aiClubs.filter(function(c){return c.idx===opp;})[0];
-  var oppAb=oppClub?oppClub.ab:50;
-  html+='<tr'+(r===round?' style="background:rgba(61,220,122,.08)"':'')+'><td>第'+r+'轮</td><td'+(r===round?' class="mine"':'')+'>'+(myClub?myClub.name:'')+'</td><td>'+scoreCell+'</td><td>'+(oppClub?oppClub.name:'')+'</td><td><span class="badge '+(oppAb>=80?'fw':(oppAb>=70?'mf':(oppAb>=60?'df':'gk')))+'">'+oppAb+'</span></td></tr>';
-  }
-  html+='</table>';
-  var scorers=myClub.squad.filter(function(q){ return q.goals>0; }).sort(function(a,b){ return b.goals-a.goals; }).slice(0,5);
-  if(scorers.length){
-    html+='<div class="section-title">⚽ 球队射手榜</div><table><tr><th>球员</th><th>位置</th><th>进球</th></tr>'+
-      scorers.map(function(s){ return '<tr><td>'+s.name+'</td><td>'+s.pos.toUpperCase()+'</td><td><b style="color:#ffe08a">'+s.goals+'</b></td></tr>'; }).join('')+
-      '</table>';
+  var html='';
+  var tiers=['A','B'];
+  var tierNames={A:'A级联赛',B:'B级联赛'};
+  for(var ti=0;ti<tiers.length;ti++){
+    var t=tiers[ti];
+    html+='<div class="section-title">'+tierNames[t]+'</div>';
+    html+='<table><tr><th>轮次</th><th>主队</th><th>比分</th><th>客队</th></tr>';
+    for(var r=1;r<=(t==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS);r++){
+      var pairs=fixtures[t]&&fixtures[t][r];
+      if(!pairs) continue;
+      for(var p=0;p<pairs.length;p++){
+        var hIdx=pairs[p][0], aIdx=pairs[p][1];
+        var hClub=aiClubs.filter(function(c){return c.idx===hIdx;})[0];
+        var aClub=aiClubs.filter(function(c){return c.idx===aIdx;})[0];
+        if(!hClub||!aClub) continue;
+        var res=resultsByRound[r]&&resultsByRound[r][t]?resultsByRound[r][t].filter(function(m){return m.home===hIdx&&m.away===aIdx;})[0]:null;
+        var scoreCell='<span style="color:#5a6678">vs</span>';
+        if(res) scoreCell='<b>'+res.hs+' : '+res.as+'</b>';
+        else if(r===round&&t===myTier) scoreCell='<span style="color:#ffe08a">→</span>';
+        var isMine=(hIdx===myIdx||aIdx===myIdx);
+        html+='<tr'+(isMine?' class="mine"':'')+'><td>第'+r+'轮</td><td><span class="teamDot" style="background:'+hClub.color+';width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:3px"></span>'+hClub.name+'</td><td>'+scoreCell+'</td><td><span class="teamDot" style="background:'+aClub.color+';width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:3px"></span>'+aClub.name+'</td></tr>';
+      }
+    }
+    html+='</table>';
   }
   el.innerHTML=html;
 }
