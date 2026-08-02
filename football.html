@@ -149,7 +149,6 @@
 <div id="screen">
   <div class="card">
 <h1>足球经理</h1>
-    <div style="text-align:center;color:#8fa3bd;font-size:12px;margin-bottom:8px">执教 · 转会 · 8队单循环7轮争冠 · 球员伤病成长</div>
     <div class="tabs">
       <div class="tab sel" data-v="lineup">阵容战术</div>
       <div class="tab" data-v="transfer">转会</div>
@@ -245,6 +244,7 @@ window.assignPlayer=function(){return true;};
 window.reformEleven=function(){};
 window.weeklyEvent=function(){};
 window.headline=function(){return '';};
+window.buildEleven=function(team){var e=[],r=window.roleList(team.form||'4-3-3'),b;for(var i=0;i<r.length;i++){b=null;for(var j=0;j<team.squad.length;j++){var p=team.squad[j];if(e.indexOf(p)>=0||p.inj>0||p.pos!==r[i])continue;if(!b||p.ab>b.ab)b=p;}if(!b){for(var k=0;k<team.squad.length;k++){if(e.indexOf(team.squad[k])<0&&team.squad[k].inj<=0){b=team.squad[k];break;}}}e.push(b||null);}team.eleven=e;};
 var LEAGUE_A_TEAMS=18, LEAGUE_A_ROUNDS=34; // 双循环
 var LEAGUE_B_TEAMS=16, LEAGUE_B_ROUNDS=30;
 var FORMS={ '4-3-3':{gk:[[.06,.06]],df:[[.2,.2],[.2,.4],[.2,.6],[.2,.8]],mf:[[.4,.25],[.4,.5],[.4,.75]],fw:[[.7,.2],[.7,.5],[.7,.8]]},
@@ -423,7 +423,7 @@ var loadedMatchInterrupted=false;
 function saveGame(){
   try{
     var d={
-      myClub:myClub, round:round, ROT:ROT, leagueTable:leagueTable,
+      myClub:myClub, round:round, ROT_A:ROT_A, ROT_B:ROT_B, leagueTable:leagueTable,
       resultsByRound:resultsByRound, champHistory:champHistory, ach:ach,
       market:market, names:NAMES_CACHE, sfx:SFX_ON,
       matchActive:!!(match&&!match.over)
@@ -438,7 +438,7 @@ function loadGame(){
     var d=JSON.parse(raw);
     if(!d||!d.myClub||!d.myClub.squad||!d.myClub.squad.length) return false;
     myClub=d.myClub;
-    round=d.round||1; ROT=d.ROT||[1,2,3,4,5,6,7];
+    round=d.round||1; ROT_A=d.ROT_A||[]; ROT_B=d.ROT_B||[];
     leagueTable=d.leagueTable||{A:[],B:[]};
     if(!leagueTable.A.length||!leagueTable.B.length){ initLeague(); }
     resultsByRound=d.resultsByRound||{};
@@ -458,7 +458,7 @@ function loadGame(){
       }
     }
     myClub.eleven=clean;
-    if(clean.length<11) buildEleven(myClub);
+    if(clean.length<11) window.buildEleven(myClub);
     if(!myClub.tactic) myClub.tactic='balanced';
     loadedMatchInterrupted=!!d.matchActive;
     match=null;
@@ -490,7 +490,7 @@ function startMatch(){
   document.getElementById('score0').textContent='0';
   document.getElementById('score1').textContent='0';
   document.getElementById('mtTxt').textContent='我的战术：'+({att:'进攻',bal:'平衡',def:'防守'})[myClub.mentality];
-  addEvent(0,'⚽ 开球 · '+myClub.name+'（实力'+Math.round(myAb)+'）vs '+opp.name+'（实力'+Math.round(oppAb)+'）');
+  addEvent(0,'开球 · '+myClub.name+'（实力'+Math.round(myAb)+'）vs '+opp.name+'（实力'+Math.round(oppAb)+'）');
   updateControls();
   if(round===1){ showMsg('🎯 赛季目标：进入前四！'); }
   else if(round===TOTAL_ROUNDS){
@@ -556,7 +556,7 @@ function kickoffPass(m){
   m.ball._passTx=kp.partner.x; m.ball._passTy=kp.partner.y;
   m.ball._passTo=kp.partner;
   m.lastTouch=kp.team;
-  addEvent(0,'⚽ 开球！'+(kp.team===0?m.home.name:m.away.name)+' 双人开球');
+  addEvent(0,'开球！'+(kp.team===0?m.home.name:m.away.name)+' 双人开球');
 }
 function spawnMatch(m){
   m.players=[];
@@ -637,7 +637,7 @@ function aiPlayer(m,p,dt){
         resolveShot(m,p,ang);
         var min=((m.clock/60)|0)+1;
         var shotsTxt=onT?['起脚射门！','大力轰门！','远距离发炮！','禁区内劲射！'][(Math.random()*4)|0]:['射门偏出','高射炮','稍稍偏出立柱','打飞了'][(Math.random()*4)|0];
-        addEvent(min,(onT?'🎯 ':'💨 ')+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' '+shotsTxt);
+        addEvent(min,(onT?'射门！':'打偏 ')+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' '+shotsTxt);
         return;
       }
     }
@@ -646,7 +646,7 @@ function aiPlayer(m,p,dt){
     if(P.wing>0.6&&Math.abs(p.y-MIDY)>90&&dToGate<180&&Math.random()<0.05*P.wing){
       var crossY=MIDY+(Math.random()<0.5?-55:55);
       kickBall(m,p,640*P.tempo,Math.atan2(crossY-p.y,att));
-      addEvent(((m.clock/60)|0)+1,'🥾 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 起脚传中！');
+      addEvent(((m.clock/60)|0)+1,'传中 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 起脚传中');
       return;
     }
     // 长传冲吊：中后场直接起长球找最靠前的前锋
@@ -666,7 +666,7 @@ function aiPlayer(m,p,dt){
         m.ball._passTo=bestFwd;
         p.shootCd=0.6;
         m.lastTouch=p.team;
-        addEvent(((m.clock/60)|0)+1,'🚀 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 长传冲吊');
+        addEvent(((m.clock/60)|0)+1,'长传 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 长传冲吊');
         return;
       }
     }
@@ -984,7 +984,7 @@ function aiGK(m,p,dt){
         b.owner.protect=0.8;
         p.gkCd=1.5;
         m.rating[pr.name]=(m.rating[pr.name]||6)+0.4;
-        addEvent(((m.clock/60)|0)+1,'🧤 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 出击没收');
+        addEvent(((m.clock/60)|0)+1,'扑救 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 出击没收');
         return;
       }
       p.gkCd=0.8;
@@ -1013,24 +1013,6 @@ function aiGK(m,p,dt){
           }
           if(!nearFoe&&d<bd){ bd=d; best=q; }
 }
-}
-function buildEleven(team){
-  var el=[];
-  var roles=window.roleList(team.form||'4-3-3');
-  for(var r=0;r<roles.length;r++){
-    var best=null;
-    for(var i=0;i<team.squad.length;i++){
-      var p=team.squad[i];
-      if(el.indexOf(p)>=0||p.inj>0) continue;
-      if(p.pos!==roles[r]) continue;
-      if(!best||p.ab>best.ab) best=p;
-    }
-    if(!best){
-      for(var j=0;j<team.squad.length;j++){ if(el.indexOf(team.squad[j])<0&&team.squad[j].inj<=0){ best=team.squad[j]; break; } }
-    }
-    if(best) el.push(best); else el.push(null);
-  }
-  team.eleven=el;
 }
 window.ensureEleven=function(){
   var roles=window.roleList(myClub.form);
@@ -1186,7 +1168,7 @@ function gkSaveCheck(m){
       b.owner=gk;
       gk.dive=-1; gk.cd=1.5;
       m.rating[gk.pl.name]=(m.rating[gk.pl.name]||6)+0.6;
-      addEvent(((m.clock/60)|0)+1,'🧤 扑救！'+(gk.team===0?m.home.name:m.away.name)+' '+gk.pl.name+' 化解射门');
+      addEvent(((m.clock/60)|0)+1,'扑救 '+(gk.team===0?m.home.name:m.away.name)+' '+gk.pl.name+' 化解射门');
       return true;
     }
   }
@@ -1297,7 +1279,7 @@ function goal(m,t){
   var gkLose=playersOf(m,1-t)[0];
   if(gkLose){ m.rating[gkLose.pl.name]=(m.rating[gkLose.pl.name]||6)-0.4; }
   var min=((m.clock/60)|0)+1;
-  addEvent(min,'⚽ 进球！'+(t===0?m.home.name:m.away.name)+(shooter?' '+shooter.pl.name:''));
+  addEvent(min,'进球！'+(t===0?m.home.name:m.away.name)+(shooter?' '+shooter.pl.name:''));
   showMsg('⚽ 进球！');
   SFX.whistle(true); SFX.crowd();
 }
@@ -1305,12 +1287,12 @@ function postBounce(m){
   var b=m.ball;
   if(b.x<-BALL_R&&b.x>-BALL_R-26&&Math.abs(b.y-MIDY)<GATE_HALF+4&&Math.abs(b.y-MIDY)>GATE_HALF-4){
     b.x=-BALL_R; b.vx=Math.abs(b.vx)*0.4; b.vy*=0.7;
-    addEvent(((m.clock/60)|0)+1,'💥 击中门柱！');
+    addEvent(((m.clock/60)|0)+1,'击中门柱');
     SFX.kick(false);
   }
   if(b.x>W+BALL_R&&b.x<W+BALL_R+26&&Math.abs(b.y-MIDY)<GATE_HALF+4&&Math.abs(b.y-MIDY)>GATE_HALF-4){
     b.x=W+BALL_R; b.vx=-Math.abs(b.vx)*0.4; b.vy*=0.7;
-    addEvent(((m.clock/60)|0)+1,'💥 击中门柱！');
+    addEvent(((m.clock/60)|0)+1,'击中门柱');
     SFX.kick(false);
   }
 }
@@ -1348,7 +1330,7 @@ function outOfBounds(m){
       var gk1=playersOf(m,0)[0];
       setPieceBall(m,20,MIDY,0);
       if(m.ball.owner!==gk1){ m.ball.owner=gk1; gk1.x=20; gk1.y=MIDY; }
-      addEvent(min,'🧤 门球 · '+m.home.name);
+      addEvent(min,'门球 · '+m.home.name);
     } else { // 防守方(蓝队)碰出 → 红队角球
       setPieceBall(m,16,b.y<MIDY?40:H-40,1);
       addEvent(min,'🚩 角球 · '+m.away.name);
@@ -1361,7 +1343,7 @@ function outOfBounds(m){
       var gk2=playersOf(m,1)[0];
       setPieceBall(m,W-20,MIDY,1);
       if(m.ball.owner!==gk2){ m.ball.owner=gk2; gk2.x=W-20; gk2.y=MIDY; }
-      addEvent(min,'🧤 门球 · '+m.away.name);
+      addEvent(min,'门球 · '+m.away.name);
     } else { // 防守方(红队)碰出 → 蓝队角球
       setPieceBall(m,W-16,b.y<MIDY?40:H-40,0);
       addEvent(min,'🚩 角球 · '+m.home.name);
