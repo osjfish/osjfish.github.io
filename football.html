@@ -1770,6 +1770,18 @@ function renderLineup(){
   hint.style.cssText='font-size:10px;color:#5a6678';
   hint.textContent='点击球场槽位指定人选 · 点击球员卡切换首发/替补';
   quick.appendChild(hint);
+  var resetBtn=document.createElement('button');
+  resetBtn.className='fbtn';
+  resetBtn.style.cssText='border-color:#ff6b81;color:#ff6b81';
+  resetBtn.textContent='🔄 初始化';
+  resetBtn.title='清除所有数据，重新开始';
+  resetBtn.onclick=function(){
+    if(confirm('确定要初始化吗？所有数据将被清除！')){
+      try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+      location.reload();
+    }
+  };
+  quick.appendChild(resetBtn);
   fr.appendChild(quick);
   var pitch=document.getElementById('pitch');
   pitch.innerHTML='';
@@ -2096,6 +2108,7 @@ function fitGame(){
 window.addEventListener('resize',fitGame);
 window.addEventListener('orientationchange',function(){ setTimeout(fitGame,250); });
 window.addEventListener('beforeunload',saveGame);
+setInterval(saveGame,30000);
 fitGame();
 
 document.getElementById('btnSfx').onclick=function(){ toggleSfx(); saveGame(); };
