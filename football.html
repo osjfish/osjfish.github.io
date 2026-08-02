@@ -349,16 +349,22 @@ function genFixtures(tier,rounds){
   var tbl=tableOf(tier);
   var n=tbl.length;
   var halfRounds=rounds/2; // 单循环轮数
-  var rot=tbl.map(function(r){return r.idx;}); // 使用实际球队 idx（B级 idx 为18-33，不能从0开始）
+  // 标准 circle method：固定最后一个元素，其余轮转，保证每对队伍恰好交手一次
+  var arr=tbl.map(function(r){return r.idx;}); // 使用实际球队 idx（B级 idx 为18-33）
+  var fixed=arr.pop();
+  var m=arr.length; // n-1
   for(var r=1;r<=halfRounds;r++){
     var pairs=[];
     for(var i=0;i<Math.floor(n/2);i++){
-      var h=rot[i], a=rot[n-1-i];
-      // 第一循环：奇数列主队在前，偶数列客队在前（交替）
+      var h,a;
+      if(i===0){ h=arr[0]; a=fixed; }
+      else { h=arr[i]; a=arr[m-i]; }
+      // 第一循环：奇数轮主队在前，偶数轮客队在前（交替）
       if(r%2===1) pairs.push([h,a]);
       else pairs.push([a,h]);
     }
-    rot.unshift(rot.pop());
+    // 固定元素不动，其余轮转（右旋）
+    arr.unshift(arr.pop());
     fixtures[tier][r]=pairs;
     // 第二循环：主客对调
     var pairs2=[];
@@ -369,6 +375,28 @@ function genFixtures(tier,rounds){
   }
 }
 function tableOf(tier){ return tier==='A'?leagueTable.A:leagueTable.B; }
+// 赛程健康检查：每个级别的每对队伍必须恰好交手2次（主客各1次）
+function fixturesHealthy(){
+  for(var t=0;t<2;t++){
+    var tier=t===0?'A':'B';
+    var f=fixtures[tier];
+    if(!f||!tableOf(tier).length) return false;
+    var pairCnt={};
+    for(var r in f){
+      var ps=f[r];
+      if(!ps) continue;
+      for(var i=0;i<ps.length;i++){
+        if(ps[i].length<2||typeof ps[i][0]!=='number'||typeof ps[i][1]!=='number') return false;
+        var a=Math.min(ps[i][0],ps[i][1]), b=Math.max(ps[i][0],ps[i][1]);
+        var key=a+'_'+b;
+        if(!pairCnt[key]) pairCnt[key]=0;
+        pairCnt[key]++;
+      }
+    }
+    for(var k in pairCnt){ if(pairCnt[k]!==2) return false; }
+  }
+  return true;
+}
 function rotOf(tier){ return tier==='A'?ROT_A:ROT_B; }
 function rankOf(idx){
   var tbl=tableOf(myTier);
@@ -436,6 +464,11 @@ function simulateAIGames(){
       var p=pairs[i];
       // 玩家自己本轮的比赛跳过（由真实比赛引擎完成）
       if(tier===myTier&&(p[0]===myIdx||p[1]===myIdx)) continue;
+      // 幂等：该场已模拟过（如读档重打本轮）则跳过
+      if(resultsByRound[round]&&resultsByRound[round][tier]){
+        var done=resultsByRound[round][tier].filter(function(x){ return x.home===p[0]&&x.away===p[1]; }).length;
+        if(done) continue;
+      }
       simAIMatch(p[0],p[1],tier);
     }
   }
@@ -501,6 +534,11 @@ function loadGame(){
     round=d.round||1; ROT_A=d.ROT_A||[]; ROT_B=d.ROT_B||[];
     if(d.fixtures) fixtures=d.fixtures;
     leagueTable=d.leagueTable||{A:[],B:[]};
+    // 旧存档赛程健康检查：每对队伍必须恰好主客各一次（修复早期轮转bug生成的坏赛程）
+    if(!fixturesHealthy()){
+      fixtures.A={}; fixtures.B={};
+      genFixtures('A',LEAGUE_A_ROUNDS); genFixtures('B',LEAGUE_B_ROUNDS);
+    }
     resultsByRound=d.resultsByRound||{};
     if(d.fin) fin=d.fin;
     champHistory=d.champHistory||[];
@@ -1510,6 +1548,9 @@ function endMatch(){
   var myScore=m.home.idx===myIdx?m.score[0]:m.score[1];
   var oppScore=m.home.idx===myIdx?m.score[1]:m.score[0];
   var oppIdx=m.home.idx===myIdx?m.away.idx:m.home.idx;
+  // 本轮 AI 比赛同步结算（积分榜各队轮次保持一致，避免我方少赛一轮）
+  var tbl0=tableOf(myTier); for(var ti=0;ti<tbl0.length;ti++) tbl0[ti].prevPts=tbl0[ti].pts;
+  simulateAIGames();
   var hr=tableOf(myTier).filter(function(r){return r.idx===myIdx;})[0];
   var ar=tableOf(myTier).filter(function(r){return r.idx===oppIdx;})[0];
   hr.gf+=myScore; hr.ga+=oppScore; ar.gf+=oppScore; ar.ga+=myScore;
@@ -1526,7 +1567,7 @@ function endMatch(){
   if(myWin){ ach.firstWin=true; ach.winStreak++; } else ach.winStreak=0;
   myClub.cash+=bonus;
   var isHomeGame=m.isHome!==undefined?m.isHome:(m.home.idx===myIdx);
-  var wages=Math.round(myClub.squad.reduce(function(s,q){return s+q.ab;},0)*0.08);
+  var wages=Math.round(myClub.squad.reduce(function(s,q){return s+q.ab;},0)*0.05);
   myClub.cash-=wages;
   var gate=Math.round((isHomeGame?30:15)+(myWin?20:(myDraw?10:0)));
   myClub.cash+=gate;
@@ -1631,8 +1672,6 @@ function showFinal(m){
   document.getElementById('btnNext').onclick=function(){
     round++;
     if(round>TOTAL_ROUNDS){ showChampion(); return; }
-    simulateAIGames();
-    var tbl2=tableOf(myTier); for(var ti=0;ti<tbl2.length;ti++) tbl2[ti].prevPts=tbl2[ti].pts;
     var evTxt='';
     // 每轮训练/医疗固定开销
     myClub.cash-=20; fin.training+=20;
