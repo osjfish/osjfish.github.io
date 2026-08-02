@@ -472,6 +472,7 @@ function loadGame(){
 var match=null;
 var PLAYER_R=10,BALL_R=6,FRICTION=1.8;
 function startMatch(){
+  if(!myClub){ showMsg('数据异常，请刷新页面重试'); return; }
   window.ensureEleven();
   simulateAIGames();
   var oppIdx=opponentOf(round);
@@ -1763,11 +1764,16 @@ function renderLineup(){
   resetBtn.textContent='🔄 初始化';
   resetBtn.title='清除所有数据，重新开始';
   resetBtn.onclick=function(){
-    if(confirm('确定要初始化吗？所有数据将被清除！')){
-      try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
-      location.reload();
-    }
-  };
+  if(confirm('确定要初始化吗？所有数据将被清除！')){
+    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+    // 重置内存数据
+    myClub=null; myIdx=-1; myTier='A'; round=1; season=1;
+    leagueTable={A:[],B:[]}; resultsByRound={}; champHistory=[];
+    ach={firstWin:false,champ:0,winStreak:0,season:0};
+    market=[]; match=null; aiClubs=[];
+    initLeague(); refreshMarket(); renderPickClub();
+  }
+};
   quick.appendChild(resetBtn);
   fr.appendChild(quick);
   var pitch=document.getElementById('pitch');
