@@ -402,7 +402,12 @@ function simAIMatch(hIdx,aIdx){
   var away=aiClubs.filter(function(c){return c.idx===aIdx;})[0];
   if(!home||!away) return;
   var ha=teamAbility(home.eleven), aa=teamAbility(away.eleven);
-  var expH=clamp(1.5+(ha-aa)/60+0.2,0.2,6.0), expA=clamp(1.5+(aa-ha)/60,0.2,5.5);
+  // 战术影响：攻击战术进球期望更高，摆大巴更低
+  var ht=home.tactic?tacticById(home.tactic):null;
+  var at=away.tactic?tacticById(away.tactic):null;
+  var hAdj=ht?(ht.shootMul-1)*0.5:0;
+  var aAdj=at?(at.shootMul-1)*0.5:0;
+  var expH=clamp(1.5+(ha-aa)/60+0.2+hAdj,0.2,6.0), expA=clamp(1.5+(aa-ha)/60+aAdj,0.2,5.5);
   var hg=poisson(expH), ag=poisson(expA);
   var hr=tableOf(myTier).filter(function(r){return r.idx===hIdx;})[0];
   var ar=tableOf(myTier).filter(function(r){return r.idx===aIdx;})[0];
@@ -469,6 +474,22 @@ function loadGame(){
     myTier=myClub.tier;
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
     if(d.aiClubs&&d.aiClubs.length) aiClubs=d.aiClubs;
+    else {
+      // 旧档无 aiClubs：重建全部球队，保留玩家球队数据
+      initLeague();
+      var _mi=-1;
+      for(var _i=0;_i<aiClubs.length;_i++){ if(aiClubs[_i].idx===myClub.idx){ _mi=_i; break; } }
+      if(_mi>=0){ aiClubs[_mi]=myClub; myClub=aiClubs[_mi]; myIdx=_mi; }
+      leagueTable.A=[]; leagueTable.B=[];
+      for(var _j=0;_j<aiClubs.length;_j++){
+        var _c=aiClubs[_j];
+        var _t=_c.tier==='A'?leagueTable.A:leagueTable.B;
+        _t.push({idx:_c.idx,name:_c.name,short:_c.short,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,prevPts:0,form:[]});
+      }
+      fixtures.A={}; fixtures.B={};
+      genFixtures('A',LEAGUE_A_ROUNDS); genFixtures('B',LEAGUE_B_ROUNDS);
+      round=1; resultsByRound={}; market=[]; refreshMarket();
+    }
     round=d.round||1; ROT_A=d.ROT_A||[]; ROT_B=d.ROT_B||[];
     if(d.fixtures) fixtures=d.fixtures;
     leagueTable=d.leagueTable||{A:[],B:[]};
@@ -665,8 +686,8 @@ function dist2(a,b){ var dx=a.x-b.x,dy=a.y-b.y; return dx*dx+dy*dy; }
 function giveBall(m,p){
   var prevOwner=m.ball.owner;
   m.ball.owner=p; p.protect=1.0; p.shootCd=0; m.lastTouch=p.team;
-  // 抢断/拦截成功 → 触发反击冲刺窗口
-  if(prevOwner&&prevOwner.team!==p.team){ m.counterT=1.6; m.counterTeam=p.team; }
+  // 抢断/拦截成功 → 触发反击冲刺窗口；并清空助攻候选（球权易手）
+  if(prevOwner&&prevOwner.team!==p.team){ m.counterT=1.6; m.counterTeam=p.team; m.lastPasser=null; }
 }
 function kickBall(m,shooter,power,angle){
   m.ball.owner=null;
@@ -738,7 +759,7 @@ function aiPlayer(m,p,dt){
         m.ball._passTx=bestFwd.x; m.ball._passTy=bestFwd.y;
         m.ball._passTo=bestFwd;
         p.shootCd=0.6;
-        m.lastTouch=p.team;
+        m.lastTouch=p.team; m.lastPasser=p;
         addEvent(((m.clock/60)|0)+1,'长传 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 长传冲吊');
         return;
       }
@@ -770,7 +791,7 @@ if(Math.random()<(100-pr.pas)/200){
           }
           m.ball._passTo=tgt;
           p.shootCd=0.5;
-          m.lastTouch=p.team;
+          m.lastTouch=p.team; m.lastPasser=p;
           return;
         }
         // 无传球目标：横移/回撤摆脱，不硬冲门将
@@ -818,7 +839,7 @@ if(Math.random()<(100-pr.pas)/200){
         }
         m.ball._passTo=tgtB;
         p.shootCd=0.4;
-        m.lastTouch=p.team;
+        m.lastTouch=p.team; m.lastPasser=p;
         return;
       }
     }
@@ -1348,6 +1369,11 @@ function goal(m,t){
   var shooter=m.ball.lastShooter;
   m.goalCeleb=2;
   if(shooter){ m.rating[shooter.pl.name]=(m.rating[shooter.pl.name]||6)+2; shooter.pl.goals++; }
+  // 助攻：进球前最后一位同队传球者（且非射门者本人）
+  if(m.lastPasser&&m.lastPasser!==shooter&&m.lastPasser.team===t){
+    m.lastPasser.pl.assists=(m.lastPasser.pl.assists||0)+1;
+  }
+  m.lastPasser=null;
   // 失球方门将扣分
   var gkLose=playersOf(m,1-t)[0];
   if(gkLose){ m.rating[gkLose.pl.name]=(m.rating[gkLose.pl.name]||6)-0.4; }
@@ -1484,27 +1510,37 @@ function endMatch(){
   hr.p++; ar.p++;
   hr.pts=hr.w*3+hr.d; ar.pts=ar.w*3+ar.d;
   if(hr.form.length>5) hr.form.shift(); if(ar.form.length>5) ar.form.shift();
-  // 奖金
-  var bonus=m.score[0]>m.score[1]?60:(m.score[0]===m.score[1]?20:0);
-  if(m.score[0]>m.score[1]){ ach.firstWin=true; ach.winStreak++; } else ach.winStreak=0;
+  // 奖金 + 财务（工资支出 + 门票收入）
+  var myWin=m.score[0]>m.score[1];
+  var myDraw=m.score[0]===m.score[1];
+  var bonus=myWin?60:(myDraw?20:0);
+  if(myWin){ ach.firstWin=true; ach.winStreak++; } else ach.winStreak=0;
   myClub.cash+=bonus;
+  var isHomeGame=m.home.idx===myIdx;
+  var wages=Math.round(myClub.squad.reduce(function(s,q){return s+q.ab;},0)*0.3);
+  myClub.cash-=wages;
+  var gate=Math.round((isHomeGame?30:15)+(myWin?20:(myDraw?10:0)));
+  myClub.cash+=gate;
+  m._wages=wages; m._gate=gate; m._isHomeGame=isHomeGame;
   // 状态/成长/伤病
   for(var i=0;i<myClub.squad.length;i++){
     var p=myClub.squad[i];
     var played=myClub.eleven.indexOf(p)>=0;
     p.fit=clamp(p.fit+(played?-6:5),40,100);
-    p.mor=clamp(p.mor+(m.score[0]>m.score[1]?8:(m.score[0]===m.score[1]?2:-5)),20,100);
+    p.mor=clamp(p.mor+(myWin?8:(myDraw?2:-5)),20,100);
     if(played){ p.played++; p.rating=Math.round((m.rating[p.name]||6)*10)/10; }
     p.hot=(p.played>=2&&p.rating>=7.5);
+    // 成长：23岁以下可能+1；老化：30岁以上可能-1
     if(played&&p.age<=23&&Math.random()<0.5) p.ab=Math.min(99,p.ab+1);
+    if(played&&p.age>=30&&Math.random()<0.35) p.ab=Math.max(40,p.ab-1);
   }
-  // 随机伤病
+  // 随机伤病（1-3轮）
   if(Math.random()<0.12){
     var pool=myClub.squad.filter(function(q){ return q.inj<=0; });
     if(pool.length){
       var hurt=pool[(Math.random()*pool.length)|0];
-      hurt.inj=1; hurt.fit=40;
-      addEvent(90,'😷 '+hurt.name+' 受伤，下轮缺阵');
+      hurt.inj=1+R(0,2); hurt.fit=40;
+      addEvent(90,'😷 '+hurt.name+' 受伤，缺阵'+hurt.inj+'轮');
     }
   }
   for(var n in m.rating){ m.rating[n]=Math.round(clamp(m.rating[n],3.5,10)*10)/10; }
@@ -1518,14 +1554,33 @@ function endMatch(){
 function showFinal(m){
   var card=document.getElementById('reportCard');
   var win=m.score[0]>m.score[1];
+  var draw=m.score[0]===m.score[1];
+  var posH=m.poss[0]+m.poss[1]>0?Math.round(m.poss[0]/(m.poss[0]+m.poss[1])*100):50;
+  var shotH=m.shots[0]+m.shots[1]>0?Math.round(m.shots[0]/(m.shots[0]+m.shots[1])*100):50;
   card.innerHTML='<h1>比赛报告</h1>'+
     '<div style="text-align:center;font-size:20px;font-weight:900;margin:4px 0">'+m.home.name+' '+m.score[0]+' : '+m.score[1]+' '+m.away.name+'</div>'+
-    '<div style="text-align:center;color:'+(win?'#3ddc7a':(m.score[0]===m.score[1]?'#ffe08a':'#ff6b81'))+';font-weight:800">'+
-    (win?'胜利 +60万':(m.score[0]===m.score[1]?'平局 +20万':'失利'))+'</div>'+
+    '<div style="text-align:center;color:'+(win?'#3ddc7a':(draw?'#ffe08a':'#ff6b81'))+';font-weight:800">'+
+    (win?'胜利 +60万':(draw?'平局 +20万':'失利'))+'</div>'+
     '<table><tr><th></th><th>'+m.home.name+'</th><th>'+m.away.name+'</th></tr>'+
     '<tr><td>射门</td><td>'+m.shots[0]+'</td><td>'+m.shots[1]+'</td></tr>'+
     '<tr><td>射正</td><td>'+m.onTarget[0]+'</td><td>'+m.onTarget[1]+'</td></tr>'+
-    '<tr><td>控球率</td><td>'+(m.poss[0]+m.poss[1]>0?Math.round(m.poss[0]/(m.poss[0]+m.poss[1])*100):50)+'%</td><td>'+(m.poss[0]+m.poss[1]>0?Math.round(m.poss[1]/(m.poss[0]+m.poss[1])*100):50)+'%</td></tr></table>'+
+    '<tr><td>控球率</td><td>'+posH+'%</td><td>'+(100-posH)+'%</td></tr></table>'+
+    // 控球/射门可视化条
+    '<div style="margin-top:6px">'+
+    '<div style="font-size:10px;color:#8fa3bd;margin-bottom:2px">控球率</div>'+
+    '<div style="display:flex;align-items:center;gap:6px;font-size:10px">'+
+      '<span style="width:34px;text-align:right;color:#dfe7f2">'+posH+'%</span>'+
+      '<div style="flex:1;height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">'+
+        '<div style="height:100%;width:'+posH+'%;background:#3ddc7a"></div></div>'+
+      '<span style="width:34px;color:#8fa3bd">'+(100-posH)+'%</span></div>'+
+    '<div style="font-size:10px;color:#8fa3bd;margin:4px 0 2px">射门占比</div>'+
+    '<div style="display:flex;align-items:center;gap:6px;font-size:10px">'+
+      '<span style="width:34px;text-align:right;color:#dfe7f2">'+shotH+'%</span>'+
+      '<div style="flex:1;height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">'+
+        '<div style="height:100%;width:'+shotH+'%;background:#57c8ff"></div></div>'+
+      '<span style="width:34px;color:#8fa3bd">'+(100-shotH)+'%</span></div>'+
+    '</div>'+
+    (m._wages!==undefined?'<div style="margin-top:6px;font-size:10px;color:#8fa3bd">财务：门票收入 +'+m._gate+'万 · 工资支出 -'+m._wages+'万'+(m._isHomeGame?'（主场）':'（客场）')+'</div>':'')+
     '<div style="text-align:center;font-size:11px;color:#8fa3bd;margin-top:4px">当前排名：第 '+(rankOf(myIdx)+1)+' 位</div>'+
     '<div style="margin-top:6px;font-size:11px;color:#8fa3bd">球员评分：</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">';
   var mvp=null,mvpR=0;
@@ -1791,6 +1846,21 @@ function renderScreen(){
     (myRow?'<span style="color:#8fa3bd">'+(myRow.w+'胜 '+myRow.d+'平 '+myRow.l+'负')+'</span>':'')+
     (myRow?'<span style="color:#8fa3bd">进'+myRow.gf+'/失'+myRow.ga+'</span>':'')+
     '</div>';
+  // 数据看板：射手榜/助攻榜
+  var scorers=myClub.squad.filter(function(q){return q.goals>0;}).sort(function(a,b){return b.goals-a.goals;}).slice(0,3);
+  var assister=myClub.squad.filter(function(q){return q.assists>0;}).sort(function(a,b){return b.assists-a.assists;}).slice(0,3);
+  var statEl=document.getElementById('dashStats');
+  if(!statEl){
+    statEl=document.createElement('div');
+    statEl.id='dashStats';
+    dashEl.parentNode.insertBefore(statEl, dashEl.nextSibling);
+  }
+  statEl.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px;background:rgba(255,255,255,.03);border-radius:10px;padding:8px 14px;margin-bottom:10px;font-size:11px;color:#8fa3bd">'+
+    '<span style="color:#ffe08a;font-weight:700">⚽ 射手榜</span>'+
+    (scorers.length?scorers.map(function(s,i){return '<span>'+(i+1)+'. '+s.name+' <b style="color:#ffe08a">'+s.goals+'球</b></span>';}).join(''):'<span>暂无进球</span>')+
+    '<span style="margin-left:12px;color:#57c8ff;font-weight:700">🎯 助攻榜</span>'+
+    (assister.length?assister.map(function(s,i){return '<span>'+(i+1)+'. '+s.name+' <b style="color:#57c8ff">'+s.assists+'助</b></span>';}).join(''):'<span>暂无助攻</span>')+
+    '</div>';
   renderLineup();
   renderTransfer();
   renderOpponent();
@@ -1919,9 +1989,10 @@ function renderLineup(){
       slot.style.left=(pts[p][0]*100)+'%';
       slot.style.top=(pts[p][1]*100+6)+'%';
       if(pl){
-        slot.innerHTML='<span style="font-size:10px;font-weight:800">'+pl.name.slice(0,2)+'</span><span style="font-size:8px;opacity:.9">'+pl.ab+'</span><span style="font-size:7px;opacity:.7">'+pl.pos.toUpperCase()+'</span>';
+        var outPos=pl.pos!==order[o];
+        slot.innerHTML='<span style="font-size:10px;font-weight:800">'+pl.name.slice(0,2)+'</span><span style="font-size:8px;opacity:.9">'+pl.ab+'</span><span style="font-size:7px;opacity:.7">'+(outPos?'<span style="color:#ffd857">客串</span>':pl.pos.toUpperCase())+'</span>';
         slot.style.background=pl.fit<60?'rgba(255,80,80,.6)':null;
-        slot.title=POS_NAMES[pl.pos]+' '+pl.name+'（总评'+pl.ab+'）——点击调整';
+        slot.title=POS_NAMES[pl.pos]+' '+pl.name+'（总评'+pl.ab+'）——点击调整'+(outPos?'（客串'+POS_NAMES[order[o]]+'）':'');
       } else {
         slot.innerHTML='<span style="font-size:14px">+</span><span style="font-size:7px;opacity:.7">'+order[o].toUpperCase()+'</span>';
         slot.title='点击选择'+POS_NAMES[order[o]];
@@ -2007,19 +2078,27 @@ function openSlotPicker(slotIdx){
     if(t.getAttribute&&t.getAttribute('data-close')) close();
   });
 }
+var mktFilter='';
 function renderTransfer(){
   var el=document.getElementById('transferBox');
   var html='<div class="section-title">🏪 转会市场（每轮刷新 · 资金 '+myClub.cash+'万）</div>';
-  for(var i=0;i<market.length;i++){
-    var p=market[i];
+  html+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">'+
+    ['','gk','df','mf','fw'].map(function(pos){
+      return '<button class="fbtn'+(mktFilter===pos?' sel':'')+'" data-mk="'+pos+'">'+(pos?POS_NAMES[pos]:'全部')+'</button>';
+    }).join('')+'</div>';
+  var shown=market.filter(function(p){ return !mktFilter||p.pos===mktFilter; })
+    .sort(function(a,b){ return b.ab-a.ab; });
+  for(var i=0;i<shown.length;i++){
+    var p=shown[i];
+    var origIdx=market.indexOf(p);
     var afford=myClub.cash>=p.price;
     html+='<div class="mkt-card"><div class="info"><b>'+p.name+'</b> <span class="badge '+p.pos+'">'+p.pos.toUpperCase()+'</span>'+
       '<div class="abbar"><div class="abtrack"><div class="abfill" style="width:'+p.ab+'%"></div></div><span class="abnum">'+p.ab+'</span></div>'+
-      '<div style="color:#8fa3bd;font-size:10px">'+p.age+'岁</div></div>'+
+      '<div style="color:#8fa3bd;font-size:10px">'+p.age+'岁 · 速'+p.spd+' 射'+p.sho+' 防'+p.def+' 传'+p.pas+'</div></div>'+
       '<span class="cash">💰 '+p.price+'万</span>'+
-      '<button class="btn sm" '+(afford?'':'disabled')+' data-buy="'+i+'">签约</button></div>';
+      '<button class="btn sm" '+(afford?'':'disabled')+' data-buy="'+origIdx+'">签约</button></div>';
   }
-  if(!market.length) html+='<div style="color:#8fa3bd;font-size:11px">市场已清空，下一轮刷新</div>';
+  if(!shown.length) html+='<div style="color:#8fa3bd;font-size:11px">'+((mktFilter&&market.length)?'该位置暂无球员':'市场已清空，下一轮刷新')+'</div>';
   html+='<div class="section-title">📤 出售球员（能力×1.5 万）</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">';
   for(var j=0;j<myClub.squad.length;j++){
     var q=myClub.squad[j];
@@ -2027,6 +2106,9 @@ function renderTransfer(){
   }
   html+='</div>';
   el.innerHTML=html;
+  el.querySelectorAll('[data-mk]').forEach(function(b){
+    b.onclick=function(){ mktFilter=this.getAttribute('data-mk'); renderTransfer(); };
+  });
   el.querySelectorAll('[data-buy]').forEach(function(b){
     b.onclick=function(){
       var idx=parseInt(this.getAttribute('data-buy'));
@@ -2078,17 +2160,25 @@ function renderFixtures(){
         if(res) scoreCell='<b>'+res.hs+' : '+res.as+'</b>';
         else if(r===round&&t===myTier) scoreCell='<span style="color:#ffe08a">→</span>';
         var isMine=(hIdx===myIdx||aIdx===myIdx);
-        html+='<tr'+(isMine?' class="mine"':'')+'><td>第'+r+'轮</td><td><span class="teamDot" style="background:'+hClub.color+';width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:3px"></span>'+hClub.name+'</td><td>'+scoreCell+'</td><td><span class="teamDot" style="background:'+aClub.color+';width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:3px"></span>'+aClub.name+'</td></tr>';
+        var halfR=t==='A'?LEAGUE_A_ROUNDS/2:LEAGUE_B_ROUNDS/2;
+        var legTag=r<=halfR?'':'<span style="font-size:8px;color:#5a6678">·次</span>';
+        var awayTag=(hIdx===myIdx?'':'')+(aIdx===myIdx?'<span style="color:#ff9f0a;font-size:8px">·客</span>':'');
+        html+='<tr'+(isMine?' class="mine"':'')+'><td>第'+r+'轮'+legTag+awayTag+'</td><td><span class="teamDot" style="background:'+hClub.color+';width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:3px"></span>'+hClub.name+'</td><td>'+scoreCell+'</td><td><span class="teamDot" style="background:'+aClub.color+';width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:3px"></span>'+aClub.name+'</td></tr>';
       }
     }
     html+='</table>';
   }
   el.innerHTML=html;
 }
+var tableViewTier='A';
 function renderTable(){
   var el=document.getElementById('view-table');
-  var sorted=tableOf(myTier).slice().sort(function(a,b){ return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga); });
-  var html='<table><tr><th>#</th><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进/失</th><th>净胜</th><th>近况</th><th>积分</th></tr>';
+  var html='<div style="display:flex;gap:5px;margin-bottom:6px">'+
+    '<button class="fbtn'+(tableViewTier==='A'?' sel':'')+'" data-tbl="A">A级联赛</button>'+
+    '<button class="fbtn'+(tableViewTier==='B'?' sel':'')+'" data-tbl="B">B级联赛</button></div>';
+  var tbl=tableOf(tableViewTier);
+  var sorted=tbl.slice().sort(function(a,b){ return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga); });
+  html+='<table><tr><th>#</th><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进/失</th><th>净胜</th><th>近况</th><th>积分</th></tr>';
   for(var i=0;i<sorted.length;i++){
     var r=sorted[i];
     var formHtml='';
@@ -2101,6 +2191,9 @@ function renderTable(){
   }
   html+='</table>';
   el.innerHTML=html;
+  el.querySelectorAll('[data-tbl]').forEach(function(b){
+    b.onclick=function(){ tableViewTier=this.getAttribute('data-tbl'); renderTable(); };
+  });
 }
 // ================= 比赛控制 =================
 function updateControls(){
@@ -2116,12 +2209,12 @@ function updateControls(){
   var b3=document.createElement('button'); b3.className='btn sm'; b3.textContent='🧠 战术';
   b3.onclick=function(){
     var order=['balanced','gegenpress','bus'];
-    var i=order.indexOf(match.home.tactic);
-    match.home.tactic=order[(i+1)%order.length];
-    var tc=tacticById(match.home.tactic);
-    match.home.mentality=tc.mentality; match.home.press=tc.press; match.home.line=tc.line;
-    match.paramsHome=params(match.home,true);
-    myClub.tactic=match.home.tactic;
+    var i=order.indexOf(myClub.tactic);
+    myClub.tactic=order[(i+1)%order.length];
+    var tc=tacticById(myClub.tactic);
+    myClub.mentality=tc.mentality; myClub.press=tc.press; myClub.line=tc.line;
+    if(match.home===myClub) match.paramsHome=params(myClub,true);
+    else match.paramsAway=params(myClub,false);
     showMsg('战术：'+tc.name+' —— '+tc.desc);
     document.getElementById('mtTxt').textContent='我的战术：'+tc.name;
   };
