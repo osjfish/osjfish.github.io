@@ -346,13 +346,25 @@ function initLeague(){
 function genFixtures(tier,rounds){
   var tbl=tableOf(tier);
   var n=tbl.length;
+  var halfRounds=rounds/2; // 单循环轮数
   var rot=[];
   for(var i=0;i<n;i++) rot.push(i);
-  for(var r=1;r<=rounds;r++){
+  for(var r=1;r<=halfRounds;r++){
     var pairs=[];
-    for(var i=0;i<Math.floor(n/2);i++) pairs.push([rot[i],rot[n-1-i]]);
+    for(var i=0;i<Math.floor(n/2);i++){
+      var h=rot[i], a=rot[n-1-i];
+      // 第一循环：奇数列主队在前，偶数列客队在前（交替）
+      if(r%2===1) pairs.push([h,a]);
+      else pairs.push([a,h]);
+    }
     rot.unshift(rot.pop());
     fixtures[tier][r]=pairs;
+    // 第二循环：主客对调
+    var pairs2=[];
+    for(var i=0;i<pairs.length;i++){
+      pairs2.push([pairs[i][1],pairs[i][0]]);
+    }
+    fixtures[tier][r+halfRounds]=pairs2;
   }
 }
 function tableOf(tier){ return tier==='A'?leagueTable.A:leagueTable.B; }
@@ -495,15 +507,32 @@ function startMatch(){
   if(!resultsByRound[round]||!resultsByRound[round][myTier]||!resultsByRound[round][myTier].length){
     simulateAIGames();
   }
-  var oppIdx=opponentOf(round);
+var oppIdx=opponentOf(round);
   var opp=aiClubs[oppIdx];
-  var myAb=teamAbility(myClub.eleven)+2; // 主场优势
-  var oppAb=teamAbility(opp.eleven);
-  match={ home:myClub, away:opp, awayIdx:oppIdx, score:[0,0], clock:0, half:1, speed:1,
-    over:false, poss:[0,0], shots:[0,0], onTarget:[0,0], rating:{}, assists:{},
-    events:[], lastTouch:1, setPiece:null, phase:'kickoff', phaseT:1.2, players:[], ball:null,
-    confetti:[], camShake:0, goalCeleb:0, injury:null, counterT:0, counterTeam:null,
-    paramsHome:params(myClub,true), paramsAway:params(opp,false) };
+  // 根据赛程表确定主客场
+  var pairs=fixtures[myTier]&&fixtures[myTier][round];
+  var isHome=true;
+  if(pairs){
+    for(var pi=0;pi<pairs.length;pi++){
+      if(pairs[pi][0]===myIdx){ isHome=true; break; }
+      if(pairs[pi][1]===myIdx){ isHome=false; break; }
+    }
+  }
+  var myAb=teamAbility(myClub.eleven)+(isHome?2:0); // 主场优势
+  var oppAb=teamAbility(opp.eleven)+(isHome?0:2);
+  if(isHome){
+    match={ home:myClub, away:opp, awayIdx:oppIdx, score:[0,0], clock:0, half:1, speed:1,
+      over:false, poss:[0,0], shots:[0,0], onTarget:[0,0], rating:{}, assists:{},
+      events:[], lastTouch:1, setPiece:null, phase:'kickoff', phaseT:1.2, players:[], ball:null,
+      confetti:[], camShake:0, goalCeleb:0, injury:null, counterT:0, counterTeam:null,
+      paramsHome:params(myClub,true), paramsAway:params(opp,false) };
+  } else {
+    match={ home:opp, away:myClub, awayIdx:myIdx, score:[0,0], clock:0, half:1, speed:1,
+      over:false, poss:[0,0], shots:[0,0], onTarget:[0,0], rating:{}, assists:{},
+      events:[], lastTouch:1, setPiece:null, phase:'kickoff', phaseT:1.2, players:[], ball:null,
+      confetti:[], camShake:0, goalCeleb:0, injury:null, counterT:0, counterTeam:null,
+      paramsHome:params(opp,true), paramsAway:params(myClub,false) };
+  }
   spawnMatch(match);
   document.getElementById('screen').classList.add('hide');
   document.getElementById('homeName').textContent=myClub.name;
@@ -1415,11 +1444,15 @@ function endMatch(){
   var m=match;
   m.over=true;
   saveGame();
-  // 积分榜
-  var hr=tableOf(myTier).filter(function(r){return r.idx===myIdx;})[0], ar=tableOf(myTier).filter(function(r){return r.idx===m.awayIdx;})[0];
-  hr.gf+=m.score[0]; hr.ga+=m.score[1]; ar.gf+=m.score[1]; ar.ga+=m.score[0];
-  if(m.score[0]>m.score[1]){ hr.w++; ar.l++; hr.form.push('W'); ar.form.push('L'); }
-  else if(m.score[0]<m.score[1]){ hr.l++; ar.w++; hr.form.push('L'); ar.form.push('W'); }
+  // 积分榜：根据实际主客队更新
+  var myScore=m.home.idx===myIdx?m.score[0]:m.score[1];
+  var oppScore=m.home.idx===myIdx?m.score[1]:m.score[0];
+  var oppIdx=m.home.idx===myIdx?m.away.idx:m.home.idx;
+  var hr=tableOf(myTier).filter(function(r){return r.idx===myIdx;})[0];
+  var ar=tableOf(myTier).filter(function(r){return r.idx===oppIdx;})[0];
+  hr.gf+=myScore; hr.ga+=oppScore; ar.gf+=oppScore; ar.ga+=myScore;
+  if(myScore>oppScore){ hr.w++; ar.l++; hr.form.push('W'); ar.form.push('L'); }
+  else if(myScore<oppScore){ hr.l++; ar.w++; hr.form.push('L'); ar.form.push('W'); }
   else { hr.d++; ar.d++; hr.form.push('D'); ar.form.push('D'); }
   hr.p++; ar.p++;
   hr.pts=hr.w*3+hr.d; ar.pts=ar.w*3+ar.d;
@@ -1449,7 +1482,8 @@ function endMatch(){
   }
   for(var n in m.rating){ m.rating[n]=Math.round(clamp(m.rating[n],3.5,10)*10)/10; }
   if(!resultsByRound[round]) resultsByRound[round]={A:[],B:[]};
-  resultsByRound[round][myTier].push({home:myIdx,away:m.awayIdx,hs:m.score[0],as:m.score[1]});
+  var homeIdx=m.home.idx, awayIdx=m.away.idx;
+  resultsByRound[round][myTier].push({home:homeIdx,away:awayIdx,hs:homeIdx===myIdx?m.score[0]:m.score[1],as:homeIdx===myIdx?m.score[1]:m.score[0]});
   window.ensureEleven();
   SFX.whistle(false);
   showFinal(m);
