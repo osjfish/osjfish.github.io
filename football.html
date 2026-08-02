@@ -219,6 +219,24 @@ var REGIONS=[
   {id:'hongkong',name:'香港',tier:'B',ab:56,color:'#e74c3c',short:'港'},
   {id:'macau',name:'澳门',tier:'B',ab:55,color:'#2ecc71',short:'澳'}
 ];
+var TACTICS=[
+  { id:'balanced', name:'⚖ 攻守平衡', desc:'攻守均衡、节奏适中，最稳妥的选择',
+    mentality:'bal', press:'mid', line:'mid', passAgg:0.35, tempo:1.0, direct:0.3, wing:0.45, counter:1.1, shootMul:1.0, shootDist:390, forward:1.1 },
+  { id:'tikitaka', name:'🧠 传控', desc:'高控球率、短传渗透、丢球立即反抢',
+    mentality:'bal', press:'high', line:'mid', passAgg:0.65, tempo:0.85, direct:0.15, wing:0.45, counter:1.0, shootMul:0.9, shootDist:380, forward:1.1 },
+  { id:'gegenpress', name:'⚡ 高位逼抢', desc:'丢球就地反抢，夺回球权后快速直塞',
+    mentality:'att', press:'high', line:'high', passAgg:0.3, tempo:1.15, direct:0.6, wing:0.45, counter:1.35, shootMul:1.15, shootDist:420, forward:1.3 },
+  { id:'counter', name:'🛡 防守反击', desc:'低位防守，抢断后快速纵向反击',
+    mentality:'def', press:'low', line:'low', passAgg:0.25, tempo:1.25, direct:0.8, wing:0.45, counter:1.6, shootMul:1.05, shootDist:400, forward:0.9 },
+  { id:'bus', name:'🚌 摆大巴', desc:'全员退守禁区，极度保守',
+    mentality:'def', press:'low', line:'low', passAgg:0.2, tempo:0.85, direct:0.5, wing:0.45, counter:1.2, shootMul:0.7, shootDist:340, forward:0.75 },
+  { id:'direct', name:'🚀 长传冲吊', desc:'跳过中场，直接长传找前锋',
+    mentality:'bal', press:'mid', line:'mid', passAgg:0.5, tempo:1.2, direct:1.0, wing:0.45, counter:1.25, shootMul:1.1, shootDist:420, forward:1.15 }
+];
+function tacticById(id){
+  for(var i=0;i<TACTICS.length;i++){ if(TACTICS[i].id===id) return TACTICS[i]; }
+  return TACTICS[0];
+}
 var LEAGUE_A_TEAMS=18, LEAGUE_A_ROUNDS=34; // 双循环
 var LEAGUE_B_TEAMS=16, LEAGUE_B_ROUNDS=30;
 var FORMS={ '4-3-3':{gk:[[.06,.06]],df:[[.2,.2],[.2,.4],[.2,.6],[.2,.8]],mf:[[.4,.25],[.4,.5],[.4,.75]],fw:[[.7,.2],[.7,.5],[.7,.8]]},
@@ -1058,24 +1076,6 @@ var PRESETS=[
   {n:'⚖ 攻守均衡',m:'bal',p:'mid',l:'mid'},
   {n:'🛡 摆大巴',m:'def',p:'low',l:'low'}
 ];
-var TACTICS=[
-  { id:'balanced', name:'⚖ 攻守平衡', desc:'攻守均衡、节奏适中，最稳妥的选择',
-    mentality:'bal', press:'mid', line:'mid', passAgg:0.35, tempo:1.0, direct:0.3, wing:0.45, counter:1.1, shootMul:1.0, shootDist:390, forward:1.1 },
-  { id:'tikitaka', name:'🧠 传控', desc:'高控球率、短传渗透、丢球立即反抢',
-    mentality:'bal', press:'high', line:'mid', passAgg:0.65, tempo:0.85, direct:0.15, wing:0.45, counter:1.0, shootMul:0.9, shootDist:380, forward:1.1 },
-  { id:'gegenpress', name:'⚡ 高位逼抢', desc:'丢球就地反抢，夺回球权后快速直塞',
-    mentality:'att', press:'high', line:'high', passAgg:0.3, tempo:1.15, direct:0.6, wing:0.45, counter:1.35, shootMul:1.15, shootDist:420, forward:1.3 },
-  { id:'counter', name:'🛡 防守反击', desc:'低位防守，抢断后快速纵向反击',
-    mentality:'def', press:'low', line:'low', passAgg:0.25, tempo:1.25, direct:0.8, wing:0.45, counter:1.6, shootMul:1.05, shootDist:400, forward:0.9 },
-  { id:'bus', name:'🚌 摆大巴', desc:'全员退守禁区，极度保守',
-    mentality:'def', press:'low', line:'low', passAgg:0.2, tempo:0.85, direct:0.5, wing:0.45, counter:1.2, shootMul:0.7, shootDist:340, forward:0.75 },
-  { id:'direct', name:'🚀 长传冲吊', desc:'跳过中场，直接长传找前锋',
-    mentality:'bal', press:'mid', line:'mid', passAgg:0.5, tempo:1.2, direct:1.0, wing:0.45, counter:1.25, shootMul:1.1, shootDist:420, forward:1.15 }
-];
-function tacticById(id){
-  for(var i=0;i<TACTICS.length;i++){ if(TACTICS[i].id===id) return TACTICS[i]; }
-  return TACTICS[0];
-}
 function headline(){
   var opp=opponentOf(round);
   var oppClub=aiClubs.filter(function(c){return c.idx===opp;})[0];
