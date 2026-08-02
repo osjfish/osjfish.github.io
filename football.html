@@ -319,10 +319,13 @@ function opponentOf(r){
   var ci=-1;
   for(var i=0;i<tbl.length;i++){ if(tbl[i].idx===myIdx){ ci=i; break; } }
   if(ci<0) return -1;
-  var pos=(ci+1<=n/2)?((ci+r-1)%(n-1)):((ci-r-1)%(n-1));
-  if(pos<0) pos+=n-1;
-  if(pos>=ci) pos++;
-  return tbl[pos%n].idx;
+  // 使用与pairsOfRound相同的圆环算法
+  var rot=rotOf(myTier).slice();
+  for(var k=1;k<r;k++) rot.unshift(rot.pop());
+  var cip=rot.indexOf(ci);
+  if(cip<0) return -1;
+  var opp=rot[n-1-cip];
+  return tbl[opp].idx;
 }
 function pairsOfRound(){
   var rot=rotOf(myTier);
@@ -1753,7 +1756,7 @@ function renderLineup(){
   var ab=document.createElement('button');
   ab.className='fbtn sel';
   ab.textContent='⚡ 自动首发（按能力）';
-  ab.onclick=function(){ autoLineup(); showMsg('已按能力自动排最佳首发'); };
+  ab.onclick=function(){ window.autoLineup(); showMsg('已按能力自动排最佳首发'); };
   quick.appendChild(ab);
   var hint=document.createElement('span');
   hint.style.cssText='font-size:10px;color:#5a6678';
@@ -1891,7 +1894,7 @@ function renderTransfer(){
       myClub.cash-=p.price;
       myClub.squad.push(p);
       market.splice(idx,1);
-      ensureEleven();
+      window.ensureEleven();
       renderScreen();
       showMsg('签约 '+p.name+'！');
     };
@@ -1905,7 +1908,7 @@ function renderTransfer(){
       myClub.cash+=Math.round(q.ab*1.5);
       myClub.squad.splice(idx,1);
       if(in11>=0) myClub.eleven[in11]=null;
-      ensureEleven();
+      window.ensureEleven();
       renderScreen();
       showMsg(q.name+' 转会离队 +'+Math.round(q.ab*1.5)+'万');
     };
@@ -2127,6 +2130,7 @@ function renderPickClub(){
     btn.onclick=function(){ selectTeam(parseInt(this.getAttribute('data-pick'))); };
   });
 }
+window.autoLineup=autoLineup; window.ensureEleven=ensureEleven;
 var loaded=loadGame();
 if(loaded&&myIdx>=0&&myClub){
   renderScreen();
