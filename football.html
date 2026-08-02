@@ -390,7 +390,7 @@ function simAIMatch(hIdx,aIdx){
   var away=aiClubs.filter(function(c){return c.idx===aIdx;})[0];
   if(!home||!away) return;
   var ha=teamAbility(home.eleven), aa=teamAbility(away.eleven);
-  var expH=clamp(1.5+(ha-aa)/60,0.2,6.0), expA=clamp(1.5+(aa-ha)/60,0.2,6.0);
+  var expH=clamp(1.5+(ha-aa)/60+0.2,0.2,6.0), expA=clamp(1.5+(aa-ha)/60,0.2,5.5);
   var hg=poisson(expH), ag=poisson(expA);
   var hr=tableOf(myTier).filter(function(r){return r.idx===hIdx;})[0];
   var ar=tableOf(myTier).filter(function(r){return r.idx===aIdx;})[0];
@@ -1383,7 +1383,18 @@ function updateMatch(m,dt){
   m.clock+=dt*60*m.speed;
   if(m.counterT>0) m.counterT-=sdt;
   if(m.clock>=90*60){ endMatch(); return; }
-  if(m.clock>=45*60&&m.half===1){ m.half=2; addEvent(45,'🕐 中场休息 · '+m.score[0]+' : '+m.score[1]); }
+  if(m.clock>=45*60&&m.half===1){ 
+    m.half=2; 
+    addEvent(45,'中场休息 · '+m.score[0]+' : '+m.score[1]);
+    // 半场士气调整：落后方+5士气，领先方-3士气
+    if(m.score[0]>m.score[1]){
+      for(var hi=0;hi<m.players.length;hi++){ if(m.players[hi].team===0) m.players[hi].pl.mor=clamp(m.players[hi].pl.mor-3,20,100); }
+      for(var ai=0;ai<m.players.length;ai++){ if(m.players[ai].team===1) m.players[ai].pl.mor=clamp(m.players[ai].pl.mor+5,20,100); }
+    } else if(m.score[1]>m.score[0]){
+      for(var hi2=0;hi2<m.players.length;hi2++){ if(m.players[hi2].team===1) m.players[hi2].pl.mor=clamp(m.players[hi2].pl.mor-3,20,100); }
+      for(var ai2=0;ai2<m.players.length;ai2++){ if(m.players[ai2].team===0) m.players[ai2].pl.mor=clamp(m.players[ai2].pl.mor+5,20,100); }
+    }
+  }
   for(var i=0;i<m.players.length;i++){
     var p=m.players[i];
     aiPlayer(m,p,sdt);
