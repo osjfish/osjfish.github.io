@@ -241,6 +241,7 @@ function tacticById(id){
 window.ensureEleven=function(){};
 window.autoLineup=function(){};
 window.window.roleList=function(){};
+window.reformEleven=function(){};
 window.weeklyEvent=function(){};
 var LEAGUE_A_TEAMS=18, LEAGUE_A_ROUNDS=34; // 双循环
 var LEAGUE_B_TEAMS=16, LEAGUE_B_ROUNDS=30;
@@ -984,7 +985,7 @@ function aiGK(m,p,dt){
           if(!nearFoe&&d<bd){ bd=d; best=q; }
 }
 }
-window.window.roleList=function(form){
+window.roleList=function(form){
   var f=FORMS[form]||FORMS['4-3-3'];
   var roles=[];
   var order=['gk','df','mf','fw'];
@@ -1037,7 +1038,7 @@ function assignPlayer(q){
   if(wi>=0){ myClub.eleven[wi]=q; return true; }
   return false;
 }
-function reformEleven(){
+window.reformEleven=function(){
   var roles=window.roleList(myClub.form);
   var old=myClub.eleven||[];
   var used={}, el=[];
@@ -1733,7 +1734,7 @@ function renderLineup(){
     var b=document.createElement('button');
     b.className='fbtn'+(myClub.form===forms[f]?' sel':'');
     b.textContent=forms[f];
-    b.onclick=function(){ myClub.form=this.textContent; reformEleven(); renderLineup(); showMsg('阵型已切换：'+myClub.form); };
+    b.onclick=function(){ myClub.form=this.textContent; window.reformEleven(); renderLineup(); showMsg('阵型已切换：'+myClub.form); };
     formRow2.appendChild(b);
   }
   fr.appendChild(formRow2);
