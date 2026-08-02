@@ -240,7 +240,8 @@ function tacticById(id){
 }
 window.ensureEleven=function(){};
 window.autoLineup=function(){};
-window.window.roleList=function(){};
+window.roleList=function(){};
+window.assignPlayer=function(){return true;};
 window.reformEleven=function(){};
 window.weeklyEvent=function(){};
 var LEAGUE_A_TEAMS=18, LEAGUE_A_ROUNDS=34; // 双循环
@@ -1026,7 +1027,7 @@ window.ensureEleven=function(){
     if(best) myClub.eleven[i]=best;
   }
 }
-function assignPlayer(q){
+window.assignPlayer=function(q){
   var roles=window.roleList(myClub.form);
   for(var i=0;i<roles.length;i++){ if(roles[i]===q.pos&&!myClub.eleven[i]){ myClub.eleven[i]=q; return true; } }
   var wi=-1,wa=-1;
@@ -1812,7 +1813,7 @@ function renderLineup(){
       var idx=myClub.eleven.indexOf(q);
       if(idx>=0){ myClub.eleven[idx]=null; }
       else {
-        if(!assignPlayer(q)) showMsg('没有同位置空位，请先点击球场槽位调整');
+        if(!window.assignPlayer(q)) showMsg('没有同位置空位，请先点击球场槽位调整');
       }
       renderLineup();
     }; }(pi);
