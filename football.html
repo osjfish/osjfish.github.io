@@ -424,7 +424,7 @@ var loadedMatchInterrupted=false;
 function saveGame(){
   try{
     var d={
-      myClub:myClub, round:round, ROT_A:ROT_A, ROT_B:ROT_B, leagueTable:leagueTable,
+      myClub:myClub, round:round, ROT_A:ROT_A, ROT_B:ROT_B, leagueTable:leagueTable, aiClubs:aiClubs,
       resultsByRound:resultsByRound, champHistory:champHistory, ach:ach,
       market:market, names:NAMES_CACHE, sfx:SFX_ON,
       matchActive:!!(match&&!match.over)
@@ -442,6 +442,7 @@ function loadGame(){
     myIdx=myClub.idx;
     myTier=myClub.tier;
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
+    if(d.aiClubs&&d.aiClubs.length) aiClubs=d.aiClubs;
     round=d.round||1; ROT_A=d.ROT_A||[]; ROT_B=d.ROT_B||[];
     leagueTable=d.leagueTable||{A:[],B:[]};
     resultsByRound=d.resultsByRound||{};
@@ -1357,23 +1358,24 @@ function outOfBounds(m){
   return false;
 }
 function updateMatch(m,dt){
-  if(m.phase==='kickoff'){ m.phaseT-=dt; if(m.phaseT<=0){ m.phase='play'; kickoffPass(m); } }
-  if(m.goalCeleb>0){ m.goalCeleb-=dt; if(m.goalCeleb<=0){ doKickoff(m,1-m.lastGoal); } return; }
+  var sdt=dt*m.speed;
+  if(m.phase==='kickoff'){ m.phaseT-=sdt; if(m.phaseT<=0){ m.phase='play'; kickoffPass(m); } }
+  if(m.goalCeleb>0){ m.goalCeleb-=sdt; if(m.goalCeleb<=0){ doKickoff(m,1-m.lastGoal); } return; }
   if(m.phase!=='play') return;
   m.clock+=dt*60*m.speed;
-  if(m.counterT>0) m.counterT-=dt;
+  if(m.counterT>0) m.counterT-=sdt;
   if(m.clock>=90*60){ endMatch(); return; }
   if(m.clock>=45*60&&m.half===1){ m.half=2; addEvent(45,'🕐 中场休息 · '+m.score[0]+' : '+m.score[1]); }
   for(var i=0;i<m.players.length;i++){
     var p=m.players[i];
-    aiPlayer(m,p,dt);
-    stepPlayer(m,p,dt);
+    aiPlayer(m,p,sdt);
+    stepPlayer(m,p,sdt);
   }
-  stepBall(m,dt);
+  stepBall(m,sdt);
   for(var i2=0;i2<m.players.length;i2++) playerContact(m,m.players[i2]);
   collide(m);
   // 持球统计
-  if(m.ball.owner) m.poss[m.ball.owner.team]+=dt;
+  if(m.ball.owner) m.poss[m.ball.owner.team]+=sdt;
   postBounce(m);
   if(checkGoal(m)) return;
   if(outOfBounds(m)) return;
