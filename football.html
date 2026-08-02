@@ -623,10 +623,6 @@ function spawnMatch(m){
           vx:0,vy:0,face:home?0:Math.PI,protect:0,shootCd:0,homeX:0,homeY:0});
 }
   }
-  // 近距离兜底：球静止或缓慢弹跳在门将附近时，不论方向直接没收
-  if(!b.owner&&dist2(p,b)<(PLAYER_R+12)*(PLAYER_R+12)&&(b.vx*b.vx+b.vy*b.vy)<80*80){
-    giveBall(m,p);
-  }
 }
   place(m.home,true);
   place(m.away,false);
@@ -1504,8 +1500,9 @@ function render(){
   var g=ctx;
   g.save();
   drawPitch(g);
-  if(match&&!match.over){
+if(match&&!match.over){
     var m=match;
+    if(!m.ball) return;
     // 影子
     for(var i=0;i<m.players.length;i++){
       var p=m.players[i];
@@ -1527,8 +1524,9 @@ function render(){
         g.beginPath(); g.arc(p2.x,p2.y,PLAYER_R+3,0,Math.PI*2); g.stroke();
       }
     }
-    // 球
+// 球
     var b=m.ball;
+    if(!b) return;
     g.fillStyle='rgba(0,0,0,.25)';
     g.beginPath(); g.ellipse(b.x+2,b.y+3,6,3.8,0,0,Math.PI*2); g.fill();
     g.fillStyle='#f5f7fa';
