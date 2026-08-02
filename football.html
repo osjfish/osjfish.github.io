@@ -581,17 +581,11 @@ function params(team,home){
 }
 function doKickoff(m,team){
   m.phase='kickoff'; m.phaseT=1.2;
-  // 全员按阵型比例分布在本方半场，下半场交换场地
+  // 全员按阵型比例分布在本方半场（保留 gk→fw 的梯度），非开球方在中圈外
   for(var i=0;i<m.players.length;i++){
     var p=m.players[i];
-    if(m.half===2){
-      // 下半场：攻防方向已反转，队伍位置互换
-      if(p.team===0) p.x=Math.max(p.homeX*0.58,W/2+95);
-      else p.x=Math.min(W-(W-p.homeX)*0.58,W/2-95);
-    } else {
-      if(p.team===0) p.x=Math.min(p.homeX*0.58,W/2-95);
-      else p.x=Math.max(W-(W-p.homeX)*0.58,W/2+95);
-    }
+    if(p.team===0) p.x=Math.min(p.homeX*0.58,W/2-95);
+    else p.x=Math.max(W-(W-p.homeX)*0.58,W/2+95);
     p.vx=0; p.vy=0;
   }
   m.ball={x:W/2,y:MIDY,vx:0,vy:0,owner:null,spin:0,trail:[],_zone:0};
@@ -667,7 +661,7 @@ function aiPlayer(m,p,dt){
   var b=m.ball, pr=p.pl, team=p.team===0?m.home:m.away;
   var P=p.team===0?m.paramsHome:m.paramsAway;
   if(p.role==='gk'){ aiGK(m,p,dt); return; }
-  var att=p.team===0?1:-1; if(m.half===2) att=-att;
+  var att=p.team===0?1:-1;
   var gateX=att>0?W:0;
   if(b.owner===p){
     var dToGate=Math.abs(p.x-gateX);
@@ -908,7 +902,7 @@ function goTo(p,tx,ty,dt,sp){
   p.face=Math.atan2(dy,dx);
 }
 function formationMove(m,p,dt){
-  var att=p.team===0?1:-1; if(m.half===2) att=-att;
+  var att=p.team===0?1:-1;
   var P=p.team===0?m.paramsHome:m.paramsAway;
   // 无球动态跑位（缓慢随机游走，避免站桩）
   if(!p.wt||p.wt<=0){
@@ -1429,12 +1423,7 @@ function updateMatch(m,dt){
       for(var hi2=0;hi2<m.players.length;hi2++){ if(m.players[hi2].team===1) m.players[hi2].pl.mor=clamp(m.players[hi2].pl.mor-3,20,100); }
       for(var ai2=0;ai2<m.players.length;ai2++){ if(m.players[ai2].team===0) m.players[ai2].pl.mor=clamp(m.players[ai2].pl.mor+5,20,100); }
     }
-    // 交换场地：镜像位置，攻防方向通过half标记切换
-    for(var si=0;si<m.players.length;si++){
-      m.players[si].homeX=W-m.players[si].homeX;
-      m.players[si].x=W-m.players[si].x;
-      m.players[si].face=Math.PI-m.players[si].face;
-    }
+    // 半场休息：暂停后重新开球（不交换场地）
     doKickoff(m,1); // 下半场由客队开球
     return;
   }
