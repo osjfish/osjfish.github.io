@@ -661,7 +661,7 @@ function aiPlayer(m,p,dt){
   var b=m.ball, pr=p.pl, team=p.team===0?m.home:m.away;
   var P=p.team===0?m.paramsHome:m.paramsAway;
   if(p.role==='gk'){ aiGK(m,p,dt); return; }
-  var att=p.team===0?1:-1;
+  var att=p.team===0?1:-1; if(m.half===2) att=-att;
   var gateX=att>0?W:0;
   if(b.owner===p){
     var dToGate=Math.abs(p.x-gateX);
@@ -902,7 +902,7 @@ function goTo(p,tx,ty,dt,sp){
   p.face=Math.atan2(dy,dx);
 }
 function formationMove(m,p,dt){
-  var att=p.team===0?1:-1;
+  var att=p.team===0?1:-1; if(m.half===2) att=-att;
   var P=p.team===0?m.paramsHome:m.paramsAway;
   // 无球动态跑位（缓慢随机游走，避免站桩）
   if(!p.wt||p.wt<=0){
@@ -1423,9 +1423,8 @@ function updateMatch(m,dt){
       for(var hi2=0;hi2<m.players.length;hi2++){ if(m.players[hi2].team===1) m.players[hi2].pl.mor=clamp(m.players[hi2].pl.mor-3,20,100); }
       for(var ai2=0;ai2<m.players.length;ai2++){ if(m.players[ai2].team===0) m.players[ai2].pl.mor=clamp(m.players[ai2].pl.mor+5,20,100); }
     }
-    // 交换场地：双方队员team互换（0→1, 1→0），同时镜像位置
+    // 交换场地：镜像位置，攻防方向通过half标记切换
     for(var si=0;si<m.players.length;si++){
-      m.players[si].team=1-m.players[si].team;
       m.players[si].homeX=W-m.players[si].homeX;
       m.players[si].x=W-m.players[si].x;
       m.players[si].face=Math.PI-m.players[si].face;
