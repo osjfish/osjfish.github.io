@@ -240,6 +240,7 @@ function tacticById(id){
 }
 window.ensureEleven=function(){};
 window.autoLineup=function(){};
+window.window.roleList=function(){};
 window.weeklyEvent=function(){};
 var LEAGUE_A_TEAMS=18, LEAGUE_A_ROUNDS=34; // 双循环
 var LEAGUE_B_TEAMS=16, LEAGUE_B_ROUNDS=30;
@@ -442,7 +443,7 @@ function startMatch(){
   window.ensureEleven();
   simulateAIGames();
   var oppIdx=opponentOf(round);
-  var opp=aiClubs[oppIdx-1];
+  var opp=aiClubs[oppIdx];
   var myAb=teamAbility(myClub.eleven)+2; // 主场优势
   var oppAb=teamAbility(opp.eleven);
   match={ home:myClub, away:opp, awayIdx:oppIdx, score:[0,0], clock:0, half:1, speed:1,
@@ -983,7 +984,7 @@ function aiGK(m,p,dt){
           if(!nearFoe&&d<bd){ bd=d; best=q; }
 }
 }
-function roleList(form){
+window.window.roleList=function(form){
   var f=FORMS[form]||FORMS['4-3-3'];
   var roles=[];
   var order=['gk','df','mf','fw'];
@@ -992,7 +993,7 @@ function roleList(form){
 }
 function buildEleven(team){
   var el=[];
-  var roles=roleList(team.form||'4-3-3');
+  var roles=window.roleList(team.form||'4-3-3');
   for(var r=0;r<roles.length;r++){
     var best=null;
     for(var i=0;i<team.squad.length;i++){
@@ -1009,7 +1010,7 @@ function buildEleven(team){
   team.eleven=el;
 }
 window.ensureEleven=function(){
-  var roles=roleList(myClub.form);
+  var roles=window.roleList(myClub.form);
   for(var i=0;i<roles.length;i++){
     if(myClub.eleven[i]) continue;
     var best=null;
@@ -1025,7 +1026,7 @@ window.ensureEleven=function(){
   }
 }
 function assignPlayer(q){
-  var roles=roleList(myClub.form);
+  var roles=window.roleList(myClub.form);
   for(var i=0;i<roles.length;i++){ if(roles[i]===q.pos&&!myClub.eleven[i]){ myClub.eleven[i]=q; return true; } }
   var wi=-1,wa=-1;
   for(var j=0;j<roles.length;j++){
@@ -1037,7 +1038,7 @@ function assignPlayer(q){
   return false;
 }
 function reformEleven(){
-  var roles=roleList(myClub.form);
+  var roles=window.roleList(myClub.form);
   var old=myClub.eleven||[];
   var used={}, el=[];
   for(var i=0;i<roles.length;i++){
@@ -1682,7 +1683,7 @@ function renderOpponent(){
   var el=document.getElementById('view-opponent');
   if(!el) return;
   var oppIdx=opponentOf(round);
-  var opp=aiClubs[oppIdx-1];
+var opp=aiClubs[oppIdx];
   var html='<div class="section-title">🔍 第'+round+'轮对手：'+opp.name+'<span class="teamDot" style="background:'+opp.color+';margin-left:6px"></span></div>';
   html+='<div style="font-size:11px;color:#8fa3bd;margin-bottom:6px">阵型 '+opp.form+' · 战术 <b style="color:#3ddc7a">'+tacticById(opp.tactic||'balanced').name+'</b> · 首发实力 <b style="color:#3ddc7a">'+Math.round(teamAbility(opp.eleven))+'</b></div>';
   var elv=opp.eleven.filter(function(x){ return x; });
@@ -1826,7 +1827,7 @@ function renderLineup(){
 }
 // 点击球场槽位 → 弹出同位置球员选择器
 function openSlotPicker(slotIdx){
-  var roles=roleList(myClub.form);
+  var roles=window.roleList(myClub.form);
   var role=roles[slotIdx];
   var cur=myClub.eleven[slotIdx];
   var cands=myClub.squad.filter(function(p){ return p.inj<=0&&p.pos===role&&p!==cur&&myClub.eleven.indexOf(p)<0; }).sort(function(a,b){ return b.ab-a.ab; });
