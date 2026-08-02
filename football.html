@@ -124,10 +124,10 @@
 <body>
 <div id="wrap"><canvas id="game" width="1050" height="680"></canvas></div>
 <div id="top">
-  <span class="teamDot" style="background:#3a7bff"></span>
+  <span class="teamDot" id="dotHome" style="background:#3a7bff"></span>
   <span class="nm" id="clubName">疾风城 FC</span>
   <span class="cash" id="cashTxt"></span>
-  <span class="teamDot" style="background:#ff4d4d"></span><span id="tName0">主队</span>
+  <span class="teamDot" id="dotAway" style="background:#ff4d4d"></span><span id="tName0">主队</span>
   <span class="sc" id="score0">0</span>
   <span class="ck" id="clock">0'</span>
   <span class="sc" id="score1">0</span><span id="tName1">客队</span>
@@ -530,6 +530,8 @@ function startMatch(){
   document.getElementById('screen').classList.add('hide');
   document.getElementById('tName0').textContent=myClub.name;
   document.getElementById('tName1').textContent=opp.name;
+  var dh=document.getElementById('dotHome'); if(dh) dh.style.background=TEAM_COLORS[0];
+  var da=document.getElementById('dotAway'); if(da) da.style.background=opp.color;
   document.getElementById('score0').textContent='0';
   document.getElementById('score1').textContent='0';
   document.getElementById('mtTxt').textContent='我的战术：'+({att:'进攻',bal:'平衡',def:'防守'})[myClub.mentality];
@@ -712,44 +714,60 @@ function aiPlayer(m,p,dt){
         return;
       }
     }
-    // 逼抢→传球/突破
+    // 逼抢→传球/突破：被逼抢时优先传球或护球摆脱，绝不硬冲
     var threat=false,near=null,nbd=1e9;
     for(var i=0;i<m.players.length;i++){
       var q=m.players[i];
       if(q.team!==p.team&&dist2(q,p)<70*70){ threat=true; }
       if(q.team!==p.team&&q.role!=='gk'&&dist2(q,p)<nbd){ nbd=dist2(q,p); near=q; }
     }
-    if(threat&&Math.random()<0.12*P.passAgg/0.35){
-      var tgt=bestPassTarget(m,p);
-      if(tgt){
-        var dx=tgt.x-p.x,dy=tgt.y-p.y,dd=Math.sqrt(dx*dx+dy*dy)||1;
-        var passPow=(300+dd*0.5)*(0.85+0.35*pr.pas/100)*P.tempo;
-        m.ball.owner=null;
-        m.ball.vx=dx/dd*passPow;
-        m.ball.vy=dy/dd*passPow;
-        // 传球精度：传球能力越高越准（低能力时有几率传偏）
-        if(Math.random()<(100-pr.pas)/260){
-          m.ball._passTx=tgt.x+(Math.random()-.5)*110;
-          m.ball._passTy=tgt.y+(Math.random()-.5)*70;
-        } else {
-          m.ball._passTx=tgt.x; m.ball._passTy=tgt.y;
+    if(threat){
+      var passChance=Math.min(0.95,0.7*P.passAgg/0.35);
+      if(Math.random()<passChance){
+        var tgt=bestPassTarget(m,p);
+        if(!tgt) tgt=escapePassTarget(m,p);
+        if(tgt){
+          var dx=tgt.x-p.x,dy=tgt.y-p.y,dd=Math.sqrt(dx*dx+dy*dy)||1;
+          var passPow=(300+dd*0.5)*(0.85+0.35*pr.pas/100)*P.tempo;
+          m.ball.owner=null;
+          m.ball.vx=dx/dd*passPow;
+          m.ball.vy=dy/dd*passPow;
+          // 传球精度：传球能力越高越准（低能力时有几率传偏）
+          if(Math.random()<(100-pr.pas)/260){
+            m.ball._passTx=tgt.x+(Math.random()-.5)*110;
+            m.ball._passTy=tgt.y+(Math.random()-.5)*70;
+          } else {
+            m.ball._passTx=tgt.x; m.ball._passTy=tgt.y;
+          }
+          m.ball._passTo=tgt;
+          p.shootCd=0.5;
+          m.lastTouch=p.team;
+          return;
         }
-        m.ball._passTo=tgt;
-        p.shootCd=0.5;
-        m.lastTouch=p.team;
-        return;
-      }
-      // 被贴身无传球目标：横移/回撤寻找射门角度，不硬冲门将
-      if(near){
-        var away=Math.atan2(p.y-near.y,p.x-near.x);
-        // 靠近边界时优先往场内变向，避免被压死在边线
-        if(p.x<70&&Math.cos(away)<0) away=0;
-        else if(p.x>W-70&&Math.cos(away)>0) away=Math.PI;
-        if(p.y<70&&Math.sin(away)<0) away=Math.PI/2;
-        else if(p.y>H-70&&Math.sin(away)>0) away=-Math.PI/2;
-        var sp=pSpeed(pr);
-        p.vx=Math.cos(away)*sp*0.7+att*sp*0.15;
-        p.vy=Math.sin(away)*sp*0.8;
+        // 无传球目标：横移/回撤摆脱，不硬冲门将
+        if(near){
+          var away=Math.atan2(p.y-near.y,p.x-near.x);
+          // 靠近边界时优先往场内变向，避免被压死在边线
+          if(p.x<70&&Math.cos(away)<0) away=0;
+          else if(p.x>W-70&&Math.cos(away)>0) away=Math.PI;
+          if(p.y<70&&Math.sin(away)<0) away=Math.PI/2;
+          else if(p.y>H-70&&Math.sin(away)>0) away=-Math.PI/2;
+          var sp=pSpeed(pr);
+          p.vx=Math.cos(away)*sp*0.7+att*sp*0.15;
+          p.vy=Math.sin(away)*sp*0.8;
+          p.face=Math.atan2(p.vy,p.vx);
+          return;
+        }
+      } else if(near){
+        // 护球：背身护球，朝安全方向慢速移动，等待队友接应
+        var holdA=Math.atan2(p.y-near.y,p.x-near.x);
+        if(p.x<70&&Math.cos(holdA)<0) holdA=0;
+        else if(p.x>W-70&&Math.cos(holdA)>0) holdA=Math.PI;
+        if(p.y<70&&Math.sin(holdA)<0) holdA=Math.PI/2;
+        else if(p.y>H-70&&Math.sin(holdA)>0) holdA=-Math.PI/2;
+        var spH=pSpeed(pr);
+        p.vx=Math.cos(holdA)*spH*0.5+att*spH*0.3;
+        p.vy=Math.sin(holdA)*spH*0.6;
         p.face=Math.atan2(p.vy,p.vx);
         return;
       }
@@ -936,6 +954,26 @@ function bestPassTarget(m,p){
     var fwd=Math.abs(q.x-gateX)/W;
     var wide=Math.abs(q.y-MIDY)/MIDY;
     var score=d*(1.6-fwd*1.1-P.wing*wide*0.5)*(spaceOk?0.65:1.4)/(1+P.direct*fwd*0.7);
+    if(score<bd){ bd=score; best=q; }
+  }
+  return best;
+}
+// 逃生传球：被逼抢且没有向前传球目标时，寻找附近（含侧向/回传）安全的队友
+function escapePassTarget(m,p){
+  var best=null,bd=1e9;
+  for(var i=0;i<m.players.length;i++){
+    var q=m.players[i];
+    if(q.team!==p.team||q===p||q.role==='gk') continue;
+    var d=Math.sqrt(dist2(q,p));
+    if(d>360||d<40) continue;
+    if(passBlocked(m,p,q)) continue;
+    // 周围 40px 内无对方球员的队友优先（安全接应点）
+    var safe=true;
+    for(var s=0;s<m.players.length;s++){
+      var sq=m.players[s];
+      if(sq.team!==p.team&&sq.role!=='gk'&&dist2(sq,q)<40*40){ safe=false; break; }
+    }
+    var score=d*(safe?0.6:1.4);
     if(score<bd){ bd=score; best=q; }
   }
   return best;
@@ -1440,7 +1478,7 @@ function render(){
     }
     for(var i2=0;i2<m.players.length;i2++){
       var p2=m.players[i2];
-      var col=p2.team===0?TEAM_COLORS[0]:TEAM_COLORS[m.awayIdx-1];
+      var col=p2.team===0?TEAM_COLORS[0]:TEAM_COLORS[m.awayIdx];
       g.fillStyle=col;
       g.beginPath(); g.arc(p2.x,p2.y,10,0,Math.PI*2); g.fill();
       g.strokeStyle='rgba(0,0,0,.5)'; g.lineWidth=1.5; g.stroke();
