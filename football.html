@@ -581,11 +581,17 @@ function params(team,home){
 }
 function doKickoff(m,team){
   m.phase='kickoff'; m.phaseT=1.2;
-  // 全员按阵型比例分布在本方半场（保留 gk→fw 的梯度），非开球方在中圈外
+  // 全员按阵型比例分布在本方半场，下半场交换场地
   for(var i=0;i<m.players.length;i++){
     var p=m.players[i];
-    if(p.team===0) p.x=Math.min(p.homeX*0.58,W/2-95);
-    else p.x=Math.max(W-(W-p.homeX)*0.58,W/2+95);
+    if(m.half===2){
+      // 下半场：攻防方向已反转，队伍位置互换
+      if(p.team===0) p.x=Math.max(p.homeX*0.58,W/2+95);
+      else p.x=Math.min(W-(W-p.homeX)*0.58,W/2-95);
+    } else {
+      if(p.team===0) p.x=Math.min(p.homeX*0.58,W/2-95);
+      else p.x=Math.max(W-(W-p.homeX)*0.58,W/2+95);
+    }
     p.vx=0; p.vy=0;
   }
   m.ball={x:W/2,y:MIDY,vx:0,vy:0,owner:null,spin:0,trail:[],_zone:0};
