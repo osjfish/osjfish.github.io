@@ -313,6 +313,8 @@ function pDef(p){ return 9+(p.def-45)*0.55; }
 // ================= 联赛系统 =================
 var season=1, TOTAL_ROUNDS=0, myIdx=-1, myTier='A', round=1;
 var resultsByRound={}, champHistory=[];
+// 赛季财务：收入/支出明细（每轮累加，新赛季重置）
+var fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0};
 var ach={firstWin:false,champ:0,winStreak:0,season:0};
 var leagueTable={A:[],B:[]};
 var ROT_A=[],ROT_B=[];
@@ -347,8 +349,7 @@ function genFixtures(tier,rounds){
   var tbl=tableOf(tier);
   var n=tbl.length;
   var halfRounds=rounds/2; // 单循环轮数
-  var rot=[];
-  for(var i=0;i<n;i++) rot.push(i);
+  var rot=tbl.map(function(r){return r.idx;}); // 使用实际球队 idx（B级 idx 为18-33，不能从0开始）
   for(var r=1;r<=halfRounds;r++){
     var pairs=[];
     for(var i=0;i<Math.floor(n/2);i++){
@@ -397,7 +398,8 @@ function poisson(lambda){
   do{ k++; p*=Math.random(); }while(p>L);
   return k-1;
 }
-function simAIMatch(hIdx,aIdx){
+function simAIMatch(hIdx,aIdx,tier){
+  tier=tier||myTier;
   var home=aiClubs.filter(function(c){return c.idx===hIdx;})[0];
   var away=aiClubs.filter(function(c){return c.idx===aIdx;})[0];
   if(!home||!away) return;
@@ -409,8 +411,8 @@ function simAIMatch(hIdx,aIdx){
   var aAdj=at?(at.shootMul-1)*0.5:0;
   var expH=clamp(1.5+(ha-aa)/60+0.2+hAdj,0.2,6.0), expA=clamp(1.5+(aa-ha)/60+aAdj,0.2,5.5);
   var hg=poisson(expH), ag=poisson(expA);
-  var hr=tableOf(myTier).filter(function(r){return r.idx===hIdx;})[0];
-  var ar=tableOf(myTier).filter(function(r){return r.idx===aIdx;})[0];
+  var hr=tableOf(tier).filter(function(r){return r.idx===hIdx;})[0];
+  var ar=tableOf(tier).filter(function(r){return r.idx===aIdx;})[0];
   if(!hr||!ar) return;
   hr.gf+=hg; hr.ga+=ag; ar.gf+=ag; ar.ga+=hg;
   if(hg>ag){ hr.w++; ar.l++; hr.form.push('W'); ar.form.push('L'); }
@@ -421,15 +423,21 @@ function simAIMatch(hIdx,aIdx){
   if(hr.form.length>5) hr.form.shift(); if(ar.form.length>5) ar.form.shift();
   // 记录所有比赛结果
   if(!resultsByRound[round]) resultsByRound[round]={A:[],B:[]};
-  resultsByRound[round][myTier].push({home:hIdx,away:aIdx,hs:hg,as:ag});
+  resultsByRound[round][tier].push({home:hIdx,away:aIdx,hs:hg,as:ag});
 }
 function simulateAIGames(){
-  var pairs=fixtures[myTier]&&fixtures[myTier][round];
-  if(!pairs) return;
-  for(var i=0;i<pairs.length;i++){
-    var p=pairs[i];
-    if(p[0]===myIdx||p[1]===myIdx) continue;
-    simAIMatch(p[0],p[1]);
+  // 同时模拟 A、B 两个级别的比赛
+  var tiers=['A','B'];
+  for(var t=0;t<tiers.length;t++){
+    var tier=tiers[t];
+    var pairs=fixtures[tier]&&fixtures[tier][round];
+    if(!pairs) continue;
+    for(var i=0;i<pairs.length;i++){
+      var p=pairs[i];
+      // 玩家自己本轮的比赛跳过（由真实比赛引擎完成）
+      if(tier===myTier&&(p[0]===myIdx||p[1]===myIdx)) continue;
+      simAIMatch(p[0],p[1],tier);
+    }
   }
 }
 
@@ -456,7 +464,7 @@ function saveGame(){
   try{
     var d={
       myClub:myClub, round:round, ROT_A:ROT_A, ROT_B:ROT_B, leagueTable:leagueTable, fixtures:fixtures, aiClubs:aiClubs,
-      resultsByRound:resultsByRound, champHistory:champHistory, ach:ach,
+      resultsByRound:resultsByRound, champHistory:champHistory, ach:ach, fin:fin,
       market:market, names:NAMES_CACHE, sfx:SFX_ON,
       matchActive:!!(match&&!match.over)
     };
@@ -494,6 +502,7 @@ function loadGame(){
     if(d.fixtures) fixtures=d.fixtures;
     leagueTable=d.leagueTable||{A:[],B:[]};
     resultsByRound=d.resultsByRound||{};
+    if(d.fin) fin=d.fin;
     champHistory=d.champHistory||[];
     ach=d.ach||{firstWin:false,champ:0,winStreak:0,season:0};
     if(d.market) market=d.market; else refreshMarket();
@@ -1185,6 +1194,7 @@ window.weeklyEvent=function(){
   if(r<0.25){
     var bonus=300+Math.round(Math.random()*500);
     myClub.cash+=bonus;
+    fin.sponsor+=bonus;
     return '🤝 球迷赞助商追加投资 +'+bonus+'万';
   }
   if(r<0.45){
@@ -1521,6 +1531,7 @@ function endMatch(){
   var gate=Math.round((isHomeGame?30:15)+(myWin?20:(myDraw?10:0)));
   myClub.cash+=gate;
   m._wages=wages; m._gate=gate; m._isHomeGame=isHomeGame;
+  fin.gate+=gate; fin.wages+=wages; fin.bonus+=bonus;
   // 状态/成长/伤病
   for(var i=0;i<myClub.squad.length;i++){
     var p=myClub.squad[i];
@@ -1554,32 +1565,43 @@ function showFinal(m){
   var card=document.getElementById('reportCard');
   var myScore=m.home.idx===myIdx?m.score[0]:m.score[1];
   var oppScore=m.home.idx===myIdx?m.score[1]:m.score[0];
+  var myLeft=m.home.idx===myIdx;
+  var leftName=myLeft?m.home.name:m.away.name;
+  var rightName=myLeft?m.away.name:m.home.name;
+  var myShots=myLeft?m.shots[0]:m.shots[1];
+  var oppShots=myLeft?m.shots[1]:m.shots[0];
+  var myOnT=myLeft?m.onTarget[0]:m.onTarget[1];
+  var oppOnT=myLeft?m.onTarget[1]:m.onTarget[0];
+  var possH=m.poss[0]+m.poss[1]>0?Math.round(m.poss[0]/(m.poss[0]+m.poss[1])*100):50;
+  var myPoss=myLeft?possH:(100-possH);
+  var oppPoss=myLeft?(100-possH):possH;
+  var shotH=m.shots[0]+m.shots[1]>0?Math.round(m.shots[0]/(m.shots[0]+m.shots[1])*100):50;
+  var myShotPct=myLeft?shotH:(100-shotH);
+  var oppShotPct=myLeft?(100-shotH):shotH;
   var win=myScore>oppScore;
   var draw=myScore===oppScore;
-  var posH=m.poss[0]+m.poss[1]>0?Math.round(m.poss[0]/(m.poss[0]+m.poss[1])*100):50;
-  var shotH=m.shots[0]+m.shots[1]>0?Math.round(m.shots[0]/(m.shots[0]+m.shots[1])*100):50;
   card.innerHTML='<h1>比赛报告</h1>'+
-    '<div style="text-align:center;font-size:20px;font-weight:900;margin:4px 0">'+m.home.name+' '+m.score[0]+' : '+m.score[1]+' '+m.away.name+'</div>'+
+    '<div style="text-align:center;font-size:20px;font-weight:900;margin:4px 0">'+leftName+' '+myScore+' : '+oppScore+' '+rightName+'</div>'+
     '<div style="text-align:center;color:'+(win?'#3ddc7a':(draw?'#ffe08a':'#ff6b81'))+';font-weight:800">'+
     (win?'胜利 +60万':(draw?'平局 +20万':'失利'))+'</div>'+
-    '<table><tr><th></th><th>'+m.home.name+'</th><th>'+m.away.name+'</th></tr>'+
-    '<tr><td>射门</td><td>'+m.shots[0]+'</td><td>'+m.shots[1]+'</td></tr>'+
-    '<tr><td>射正</td><td>'+m.onTarget[0]+'</td><td>'+m.onTarget[1]+'</td></tr>'+
-    '<tr><td>控球率</td><td>'+posH+'%</td><td>'+(100-posH)+'%</td></tr></table>'+
-    // 控球/射门可视化条
+    '<table><tr><th></th><th>'+leftName+'</th><th>'+rightName+'</th></tr>'+
+    '<tr><td>射门</td><td>'+myShots+'</td><td>'+oppShots+'</td></tr>'+
+    '<tr><td>射正</td><td>'+myOnT+'</td><td>'+oppOnT+'</td></tr>'+
+    '<tr><td>控球率</td><td>'+myPoss+'%</td><td>'+oppPoss+'%</td></tr></table>'+
+    // 控球/射门可视化条（左=本方）
     '<div style="margin-top:6px">'+
     '<div style="font-size:10px;color:#8fa3bd;margin-bottom:2px">控球率</div>'+
     '<div style="display:flex;align-items:center;gap:6px;font-size:10px">'+
-      '<span style="width:34px;text-align:right;color:#dfe7f2">'+posH+'%</span>'+
+      '<span style="width:34px;text-align:right;color:#dfe7f2">'+myPoss+'%</span>'+
       '<div style="flex:1;height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">'+
-        '<div style="height:100%;width:'+posH+'%;background:#3ddc7a"></div></div>'+
-      '<span style="width:34px;color:#8fa3bd">'+(100-posH)+'%</span></div>'+
+        '<div style="height:100%;width:'+myPoss+'%;background:#3ddc7a"></div></div>'+
+      '<span style="width:34px;color:#8fa3bd">'+oppPoss+'%</span></div>'+
     '<div style="font-size:10px;color:#8fa3bd;margin:4px 0 2px">射门占比</div>'+
     '<div style="display:flex;align-items:center;gap:6px;font-size:10px">'+
-      '<span style="width:34px;text-align:right;color:#dfe7f2">'+shotH+'%</span>'+
+      '<span style="width:34px;text-align:right;color:#dfe7f2">'+myShotPct+'%</span>'+
       '<div style="flex:1;height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden">'+
-        '<div style="height:100%;width:'+shotH+'%;background:#57c8ff"></div></div>'+
-      '<span style="width:34px;color:#8fa3bd">'+(100-shotH)+'%</span></div>'+
+        '<div style="height:100%;width:'+myShotPct+'%;background:#57c8ff"></div></div>'+
+      '<span style="width:34px;color:#8fa3bd">'+oppShotPct+'%</span></div>'+
     '</div>'+
     (m._wages!==undefined?'<div style="margin-top:6px;font-size:10px;color:#8fa3bd">财务：门票收入 +'+m._gate+'万 · 工资支出 -'+m._wages+'万'+(m._isHomeGame?'（主场）':'（客场）')+'</div>':'')+
     '<div style="text-align:center;font-size:11px;color:#8fa3bd;margin-top:4px">当前排名：第 '+(rankOf(myIdx)+1)+' 位</div>'+
@@ -1611,12 +1633,27 @@ function showFinal(m){
     if(round>TOTAL_ROUNDS){ showChampion(); return; }
     simulateAIGames();
     var tbl2=tableOf(myTier); for(var ti=0;ti<tbl2.length;ti++) tbl2[ti].prevPts=tbl2[ti].pts;
-    var evTxt=window.weeklyEvent();
+    var evTxt='';
+    // 每轮训练/医疗固定开销
+    myClub.cash-=20; fin.training+=20;
+    // 资金危机：负资产时自动出售最强球员救急
+    if(myClub.cash<-100){
+      var topP=myClub.squad.slice().sort(function(a,b){return b.ab-a.ab;})[0];
+      if(topP){
+        var sv=Math.round(topP.ab*1.5);
+        myClub.cash+=sv;
+        myClub.squad.splice(myClub.squad.indexOf(topP),1);
+        fin.transferOut+=sv;
+        window.ensureEleven();
+        evTxt=(evTxt?evTxt+' ｜ ':'')+'⚠️ 资金危机，出售 '+topP.name+' 救急 +'+sv+'万';
+      }
+    }
+    var evTxt2=window.weeklyEvent();
     refreshMarket();
     for(var ii=0;ii<myClub.squad.length;ii++){ if(myClub.squad[ii].inj>0) myClub.squad[ii].inj--; }
     document.getElementById('report').classList.remove('show');
     renderScreen();
-    showMsg((evTxt?evTxt+' ｜ ':'')+window.headline());
+    showMsg((evTxt?evTxt+' ｜ ':'')+(evTxt2?evTxt2+' ｜ ':'')+window.headline());
   };
 }
 function showChampion(){
@@ -1631,6 +1668,7 @@ function showChampion(){
   if(champHistory.length>8) champHistory.pop();
   var sponsor=[0,500,300,300,200,150,100,80,50,50,40,40,30,30,20,20,20,10,10][myRank]||10;
   myClub.cash+=sponsor;
+  fin.bonus+=sponsor;
   // 升降级
   var myTbl=tableOf(myTier);
   var otherTier=myTier==='A'?'B':'A';
@@ -1677,6 +1715,13 @@ function showChampion(){
     myTier=aiClubs[myIdx].tier;
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
     round=1; resultsByRound={};
+    fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0};
+    // 新赛季保底资金：俱乐部老板注资，避免破产开局
+    if(myClub.cash<100){
+      var bail=100-myClub.cash;
+      myClub.cash+=bail;
+      fin.bonus+=bail;
+    }
     window.ensureEleven();
     refreshMarket();
     document.getElementById('report').classList.remove('show');
@@ -1863,6 +1908,20 @@ function renderScreen(){
     '<span style="margin-left:12px;color:#57c8ff;font-weight:700">🎯 助攻榜</span>'+
     (assister.length?assister.map(function(s,i){return '<span>'+(i+1)+'. '+s.name+' <b style="color:#57c8ff">'+s.assists+'助</b></span>';}).join(''):'<span>暂无助攻</span>')+
     '</div>';
+  // 财务明细行
+  var finEl=document.getElementById('dashFin');
+  if(!finEl){
+    finEl=document.createElement('div');
+    finEl.id='dashFin';
+    statEl.parentNode.insertBefore(finEl, statEl.nextSibling);
+  }
+  var netIncome=(fin.gate+fin.bonus+fin.sponsor+fin.transferOut)-(fin.wages+fin.transferIn+fin.training);
+  finEl.innerHTML='<div style="background:rgba(255,255,255,.03);border-radius:10px;padding:8px 14px;margin-bottom:10px;font-size:11px;color:#8fa3bd">'+
+    '<span style="color:#ffd857;font-weight:700">💰 本赛季财务</span>'+
+    '<span style="margin-left:10px">收入：门票 <b style="color:#3ddc7a">'+fin.gate+'</b> · 奖金 <b style="color:#3ddc7a">'+fin.bonus+'</b> · 赞助 <b style="color:#3ddc7a">'+fin.sponsor+'</b> · 卖出 <b style="color:#3ddc7a">'+fin.transferOut+'</b></span>'+
+    '<span style="margin-left:10px">支出：工资 <b style="color:#ff6b81">-'+fin.wages+'</b> · 转会 <b style="color:#ff6b81">-'+fin.transferIn+'</b> · 训练 <b style="color:#ff6b81">-'+fin.training+'</b></span>'+
+    '<span style="margin-left:10px">净收益 <b style="color:'+(netIncome>=0?'#3ddc7a':'#ff6b81')+'">'+(netIncome>=0?'+':'')+netIncome+'</b></span>'+
+    '</div>';
   renderLineup();
   renderTransfer();
   renderOpponent();
@@ -1871,6 +1930,9 @@ function renderScreen(){
   document.getElementById('screen').classList.remove('hide');
   document.getElementById('btnRound').textContent=round;
   document.getElementById('cashTxt').textContent=myClub.cash+'万';
+  var ctEl=document.getElementById('cashTxt');
+  ctEl.textContent=myClub.cash+'万';
+  ctEl.style.color=myClub.cash<0?'#ff6b81':(myClub.cash<150?'#ff9f0a':'#3ddc7a');
   saveGame();
 }
 function renderOpponent(){
@@ -2120,6 +2182,7 @@ function renderTransfer(){
       myClub.cash-=p.price;
       myClub.squad.push(p);
       market.splice(idx,1);
+      fin.transferIn+=p.price;
       window.ensureEleven();
       renderScreen();
       showMsg('签约 '+p.name+'！');
@@ -2132,6 +2195,7 @@ function renderTransfer(){
       if(myClub.eleven.indexOf(q)>=0&&myClub.squad.length<=11){ showMsg('至少要留 11 人可出场'); return; }
       var in11=myClub.eleven.indexOf(q);
       myClub.cash+=Math.round(q.ab*1.5);
+      fin.transferOut+=Math.round(q.ab*1.5);
       myClub.squad.splice(idx,1);
       if(in11>=0) myClub.eleven[in11]=null;
       window.ensureEleven();
