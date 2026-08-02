@@ -316,6 +316,7 @@ var resultsByRound={}, champHistory=[];
 var ach={firstWin:false,champ:0,winStreak:0,season:0};
 var leagueTable={A:[],B:[]};
 var ROT_A=[],ROT_B=[];
+var fixtures={A:{},B:{}}; // 按轮次存储所有配对
 var myClub=null, aiClubs=[], market=[];
 var NAMES_CACHE=[];
 
@@ -337,6 +338,22 @@ function initLeague(){
   ROT_A=leagueTable.A.map(function(r,i){return i;});
   ROT_B=leagueTable.B.map(function(r,i){return i;});
   TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
+  // 生成全赛季赛程表
+  fixtures.A={}; fixtures.B={};
+  genFixtures('A',LEAGUE_A_ROUNDS);
+  genFixtures('B',LEAGUE_B_ROUNDS);
+}
+function genFixtures(tier,rounds){
+  var tbl=tableOf(tier);
+  var n=tbl.length;
+  var rot=[];
+  for(var i=0;i<n;i++) rot.push(i);
+  for(var r=1;r<=rounds;r++){
+    var pairs=[];
+    for(var i=0;i<Math.floor(n/2);i++) pairs.push([rot[i],rot[n-1-i]]);
+    rot.unshift(rot.pop());
+    fixtures[tier][r]=pairs;
+  }
 }
 function tableOf(tier){ return tier==='A'?leagueTable.A:leagueTable.B; }
 function rotOf(tier){ return tier==='A'?ROT_A:ROT_B; }
@@ -347,20 +364,13 @@ function rankOf(idx){
   return -1;
 }
 function opponentOf(r){
-  var tbl=tableOf(myTier);
-  if(!tbl||!tbl.length) return -1;
-  var n=tbl.length;
-  var ci=-1;
-  for(var i=0;i<tbl.length;i++){ if(tbl[i].idx===myIdx){ ci=i; break; } }
-  if(ci<0) return -1;
-  // 从初始状态开始旋转，不依赖当前ROT状态
-  var rot=[];
-  for(var i=0;i<n;i++) rot.push(i);
-  for(var k=1;k<r;k++) rot.unshift(rot.pop());
-  var cip=rot.indexOf(ci);
-  if(cip<0) return -1;
-  var opp=n-1-cip;
-  return tbl[rot[opp]].idx;
+  var pairs=fixtures[myTier]&&fixtures[myTier][r];
+  if(!pairs) return -1;
+  for(var i=0;i<pairs.length;i++){
+    if(pairs[i][0]===myIdx) return pairs[i][1];
+    if(pairs[i][1]===myIdx) return pairs[i][0];
+  }
+  return -1;
 }
 function pairsOfRound(){
   var rot=rotOf(myTier);
@@ -394,7 +404,8 @@ function simAIMatch(hIdx,aIdx){
   if(hr.form.length>5) hr.form.shift(); if(ar.form.length>5) ar.form.shift();
 }
 function simulateAIGames(){
-  var pairs=pairsOfRound();
+  var pairs=fixtures[myTier]&&fixtures[myTier][round];
+  if(!pairs) return;
   for(var i=0;i<pairs.length;i++){
     var p=pairs[i];
     if(p[0]===myIdx||p[1]===myIdx) continue;
@@ -424,7 +435,7 @@ var loadedMatchInterrupted=false;
 function saveGame(){
   try{
     var d={
-      myClub:myClub, round:round, ROT_A:ROT_A, ROT_B:ROT_B, leagueTable:leagueTable, aiClubs:aiClubs,
+      myClub:myClub, round:round, ROT_A:ROT_A, ROT_B:ROT_B, leagueTable:leagueTable, fixtures:fixtures, aiClubs:aiClubs,
       resultsByRound:resultsByRound, champHistory:champHistory, ach:ach,
       market:market, names:NAMES_CACHE, sfx:SFX_ON,
       matchActive:!!(match&&!match.over)
@@ -444,6 +455,7 @@ function loadGame(){
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
     if(d.aiClubs&&d.aiClubs.length) aiClubs=d.aiClubs;
     round=d.round||1; ROT_A=d.ROT_A||[]; ROT_B=d.ROT_B||[];
+    if(d.fixtures) fixtures=d.fixtures;
     leagueTable=d.leagueTable||{A:[],B:[]};
     resultsByRound=d.resultsByRound||{};
     champHistory=d.champHistory||[];
@@ -1521,6 +1533,9 @@ function showChampion(){
     }
     ROT_A=leagueTable.A.map(function(r,i){return i;});
     ROT_B=leagueTable.B.map(function(r,i){return i;});
+    fixtures.A={}; fixtures.B={};
+    genFixtures('A',LEAGUE_A_ROUNDS);
+    genFixtures('B',LEAGUE_B_ROUNDS);
     myTier=aiClubs[myIdx].tier;
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
     round=1; resultsByRound={};
