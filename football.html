@@ -491,7 +491,10 @@ var PLAYER_R=10,BALL_R=6,FRICTION=1.8;
 function startMatch(){
   if(!myClub){ showMsg('数据异常，请刷新页面重试'); return; }
   window.ensureEleven();
-  simulateAIGames();
+  // 如果本轮AI比赛尚未模拟，立即模拟（首次进入时）
+  if(!resultsByRound[round]||!resultsByRound[round][myTier]||!resultsByRound[round][myTier].length){
+    simulateAIGames();
+  }
   var oppIdx=opponentOf(round);
   var opp=aiClubs[oppIdx];
   var myAb=teamAbility(myClub.eleven)+2; // 主场优势
