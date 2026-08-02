@@ -565,8 +565,7 @@ var oppIdx=opponentOf(round);
   document.getElementById('mtTxt').textContent='我的战术：'+tacticById(myClub.tactic||'balanced').name;
   addEvent(0,'开球 · '+match.home.name+'（实力'+Math.round(myAb)+'）vs '+match.away.name+'（实力'+Math.round(oppAb)+'）');
   updateControls();
-  if(round===1){ showMsg('🎯 赛季目标：进入前四！'); }
-  else if(round===TOTAL_ROUNDS){
+  if(round===TOTAL_ROUNDS){
     var rk=rankOf(myIdx)+1;
     showMsg(rk<=4?'🏆 冲击冠军/前四！':'⚠ 赛季最后轮，全力争胜');
   } else {
@@ -1539,7 +1538,7 @@ function endMatch(){
     var pool=myClub.squad.filter(function(q){ return q.inj<=0; });
     if(pool.length){
       var hurt=pool[(Math.random()*pool.length)|0];
-      hurt.inj=1+R(0,2); hurt.fit=40;
+      hurt.inj=1+((Math.random()*3)|0); hurt.fit=40;
       addEvent(90,'😷 '+hurt.name+' 受伤，缺阵'+hurt.inj+'轮');
     }
   }
@@ -2102,7 +2101,7 @@ function renderTransfer(){
   html+='<div class="section-title">📤 出售球员（能力×1.5 万）</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">';
   for(var j=0;j<myClub.squad.length;j++){
     var q=myClub.squad[j];
-    html+='<button class="btn sm" data-sell="'+j+'" style="background:rgba(255,110,90,.7)">'+q.name+' '+q.ab+' +'+Math.round(q.ab*1.5)+'万</button>';
+    html+='<button class="btn sm" data-sell="'+j+'" style="background:rgba(255,110,90,.7)"><span class="badge '+q.pos+'">'+POS_NAMES[q.pos]+'</span> '+q.name+' '+q.ab+' +'+Math.round(q.ab*1.5)+'万</button>';
   }
   html+='</div>';
   el.innerHTML=html;
