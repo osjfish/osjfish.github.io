@@ -621,9 +621,13 @@ function spawnMatch(m){
         var t=home?list[k][0]:(1-list[k][0]);
         m.players.push({team:home?0:1,pl:picked,role:order[o],x:W*0.06+t*W*0.88,y:list[k][1]*H*0.96+H*0.02,
           vx:0,vy:0,face:home?0:Math.PI,protect:0,shootCd:0,homeX:0,homeY:0});
-      }
-    }
+}
   }
+  // 近距离兜底：球静止或缓慢弹跳在门将附近时，不论方向直接没收
+  if(!b.owner&&dist2(p,b)<(PLAYER_R+12)*(PLAYER_R+12)&&(b.vx*b.vx+b.vy*b.vy)<80*80){
+    giveBall(m,p);
+  }
+}
   place(m.home,true);
   place(m.away,false);
   // 先记录原始阵型位置（开球后各就各位的依据）
@@ -1075,18 +1079,22 @@ function aiGK(m,p,dt){
   var tx=gateX+dir*22;
   var ty=clamp(MIDY+(b.y-MIDY)*0.75,MIDY-42,MIDY+42);
   // 出击：慢速无主球在门前区域才出击（快球回位防守）
-  if(!b.owner&&Math.abs(b.x-gateX)<260&&Math.abs(b.y-MIDY)<160&&Math.abs(b.vx)<150){
+  if(!b.owner&&Math.abs(b.x-gateX)<260&&Math.abs(b.y-MIDY)<160&&(Math.abs(b.vx)<150||Math.abs(b.x-gateX)<120)){
     tx=clamp(b.x,gateX+dir*14,gateX+dir*70);
     ty=clamp(b.y,MIDY-50,MIDY+50);
   }
   p.x+=(tx-p.x)*Math.min(1,dt*5);
   p.y+=(ty-p.y)*Math.min(1,dt*5);
   p.face=dir;
-  if(!b.owner&&Math.abs(b.x-gateX)<50&&Math.abs(b.y-p.y)<PLAYER_R+8&&b.vx*dir<0&&Math.abs(b.vx)<400){
+  if(!b.owner&&Math.abs(b.x-gateX)<50&&Math.abs(b.y-p.y)<PLAYER_R+8&&b.vx*dir<0&&Math.abs(b.vx)<=400){
     if(dist2(p,b)<(PLAYER_R+6)*(PLAYER_R+6)){
       giveBall(m,p);
-      m.rating[p.pl.name]=(m.rating[p.pl.name]||6)+0.5;
+m.rating[p.pl.name]=(m.rating[p.pl.name]||6)+0.5;
     }
+  }
+  // 近距离兜底：球静止或缓慢弹跳在门将附近时，不论方向直接没收
+  if(!b.owner&&dist2(p,b)<(PLAYER_R+12)*(PLAYER_R+12)&&(b.vx*b.vx+b.vy*b.vy)<80*80){
+    giveBall(m,p);
   }
 }
 function resolveShot(m,shooter,ang){
@@ -1198,6 +1206,10 @@ function collide(m){
       a.x-=nx*push*aM - ny*push*slip*aM; a.y-=ny*push*aM + nx*push*slip*aM;
       b.x+=nx*push*bM + ny*push*slip*bM; b.y+=ny*push*bM - nx*push*slip*bM;
     }
+  }
+  // 近距离兜底：球静止或缓慢弹跳在门将附近时，不论方向直接没收
+  if(!b.owner&&dist2(p,b)<(PLAYER_R+12)*(PLAYER_R+12)&&(b.vx*b.vx+b.vy*b.vy)<80*80){
+    giveBall(m,p);
   }
 }
 function checkGoal(m){
