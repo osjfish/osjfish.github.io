@@ -268,11 +268,12 @@ var myClub=null, aiClubs=[], market=[];
 var NAMES_CACHE=[];
 
 function initLeague(){
+  var _rl=function(f){var _f=FORMS[f||'4-3-3']||FORMS['4-3-3'],_r=[],_o=['gk','df','mf','fw'];for(var _oi=0;_oi<_o.length;_oi++){for(var _ij=0;_ij<_f[_o[_oi]].length;_ij++)_r.push(_o[_oi]);}return _r;};
   for(var t=0;t<REGIONS.length;t++){
     var r=REGIONS[t];
     var squad=genSquad(r.id,r.ab);
     var club={idx:t,name:r.name,short:r.short,color:r.color,ab:r.ab,tier:r.tier,squad:squad,form:'4-3-3',mentality:'bal',press:'mid',line:'mid',tactic:'balanced',eleven:[],cash:300};
-    buildEleven(club);
+    var _el=[],_roles=_rl(club.form||'4-3-3'),_b;for(var _ri=0;_ri<_roles.length;_ri++){_b=null;for(var _si=0;_si<club.squad.length;_si++){var _p=club.squad[_si];if(_el.indexOf(_p)>=0||_p.inj>0||_p.pos!==_roles[_ri])continue;if(!_b||_p.ab>_b.ab)_b=_p;}if(!_b){for(var _sk=0;_sk<club.squad.length;_sk++){if(_el.indexOf(club.squad[_sk])<0&&club.squad[_sk].inj<=0){_b=club.squad[_sk];break;}}}_el.push(_b||null);}club.eleven=_el;
     aiClubs.push(club);
   }
   leagueTable.A=[]; leagueTable.B=[];
