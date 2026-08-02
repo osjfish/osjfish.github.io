@@ -436,7 +436,7 @@ function loadGame(){
 var match=null;
 var PLAYER_R=10,BALL_R=6,FRICTION=1.8;
 function startMatch(){
-  ensureEleven();
+  window.ensureEleven();
   simulateAIGames();
   var oppIdx=opponentOf(round);
   var opp=aiClubs[oppIdx-1];
@@ -1005,7 +1005,7 @@ function buildEleven(team){
   }
   team.eleven=el;
 }
-function ensureEleven(){
+window.ensureEleven=function(){
   var roles=roleList(myClub.form);
   for(var i=0;i<roles.length;i++){
     if(myClub.eleven[i]) continue;
@@ -1057,7 +1057,7 @@ function reformEleven(){
   }
   myClub.eleven=el;
 }
-function autoLineup(){
+window.autoLineup=function(){
   var f=FORMS[myClub.form];
   var need=[f.gk.length,f.df.length,f.mf.length,f.fw.length];
   var roles=['gk','df','mf','fw'];
@@ -1421,7 +1421,7 @@ function endMatch(){
   }
   for(var n in m.rating){ m.rating[n]=Math.round(clamp(m.rating[n],3.5,10)*10)/10; }
   resultsByRound[round]={hs:m.score[0],as:m.score[1]};
-  ensureEleven();
+  window.ensureEleven();
   SFX.whistle(false);
   showFinal(m);
 }
@@ -1526,7 +1526,7 @@ function showChampion(){
     myTier=aiClubs[myIdx].tier;
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
     round=1; resultsByRound={};
-    ensureEleven();
+    window.ensureEleven();
     refreshMarket();
     document.getElementById('report').classList.remove('show');
     renderScreen();
@@ -1894,7 +1894,7 @@ function renderTransfer(){
       myClub.cash-=p.price;
       myClub.squad.push(p);
       market.splice(idx,1);
-      window.ensureEleven();
+      window.window.ensureEleven();
       renderScreen();
       showMsg('签约 '+p.name+'！');
     };
@@ -1908,7 +1908,7 @@ function renderTransfer(){
       myClub.cash+=Math.round(q.ab*1.5);
       myClub.squad.splice(idx,1);
       if(in11>=0) myClub.eleven[in11]=null;
-      window.ensureEleven();
+      window.window.ensureEleven();
       renderScreen();
       showMsg(q.name+' 转会离队 +'+Math.round(q.ab*1.5)+'万');
     };
@@ -2130,7 +2130,6 @@ function renderPickClub(){
     btn.onclick=function(){ selectTeam(parseInt(this.getAttribute('data-pick'))); };
   });
 }
-window.autoLineup=autoLineup; window.ensureEleven=ensureEleven;
 var loaded=loadGame();
 if(loaded&&myIdx>=0&&myClub){
   renderScreen();
