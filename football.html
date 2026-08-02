@@ -55,7 +55,7 @@
   #events .ev.goal { color:#ffe08a; font-weight:800; }
   #controls { position:fixed; right:10px; bottom:10px; z-index:11; display:flex; flex-direction:column; gap:5px; }
   #controls .btn { padding:5px 12px; font-size:11px; }
-  #subs { position:fixed; right:10px; top:56px; z-index:12; background:rgba(8,12,20,.94); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:8px; display:none; width:160px; max-height:60vh; overflow-y:auto; }
+  #subs { position:fixed; right:10px; top:56px; z-index:12; background:rgba(8,12,20,.94); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:8px; display:none; width:160px; max-height:60vh; overflow-y:auto; color:#cfd8e3; }
   #subs .sub { cursor:pointer; font-size:11px; padding:3px 6px; border-radius:5px; }
   #subs .sub:hover { background:rgba(61,220,122,.2); }
   #subs .sub.sel { background:rgba(255,224,138,.28); color:#ffe08a; }
@@ -227,10 +227,11 @@ function pAtk(p){ return 9+(p.sho-45)*0.55; }
 function pDef(p){ return 9+(p.def-45)*0.55; }
 
 // ================= 球队 =================
-var myClub={ name:TEAM_NAMES[0], squad:mkPlayers(74), form:'4-3-3', mentality:'bal', press:'mid', line:'mid', eleven:[], cash:300 };
+var myClub={ name:TEAM_NAMES[0], squad:mkPlayers(74), form:'4-3-3', mentality:'bal', press:'mid', line:'mid', tactic:'balanced', eleven:[], cash:300 };
 var aiClubs=[];
+var aiTacPool=['gegenpress','counter','wing','direct','tikitaka','total','bus'];
 for(var t=1;t<8;t++){
-  aiClubs.push({ name:TEAM_NAMES[t], color:TEAM_COLORS[t], squad:mkPlayers(ABILITY[t-1]), form:'4-3-3', mentality:'bal', eleven:[] });
+  aiClubs.push({ name:TEAM_NAMES[t], color:TEAM_COLORS[t], squad:mkPlayers(ABILITY[t-1]), form:'4-3-3', mentality:'bal', tactic:aiTacPool[(t*3)%7], eleven:[] });
 }
 // 按阵型生成 11 个槽位的角色序列（4-3-3 / 4-4-2 / 3-5-2 / 4-2-3-1）
 function roleList(form){
@@ -337,6 +338,29 @@ var PRESETS=[
   {n:'⚖ 攻守均衡',m:'bal',p:'mid',l:'mid'},
   {n:'🛡 摆大巴',m:'def',p:'low',l:'low'}
 ];
+// 经典战术库：决定心态/压迫/防线 + 传球倾向/节奏/直塞/边路/反击等引擎参数
+var TACTICS=[
+  { id:'balanced', name:'⚖ 攻守平衡', desc:'攻守均衡、节奏适中，最稳妥的选择',
+    mentality:'bal', press:'mid', line:'mid', passAgg:0.35, tempo:1.0, direct:0.3, wing:0.45, counter:1.1, shootMul:1.0, shootDist:390, forward:1.1 },
+  { id:'tikitaka', name:'🧠 传控 Tiki-taka', desc:'高控球率、短传渗透、丢球立即反抢',
+    mentality:'bal', press:'high', line:'mid', passAgg:0.55, tempo:0.9, direct:0.15, wing:0.3, counter:1.0, shootMul:0.9, shootDist:380, forward:1.1 },
+  { id:'gegenpress', name:'⚡ 高位逼抢 Gegenpress', desc:'丢球就地反抢，夺回球权后快速直塞',
+    mentality:'att', press:'high', line:'high', passAgg:0.3, tempo:1.15, direct:0.6, wing:0.35, counter:1.35, shootMul:1.15, shootDist:420, forward:1.3 },
+  { id:'counter', name:'🛡 防守反击', desc:'低位防守，抢断后快速纵向反击',
+    mentality:'def', press:'low', line:'low', passAgg:0.25, tempo:1.25, direct:0.8, wing:0.5, counter:1.6, shootMul:1.05, shootDist:400, forward:0.9 },
+  { id:'bus', name:'🚌 摆大巴', desc:'全员退守禁区，极度保守',
+    mentality:'def', press:'low', line:'low', passAgg:0.2, tempo:0.85, direct:0.5, wing:0.4, counter:1.2, shootMul:0.7, shootDist:340, forward:0.75 },
+  { id:'wing', name:'🪽 边路传中', desc:'边锋拉开宽度，下底传中，中路抢点',
+    mentality:'att', press:'mid', line:'mid', passAgg:0.45, tempo:1.0, direct:0.3, wing:0.95, counter:1.05, shootMul:1.0, shootDist:410, forward:1.25 },
+  { id:'direct', name:'🚀 长传冲吊', desc:'跳过中场，直接长传找前锋',
+    mentality:'bal', press:'mid', line:'mid', passAgg:0.5, tempo:1.2, direct:1.0, wing:0.6, counter:1.25, shootMul:1.1, shootDist:420, forward:1.15 },
+  { id:'total', name:'🌐 全攻全守', desc:'全员参与攻防，整体压上',
+    mentality:'att', press:'mid', line:'high', passAgg:0.4, tempo:1.05, direct:0.35, wing:0.5, counter:1.15, shootMul:1.1, shootDist:400, forward:1.35 }
+];
+function tacticById(id){
+  for(var i=0;i<TACTICS.length;i++){ if(TACTICS[i].id===id) return TACTICS[i]; }
+  return TACTICS[0];
+}
 function headline(){
   var opp=opponentOf(round);
   var ab=ABILITY[opp-1];
@@ -480,6 +504,7 @@ function loadGame(){
     }
     myClub.eleven=clean;
     if(clean.length<11) buildEleven(myClub);
+    if(!myClub.tactic) myClub.tactic='balanced';
     loadedMatchInterrupted=!!d.matchActive;
     match=null;
     return true;
@@ -499,7 +524,7 @@ function startMatch(){
   match={ home:myClub, away:opp, awayIdx:oppIdx, score:[0,0], clock:0, half:1, speed:1,
     over:false, poss:[0,0], shots:[0,0], onTarget:[0,0], rating:{}, assists:{},
     events:[], lastTouch:1, setPiece:null, phase:'kickoff', phaseT:1.2, players:[], ball:null,
-    confetti:[], camShake:0, goalCeleb:0, injury:null,
+    confetti:[], camShake:0, goalCeleb:0, injury:null, counterT:0, counterTeam:null,
     paramsHome:params(myClub,true), paramsAway:params(opp,false) };
   spawnMatch(match);
   document.getElementById('screen').classList.add('hide');
@@ -520,20 +545,29 @@ function startMatch(){
   saveGame();
 }
 function params(team,home){
-  var att=team.mentality==='att', def=team.mentality==='def';
+  var tac=team.tactic?tacticById(team.tactic):null;
+  var att=tac?tac.mentality==='att':team.mentality==='att';
+  var def=tac?tac.mentality==='def':team.mentality==='def';
+  var pressV=tac?tac.press:team.press;
+  var lineV=tac?tac.line:team.line;
   var ab=teamAbility(team.eleven)+(home?2:0);
   var hotN=0;
-  for(var hk=0;hk<team.eleven.length;hk++){ if(team.eleven[hk].hot) hotN++; }
+  for(var hk=0;hk<team.eleven.length;hk++){ if(team.eleven[hk]&&team.eleven[hk].hot) hotN++; }
   ab+=hotN*0.35;
   var morSum=0,morN=0;
-  for(var mi=0;mi<team.eleven.length;mi++){ morSum+=team.eleven[mi].mor; morN++; }
+  for(var mi=0;mi<team.eleven.length;mi++){ if(!team.eleven[mi]) continue; morSum+=team.eleven[mi].mor; morN++; }
   ab+=morN?(morSum/morN-50)*0.03:0;
-  var pressMul=team.press==='high'?1.3:(team.press==='low'?0.8:1);
-  var lineMul=team.line==='high'?1.25:(team.line==='low'?0.85:1);
-  return { shootMul:att?1.7:(def?0.8:1), shootDist:att?430:(def?360:390),
-    press:(def?1.25:(att?0.95:1.1))*pressMul, forward:att?1.35:(def?0.85:1.1), shift:(att?0.17:(def?0.08:0.13))*lineMul,
+  var pressMul=pressV==='high'?1.3:(pressV==='low'?0.8:1);
+  var lineMul=lineV==='high'?1.25:(lineV==='low'?0.85:1);
+  var shootMul=tac?tac.shootMul:(att?1.7:(def?0.8:1));
+  var shootDist=tac?tac.shootDist:(att?430:(def?360:390));
+  var forward=tac?tac.forward:(att?1.35:(def?0.85:1.1));
+  return { shootMul:shootMul, shootDist:shootDist,
+    press:(def?1.25:(att?0.95:1.1))*pressMul, forward:forward, shift:(att?0.17:(def?0.08:0.13))*lineMul,
     tackle:clamp(0.03+ab*0.0009,0.03,0.12),
-    shootRate:clamp(0.0045+ab*0.00013,0.0045,0.017) };
+    shootRate:clamp(0.0045+ab*0.00013,0.0045,0.017),
+    passAgg:tac?tac.passAgg:0.35, tempo:tac?tac.tempo:1.0, direct:tac?tac.direct:0.3,
+    wing:tac?tac.wing:0.45, counter:tac?tac.counter:1.1, buildUp:(tac&&tac.direct>=0.8)?'direct':((tac&&tac.passAgg>=0.45)?'short':'mid') };
 }
 function doKickoff(m,team){
   m.phase='kickoff'; m.phaseT=1.2;
@@ -597,7 +631,12 @@ function spawnMatch(m){
 }
 function playersOf(m,team){ return m.players.filter(function(p){ return p.team===team; }); }
 function dist2(a,b){ var dx=a.x-b.x,dy=a.y-b.y; return dx*dx+dy*dy; }
-function giveBall(m,p){ m.ball.owner=p; p.protect=1.0; p.shootCd=0; m.lastTouch=p.team; }
+function giveBall(m,p){
+  var prevOwner=m.ball.owner;
+  m.ball.owner=p; p.protect=1.0; p.shootCd=0; m.lastTouch=p.team;
+  // 抢断/拦截成功 → 触发反击冲刺窗口
+  if(prevOwner&&prevOwner.team!==p.team){ m.counterT=1.6; m.counterTeam=p.team; }
+}
 function kickBall(m,shooter,power,angle){
   m.ball.owner=null;
   m.ball.x=shooter.x; m.ball.y=shooter.y;
@@ -610,7 +649,7 @@ function kickBall(m,shooter,power,angle){
 // ---- AI ----
 function aiPlayer(m,p,dt){
   var b=m.ball, pr=p.pl, team=p.team===0?m.home:m.away;
-  var P=m.team===0?m.paramsHome:m.paramsAway;
+  var P=p.team===0?m.paramsHome:m.paramsAway;
   if(p.role==='gk'){ aiGK(m,p,dt); return; }
   var att=p.team===0?1:-1;
   var gateX=att>0?W:0;
@@ -645,6 +684,34 @@ function aiPlayer(m,p,dt){
       }
     }
   }
+    // 边路传中：边路战术下，边路球员接近底线时起球找禁区
+    if(P.wing>0.6&&Math.abs(p.y-MIDY)>90&&dToGate<180&&Math.random()<0.05*P.wing){
+      var crossY=MIDY+(Math.random()<0.5?-55:55);
+      kickBall(m,p,760*P.tempo,Math.atan2(crossY-p.y,att));
+      addEvent(((m.clock/60)|0)+1,'🥾 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 起脚传中！');
+      return;
+    }
+    // 长传冲吊：中后场直接起长球找最靠前的前锋
+    if(P.direct>0.7&&dToGate>400&&Math.random()<0.012*P.direct){
+      var bestFwd=null;
+      for(var qx2=0;qx2<m.players.length;qx2++){
+        var fw2=m.players[qx2];
+        if(fw2.team!==p.team||fw2.role!=='fw'||fw2===p) continue;
+        if(!bestFwd||(att>0?fw2.x>bestFwd.x:fw2.x<bestFwd.x)) bestFwd=fw2;
+      }
+      if(bestFwd&&Math.abs(bestFwd.x-p.x)>250){
+        var ddx2=bestFwd.x-p.x,ddy2=bestFwd.y-p.y,ddd2=Math.sqrt(ddx2*ddx2+ddy2*ddy2)||1;
+        m.ball.owner=null;
+        m.ball.vx=ddx2/ddd2*900*P.tempo;
+        m.ball.vy=ddy2/ddd2*900*P.tempo;
+        m.ball._passTx=bestFwd.x; m.ball._passTy=bestFwd.y;
+        m.ball._passTo=bestFwd;
+        p.shootCd=0.6;
+        m.lastTouch=p.team;
+        addEvent(((m.clock/60)|0)+1,'🚀 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 长传冲吊');
+        return;
+      }
+    }
     // 逼抢→传球/突破
     var threat=false,near=null,nbd=1e9;
     for(var i=0;i<m.players.length;i++){
@@ -652,11 +719,11 @@ function aiPlayer(m,p,dt){
       if(q.team!==p.team&&dist2(q,p)<70*70){ threat=true; }
       if(q.team!==p.team&&q.role!=='gk'&&dist2(q,p)<nbd){ nbd=dist2(q,p); near=q; }
     }
-    if(threat&&Math.random()<0.12){
+    if(threat&&Math.random()<0.12*P.passAgg/0.35){
       var tgt=bestPassTarget(m,p);
       if(tgt){
         var dx=tgt.x-p.x,dy=tgt.y-p.y,dd=Math.sqrt(dx*dx+dy*dy)||1;
-        var passPow=(300+dd*0.5)*(0.85+0.35*pr.pas/100);
+        var passPow=(300+dd*0.5)*(0.85+0.35*pr.pas/100)*P.tempo;
         m.ball.owner=null;
         m.ball.vx=dx/dd*passPow;
         m.ball.vy=dy/dd*passPow;
@@ -675,10 +742,36 @@ function aiPlayer(m,p,dt){
       // 被贴身无传球目标：横移/回撤寻找射门角度，不硬冲门将
       if(near){
         var away=Math.atan2(p.y-near.y,p.x-near.x);
+        // 靠近边界时优先往场内变向，避免被压死在边线
+        if(p.x<70&&Math.cos(away)<0) away=0;
+        else if(p.x>W-70&&Math.cos(away)>0) away=Math.PI;
+        if(p.y<70&&Math.sin(away)<0) away=Math.PI/2;
+        else if(p.y>H-70&&Math.sin(away)>0) away=-Math.PI/2;
         var sp=pSpeed(pr);
         p.vx=Math.cos(away)*sp*0.7+att*sp*0.15;
         p.vy=Math.sin(away)*sp*0.8;
         p.face=Math.atan2(p.vy,p.vx);
+        return;
+      }
+    }
+    // 传控/慢节奏战术：无压力时主动传导寻找机会
+    if(!threat&&Math.random()<0.02*P.passAgg){
+      var tgtB=bestPassTarget(m,p);
+      if(tgtB){
+        var dxB=tgtB.x-p.x,dyB=tgtB.y-p.y,ddB=Math.sqrt(dxB*dxB+dyB*dyB)||1;
+        var passPowB=(280+ddB*0.5)*(0.85+0.35*pr.pas/100)*P.tempo;
+        m.ball.owner=null;
+        m.ball.vx=dxB/ddB*passPowB;
+        m.ball.vy=dyB/ddB*passPowB;
+        if(Math.random()<(100-pr.pas)/260){
+          m.ball._passTx=tgtB.x+(Math.random()-.5)*110;
+          m.ball._passTy=tgtB.y+(Math.random()-.5)*70;
+        } else {
+          m.ball._passTx=tgtB.x; m.ball._passTy=tgtB.y;
+        }
+        m.ball._passTo=tgtB;
+        p.shootCd=0.4;
+        m.lastTouch=p.team;
         return;
       }
     }
@@ -721,6 +814,15 @@ function aiPlayer(m,p,dt){
     if(!(gkOwn&&dist2(gkOwn,b)<140*140)){ goTo(p,b.x,b.y,dt,1); return; }
   }
   if(b.owner&&b.owner.team!==p.team&&b.owner.role!=='gk'){
+    // 逼抢僵持保护：贴近持球者超过1.2秒仍未得球 → 后撤拉开再逼抢，避免顶死
+    var dOwn=Math.sqrt(dist2(p,b.owner));
+    if(dOwn<PLAYER_R*2.4){ p.pressT=(p.pressT||0)+dt; } else { p.pressT=0; }
+    if(p.pressT>1.2){
+      p.pressT=0;
+      var awayA=Math.atan2(p.y-b.owner.y,p.x-b.owner.x);
+      goTo(p,p.x+Math.cos(awayA)*80,p.y+Math.sin(awayA)*80,dt,1.25);
+      return;
+    }
     if(p===myNearest&&dist2(p,b)<180*180&&(p.role!=='df'||inMyHalf)){ goTo(p,b.owner.x,b.owner.y,dt,p.role==='df'?1.05:0.9); return; }
     // 协防：距持球者 460px 内、全队第 2 近的 1 人，站持球者与球门连线上保持 100px 距离（封堵射门路线）
     var dCar=Math.sqrt(dist2(p,b.owner));
@@ -805,18 +907,21 @@ function formationMove(m,p,dt){
     // 仅当拦截点比当前目标更靠近本方球门时执行（避免上前失位）
     if((p.team===0&&ax<tx)||(p.team===1&&ax>tx)){ goTo(p,ax,ay,dt,1.05); return; }
   }
-  // 回防加速：球在自己身后且远离时快速回撤
+  // 回防加速：球在自己身后且远离时快速回撤；反击窗口内全队加速前插
   var behind=(p.team===0&&m.ball.x<p.x)||(p.team===1&&m.ball.x>p.x);
-  goTo(p,tx,ty,dt,behind&&p.role!=='fw'?1.12:0.95);
+  var burst=(m.counterT>0&&m.counterTeam===p.team)?(1+(P.counter-1)*0.7):1;
+  goTo(p,tx,ty,dt,(behind&&p.role!=='fw'?1.12:0.95)*burst);
 }
 function bestPassTarget(m,p){
   var gateX=p.team===0?W:0;
+  var P=p.team===0?m.paramsHome:m.paramsAway;
+  var maxD=P.buildUp==='short'?420:(P.buildUp==='direct'?820:620);
   var best=null,bd=1e9;
   for(var i=0;i<m.players.length;i++){
     var q=m.players[i];
     if(q.team!==p.team||q===p||q.role==='gk') continue;
     var d=Math.sqrt(dist2(q,p));
-    if(d>620||d<50) continue;
+    if(d>maxD||d<50) continue;
     var forward=q.x-p.x;
     if(p.team===0&&forward<40) continue;
     if(p.team===1&&forward>-40) continue;
@@ -827,7 +932,10 @@ function bestPassTarget(m,p){
       var sq=m.players[s2];
       if(sq.team!==p.team&&sq.role!=='gk'&&dist2(sq,q)<45*45){ spaceOk=false; break; }
     }
-    var score=d*(1.5-Math.abs(q.x-gateX)/W*0.8)*(spaceOk?0.65:1.4);
+    // 战术倾向：边路战术偏爱边路队友；直塞战术偏爱更接近球门的队友
+    var fwd=Math.abs(q.x-gateX)/W;
+    var wide=Math.abs(q.y-MIDY)/MIDY;
+    var score=d*(1.6-fwd*1.1-P.wing*wide*0.5)*(spaceOk?0.65:1.4)/(1+P.direct*fwd*0.7);
     if(score<bd){ bd=score; best=q; }
   }
   return best;
@@ -1023,8 +1131,10 @@ function collide(m){
     if(d<min){
       var push=(min-d)/2,nx=dx/d,ny=dy/d;
       var aM=(b.owner===a)?0.15:1, bM=(a.owner===b)?0.15:1;
-      a.x-=nx*push*aM; a.y-=ny*push*aM;
-      b.x+=nx*push*bM; b.y+=ny*push*bM;
+      // 切向滑移：避免两人顶死卡住
+      var slip=(Math.random()-.5)*0.9;
+      a.x-=nx*push*aM - ny*push*slip*aM; a.y-=ny*push*aM + nx*push*slip*aM;
+      b.x+=nx*push*bM + ny*push*slip*bM; b.y+=ny*push*bM - nx*push*slip*bM;
     }
   }
 }
@@ -1130,6 +1240,7 @@ function updateMatch(m,dt){
   if(m.goalCeleb>0){ m.goalCeleb-=dt; if(m.goalCeleb<=0){ doKickoff(m,1-m.lastGoal); } return; }
   if(m.phase!=='play') return;
   m.clock+=dt*60*m.speed;
+  if(m.counterT>0) m.counterT-=dt;
   if(m.clock>=90*60){ endMatch(); return; }
   if(m.clock>=45*60&&m.half===1){ m.half=2; addEvent(45,'🕐 中场休息 · '+m.score[0]+' : '+m.score[1]); }
   for(var i=0;i<m.players.length;i++){
@@ -1410,7 +1521,7 @@ function renderOpponent(){
   var oppIdx=opponentOf(round);
   var opp=aiClubs[oppIdx-1];
   var html='<div class="section-title">🔍 第'+round+'轮对手：'+opp.name+'<span class="teamDot" style="background:'+opp.color+';margin-left:6px"></span></div>';
-  html+='<div style="font-size:11px;color:#8fa3bd;margin-bottom:6px">阵型 '+opp.form+' · 首发实力 <b style="color:#3ddc7a">'+Math.round(teamAbility(opp.eleven))+'</b></div>';
+  html+='<div style="font-size:11px;color:#8fa3bd;margin-bottom:6px">阵型 '+opp.form+' · 战术 <b style="color:#3ddc7a">'+tacticById(opp.tactic||'balanced').name+'</b> · 首发实力 <b style="color:#3ddc7a">'+Math.round(teamAbility(opp.eleven))+'</b></div>';
   var elv=opp.eleven.filter(function(x){ return x; });
   html+='<table><tr><th>位置</th><th>球员</th><th>总评</th><th>速</th><th>射</th><th>防</th><th>传</th><th>年龄</th></tr>';
   for(var i=0;i<elv.length;i++){
@@ -1457,17 +1568,6 @@ function renderLineup(){
   ab.textContent='⚡ 自动首发';
   ab.onclick=function(){ autoLineup(); showMsg('已按能力自动排最佳首发'); };
   quick.appendChild(ab);
-  PRESETS.forEach(function(pr){
-    var b=document.createElement('button');
-    b.className='fbtn'+(myClub.mentality===pr.m&&myClub.press===pr.p&&myClub.line===pr.l?' sel':'');
-    b.textContent=pr.n;
-    b.onclick=function(){
-      myClub.mentality=pr.m; myClub.press=pr.p; myClub.line=pr.l;
-      renderLineup();
-      showMsg('战术已切换：'+pr.n);
-    };
-    quick.appendChild(b);
-  });
   fr.appendChild(quick);
   var forms=Object.keys(FORMS);
   for(var f=0;f<forms.length;f++){
@@ -1477,27 +1577,21 @@ function renderLineup(){
     b.onclick=function(){ myClub.form=this.textContent; reformEleven(); renderLineup(); showMsg('阵型已切换：'+myClub.form); };
     fr.appendChild(b);
   }
-  [['att','⚔ 进攻'],['bal','⚖ 平衡'],['def','🛡 防守']].forEach(function(m){
-    var b=document.createElement('button');
-    b.className='fbtn'+(myClub.mentality===m[0]?' sel':'');
-    b.textContent=m[1];
-    b.onclick=function(){ myClub.mentality=m[0]; renderLineup(); };
-    fr.appendChild(b);
-  });
-  [['high','↑ 高压'],['mid','↔ 中压'],['low','↓ 低压']].forEach(function(m){
-    var b=document.createElement('button');
-    b.className='fbtn'+(myClub.press===m[0]?' sel':'');
-    b.textContent=m[1];
-    b.onclick=function(){ myClub.press=m[0]; renderLineup(); };
-    fr.appendChild(b);
-  });
-  [['high','⬆ 前压'],['mid','— 中位'],['low','⬇ 回收']].forEach(function(m){
-    var b=document.createElement('button');
-    b.className='fbtn'+(myClub.line===m[0]?' sel':'');
-    b.textContent=m[1];
-    b.onclick=function(){ myClub.line=m[0]; renderLineup(); };
-    fr.appendChild(b);
-  });
+  var tacRow=document.createElement('div');
+  tacRow.style.cssText='display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:6px';
+  for(var ti=0;ti<TACTICS.length;ti++){
+    var tc=TACTICS[ti];
+    var tb=document.createElement('button');
+    tb.className='fbtn'+(myClub.tactic===tc.id?' sel':'');
+    tb.textContent=tc.name;
+    tb.title=tc.desc;
+    tb.onclick=(function(t){ return function(){
+      myClub.tactic=t.id; myClub.mentality=t.mentality; myClub.press=t.press; myClub.line=t.line;
+      renderLineup(); showMsg('战术已切换：'+t.name+' —— '+t.desc);
+    }; })(tc);
+    tacRow.appendChild(tb);
+  }
+  fr.appendChild(tacRow);
   var pitch=document.getElementById('pitch');
   pitch.innerHTML='';
   var form=FORMS[myClub.form];
@@ -1696,12 +1790,17 @@ function updateControls(){
   var b2=document.createElement('button'); b2.className='btn sm'; b2.textContent='⇄ 换人';
   b2.onclick=function(){ toggleSubs(); };
   c.appendChild(b2);
-  var b3=document.createElement('button'); b3.className='btn sm'; b3.textContent='⚔ 心态';
+  var b3=document.createElement('button'); b3.className='btn sm'; b3.textContent='🧠 战术';
   b3.onclick=function(){
-    match.home.mentality=match.home.mentality==='att'?'def':(match.home.mentality==='def'?'bal':'att');
-    match.paramsHome=params(match.home);
-    showMsg('心态：'+({att:'进攻',bal:'平衡',def:'防守'})[match.home.mentality]);
-    document.getElementById('mtTxt').textContent='我的战术：'+({att:'进攻',bal:'平衡',def:'防守'})[match.home.mentality];
+    var order=['balanced','gegenpress','bus'];
+    var i=order.indexOf(match.home.tactic);
+    match.home.tactic=order[(i+1)%order.length];
+    var tc=tacticById(match.home.tactic);
+    match.home.mentality=tc.mentality; match.home.press=tc.press; match.home.line=tc.line;
+    match.paramsHome=params(match.home,true);
+    myClub.tactic=match.home.tactic;
+    showMsg('战术：'+tc.name+' —— '+tc.desc);
+    document.getElementById('mtTxt').textContent='我的战术：'+tc.name;
   };
   c.appendChild(b3);
 }
