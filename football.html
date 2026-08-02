@@ -385,7 +385,7 @@ var loadedMatchInterrupted=false;
 function saveGame(){
   try{
     var d={
-      myClub:myClub, round:round, ROT:ROT, table:table,
+      myClub:myClub, round:round, ROT:ROT, leagueTable:leagueTable,
       resultsByRound:resultsByRound, champHistory:champHistory, ach:ach,
       market:market, names:NAMES_CACHE, sfx:SFX_ON,
       matchActive:!!(match&&!match.over)
@@ -401,7 +401,8 @@ function loadGame(){
     if(!d||!d.myClub||!d.myClub.squad||!d.myClub.squad.length) return false;
     myClub=d.myClub;
     round=d.round||1; ROT=d.ROT||[1,2,3,4,5,6,7];
-    table=d.table||[]; if(!table.length) initTable();
+    leagueTable=d.leagueTable||{A:[],B:[]};
+    if(!leagueTable.A.length||!leagueTable.B.length){ initLeague(); }
     resultsByRound=d.resultsByRound||{};
     champHistory=d.champHistory||[];
     ach=d.ach||{firstWin:false,champ:0,winStreak:0,season:0};
@@ -1457,7 +1458,7 @@ function showFinal(m){
   document.getElementById('btnNext').onclick=function(){
     round++;
     if(round>TOTAL_ROUNDS){ showChampion(); return; }
-    for(var ti=0;ti<table.length;ti++) table[ti].prevPts=table[ti].pts;
+    var tbl2=tableOf(myTier); for(var ti=0;ti<tbl2.length;ti++) tbl2[ti].prevPts=tbl2[ti].pts;
     var evTxt=weeklyEvent();
     refreshMarket();
     for(var ii=0;ii<myClub.squad.length;ii++){ if(myClub.squad[ii].inj>0) myClub.squad[ii].inj--; }
@@ -1934,7 +1935,7 @@ function renderFixtures(){
 }
 function renderTable(){
   var el=document.getElementById('view-table');
-  var sorted=table.slice().sort(function(a,b){ return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga); });
+  var sorted=tableOf(myTier).slice().sort(function(a,b){ return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga); });
   var html='<table><tr><th>#</th><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进/失</th><th>净胜</th><th>近况</th><th>积分</th></tr>';
   for(var i=0;i<sorted.length;i++){
     var r=sorted[i];
