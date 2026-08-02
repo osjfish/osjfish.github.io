@@ -306,7 +306,7 @@ function genSquad(teamId,ab){
 }
 function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
 function teamAbility(team){ var s=0,c=0; for(var i=0;i<team.length;i++){ if(team[i]){ s+=team[i].ab; c++; } } return c?s/c:0; }
-function pSpeed(p){ return (115+p.spd*0.35)*(0.7+0.3*p.fit/100)*(0.85+0.15*p.mor/100); }
+function pSpeed(p){ return (100+p.spd*0.5)*(0.7+0.3*p.fit/100)*(0.85+0.15*p.mor/100); }
 function pAtk(p){ return 9+(p.sho-45)*0.55; }
 function pDef(p){ return 9+(p.def-45)*0.55; }
 
@@ -633,10 +633,10 @@ function aiPlayer(m,p,dt){
       if(marked) shootP*=0.45;
       if(dToGate<130||Math.random()<shootP){
         var aim=(Math.random()<0.4?-1:(Math.random()<0.5?0:1));
-        var ang=Math.atan2((MIDY+aim*26-pr.sho*0.25-p.y)/Math.max(1,Math.abs(p.x-gateX)),att);
-        kickBall(m,p,500+pr.sho*6,ang);
+        var ang=Math.atan2((MIDY+aim*26-pr.sho*0.35-p.y)/Math.max(1,Math.abs(p.x-gateX)),att);
+        kickBall(m,p,400+pr.sho*8,ang);
         m.shots[p.team]++;
-        var onT=Math.random()<0.28+pr.sho*0.0022;
+        var onT=Math.random()<0.2+pr.sho*0.004;
         if(onT) m.onTarget[p.team]++;
         else m.rating[pr.name]=(m.rating[pr.name]||6)-0.1;
         resolveShot(m,p,ang);
@@ -689,12 +689,12 @@ function aiPlayer(m,p,dt){
         if(!tgt) tgt=escapePassTarget(m,p);
         if(tgt){
           var dx=tgt.x-p.x,dy=tgt.y-p.y,dd=Math.sqrt(dx*dx+dy*dy)||1;
-          var passPow=(250+dd*0.4)*(0.85+0.35*pr.pas/100)*P.tempo;
+          var passPow=(250+dd*0.4)*(0.7+0.5*pr.pas/100)*P.tempo;
           m.ball.owner=null;
           m.ball.vx=dx/dd*passPow;
           m.ball.vy=dy/dd*passPow;
           // 传球精度：传球能力越高越准（低能力时有几率传偏）
-          if(Math.random()<(100-pr.pas)/260){
+if(Math.random()<(100-pr.pas)/200){
             m.ball._passTx=tgt.x+(Math.random()-.5)*110;
             m.ball._passTy=tgt.y+(Math.random()-.5)*70;
           } else {
@@ -738,11 +738,11 @@ function aiPlayer(m,p,dt){
       var tgtB=bestPassTarget(m,p);
       if(tgtB){
         var dxB=tgtB.x-p.x,dyB=tgtB.y-p.y,ddB=Math.sqrt(dxB*dxB+dyB*dyB)||1;
-        var passPowB=(230+ddB*0.4)*(0.85+0.35*pr.pas/100)*P.tempo;
+        var passPowB=(230+ddB*0.4)*(0.7+0.5*pr.pas/100)*P.tempo;
         m.ball.owner=null;
         m.ball.vx=dxB/ddB*passPowB;
         m.ball.vy=dyB/ddB*passPowB;
-        if(Math.random()<(100-pr.pas)/260){
+        if(Math.random()<(100-pr.pas)/200){
           m.ball._passTx=tgtB.x+(Math.random()-.5)*110;
           m.ball._passTy=tgtB.y+(Math.random()-.5)*70;
         } else {
@@ -1214,7 +1214,7 @@ function playerContact(m,p){
     // 后卫抢断强化：触发距离更宽（+14px）、成功率 ×1.6；抢断成功 +0.3，被抢者 -0.1
     var reach=PLAYER_R+(p.role==='df'?14:8);
     if(o.protect<=0&&dist2(p,o)<reach*reach){
-      if(Math.random()<P.tackle*(0.7+p.def*0.005)*(p.role==='df'?1.6:1)){
+      if(Math.random()<P.tackle*(0.5+p.def*0.007)*(p.role==='df'?1.6:1)){
         giveBall(m,p);
         o.protect=0.8;
         m.rating[p.pl.name]=(m.rating[p.pl.name]||6)+0.3;
