@@ -58,6 +58,7 @@
   #subs { position:fixed; right:10px; top:56px; z-index:12; background:rgba(8,12,20,.94); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:8px; display:none; width:160px; max-height:60vh; overflow-y:auto; }
   #subs .sub { cursor:pointer; font-size:11px; padding:3px 6px; border-radius:5px; }
   #subs .sub:hover { background:rgba(61,220,122,.2); }
+  #subs .sub.sel { background:rgba(255,224,138,.28); color:#ffe08a; }
   #toast { position:fixed; left:50%; top:28%; transform:translate(-50%,-50%); z-index:13; pointer-events:none; font-size:32px; font-weight:900; color:#fff; text-shadow:0 3px 16px rgba(0,0,0,.8); opacity:0; transition:opacity .25s; }
   #report { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center; background:rgba(4,7,12,.92); }
   #report .card { max-width:620px; }
@@ -148,6 +149,7 @@
     <div class="tabs">
       <div class="tab sel" data-v="lineup">阵容战术</div>
       <div class="tab" data-v="transfer">转会</div>
+      <div class="tab" data-v="opponent">对手</div>
       <div class="tab" data-v="fixtures">赛程</div>
       <div class="tab" data-v="table">积分榜</div>
     </div>
@@ -163,6 +165,7 @@
     <div id="view-transfer" class="view">
       <div id="transferBox"></div>
     </div>
+    <div id="view-opponent" class="view"></div>
     <div id="view-fixtures" class="view"></div>
     <div id="view-table" class="view"></div>
   </div>
@@ -188,15 +191,17 @@ var SURNAMES=['王','李','张','刘','陈','杨','赵','黄','周','吴','徐',
 var GIVEN=['志强','伟','建国','明','勇','军','磊','晨','鹏','飞','杰','涛','强','宁','浩','宇','翔','洋','凯','龙'];
 var NAMES_CACHE=[];
 function randName(){
-  var n='';
-  do{ n=SURNAMES[(Math.random()*SURNAMES.length)|0]+GIVEN[(Math.random()*GIVEN.length)|0]; }while(NAMES_CACHE.indexOf(n)>=0);
+  if(NAMES_CACHE.length>280) NAMES_CACHE.length=0;
+  var n='',guard=0;
+  do{ n=SURNAMES[(Math.random()*SURNAMES.length)|0]+GIVEN[(Math.random()*GIVEN.length)|0]; guard++; }while(NAMES_CACHE.indexOf(n)>=0&&guard<60);
   NAMES_CACHE.push(n);
   return n;
 }
-function mkPlayers(avg){
+function mkPlayers(avg,onlyPos){
   var list=[];
   var plan=[{p:'gk',n:2},{p:'df',n:6},{p:'mf',n:6},{p:'fw',n:4}];
   for(var k=0;k<plan.length;k++){
+    if(onlyPos&&plan[k].p!==onlyPos) continue;
     for(var i=0;i<plan[k].n;i++){
       var ab=clamp(avg+(Math.random()*18-9),45,99);
       var spread=function(){ return clamp(ab+(Math.random()*22-11),40,99); };
@@ -217,7 +222,7 @@ function mkPlayers(avg){
 function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
 function teamAbility(team){ var s=0; for(var i=0;i<team.length;i++) s+=team[i].ab; return team.length?s/team.length:0; }
 // 属性映射（多维能力影响行为）
-function pSpeed(p){ return 150+p.spd*0.5; }
+function pSpeed(p){ return (150+p.spd*0.5)*(0.7+0.3*p.fit/100)*(0.85+0.15*p.mor/100); }
 function pAtk(p){ return 9+(p.sho-45)*0.55; }
 function pDef(p){ return 9+(p.def-45)*0.55; }
 
@@ -227,9 +232,17 @@ var aiClubs=[];
 for(var t=1;t<8;t++){
   aiClubs.push({ name:TEAM_NAMES[t], color:TEAM_COLORS[t], squad:mkPlayers(ABILITY[t-1]), form:'4-3-3', mentality:'bal', eleven:[] });
 }
+// 按阵型生成 11 个槽位的角色序列（4-3-3 / 4-4-2 / 3-5-2 / 4-2-3-1）
+function roleList(form){
+  var f=FORMS[form]||FORMS['4-3-3'];
+  var roles=[];
+  var order=['gk','df','mf','fw'];
+  for(var o=0;o<order.length;o++){ for(var i=0;i<f[order[o]].length;i++) roles.push(order[o]); }
+  return roles;
+}
 function buildEleven(team){
   var el=[];
-  var roles=['gk','df','df','df','df','mf','mf','mf','fw','fw','fw'];
+  var roles=roleList(team.form||'4-3-3');
   for(var r=0;r<roles.length;r++){
     var best=null;
     for(var i=0;i<team.squad.length;i++){
@@ -241,9 +254,64 @@ function buildEleven(team){
     if(!best){
       for(var j=0;j<team.squad.length;j++){ if(el.indexOf(team.squad[j])<0&&team.squad[j].inj<=0){ best=team.squad[j]; break; } }
     }
-    if(best) el.push(best);
+    if(best) el.push(best); else el.push(null);
   }
   team.eleven=el;
+}
+// 只填空位（不覆盖玩家手动安排的首发）
+function ensureEleven(){
+  var roles=roleList(myClub.form);
+  for(var i=0;i<roles.length;i++){
+    if(myClub.eleven[i]) continue;
+    var best=null;
+    for(var j=0;j<myClub.squad.length;j++){
+      var p=myClub.squad[j];
+      if(p.inj>0||myClub.eleven.indexOf(p)>=0||p.pos!==roles[i]) continue;
+      if(!best||p.ab>best.ab) best=p;
+    }
+    if(!best){
+      for(var k=0;k<myClub.squad.length;k++){ var q=myClub.squad[k]; if(q.inj<=0&&myClub.eleven.indexOf(q)<0){ best=q; break; } }
+    }
+    if(best) myClub.eleven[i]=best;
+  }
+}
+// 安排球员到同位置空位；无空位则替换同位置最差首发
+function assignPlayer(q){
+  var roles=roleList(myClub.form);
+  for(var i=0;i<roles.length;i++){ if(roles[i]===q.pos&&!myClub.eleven[i]){ myClub.eleven[i]=q; return true; } }
+  var wi=-1,wa=-1;
+  for(var j=0;j<roles.length;j++){
+    if(roles[j]!==q.pos) continue;
+    var cur=myClub.eleven[j];
+    if(cur&&cur!==q&&(wi<0||cur.ab<wa)){ wi=j; wa=cur.ab; }
+  }
+  if(wi>=0){ myClub.eleven[wi]=q; return true; }
+  return false;
+}
+// 换阵型：尽量保留原首发球员，按新阵型重新排列槽位
+function reformEleven(){
+  var roles=roleList(myClub.form);
+  var old=myClub.eleven||[];
+  var used={}, el=[];
+  for(var i=0;i<roles.length;i++){
+    var r=roles[i];
+    var best=null;
+    for(var j=0;j<old.length;j++){
+      var p=old[j];
+      if(p&&p.pos===r&&!used[p.name]){ best=p; used[p.name]=true; break; }
+    }
+    if(!best){
+      for(var k=0;k<myClub.squad.length;k++){
+        var q=myClub.squad[k];
+        if(q.inj<=0&&q.pos===r&&!used[q.name]){ best=q; used[q.name]=true; break; }
+      }
+    }
+    if(!best){
+      for(var k2=0;k2<myClub.squad.length;k2++){ var q2=myClub.squad[k2]; if(q2.inj<=0&&!used[q2.name]){ best=q2; used[q2.name]=true; break; } }
+    }
+    el.push(best||null);
+  }
+  myClub.eleven=el;
 }
 function autoLineup(){
   var f=FORMS[myClub.form];
@@ -362,7 +430,7 @@ function refreshMarket(){
   for(var i=0;i<3;i++){
     var pos=['gk','df','mf','fw'][(Math.random()*4)|0];
     var ab=Math.round(55+Math.random()*35);
-    var pool=mkPlayers(ab).filter(function(q){ return q.pos===pos; });
+    var pool=mkPlayers(ab,pos);
     var p=pool[(Math.random()*pool.length)|0];
     p.age=18+((Math.random()*12)|0);
     p.price=p.ab*2;
@@ -404,7 +472,7 @@ function loadGame(){
     var seen={}, clean=[];
     for(var i=0;i<el.length;i++){
       var e=el[i];
-      if(!e||!e.name) continue;
+      if(!e||!e.name){ clean.push(null); continue; }
       for(var j=0;j<myClub.squad.length;j++){
         var s=myClub.squad[j];
         if(!seen[s.name]&&s.name===e.name&&s.ab===e.ab){ clean.push(s); seen[s.name]=true; break; }
@@ -422,6 +490,7 @@ function loadGame(){
 var match=null;
 var PLAYER_R=10,BALL_R=6,FRICTION=1.8;
 function startMatch(){
+  ensureEleven();
   simulateAIGames();
   var oppIdx=opponentOf(round);
   var opp=aiClubs[oppIdx-1];
@@ -509,9 +578,11 @@ function spawnMatch(m){
         var picked=null;
         for(var e=0;e<team.eleven.length;e++){
           var cand=team.eleven[e];
+          if(!cand) continue;
           if(cand.pos===order[o]&&used.indexOf(cand)<0){ picked=cand; used.push(cand); break; }
         }
-        if(!picked) picked=team.eleven[0];
+        if(!picked&&team.eleven[0]) picked=team.eleven[0];
+        if(!picked) continue;
         var t=home?list[k][0]:(1-list[k][0]);
         m.players.push({team:home?0:1,pl:picked,role:order[o],x:W*0.06+t*W*0.88,y:list[k][1]*H*0.96+H*0.02,
           vx:0,vy:0,face:home?0:Math.PI,protect:0,shootCd:0,homeX:0,homeY:0});
@@ -585,10 +656,17 @@ function aiPlayer(m,p,dt){
       var tgt=bestPassTarget(m,p);
       if(tgt){
         var dx=tgt.x-p.x,dy=tgt.y-p.y,dd=Math.sqrt(dx*dx+dy*dy)||1;
+        var passPow=(300+dd*0.5)*(0.85+0.35*pr.pas/100);
         m.ball.owner=null;
-        m.ball.vx=dx/dd*(320+dd*0.5);
-        m.ball.vy=dy/dd*(320+dd*0.5);
-        m.ball._passTx=tgt.x; m.ball._passTy=tgt.y;
+        m.ball.vx=dx/dd*passPow;
+        m.ball.vy=dy/dd*passPow;
+        // 传球精度：传球能力越高越准（低能力时有几率传偏）
+        if(Math.random()<(100-pr.pas)/260){
+          m.ball._passTx=tgt.x+(Math.random()-.5)*110;
+          m.ball._passTy=tgt.y+(Math.random()-.5)*70;
+        } else {
+          m.ball._passTx=tgt.x; m.ball._passTy=tgt.y;
+        }
         m.ball._passTo=tgt;
         p.shootCd=0.5;
         m.lastTouch=p.team;
@@ -626,6 +704,12 @@ function aiPlayer(m,p,dt){
     return;
   }
   // 追球/逼抢/站位
+  // 对方门将持球：全体退守站位，不逼抢门将（给门将留出传球空间）
+  if(b.owner&&b.owner.role==='gk'&&b.owner.team!==p.team){
+    var retX=p.team===0?Math.min(p.homeX,W*0.55):Math.max(p.homeX,W*0.45);
+    goTo(p,retX,p.homeY,dt,1.05);
+    return;
+  }
   // 接应：队友传球给自己时，主动迎球（相向跑向球，后卫限防守范围内）
   if(b._passTo===p&&b.owner!==p&&(p.role!=='df'||(p.team===0?b.x<W/2+60:b.x>W/2-60))){ goTo(p,b.x,b.y,dt,1.15); return; }
   var myNearest=nearestTo(m,p.team);
@@ -1099,7 +1183,7 @@ function endMatch(){
   }
   for(var n in m.rating){ m.rating[n]=Math.round(clamp(m.rating[n],3.5,10)*10)/10; }
   resultsByRound[round]={hs:m.score[0],as:m.score[1]};
-  buildEleven(myClub);
+  ensureEleven();
   SFX.whistle(false);
   showFinal(m);
 }
@@ -1313,11 +1397,36 @@ function drawPitch(g){
 function renderScreen(){
   renderLineup();
   renderTransfer();
+  renderOpponent();
   renderFixtures();
   renderTable();
   document.getElementById('screen').classList.remove('hide');
   document.getElementById('btnRound').textContent=round;
   document.getElementById('cashTxt').textContent=myClub.cash+'万';
+}
+function renderOpponent(){
+  var el=document.getElementById('view-opponent');
+  if(!el) return;
+  var oppIdx=opponentOf(round);
+  var opp=aiClubs[oppIdx-1];
+  var html='<div class="section-title">🔍 第'+round+'轮对手：'+opp.name+'<span class="teamDot" style="background:'+opp.color+';margin-left:6px"></span></div>';
+  html+='<div style="font-size:11px;color:#8fa3bd;margin-bottom:6px">阵型 '+opp.form+' · 首发实力 <b style="color:#3ddc7a">'+Math.round(teamAbility(opp.eleven))+'</b></div>';
+  var elv=opp.eleven.filter(function(x){ return x; });
+  html+='<table><tr><th>位置</th><th>球员</th><th>总评</th><th>速</th><th>射</th><th>防</th><th>传</th><th>年龄</th></tr>';
+  for(var i=0;i<elv.length;i++){
+    var p=elv[i];
+    html+='<tr><td><span class="badge '+p.pos+'">'+p.pos.toUpperCase()+'</span></td><td>'+p.name+(p.hot?' 🔥':'')+'</td><td><b>'+p.ab+'</b></td><td>'+p.spd+'</td><td>'+p.sho+'</td><td>'+p.def+'</td><td>'+p.pas+'</td><td>'+p.age+'</td></tr>';
+  }
+  html+='</table>';
+  var bench=opp.squad.filter(function(q){ return elv.indexOf(q)<0; }).sort(function(a,b){ return b.ab-a.ab; });
+  html+='<div class="section-title">替补席（'+bench.length+'）</div>';
+  html+='<table><tr><th>位置</th><th>球员</th><th>总评</th><th>速</th><th>射</th><th>防</th><th>传</th><th>年龄</th></tr>';
+  for(var b=0;b<bench.length;b++){
+    var q2=bench[b];
+    html+='<tr><td><span class="badge '+q2.pos+'">'+q2.pos.toUpperCase()+'</span></td><td>'+q2.name+'</td><td>'+q2.ab+'</td><td>'+q2.spd+'</td><td>'+q2.sho+'</td><td>'+q2.def+'</td><td>'+q2.pas+'</td><td>'+q2.age+'</td></tr>';
+  }
+  html+='</table>';
+  el.innerHTML=html;
 }
 function renderLineup(){
   // 球队信息卡
@@ -1365,7 +1474,7 @@ function renderLineup(){
     var b=document.createElement('button');
     b.className='fbtn'+(myClub.form===forms[f]?' sel':'');
     b.textContent=forms[f];
-    b.onclick=function(){ myClub.form=this.textContent; buildEleven(myClub); renderLineup(); };
+    b.onclick=function(){ myClub.form=this.textContent; reformEleven(); renderLineup(); showMsg('阵型已切换：'+myClub.form); };
     fr.appendChild(b);
   }
   [['att','⚔ 进攻'],['bal','⚖ 平衡'],['def','🛡 防守']].forEach(function(m){
@@ -1398,15 +1507,19 @@ function renderLineup(){
     var pts=form[order[o]];
     for(var p=0;p<pts.length;p++){
       var slot=document.createElement('div');
-      slot.className='slot '+order[o]+(idx<myClub.eleven.length?'':' empty');
+      var pl=myClub.eleven[idx];
+      slot.className='slot '+order[o]+(pl?'':' empty');
       slot.style.left=(pts[p][0]*100)+'%';
       slot.style.top=(pts[p][1]*100+6)+'%';
-      if(idx<myClub.eleven.length){
-        var pl=myClub.eleven[idx];
+      if(pl){
         slot.textContent=pl.name.slice(0,2)+'\n'+pl.ab;
         slot.style.background=pl.fit<60?'rgba(255,80,80,.6)':null;
-        slot.onclick=function(pi){ return function(){ selectForSlot(pi); }; }(idx);
-      } else slot.textContent='+';
+        slot.title=POS_NAMES[pl.pos]+' '+pl.name+'（总评'+pl.ab+'）——点击调整';
+      } else {
+        slot.textContent='+'+(order[o]==='gk'?'门将':order[o]);
+        slot.title='点击选择'+POS_NAMES[order[o]];
+      }
+      slot.onclick=(function(si){ return function(){ openSlotPicker(si); }; })(idx);
       pitch.appendChild(slot);
       idx++;
     }
@@ -1427,13 +1540,15 @@ function renderLineup(){
       '<span style="font-size:9px;color:#ff9f0a">传'+p.pas+'</span>'+
       '<span style="font-size:9px;color:#8fa3bd">总'+p.ab+'</span></div>'+
       '<div class="meta">'+p.age+'岁 · 体能 <span class="stbar '+(fitCls)+'"><i style="width:'+p.fit+'%"></i></span> 士气'+p.mor+(p.played>0?' · '+p.goals+'球'+p.rating.toFixed(1)+'分':'')+'</div>'+
-      (in11?'<div style="font-size:9px;color:#ffe08a">★ 首发</div>':'<div style="font-size:9px;color:#8fa3bd">替补</div>');
+      (in11?'<div style="font-size:9px;color:#ffe08a">★ 首发</div>':'<div style="font-size:9px;color:#8fa3bd">替补 · 点击安排首发</div>');
     card.onclick=function(pi){ return function(){
       var q=sorted[pi];
       if(q.inj>0){ showMsg('球员受伤缺阵'); return; }
       var idx=myClub.eleven.indexOf(q);
-      if(idx>=0){ myClub.eleven.splice(idx,1); }
-      else { if(myClub.eleven.length>=11){ myClub.eleven.pop(); } myClub.eleven.push(q); }
+      if(idx>=0){ myClub.eleven[idx]=null; }
+      else {
+        if(!assignPlayer(q)) showMsg('没有同位置空位，请先点击球场槽位调整');
+      }
       renderLineup();
     }; }(pi);
     sl.appendChild(card);
@@ -1446,15 +1561,44 @@ function renderLineup(){
   for(var bi=0;bi<bench.length;bi++) pcard(bench[bi],sorted.indexOf(bench[bi]));
   saveGame();
 }
-function selectForSlot(slotIdx){
+// 点击球场槽位 → 弹出同位置球员选择器
+function openSlotPicker(slotIdx){
+  var roles=roleList(myClub.form);
+  var role=roles[slotIdx];
   var cur=myClub.eleven[slotIdx];
-  var best=null;
-  for(var i=0;i<myClub.squad.length;i++){
-    var p=myClub.squad[i];
-    if(myClub.eleven.indexOf(p)>=0||p===cur||p.inj>0) continue;
-    if(p.pos===cur.pos&&(!best||p.ab>best.ab)) best=p;
+  var cands=myClub.squad.filter(function(p){ return p.inj<=0&&p.pos===role&&p!==cur; }).sort(function(a,b){ return b.ab-a.ab; });
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;';
+  var box=document.createElement('div');
+  box.style.cssText='background:#111826;border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:14px;max-height:82vh;overflow-y:auto;width:min(430px,94vw);';
+  var html='<div style="color:#8fa3bd;font-size:12px;margin-bottom:8px">'+POS_NAMES[role]+'（'+role.toUpperCase()+'）槽位'+(cur?' · 当前首发：<b style="color:#ffe08a">'+cur.name+'</b>':'')+'</div>';
+  if(cur){
+    html+='<button class="fbtn" data-clear="1" style="margin-bottom:6px">卸下 '+cur.name+'（转为替补）</button>';
   }
-  if(best){ myClub.eleven[slotIdx]=best; renderLineup(); }
+  for(var i=0;i<cands.length;i++){
+    var p=cands[i];
+    html+='<div class="mkt-card" style="cursor:pointer" data-pick="'+i+'"><div class="info"><b>'+p.name+'</b> <span class="badge '+p.pos+'">'+p.pos.toUpperCase()+'</span>'+(p.hot?' 🔥':'')+(p.fit<60?' <span style="color:#ff6b81">体能低</span>':'')+
+      '<div class="abbar"><div class="abtrack"><div class="abfill" style="width:'+p.ab+'%"></div></div><span class="abnum">'+p.ab+'</span></div>'+
+      '<div style="color:#8fa3bd;font-size:10px">速'+p.spd+' 射'+p.sho+' 防'+p.def+' 传'+p.pas+' · '+p.age+'岁 · 士气'+p.mor+'</div></div></div>';
+  }
+  if(!cands.length&&!cur) html+='<div style="color:#5a6678;font-size:11px">没有可用的'+POS_NAMES[role]+'球员</div>';
+  html+='<div style="text-align:center;margin-top:8px"><button class="fbtn" data-close="1">关闭</button></div>';
+  box.innerHTML=html;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  function close(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+  box.addEventListener('click',function(ev){
+    var t=ev.target;
+    var clear=t.closest&&t.closest('[data-clear]');
+    var pick=t.closest&&t.closest('[data-pick]');
+    if(clear){ myClub.eleven[slotIdx]=null; close(); renderLineup(); return; }
+    if(pick){
+      var p=cands[parseInt(pick.getAttribute('data-pick'))];
+      if(p){ myClub.eleven[slotIdx]=p; close(); renderLineup(); }
+      return;
+    }
+    if(t.getAttribute&&t.getAttribute('data-close')) close();
+  });
 }
 function renderTransfer(){
   var el=document.getElementById('transferBox');
@@ -1485,7 +1629,7 @@ function renderTransfer(){
       myClub.cash-=p.price;
       myClub.squad.push(p);
       market.splice(idx,1);
-      buildEleven(myClub);
+      ensureEleven();
       renderScreen();
       showMsg('签约 '+p.name+'！');
     };
@@ -1494,10 +1638,12 @@ function renderTransfer(){
     b.onclick=function(){
       var idx=parseInt(this.getAttribute('data-sell'));
       var q=myClub.squad[idx];
-      if(myClub.eleven.indexOf(q)>=0&&myClub.eleven.length<=11){ showMsg('至少要留 11 人可出场'); return; }
+      if(myClub.eleven.indexOf(q)>=0&&myClub.squad.length<=11){ showMsg('至少要留 11 人可出场'); return; }
+      var in11=myClub.eleven.indexOf(q);
       myClub.cash+=Math.round(q.ab*1.5);
       myClub.squad.splice(idx,1);
-      buildEleven(myClub);
+      if(in11>=0) myClub.eleven[in11]=null;
+      ensureEleven();
       renderScreen();
       showMsg(q.name+' 转会离队 +'+Math.round(q.ab*1.5)+'万');
     };
@@ -1559,35 +1705,56 @@ function updateControls(){
   };
   c.appendChild(b3);
 }
+var subSel=null;
 function toggleSubs(){
   var el=document.getElementById('subs');
-  if(el.style.display==='block'){ el.style.display='none'; return; }
-  el.innerHTML='<div style="color:#8fa3bd;font-size:10px;margin-bottom:4px">换人（同位置）</div>';
-  var subs=myClub.squad.filter(function(p){ return myClub.eleven.indexOf(p)<0&&p.inj<=0; });
-  for(var i=0;i<subs.length;i++){
-    var p=subs[i];
+  if(el.style.display==='block'){ el.style.display='none'; subSel=null; return; }
+  renderSubs();
+  el.style.display='block';
+}
+function findOnField(pl){
+  for(var i=0;i<match.players.length;i++){ if(match.players[i].team===0&&match.players[i].pl===pl) return match.players[i]; }
+  return null;
+}
+function doSub(out,newP){
+  var elevenIdx=match.home.eleven.indexOf(out.pl);
+  if(elevenIdx>=0) match.home.eleven[elevenIdx]=newP;
+  out.pl=newP;
+  match.paramsHome=params(match.home,true);
+  match.rating[newP.name]=6.0;
+  addEvent(((match.clock/60)|0),'⇄ '+newP.name+' 替换 '+out.pl.name);
+  subSel=null;
+  renderSubs();
+}
+function renderSubs(){
+  var el=document.getElementById('subs');
+  el.innerHTML='<div style="color:#8fa3bd;font-size:10px;margin-bottom:4px">先点场上球员，再点同位置替补完成换人</div>';
+  var field=match.players.filter(function(p){ return p.team===0; });
+  el.innerHTML+='<div style="color:#ffe08a;font-size:10px;margin:3px 0">场上</div>';
+  for(var i=0;i<field.length;i++){
+    var fp=field[i];
     var d=document.createElement('div');
-    d.className='sub';
-    d.textContent=POS_NAMES[p.pos]+' '+p.name+' ('+p.ab+')';
-    d.onclick=function(pi){ return function(){
-      var q=subs[pi];
-      var target=null;
-      for(var j=0;j<match.players.length;j++){
-        if(match.players[j].team===0&&match.players[j].pl.pos===q.pos){ target=j; break; }
-      }
-      if(target===null){ showMsg('没有同位置球员在场上'); return; }
-      var out=match.players[target];
-      var elevenIdx=match.home.eleven.indexOf(out.pl);
-      if(elevenIdx>=0) match.home.eleven[elevenIdx]=q;
-      out.pl=q;
-      match.paramsHome=params(match.home,true);
-      match.rating[q.name]=6.0;
-      addEvent(((match.clock/60)|0),'⇄ '+q.name+' 替换 '+out.pl.name);
-      toggleSubs();
-    }; }(i);
+    d.className='sub'+(subSel&&subSel===fp.pl?' sel':'');
+    d.textContent='['+fp.role.toUpperCase()+'] '+fp.pl.name;
+    d.onclick=(function(p){ return function(){
+      if(subSel&&subSel.pos===p.pl.pos){ doSub(p,subSel); }
+      else { subSel=p.pl; renderSubs(); }
+    }; })(fp);
     el.appendChild(d);
   }
-  el.style.display='block';
+  var subs=myClub.squad.filter(function(q){ return myClub.eleven.indexOf(q)<0&&q.inj<=0; }).sort(function(a,b){ return b.ab-a.ab; });
+  el.innerHTML+='<div style="color:#8fa3bd;font-size:10px;margin:4px 0">替补（'+subs.length+'）</div>';
+  for(var j=0;j<subs.length;j++){
+    var q=subs[j];
+    var d2=document.createElement('div');
+    d2.className='sub'+(subSel===q?' sel':'');
+    d2.textContent='['+q.pos.toUpperCase()+'] '+q.name+'（'+q.ab+'）';
+    d2.onclick=(function(q2){ return function(){
+      if(subSel&&subSel.pos===q2.pos){ var t=findOnField(subSel); if(t) doSub(t,q2); else { subSel=q2; renderSubs(); } }
+      else { subSel=q2; renderSubs(); }
+    }; })(q);
+    el.appendChild(d2);
+  }
 }
 function updateHud(){
   if(!match) return;
