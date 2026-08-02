@@ -1669,6 +1669,32 @@ function renderScreen(){
     initLeague();
     refreshMarket();
   }
+  // 数据看板：顶部概览
+  var myRow=tbl?tbl.filter(function(r){return r.idx===myIdx;})[0]:null;
+  var myRk=myRow?rankOf(myIdx)+1:'-';
+  var formStr='';
+  if(myRow&&myRow.form.length){
+    formStr=myRow.form.map(function(f){return f==='W'?'<span style="color:#3ddc7a">&#9679;</span>':(f==='D'?'<span style="color:#ffe08a">&#9679;</span>':'<span style="color:#ff6b81">&#9679;</span>');}).join('');
+  }
+  var dashEl=document.getElementById('dashHeader');
+  if(!dashEl){
+    dashEl=document.createElement('div');
+    dashEl.id='dashHeader';
+    var screenEl=document.getElementById('screen');
+    var cardEl=screenEl.querySelector('.card');
+    cardEl.insertBefore(dashEl, cardEl.firstChild);
+  }
+  dashEl.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:rgba(255,255,255,.04);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px">'+
+    '<span class="teamDot" style="background:'+(myClub?myClub.color:'#3a7bff')+';width:18px;height:18px"></span>'+
+    '<b style="font-size:15px;color:#dfe7f2">'+(myClub?myClub.name:'')+'</b>'+
+    '<span style="color:#8fa3bd">'+(myTier==='A'?'A级联赛':'B级联赛')+'</span>'+
+    '<span style="background:rgba(61,220,122,.15);border-radius:6px;padding:2px 10px;color:#3ddc7a;font-weight:800">第'+(myRk)+'名</span>'+
+    '<span style="color:#ffd857">💰'+(myClub?myClub.cash:'0')+'万</span>'+
+    '<span style="color:#8fa3bd">第'+round+'轮</span>'+
+    (formStr?'<span style="color:#8fa3bd">近况 '+formStr+'</span>':'')+
+    (myRow?'<span style="color:#8fa3bd">'+(myRow.w+'胜 '+myRow.d+'平 '+myRow.l+'负')+'</span>':'')+
+    (myRow?'<span style="color:#8fa3bd">进'+myRow.gf+'/失'+myRow.ga+'</span>':'')+
+    '</div>';
   renderLineup();
   renderTransfer();
   renderOpponent();
@@ -1716,12 +1742,10 @@ function renderLineup(){
   if(ach.firstWin) achTxt.push('🏆 首胜');
   if(ach.winStreak>=3) achTxt.push('🔥 '+ach.winStreak+'连胜');
   if(ach.champ>0) achTxt.push('🥇 冠军×'+ach.champ);
-  info.innerHTML='<div style="display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.04);border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:12px">'+
-    '<span class="teamDot" style="background:#3a7bff;width:16px;height:16px"></span>'+
-    '<b>'+myClub.name+'</b>'+
-    '<span class="cash">💰'+myClub.cash+'万</span>'+
-    '<span style="color:#8fa3bd">第'+round+'轮 · 排名第'+(rankOf(myIdx)+1)+'</span>'+
-    '<span style="color:#8fa3bd">实力'+Math.round(teamAbility(myClub.eleven))+'</span>'+(achTxt.length?'<span style="color:#ffe08a">'+achTxt.join(' · ')+'</span>':'')+
+  info.innerHTML='<div style="display:flex;gap:8px;align-items:center;padding:4px 0;margin-bottom:6px;font-size:11px;color:#8fa3bd">'+
+    (achTxt.length?'<span style="color:#ffe08a">'+achTxt.join(' · ')+'</span>':'')+
+    '<span>实力'+Math.round(teamAbility(myClub.eleven))+'</span>'+
+    '<span>士气'+Math.round(myClub.squad.reduce(function(s,p){return s+p.mor;},0)/myClub.squad.length)+'</span>'+
     '</div>';
   var fr=document.getElementById('formRow');
   fr.innerHTML='';
