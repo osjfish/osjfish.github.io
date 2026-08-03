@@ -307,13 +307,13 @@
     #toast { font-size:22px; top:24%; }
     #roundTxt { font-size:9px; padding:1px 6px; }
   }
-  /* 手机横屏：比赛画面居中，事件框在画面右侧(8行)，评分框贴画面左缘 */
+  /* 手机横屏：画面居中填满内容区，事件框在画面右侧padding区内贴右，评分框在左侧padding区贴画面 */
   @media (max-width:900px) and (orientation:landscape) {
     #wrap { padding:44px 216px 20px 190px; }
-    #events { left:auto; right:216px; transform:none; top:44px; bottom:auto; max-height:150px; font-size:11px; width:200px; }
+    #events { left:auto; right:16px; transform:none; top:44px; bottom:auto; max-height:150px; font-size:11px; width:200px; }
     #controls { right:6px; bottom:6px; }
     #controls .btn { font-size:13px; padding:5px 10px; }
-    #rating { display:grid; left:8px; top:44px; bottom:auto; right:auto; font-size:12px; padding:6px 8px; max-height:none; width:178px; grid-template-columns:repeat(2,1fr); overflow-y:auto; }
+    #rating { display:grid; left:8px; top:44px; bottom:20px; right:auto; font-size:12px; padding:6px 8px; max-height:none; width:178px; grid-template-columns:repeat(2,1fr); overflow-y:auto; }
     #toast { font-size:20px; top:20%; }
   }
 </style>
@@ -3881,10 +3881,9 @@ document.querySelectorAll('.tab').forEach(function(t){
 function fitGame(){
   var w=window.innerWidth,h=window.innerHeight;
   var mobile=w<=900;
-  var landscape=mobile&&w>h; // 手机横屏：画面居中，左右留给信息框
-  // 横屏尺寸与CSS padding对齐（左190 右216 顶44 底20），避免canvas溢出遮挡信息框
-  var availW=w-(landscape?424:(mobile?8:16));
-  var availH=h-(landscape?74:(mobile?178:16));
+  var landscape=mobile&&w>h; // 手机横屏：画面填满内容区（padding 190/216/44/20），信息框在两侧padding区
+  var availW=w-(landscape?414:(mobile?8:16));
+  var availH=h-(landscape?72:(mobile?178:16));
   var s=Math.min(availW/W, availH/H);
   cv.style.width=Math.round(W*s)+'px';
   cv.style.height=Math.round(H*s)+'px';
