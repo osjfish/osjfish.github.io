@@ -1959,6 +1959,24 @@ function aiOff(m,p,dt){
       }
       if(nearestDf){ goTo(p,b.owner.x,b.owner.y,dt,1.0); return; }
     }
+    // 4.6) 后卫封堵射门路线：另一名后卫（离球第二近）站持球者与球门连线，防远射与内切
+    if(p.role==='df'&&inMyHalf&&dOwn<340){
+      var nearerDf=0;
+      for(var d2i=0;d2i<m.players.length;d2i++){
+        var dp2=m.players[d2i];
+        if(dp2.team!==p.team||dp2===p||dp2.role!=='df') continue;
+        if(dist2(dp2,b.owner)<dist2(p,b.owner)) nearerDf++;
+      }
+      if(nearerDf===1){
+        var gx3=p.team===0?0:W;
+        var dvx3=b.owner.x-gx3,dvy3=b.owner.y-MIDY;
+        var dd3=Math.sqrt(dvx3*dvx3+dvy3*dvy3)||1;
+        var ax3=b.owner.x-dvx3/dd3*90;
+        var ay3=b.owner.y-dvy3/dd3*90;
+        goTo(p,ax3,ay3,dt,1.0);
+        return;
+      }
+    }
     // 协防封堵：第二近者站持球者与球门连线
     var dCar=Math.sqrt(dist2(p,b.owner));
     if(dCar<(p.role==='df'?540:460)*(0.8+0.3*P.press/1.1)&&(p.role!=='df'||inMyHalf)){
@@ -3820,7 +3838,7 @@ function renderTable(){
     // A级前三名金银铜标注；B级前二升级标注；降级提示仅A级存在
     var rkZone='';
     if(tableViewTier==='A'&&i<3) rkZone='<span class="zone t'+(i+1)+'">'+(i+1)+'</span>';
-    else if(tableViewTier==='B'&&i<2) rkZone='<span class="zone champ">升</span>';
+    else if(tableViewTier==='B'&&i<2) rkZone=(i+1)+'<span class="zone champ">升</span>';
     else if(tableViewTier==='A'&&i>=sorted.length-2) rkZone=(i+1)+'<span class="zone demote">降</span>';
     else rkZone=(i+1);
     var clubInfo=aiClubs.filter(function(c){return c.idx===r.idx;})[0];
