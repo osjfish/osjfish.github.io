@@ -1864,12 +1864,16 @@ function aiHold(m,p){
       if(angleGood) shootP*=1.25;
       if(gkOut&&dToGate>150) shootP*=1.3;
       if(dToGate<130||Math.random()<shootP){
-        var aim=(Math.random()<0.4?-1:(Math.random()<0.5?0:1));
-        var ang=Math.atan2((MIDY+aim*26-(pr.sho*0.3+pr.pow*0.1)-p.y)/Math.max(1,Math.abs(p.x-gateX)),att);
-        kickBall(m,p,400+pr.sho*6+pr.pow*5,ang);
-        m.shots[p.team]++;
         var onT=Math.random()<0.2+pr.sho*0.0025+pr.tec*0.002;
         m.ball._onT=onT; // 供扑救消息区分（射正化解/偏球没收）
+        // 瞄准点：射正瞄准门框内（±24px）；偏出球强制瞄准门框外（±55px，门框半宽45px）——消息与轨迹一致
+        var aim;
+        if(onT) aim=(Math.random()<0.4?-1:(Math.random()<0.5?0:1));
+        else aim=(Math.random()<0.5?-1:1);
+        var offX=onT?24:55;
+        var ang=Math.atan2((MIDY+aim*offX-(pr.sho*0.3+pr.pow*0.1)-p.y)/Math.max(1,Math.abs(p.x-gateX)),att);
+        kickBall(m,p,400+pr.sho*6+pr.pow*5,ang);
+        m.shots[p.team]++;
         if(onT) m.onTarget[p.team]++;
         else m.rating[pr.name]=(m.rating[pr.name]||6)-0.1;
         resolveShot(m,p,ang);
