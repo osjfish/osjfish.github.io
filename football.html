@@ -289,9 +289,10 @@
   }
   @media (max-width:900px) {
     #wrap { padding-top:42px; padding-bottom:108px; }
-    #top { font-size:10px; padding:3px 8px; gap:6px; border-radius:0 0 10px 10px; flex-wrap:nowrap; }
-    #top .nm { max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
-    #top .sc { font-size:17px; min-width:18px; }
+    /* 比分条全宽铺开：队名两端撑开、比分居中 */
+    #top { left:0; right:0; transform:none; width:100%; justify-content:center; font-size:10px; padding:4px 8px; gap:8px; border-radius:0 0 10px 10px; flex-wrap:nowrap; }
+    #top .nm { max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; text-align:center; }
+    #top .sc { font-size:18px; min-width:22px; }
     #top .ck { min-width:34px; font-size:12px; }
     #top .mt { display:none; }
     #top .cash, #top #roundTxt { display:none; }
@@ -320,7 +321,6 @@
   <span class="mt" id="roundTxt">R1</span>
   <span class="cash" id="cashTxt"></span>
   <span class="mt" id="mtTxt"></span>
-  <button id="btnSfx" class="btn sm" style="pointer-events:auto">🔊</button>
 </div>
 <div id="timeline"><div id="timelineFill"></div></div>
 <div id="events"></div>
@@ -3755,6 +3755,10 @@ function updateControls(){
     tl.style.display='block';
   };
   c.appendChild(b3);
+  // 音效开关（与速度/战术统一按钮）
+  var b4=document.createElement('button'); b4.className='btn sm'; b4.textContent='🔊 音效'+(SFX_ON?'':'关');
+  b4.onclick=function(){ toggleSfx(); };
+  c.appendChild(b4);
 }
 function updateHud(){
   if(!match) return;
@@ -3815,7 +3819,6 @@ window.addEventListener('beforeunload',saveGame);
 setInterval(saveGame,30000);
 fitGame();
 
-document.getElementById('btnSfx').onclick=function(){ toggleSfx(); saveGame(); };
 document.getElementById('btnStartMatch').onclick=function(){
   if(round>TOTAL_ROUNDS) return;
   if(myClub.eleven.length<11){ showMsg('首发不足 11 人'); return; }
@@ -3842,7 +3845,6 @@ var btnReset2=document.getElementById('btnReset2');
 if(btnReset2) btnReset2.onclick=function(){ doReset(); };
 var btnSfx2=document.getElementById('btnSfx2');
 if(btnSfx2) btnSfx2.onclick=function(){ toggleSfx(); };
-document.getElementById('btnSfx').onclick=function(){ toggleSfx(); };
 function selectTeam(idx){
   myIdx=idx;
   myClub=aiClubs[idx];
