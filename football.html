@@ -673,6 +673,236 @@ var actInfo=[
 ];
 var actCd={retreat:0,physio:0,feast:0,camp:0,birthday:0,christmas:0,psyche:0,bonus:0};
 var actThisWeek=null; // 本轮已举办的活动
+// ===== 意外事件系统（每轮结束后 0~3 个）=====
+var nextHomeBonus=0, oppDebuff=0, gateBoostRounds=0, sponsorExtra=0, youthBonus=0;
+var EVENTS=[
+  // —— 伤病/健康 ——
+  {id:1,name:'训练拉伤',type:'bad',desc:'主力前锋训练中拉伤大腿，可能缺席下轮。',eff:{inj:{rounds:1}},fix:{cost:30,desc:'花30万安排康复理疗，下轮前复出',fixEff:{}}},
+  {id:2,name:'门将感冒',type:'bad',desc:'门将重感冒，状态低迷。',eff:{fit:-12},fix:{cost:20,desc:'花20万请私人医生调理',fixEff:{}}},
+  {id:3,name:'老将疲劳',type:'bad',desc:'队医报告：老将们赛程密集，体能告急。',eff:{fit:-10},fix:{cost:25,desc:'花25万轮换调整恢复',fixEff:{fit:5}}},
+  {id:4,name:'全队流感',type:'bad',desc:'流感在更衣室蔓延，多人中招。',eff:{fit:-15},fix:{cost:50,desc:'花50万为全队接种疫苗',fixEff:{fit:-5}}},
+  {id:5,name:'青训骨折',type:'bad',desc:'青训小将训练中骨折，长期缺阵。',eff:{inj:{rounds:3}},fix:{cost:40,desc:'花40万做先进手术，缩短恢复',fixEff:{inj:{rounds:1}}}},
+  {id:6,name:'意外康复',type:'good',desc:'队医传来好消息：伤病球员恢复速度惊人！',eff:{heal:true},fix:null},
+  // —— 士气 ——
+  {id:7,name:'更衣室矛盾',type:'bad',desc:'两名主力因球权问题爆发冲突，更衣室气氛紧张。',eff:{mor:-10},fix:{cost:40,desc:'花40万组织团队调解活动',fixEff:{mor:-2}}},
+  {id:8,name:'队长演讲',type:'good',desc:'队长在训练前发表了振奋人心的演讲！',eff:{mor:8},fix:{cost:30,desc:'花30万包场庆功晚宴，士气翻倍',fixEff:{mor:8}}},
+  {id:9,name:'球迷嘘声',type:'bad',desc:'上一场表现糟糕，训练场外有球迷发出嘘声。',eff:{mor:-5},fix:{cost:20,desc:'花20万组织球迷开放日挽回形象',fixEff:{}}},
+  {id:10,name:'客场热潮',type:'good',desc:'远赴客场竟有大批球迷随队助威！',eff:{mor:5},fix:null},
+  {id:11,name:'媒体批评',type:'bad',desc:'体育媒体发文批评球队战术保守。',eff:{mor:-6},fix:{cost:25,desc:'花25万安排媒体专访公关',fixEff:{mor:-1}}},
+  {id:12,name:'战术会议',type:'good',desc:'教练组的战术复盘会议大获成功，球员们信心倍增。',eff:{mor:6},fix:null},
+  {id:13,name:'球员庆生',type:'good',desc:'队内有人过生日，大家其乐融融。',eff:{mor:4},fix:null},
+  {id:14,name:'转会传闻',type:'bad',desc:'媒体疯传主力将转会豪门，军心浮动。',eff:{mor:-5},fix:{cost:35,desc:'花35万提前续约并召开发布会',fixEff:{mor:3}}},
+  // —— 财务 ——
+  {id:15,name:'球票热卖',type:'good',desc:'下轮球票开售即售罄！',eff:{cash:80},fix:null},
+  {id:16,name:'赞助危机',type:'bad',desc:'大赞助商因品牌调整考虑提前解约。',eff:{cash:-100},fix:{cost:50,desc:'花50万商务谈判挽回合同',fixEff:{cash:-30}}},
+  {id:17,name:'球场漏水',type:'bad',desc:'连日大雨，球场顶棚漏水，看台受损。',eff:{gateBoost:-1},fix:{cost:60,desc:'花60万紧急抢修',fixEff:{}}},
+  {id:18,name:'纪念品大卖',type:'good',desc:'新款球衣与围巾销量创纪录！',eff:{cash:50},fix:null},
+  {id:19,name:'税务稽查',type:'bad',desc:'税务部门例行稽查，需要补缴费用。',eff:{cash:-80},fix:{cost:30,desc:'花30万聘请财税顾问减免',fixEff:{cash:-40}}},
+  {id:20,name:'转播分成',type:'good',desc:'联盟新赛季转播分成到账！',eff:{cash:60},fix:null},
+  {id:21,name:'工资仲裁',type:'bad',desc:'多名球员通过经纪人与俱乐部仲裁加薪。',eff:{cash:-90},fix:{cost:40,desc:'花40万律师协商降低涨幅',fixEff:{cash:-45}}},
+  {id:22,name:'周边授权',type:'good',desc:'俱乐部授权推出联名商品。',eff:{cash:40},fix:null},
+  // —— 转会 ——
+  {id:23,name:'豪门挖角',type:'bad',desc:'豪门球队报价求购你的主力球星！',eff:{mor:-8},fix:{cost:100,desc:'花100万加薪续约锁定核心',fixEff:{mor:4}}},
+  {id:24,name:'球探遗珠',type:'good',desc:'球探在小联赛发现一名天才球员！',eff:{marketStrong:true},fix:{cost:50,desc:'花50万尽快谈下独家谈判权',fixEff:{marketStrong:true}}},
+  {id:25,name:'球员心猿意马',type:'bad',desc:'有球员向经纪人表达了离队意愿。',eff:{mor:-8},fix:{cost:60,desc:'花60万承诺主力位置与奖金',fixEff:{mor:2}}},
+  {id:26,name:'自由球员',type:'good',desc:'一名实力派自由球员主动上门求职！',eff:{marketStrong:true},fix:null},
+  {id:27,name:'对手减员',type:'good',desc:'下轮对手的主力门将意外受伤！',eff:{oppDebuff:5},fix:null},
+  {id:28,name:'战术泄露',type:'bad',desc:'有报道分析了你队战术，下轮对手针对性布置。',eff:{oppDebuff:-4},fix:{cost:20,desc:'花20万临时调整战术迷惑对手',fixEff:{}}},
+  {id:29,name:'经纪人推荐',type:'good',desc:'相熟的经纪人推荐了一批物美价廉的球员。',eff:{marketStrong:true},fix:null},
+  // —— 设施 ——
+  {id:30,name:'训练设施故障',type:'bad',desc:'训练基地的健身器材故障，训练计划受阻。',eff:{trainStop:1},fix:{cost:30,desc:'花30万紧急更换设备',fixEff:{}}},
+  {id:31,name:'草皮维护',type:'bad',desc:'主场草皮质量下滑，影响传控。',eff:{homeBonus:-2},fix:{cost:40,desc:'花40万铺设新草皮',fixEff:{homeBonus:2}}},
+  {id:32,name:'赞助商参观',type:'good',desc:'潜在赞助商下周参观俱乐部！',eff:{sponsorExtra:20},fix:{cost:30,desc:'花30万布置参观接待，合同金额更高',fixEff:{sponsorExtra:30}}},
+  {id:33,name:'青训扩建提议',type:'good',desc:'专家建议扩建青训设施培养更多新秀。',eff:{youthBonus:1},fix:{cost:100,desc:'花100万扩建青训基地，新秀+2',fixEff:{youthBonus:2}}},
+  {id:34,name:'更衣室翻新',type:'good',desc:'新更衣室落成，设施一流！',eff:{mor:5},fix:{cost:50,desc:'花50万升级豪华配置，效果翻倍',fixEff:{mor:5}}},
+  {id:35,name:'夜赛停电',type:'bad',desc:'主场照明系统故障，夜场赛事受影响。',eff:{homeBonus:-3},fix:{cost:25,desc:'花25万租用应急照明',fixEff:{}}},
+  // —— 球迷 ——
+  {id:36,name:'球迷嘉年华',type:'good',desc:'俱乐部举办球迷嘉年华，人气爆棚！',eff:{mor:6},fix:{cost:40,desc:'花40万扩大活动规模，效果翻倍',fixEff:{mor:6}}},
+  {id:37,name:'极端天气',type:'bad',desc:'周末将迎来暴风雨，观赛人数锐减。',eff:{gateBoost:-2},fix:{cost:20,desc:'花20万发放球票补贴稳住上座',fixEff:{gateBoost:-1}}},
+  {id:38,name:'球迷组织声援',type:'good',desc:'死忠球迷组织宣布全力支持球队！',eff:{homeBonus:3},fix:null},
+  {id:39,name:'横幅风波',type:'bad',desc:'看台横幅引发争议，外界议论纷纷。',eff:{mor:-4},fix:{cost:15,desc:'花15万引导球迷情绪',fixEff:{}}},
+  {id:40,name:'海外球迷',type:'good',desc:'海外球迷数量激增，品牌价值提升。',eff:{sponsorExtra:15},fix:null},
+  // —— 青训 ——
+  {id:41,name:'青训教练被挖',type:'bad',desc:'青训总监收到其他俱乐部高薪邀请。',eff:{youthBonus:-1},fix:{cost:45,desc:'花45万加薪挽留青训团队',fixEff:{}}},
+  {id:42,name:'天才少年',type:'good',desc:'青训营冒出一名天赋异禀的少年！',eff:{youthBonus:1},fix:null},
+  {id:43,name:'小将外租',type:'good',desc:'青训球员外租练级，收获租借费。',eff:{cash:20},fix:null},
+  {id:44,name:'青训赞助',type:'good',desc:'本地企业赞助青训营。',eff:{cash:30},fix:null},
+  {id:45,name:'小将蜕变',type:'good',desc:'青训小将近日训练状态爆棚！',eff:{youthBoost:true},fix:null},
+  // —— 特殊 ——
+  {id:46,name:'神秘捐赠',type:'good',desc:'一位神秘富豪向俱乐部捐赠巨款。',eff:{cash:100},fix:null},
+  {id:47,name:'吉祥物爆红',type:'good',desc:'球队吉祥物的短视频全网爆火！',eff:{gateBoost:1},fix:null},
+  {id:48,name:'传奇回归',type:'good',desc:'功勋老臣回到俱乐部观战加油。',eff:{mor:5},fix:null},
+  {id:49,name:'百年庆典',type:'good',desc:'俱乐部迎来百年华诞，全城庆祝！',eff:{mor:10},fix:{cost:80,desc:'花80万举办盛大庆典，士气翻倍',fixEff:{mor:10}}},
+  {id:50,name:'神秘情报',type:'good',desc:'神秘人送来下轮对手的战术笔记！',eff:{oppDebuff:5},fix:null}
+];
+// 每轮随机 0~3 个事件
+function pickEvents(){
+  var r=Math.random();
+  var n=r<0.1?0:(r<0.6?1:(r<0.9?2:3));
+  if(n===0) return [];
+  var pool=EVENTS.slice(), picks=[];
+  for(var i=0;i<n&&pool.length;i++){
+    picks.push(pool.splice((Math.random()*pool.length)|0,1)[0]);
+  }
+  return picks;
+}
+// ===== 经理简讯与轮末卡片 =====
+var weekFin={bonus:0,gate:0,wages:0,train:15,maint:0,spon:0};
+function buildBriefs(){
+  var briefs=[];
+  var myRow=tableOf(myTier).filter(function(r){return r.idx===myIdx;})[0];
+  if(!myRow) return briefs;
+  var curRank=rankOf(myIdx)+1;
+  var prev=myRow.prevRank;
+  if(prev){
+    if(curRank<prev) briefs.push('📊 排名上升 '+ (prev-curRank)+' 位，来到第 '+curRank+' 名！');
+    else if(curRank>prev) briefs.push('📊 排名下降 '+(curRank-prev)+' 位，跌至第 '+curRank+' 名');
+    else briefs.push('📊 排名保持第 '+curRank+' 名');
+  }
+  briefs.push('📈 战绩：'+myRow.w+'胜 '+myRow.d+'平 '+myRow.l+'负 · 进 '+myRow.gf+' 失 '+myRow.ga+' · 积分 '+myRow.pts);
+  var scorers=myClub.squad.filter(function(q){return q.goals>0;}).sort(function(a,b){return b.goals-a.goals;});
+  if(scorers.length) briefs.push('⚽ 队内射手王：'+scorers[0].name+'（'+scorers[0].goals+'球）');
+  var hurt=myClub.squad.filter(function(q){return q.inj>0;});
+  if(hurt.length) briefs.push('🩹 伤病名单：'+hurt.map(function(q){return q.name+'（缺'+q.inj+'轮）';}).join('、'));
+  else briefs.push('🩹 球队全员健康，无伤病');
+  var net=weekFin.bonus+weekFin.gate+weekFin.spon-weekFin.wages-weekFin.maint-weekFin.train;
+  briefs.push('💰 本周财务：奖金+'+weekFin.bonus+' 门票+'+weekFin.gate+' 赞助+'+weekFin.spon+' ｜ 工资-'+weekFin.wages+' 维护-'+weekFin.maint+' 训练-'+weekFin.train+' → 净'+(net>=0?'+':'')+net+'万');
+  var oppIdx=opponentOf(round);
+  if(oppIdx>=0&&aiClubs[oppIdx]){
+    var opp=aiClubs[oppIdx];
+    var isHome=true;
+    var prs=fixtures[myTier]&&fixtures[myTier][round];
+    if(prs){ for(var pi=0;pi<prs.length;pi++){ if(prs[pi][0]===myIdx){isHome=true;break;} if(prs[pi][1]===myIdx){isHome=false;break;} } }
+    briefs.push('🎯 下轮对手：'+opp.name+'（'+(isHome?'主场':'客场')+' · 实力'+Math.round(teamAbility(opp.eleven))+' · '+tacticById(opp.tactic||'balanced').name+'）');
+  }
+  var n=tableOf(myTier).length;
+  if(myRow.winStreak>=3) briefs.push('🔥 已取得 '+myRow.winStreak+' 连胜！');
+  if(curRank<=3&&myTier==='A') briefs.push('🏆 目前身处冠军争夺区！');
+  if(curRank>=n-1&&myTier==='A') briefs.push('⚠️ 目前身处降级区，需要抢分！');
+  if(myTier==='B'&&curRank<=2) briefs.push('⬆️ 目前身处升级区！');
+  return briefs;
+}
+function showRoundEndCards(evts,briefs){
+  var queue=[];
+  for(var i=0;i<evts.length;i++) queue.push({t:'ev',ev:evts[i]});
+  for(var j=0;j<briefs.length;j++) queue.push({t:'br',txt:briefs[j]});
+  if(!queue.length){ finishRoundEnd(); return; }
+  showCardAt(queue,0);
+}
+function showCardAt(queue,idx){
+  if(idx>=queue.length){ finishRoundEnd(); return; }
+  var item=queue[idx];
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;';
+  var box=document.createElement('div');
+  box.style.cssText='background:linear-gradient(180deg,#162034,#0d1422);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:20px 22px;width:min(440px,92vw);box-shadow:0 14px 44px rgba(0,0,0,.6);';
+  var html='';
+  if(item.t==='ev'){
+    var ev=item.ev;
+    var isGood=ev.type==='good';
+    html+='<div style="font-size:11px;color:'+(isGood?'#3ddc7a':'#ff6b81')+';font-weight:800;letter-spacing:1px">'+(isGood?'🟢 有利事件':'🔴 有害事件')+' · 卡片 '+(idx+1)+'/'+queue.length+'</div>'+
+      '<div style="font-size:18px;font-weight:900;margin:6px 0">'+ev.name+'</div>'+
+      '<div style="font-size:13px;color:#cfd8e3;line-height:1.7">'+ev.desc+'</div>'+
+      '<div style="font-size:12px;color:#8fa3bd;margin-top:8px">影响：<b style="color:'+(isGood?'#3ddc7a':'#ff6b81')+'">'+eventText(ev.eff)+'</b></div>'+
+      (ev.fix?'<div style="font-size:12px;color:#8fa3bd;margin-top:4px">可选：'+ev.fix.desc+'</div>':'')+
+      '<div style="display:flex;gap:8px;margin-top:14px">';
+    if(ev.fix){
+      if(isGood) html+='<button class="btn" data-ch="fix" style="flex:1">增强（'+ev.fix.cost+'万）</button><button class="btn" data-ch="accept" style="flex:1;background:rgba(255,255,255,.12);color:#dfe7f2">仅接受</button>';
+      else html+='<button class="btn" data-ch="fix" style="flex:1">化解（'+ev.fix.cost+'万）</button><button class="btn" data-ch="accept" style="flex:1;background:rgba(255,255,255,.12);color:#dfe7f2">接受损失</button>';
+    } else {
+      html+='<button class="btn" data-ch="accept" style="width:100%">确 定</button>';
+    }
+    html+='</div>';
+  } else {
+    html+='<div style="font-size:11px;color:#57c8ff;font-weight:800;letter-spacing:1px">📮 经理简讯 · 卡片 '+(idx+1)+'/'+queue.length+'</div>'+
+      '<div style="font-size:15px;color:#dfe7f2;line-height:1.8;margin-top:12px">'+item.txt+'</div>'+
+      '<div style="margin-top:14px"><button class="btn" data-ch="accept" style="width:100%">继 续</button></div>';
+  }
+  box.innerHTML=html;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  function close(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+  box.addEventListener('click',function(ev2){
+    var t=ev2.target;
+    var ch=t.closest&&t.closest('[data-ch]');
+    if(!ch) return;
+    var c=ch.getAttribute('data-ch');
+    if(item.t==='ev'){
+      var fix=c==='fix';
+      var r=applyEvent(item.ev,fix);
+      showMsg(item.ev.name+(fix?'（已处理）':'')+(r?' · '+r:''));
+    }
+    close();
+    showCardAt(queue,idx+1);
+  });
+}
+function finishRoundEnd(){
+  document.getElementById('report').classList.remove('show');
+  renderScreen();
+  openDrawer(null);
+}
+// 应用事件效果（mul=增强倍数，fix=是否化解/增强）
+function applyEvent(ev,fix){
+  var eff=ev.eff;
+  if(fix&&ev.fix) eff=ev.fix.fixEff&&Object.keys(ev.fix.fixEff).length?ev.fix.fixEff:null;
+  if(fix&&ev.type==='good'&&ev.fix&&(!ev.fix.fixEff||!Object.keys(ev.fix.fixEff).length)) eff=null;
+  var mul=1;
+  if(fix){
+    if(ev.type==='bad'){ myClub.cash-=ev.fix.cost; }
+    else { myClub.cash-=ev.fix.cost; if(!eff) { eff=ev.eff; mul=2; } }
+  }
+  if(!eff) return '';
+  var msgs=[];
+  if(eff.mor){ for(var i=0;i<myClub.squad.length;i++) myClub.squad[i].mor=clamp(myClub.squad[i].mor+eff.mor*mul,20,100); msgs.push('全队士气'+(eff.mor*mul>=0?'+':'')+eff.mor*mul); }
+  if(eff.fit){ for(var j=0;j<myClub.squad.length;j++) myClub.squad[j].fit=clamp(myClub.squad[j].fit+eff.fit*mul,40,100); msgs.push('全队体能'+(eff.fit*mul>=0?'+':'')+eff.fit*mul); }
+  if(eff.cash){ myClub.cash+=eff.cash*mul; msgs.push('资金'+(eff.cash*mul>=0?'+':'')+eff.cash*mul+'万'); }
+  if(eff.inj){
+    var pool=myClub.squad.filter(function(q){ return q.inj<=0; });
+    if(pool.length){
+      var hurt=pool[(Math.random()*pool.length)|0];
+      hurt.inj=eff.inj.rounds; hurt.fit=40;
+      msgs.push(hurt.name+'受伤缺阵'+hurt.inj+'轮');
+    }
+  }
+  if(eff.heal){
+    var hurtP=myClub.squad.filter(function(q){ return q.inj>0; });
+    if(hurtP.length){ hurtP[0].inj=0; msgs.push(hurtP[0].name+'提前复出'); }
+  }
+  if(eff.homeBonus){ nextHomeBonus+=eff.homeBonus*mul; msgs.push('下轮主场加成'+(eff.homeBonus*mul>=0?'+':'')+eff.homeBonus*mul); }
+  if(eff.oppDebuff){ oppDebuff+=eff.oppDebuff*mul; msgs.push('下轮对手实力'+(eff.oppDebuff*mul>=0?'-':'+')+Math.abs(eff.oppDebuff*mul)); }
+  if(eff.gateBoost){ gateBoostRounds=Math.max(gateBoostRounds,eff.gateBoost*mul); msgs.push('门票收入'+(eff.gateBoost*mul>=0?'提升':'下降')); }
+  if(eff.sponsorExtra){ sponsorExtra+=eff.sponsorExtra*mul; msgs.push('赞助合同金额+'+(eff.sponsorExtra*mul)+'万/轮'); }
+  if(eff.youthBonus){ youthBonus+=eff.youthBonus*mul; msgs.push('赛季末青训新秀'+(eff.youthBonus*mul>=0?'+':'')+eff.youthBonus*mul+'名'); }
+  if(eff.trainStop){ msgs.push('本周训练停滞'); }
+  if(eff.youthBoost){ msgs.push('青训小将成长加速'); }
+  if(eff.marketStrong){
+    var pos=['gk','df','mf','fw'][(Math.random()*4)|0];
+    var pool2=genSquad('event_'+Math.random(),80+((Math.random()*10)|0)).filter(function(q){ return q.pos===pos; });
+    var star=pool2[(Math.random()*pool2.length)|0];
+    star.age=18+((Math.random()*6)|0);
+    star.price=priceOf(star.ab);
+    market.push(star);
+    msgs.push('转会市场出现强援 '+star.name+'（'+star.ab+'）');
+  }
+  return msgs.join('，');
+}
+function eventText(eff){
+  var s=[];
+  if(eff.mor) s.push('士气 '+(eff.mor>=0?'+':'')+eff.mor);
+  if(eff.fit) s.push('体能 '+(eff.fit>=0?'+':'')+eff.fit);
+  if(eff.cash) s.push('资金 '+(eff.cash>=0?'+':'')+eff.cash+'万');
+  if(eff.inj) s.push('随机球员伤停'+eff.inj.rounds+'轮');
+  if(eff.heal) s.push('一名伤员提前复出');
+  if(eff.homeBonus) s.push('下轮主场'+(eff.homeBonus>=0?'+':'')+eff.homeBonus);
+  if(eff.oppDebuff) s.push('下轮对手'+(eff.oppDebuff>=0?'-':'+')+Math.abs(eff.oppDebuff));
+  if(eff.gateBoost) s.push('门票'+(eff.gateBoost>=0?'提升':'下降'));
+  if(eff.sponsorExtra) s.push('赞助每轮+'+(eff.sponsorExtra>=0?'+':'')+eff.sponsorExtra+'万');
+  if(eff.youthBonus) s.push('青训新秀'+(eff.youthBonus>=0?'+':'')+eff.youthBonus);
+  if(eff.trainStop) s.push('本周训练停滞');
+  if(eff.youthBoost) s.push('青训小将成长');
+  if(eff.marketStrong) s.push('市场出现强援');
+  return s.join(' · ')||'无明显数值变化';
+}
 // 投资理财：定期储蓄（3/6/9轮，可跨赛季）+ 股票（10支，单位净值初始100，每轮±0~10，一手=1万份）
 var STOCK_NAMES=['长江实业','飞跃科技','蓝天银行','东方制药','星火能源','云端软件','国泰机械','华信证券','绿洲食品','金龙矿业','鼎盛地产','天成纺织'];
 var invest={stocks:[], deposits:[]};
@@ -754,6 +984,7 @@ function settleSpon(){
     if(ct.remain>0){
       myClub.cash+=ct.perWeek;
       fin.sponsor+=ct.perWeek;
+      weekFin.spon+=ct.perWeek;
       ct.remain--;
       if(ct.remain<=0){
         showMsg('🤝 与「'+ct.name+'」的赞助合同到期');
@@ -764,11 +995,13 @@ function settleSpon(){
   refreshSponCandidates();
 }
 function settleWeek(){
+  // 重置上一轮事件标记（下轮比赛使用）
+  nextHomeBonus=0; oppDebuff=0; gateBoostRounds=0;
   for(var k in actCd){ if(actCd[k]>0) actCd[k]--; }
   actThisWeek=null; // 每周可重新举办活动
   // 设施维护费（等级越高越贵）
   var maint=totalMaint();
-  if(maint>0){ myClub.cash-=maint; fin.facility+=maint; }
+  if(maint>0){ myClub.cash-=maint; fin.facility+=maint; weekFin.maint+=maint; }
   // 定期储蓄到期结算
   for(var _dp=invest.deposits.length-1;_dp>=0;_dp--){
     var dp2=invest.deposits[_dp];
@@ -1205,7 +1438,7 @@ var oppIdx=opponentOf(round);
     }
   }
   var homeAdd=facHomeAdd(facilities.analysis); // 主场优势（战术分析室增强）
-  var myAb=teamAbility(myClub.eleven)+(isHome?homeAdd:0);
+  var myAb=teamAbility(myClub.eleven)+(isHome?homeAdd+nextHomeBonus:0)+oppDebuff;
   var oppAb=teamAbility(opp.eleven)+(isHome?0:homeAdd);
   if(isHome){
     match={ home:myClub, away:opp, awayIdx:oppIdx, isHome:true, score:[0,0], clock:0, half:1, speed:1,
@@ -2249,7 +2482,7 @@ function endMatch(){
   var isHomeGame=m.isHome!==undefined?m.isHome:(m.home.idx===myIdx);
   var wages=Math.round(myClub.squad.reduce(function(s,q){return s+q.ab;},0)*0.04);
   myClub.cash-=wages;
-  var gate=Math.round(((isHomeGame?25:12)+(myWin?15:(myDraw?5:0)))*facGate(facilities.stadium));
+  var gate=Math.round(((isHomeGame?25:12)+(myWin?15:(myDraw?5:0)))*facGate(facilities.stadium)*(gateBoostRounds>0?1.5:(gateBoostRounds<0?0.7:1)));
   myClub.cash+=gate;
   m._wages=wages; m._gate=gate; m._isHomeGame=isHomeGame; m._bonus=bonus;
   fin.gate+=gate; fin.wages+=wages; fin.bonus+=bonus;
@@ -2379,6 +2612,8 @@ function showFinal(m){
     round++;
     if(round>TOTAL_ROUNDS){ showChampion(); return; }
     var evTxt='';
+    // 本周财务快照（供经理简讯）
+    weekFin={bonus:match?match._bonus:0,gate:match?match._gate:0,wages:match?match._wages:0,train:15,maint:0,spon:0};
     // 每轮训练/医疗固定开销
     myClub.cash-=15; fin.training+=15;
     // 投资理财每轮结算（储蓄利息 + 股市波动）
@@ -2398,9 +2633,11 @@ function showFinal(m){
     var evTxt2=window.weeklyEvent();
     refreshMarket();
     for(var ii=0;ii<myClub.squad.length;ii++){ if(myClub.squad[ii].inj>0) myClub.squad[ii].inj--; }
+    // 每轮结束后：先弹意外事件（0~3个），再弹经理简讯
+    var evts=pickEvents();
+    var briefs=buildBriefs();
     document.getElementById('report').classList.remove('show');
-    renderScreen();
-    openDrawer(null); // 赛后回到总览
+    showRoundEndCards(evts,briefs);
     showMsg((evTxt?evTxt+' ｜ ':'')+(evTxt2?evTxt2+' ｜ ':'')+window.headline());
   };
 }
@@ -2417,9 +2654,10 @@ function showChampion(){
   var sponsor=[0,500,300,300,200,150,100,80,50,50,40,40,30,30,20,20,20,10,10][myRank]||10;
   myClub.cash+=sponsor;
   fin.bonus+=sponsor;
-  // 青训学院：赛季末培养新秀
+  // 青训学院：赛季末培养新秀（意外事件可增减）
   var kidInfo=[];
-  var kids=facKids(facilities.youth);
+  var kids=Math.max(0,facKids(facilities.youth)+youthBonus);
+  youthBonus=0;
   var yAbBase=facAbBase(facilities.youth);
   for(var kd=0;kd<kids;kd++){
     var na=uniqName(Math.random);
