@@ -525,8 +525,9 @@ function uniqName(rngFn){
 function genOnePlayer(seed,center,pos){
   var rng=seedHash(String(seed));
   var na=uniqName(rng);
-  var attrs=mkAttrs(rng,center,pos);
-  var p={name:na,pos:pos,spd:attrs.spd,pow:attrs.pow,tec:attrs.tec,awa:attrs.awa,sho:attrs.sho,gkp:attrs.gkp,
+  var ptype=ptypeById(typeForPos(pos));
+  var attrs=mkAttrs(rng,center,pos,ptype);
+  var p={name:na,pos:pos,ptype:ptype.id,spd:attrs.spd,pow:attrs.pow,tec:attrs.tec,awa:attrs.awa,sho:attrs.sho,gkp:attrs.gkp,
     age:18+((rng()*17)|0),fit:100,mor:50,inj:0,played:0,goals:0,assists:0,rating:6.0};
   p.ab=calcAb(p);
   return p;
@@ -539,8 +540,9 @@ function genSquad(teamId,ab){
       var rng=seedHash(teamId+'_'+plan[k].p+'_'+i);
       var na=uniqName(rng);
       var ba=clamp(ab+(rng()*18-9),45,99);
-      var attrs=mkAttrs(rng,ba,plan[k].p);
-      var p={name:na,pos:plan[k].p,
+      var ptype=ptypeById(typeForPos(plan[k].p));
+      var attrs=mkAttrs(rng,ba,plan[k].p,ptype);
+      var p={name:na,pos:plan[k].p,ptype:ptype.id,
         spd:attrs.spd,pow:attrs.pow,tec:attrs.tec,awa:attrs.awa,sho:attrs.sho,gkp:attrs.gkp,
         age:18+((rng()*17)|0),fit:100,mor:50,inj:0,played:0,goals:0,assists:0,rating:6.0};
       p.ab=calcAb(p);
@@ -564,11 +566,29 @@ function calcAb(p){
 }
 // 位置偏向：每维增减（主属性更高）
 var ATTR_BIAS={ gk:[0,5,5,10,0,25], df:[5,10,5,15,-5,10], mf:[5,5,15,15,0,0], fw:[15,5,10,10,20,-20] };
-// 生成六维属性（base 为中心值，rngFn 提供随机）
-function mkAttrs(rngFn,base,pos){
-  var b=ATTR_BIAS[pos]||ATTR_BIAS.mf;
+// 球员类型模板（六维加减：速度/力量/技巧/意识/射门/守门）——各类型优劣分明，不再用位置偏向
+var PTYPES=[
+  {id:'st', name:'前锋型', pos:'fw', tpl:{spd:18, pow:5, tec:8, awa:4, sho:22, gkp:-18}},
+  {id:'cf', name:'中锋型', pos:'fw', tpl:{spd:6,  pow:20, tec:10, awa:8, sho:18, gkp:-14}},
+  {id:'df', name:'后卫型', pos:'df', tpl:{spd:4,  pow:10, tec:6, awa:18, sho:-12, gkp:8}},
+  {id:'gk', name:'守门员型', pos:'gk', tpl:{spd:-10, pow:2, tec:2, awa:6, sho:-22, gkp:28}},
+  {id:'atk', name:'进攻型', pos:'fw', tpl:{spd:14, pow:10, tec:12, awa:2, sho:16, gkp:-16}},
+  {id:'def', name:'防守型', pos:'df', tpl:{spd:-6, pow:8, tec:4, awa:16, sho:-14, gkp:14}},
+  {id:'gen', name:'天才型', pos:null, tpl:{spd:8, pow:8, tec:10, awa:10, sho:8, gkp:6}}
+];
+function ptypeById(id){ for(var i=0;i<PTYPES.length;i++){ if(PTYPES[i].id===id) return PTYPES[i]; } return PTYPES[0]; }
+// 位置 → 合适的类型（中场灵活：攻/守/天才）
+function typeForPos(pos){
+  if(pos==='gk') return 'gk';
+  if(pos==='df') return Math.random()<0.6?'df':'def';
+  if(pos==='fw') return ['st','cf','atk'][(Math.random()*3)|0];
+  return ['atk','def','gen'][(Math.random()*3)|0];
+}
+// 生成六维属性：按球员类型模板（base 为中心值，rngFn 提供随机）
+function mkAttrs(rngFn,base,pos,ptype){
+  var tpl=(ptype||ptypeById(typeForPos(pos))).tpl;
   var mk=function(bi){ return clamp(Math.round(base+((rngFn()*22-11)|0)+bi),40,99); };
-  return {spd:mk(b[0]),pow:mk(b[1]),tec:mk(b[2]),awa:mk(b[3]),sho:mk(b[4]),gkp:mk(b[5])};
+  return {spd:mk(tpl.spd),pow:mk(tpl.pow),tec:mk(tpl.tec),awa:mk(tpl.awa),sho:mk(tpl.sho),gkp:mk(tpl.gkp)};
 }
 function teamAbility(team){ var s=0,c=0; for(var i=0;i<team.length;i++){ if(team[i]){ s+=team[i].ab; c++; } } return c?s/c:0; }
 // 速度影响移动；力量影响传球/射门力度；技巧影响过人/抢断/传射精准；意识影响跑动范围与走位；射门影响射门；守门影响门将
@@ -665,8 +685,9 @@ function seasonAging(){
       var na=uniqName(Math.random);
       var base=50+((Math.random()*15)|0);
       var pos=['gk','df','df','mf','mf','fw'][(Math.random()*6)|0];
-      var attrs=mkAttrs(Math.random,base,pos);
-      var kp={name:na,pos:pos,spd:attrs.spd,pow:attrs.pow,tec:attrs.tec,awa:attrs.awa,sho:attrs.sho,gkp:attrs.gkp,age:18+((Math.random()*3)|0),fit:90,mor:60,inj:0,played:0,goals:0,assists:0,rating:6.0};
+      var pt2=ptypeById(typeForPos(pos));
+      var attrs=mkAttrs(Math.random,base,pos,pt2);
+      var kp={name:na,pos:pos,ptype:pt2.id,spd:attrs.spd,pow:attrs.pow,tec:attrs.tec,awa:attrs.awa,sho:attrs.sho,gkp:attrs.gkp,age:18+((Math.random()*3)|0),fit:90,mor:60,inj:0,played:0,goals:0,assists:0,rating:6.0};
       kp.ab=calcAb(kp);
       team.squad.push(kp); added.push(kp.name);
     }
@@ -2742,8 +2763,9 @@ function showChampion(){
     var na=uniqName(Math.random);
     var pos=['gk','df','df','mf','mf','fw'][(Math.random()*6)|0];
     var base=yAbBase+((Math.random()*10)|0);
-    var attrs=mkAttrs(Math.random,base,pos);
-    var kid={name:na,pos:pos,spd:attrs.spd,pow:attrs.pow,tec:attrs.tec,awa:attrs.awa,sho:attrs.sho,gkp:attrs.gkp,age:17+((Math.random()*3)|0),fit:90,mor:75,inj:0,played:0,goals:0,assists:0,rating:6.0};
+    var pt3=ptypeById(typeForPos(pos));
+    var attrs=mkAttrs(Math.random,base,pos,pt3);
+    var kid={name:na,pos:pos,ptype:pt3.id,spd:attrs.spd,pow:attrs.pow,tec:attrs.tec,awa:attrs.awa,sho:attrs.sho,gkp:attrs.gkp,age:17+((Math.random()*3)|0),fit:90,mor:75,inj:0,played:0,goals:0,assists:0,rating:6.0};
     kid.ab=calcAb(kid);
     myClub.squad.push(kid);
     kidInfo.push(kid.name+'（'+kid.pos+' '+kid.ab+'）');
@@ -3463,6 +3485,7 @@ function renderLineup(){
     var in11=myClub.eleven.indexOf(p)>=0;
     var row=document.createElement('div');
     row.className='lu-row'+(in11?' sel':'');
+    row.title='类型：'+(p.ptype?ptypeById(p.ptype).name:'未知');
     row.innerHTML='<span class="lu-pos '+p.pos+'">'+p.pos.toUpperCase()+'</span>'+
       '<span class="lu-name">'+p.name+(p.hot?' 🔥':'')+(p.inj>0?' <span class="inj">伤</span>':'')+'</span>'+
       '<span class="lu-ab">'+p.ab+'</span>'+
