@@ -111,7 +111,10 @@
   .dash-bar .btn { flex:1; white-space:nowrap; }
   /* 设施 */
   .fac-lv { font-size:10px; font-weight:900; border-radius:6px; padding:2px 7px; background:rgba(87,200,255,.15); color:#57c8ff; }
-  .fac-row .btn.sm { padding:4px 10px; font-size:10px; }
+  .fac-item .btn.sm { padding:3px 8px; font-size:9px; }
+  .fac-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px 12px; }
+  .fac-item { padding:6px 2px; border-bottom:1px solid rgba(255,255,255,.05); }
+  @media (max-width:760px) { .fac-grid { grid-template-columns:1fr; } }
   @media (max-width:1100px) {
     .dash-grid { grid-template-columns:1fr 1fr; }
     .d-col:last-child { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; }
@@ -460,12 +463,19 @@ var resultsByRound={}, champHistory=[];
 // 赛季财务：收入/支出明细（每轮累加，新赛季重置）
 var fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0};
 var ach={firstWin:false,champ:0,winStreak:0,season:0};
-// 俱乐部设施：stadium=球场(门票) training=训练中心(成长) youth=青训学院(新秀)，等级1-3
-var facilities={stadium:1,training:1,youth:1};
+// 俱乐部设施：球场/训练/青训/健身房/商务/医疗/商店/媒体/球探/战术室，等级1-3
+var facilities={stadium:1,training:1,youth:1,gym:1,commercial:1,medical:1,shop:1,media:1,scout:1,analysis:1};
 var FAC_INFO={
   stadium:{name:'🏟 球场',desc:'提升门票收入',cost:[0,600,2000],gate:[1,1.5,2]},
-  training:{name:'🎓 训练中心',desc:'提升年轻球员成长率',cost:[0,400,1200],growth:[1,1.2,1.4]},
-  youth:{name:'🌱 青训学院',desc:'赛季末培养年轻新秀',cost:[0,500,1500],kids:[0,1,2],abBase:[0,58,66]}
+  training:{name:'🎓 训练中心',desc:'提升成长率与体能恢复',cost:[0,400,1200],growth:[1,1.2,1.4]},
+  youth:{name:'🌱 青训学院',desc:'赛季末培养年轻新秀',cost:[0,500,1500],kids:[0,1,2],abBase:[0,58,66]},
+  gym:{name:'🏋 健身房',desc:'降低主力体能消耗',cost:[0,300,900]},
+  commercial:{name:'💼 商务中心',desc:'提升赞助金额与概率',cost:[0,500,1500]},
+  medical:{name:'🏥 医疗中心',desc:'降低伤病概率、加速复出',cost:[0,400,1200]},
+  shop:{name:'🛍 球迷商店',desc:'每周商品销售收入',cost:[0,300,900]},
+  media:{name:'📺 媒体部',desc:'每周转播权收入',cost:[0,400,1200]},
+  scout:{name:'🔭 球探网络',desc:'转会市场出现更多球员',cost:[0,500,1500]},
+  analysis:{name:'📊 战术分析室',desc:'增强主场作战优势',cost:[0,300,1000]}
 };
 var leagueTable={A:[],B:[]};
 var ROT_A=[],ROT_B=[];
@@ -629,7 +639,8 @@ function simulateAIGames(){
 var market=[];
 function refreshMarket(){
   market=[];
-  for(var i=0;i<3;i++){
+  var scoutAdd=[0,2,4][facilities.scout-1]||0; // 球探网络：更多球员
+  for(var i=0;i<3+scoutAdd;i++){
     var pos=['gk','df','mf','fw'][(Math.random()*4)|0];
     var ab=Math.round(55+Math.random()*35);
     var pool=genSquad('market_'+i,ab).filter(function(q){ return q.pos===pos; });
@@ -694,7 +705,9 @@ function loadGame(){
     if(d.fin) fin=d.fin;
     if(fin.facility===undefined) fin.facility=0;
     if(d.facilities) facilities=d.facilities;
-    else facilities={stadium:1,training:1,youth:1};
+    else facilities={stadium:1,training:1,youth:1,gym:1,commercial:1,medical:1,shop:1,media:1,scout:1,analysis:1};
+    // 旧存档补全缺失设施键
+    for(var _fk in FAC_INFO){ if(facilities[_fk]===undefined) facilities[_fk]=1; }
     champHistory=d.champHistory||[];
     ach=d.ach||{firstWin:false,champ:0,winStreak:0,season:0};
     if(d.market) market=d.market; else refreshMarket();
@@ -740,8 +753,9 @@ var oppIdx=opponentOf(round);
       if(pairs[pi][1]===myIdx){ isHome=false; break; }
     }
   }
-  var myAb=teamAbility(myClub.eleven)+(isHome?2:0); // 主场优势
-  var oppAb=teamAbility(opp.eleven)+(isHome?0:2);
+  var homeAdd=[2,3,4][facilities.analysis-1]||2; // 主场优势（战术分析室增强）
+  var myAb=teamAbility(myClub.eleven)+(isHome?homeAdd:0);
+  var oppAb=teamAbility(opp.eleven)+(isHome?0:homeAdd);
   if(isHome){
     match={ home:myClub, away:opp, awayIdx:oppIdx, isHome:true, score:[0,0], clock:0, half:1, speed:1,
       over:false, poss:[0,0], shots:[0,0], onTarget:[0,0], rating:{}, assists:{},
@@ -1385,17 +1399,20 @@ window.headline=function(){
 }
 window.weeklyEvent=function(){
   var r=Math.random();
-  if(r<0.25){
-    var bonus=300+Math.round(Math.random()*500);
+  // 商务中心：赞助概率与金额提升
+  var sponRate=[0.25,0.30,0.35][facilities.commercial-1]||0.25;
+  var sponAdd=[0,150,350][facilities.commercial-1]||0;
+  if(r<sponRate){
+    var bonus=300+sponAdd+Math.round(Math.random()*(500+sponAdd*2));
     myClub.cash+=bonus;
     fin.sponsor+=bonus;
-    return '🤝 球迷赞助商追加投资 +'+bonus+'万';
+    return '🤝 赞助商追加投资 +'+bonus+'万';
   }
-  if(r<0.45){
+  if(r<sponRate+0.2){
     for(var i=0;i<myClub.squad.length;i++) myClub.squad[i].mor=clamp(myClub.squad[i].mor+5,20,100);
     return '🔥 更衣室气氛火热，全队士气 +5';
   }
-  if(r<0.6){
+  if(r<sponRate+0.35){
     var cand=myClub.squad.filter(function(q){ return q.age<=25&&q.ab<95&&q.inj<=0; });
     if(cand.length){
       var c=cand[(Math.random()*cand.length)|0];
@@ -1733,9 +1750,10 @@ function endMatch(){
   for(var i=0;i<myClub.squad.length;i++){
     var p=myClub.squad[i];
     var played=myClub.eleven.indexOf(p)>=0;
-    // 体能：首发 -4，非首发恢复（训练中心加速恢复），受伤后恢复慢
+    // 体能：首发 -4（健身房减少消耗），非首发恢复（训练中心加速恢复），受伤后恢复慢
     var recMul=FAC_INFO.training.growth[facilities.training-1]||1;
-    p.fit=clamp(p.fit+(played?-4:Math.round(9*recMul)),40,100);
+    var gymSave=(facilities.gym-1)||0;
+    p.fit=clamp(p.fit+(played?(-4+gymSave):Math.round(9*recMul)),40,100);
     p.mor=clamp(p.mor+(myWin?8:(myDraw?2:-5)),20,100);
     if(played){ p.played++; p.rating=Math.round((m.rating[p.name]||6)*10)/10; }
     p.hot=(p.played>=2&&p.rating>=7.5);
@@ -1745,12 +1763,15 @@ function endMatch(){
     else if(!played&&p.age<=21&&facilities.training>=2&&Math.random()<0.15*growMul) p.ab=Math.min(99,p.ab+1);
     if(played&&p.age>=30&&Math.random()<0.35) p.ab=Math.max(40,p.ab-1);
   }
-  // 随机伤病（1-3轮）
-  if(Math.random()<0.12){
+  // 随机伤病（医疗中心降低概率、缩短停赛、加速复出）
+  var injRate=FAC_INFO.medical?[0.12,0.09,0.06][facilities.medical-1]||0.12:0.12;
+  var fitBack=FAC_INFO.medical?[40,60,80][facilities.medical-1]||40:40;
+  var injMax=(facilities.medical>=3)?2:3;
+  if(Math.random()<injRate){
     var pool=myClub.squad.filter(function(q){ return q.inj<=0; });
     if(pool.length){
       var hurt=pool[(Math.random()*pool.length)|0];
-      hurt.inj=1+((Math.random()*3)|0); hurt.fit=40;
+      hurt.inj=1+((Math.random()*injMax)|0); hurt.fit=fitBack;
       addEvent(90,'😷 '+hurt.name+' 受伤，缺阵'+hurt.inj+'轮');
     }
   }
@@ -1837,6 +1858,13 @@ function showFinal(m){
     var evTxt='';
     // 每轮训练/医疗固定开销
     myClub.cash-=20; fin.training+=20;
+    // 球迷商店/媒体部周收入
+    var shopIn=[0,10,25][facilities.shop-1]||0;
+    var mediaIn=[0,15,35][facilities.media-1]||0;
+    if(shopIn||mediaIn){
+      myClub.cash+=shopIn+mediaIn;
+      fin.gate+=shopIn+mediaIn;
+    }
     // 资金危机：负资产时自动出售最强球员救急
     if(myClub.cash<-100){
       var topP=myClub.squad.slice().sort(function(a,b){return b.ab-a.ab;})[0];
@@ -2141,27 +2169,45 @@ function renderScreen(){
 function pan(name){ return document.getElementById('pan'+name); }
 function renderPanFac(){
   var el=pan('Fac'); if(!el) return;
-  var keys=['stadium','training','youth'];
-  var html='<div class="p-title">🏗 俱乐部设施 <span class="tag">升级提升收入与培养</span></div>';
+  var keys=Object.keys(FAC_INFO);
+  var items='';
   for(var i=0;i<keys.length;i++){
     var k=keys[i];
     var lv=facilities[k];
     var info=FAC_INFO[k];
     var cost=info.cost[lv]||0;
     var maxed=lv>=3;
-    var effTxt=k==='stadium'?'门票×'+(info.gate[lv-1]).toFixed(1):(k==='training'?'成长率+'+(Math.round((info.growth[lv-1]-1)*100))+'%':'赛季末出'+info.kids[lv-1]+'名新秀');
-    html+='<div class="fac-row" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">'+
-      '<span style="font-size:16px">'+info.name+'</span>'+
-      '<span class="fac-lv">Lv'+lv+'</span>'+
-      '<span style="font-size:10px;color:#8fa3bd;flex:1">'+info.desc+'<br>当前效果：<b style="color:#3ddc7a">'+effTxt+'</b></span>'+
-      (maxed?'<span style="font-size:10px;color:#5a6b80;font-weight:800">已满级</span>':
-      '<button class="btn sm" data-upg="'+k+'" style="background:rgba(87,200,255,.85);color:#081018">升级 '+cost+'万</button>')+
+    var effTxt=facEff(k,lv);
+    items+='<div class="fac-item">'+
+      '<div style="display:flex;align-items:center;gap:6px">'+
+        '<span style="font-size:12px;font-weight:800">'+info.name+'</span>'+
+        '<span class="fac-lv">Lv'+lv+'</span>'+
+        (maxed?'<span style="font-size:9px;color:#5a6b80;font-weight:700;margin-left:auto">MAX</span>':
+        '<button class="btn sm" data-upg="'+k+'" style="margin-left:auto">升级 '+cost+'万</button>')+
+      '</div>'+
+      '<div style="font-size:9px;color:#8fa3bd;margin-top:2px">'+info.desc+'<br><b style="color:#3ddc7a">'+effTxt+'</b></div>'+
       '</div>';
   }
-  el.innerHTML=html;
+  el.innerHTML='<div class="p-title">🏗 俱乐部设施 <span class="tag">'+keys.length+'项 · 长线经营</span></div>'+
+    '<div class="fac-grid">'+items+'</div>';
   el.querySelectorAll('[data-upg]').forEach(function(btn){
     btn.onclick=function(){ upgradeFac(this.getAttribute('data-upg')); };
   });
+}
+function facEff(k,lv){
+  switch(k){
+    case 'stadium': return '门票 ×'+(FAC_INFO.stadium.gate[lv-1]).toFixed(1);
+    case 'training': return '成长+'+(Math.round((FAC_INFO.training.growth[lv-1]-1)*100))+'% · 恢复+'+Math.round(9*FAC_INFO.training.growth[lv-1])+'/轮';
+    case 'youth': return '赛季末新秀 '+(FAC_INFO.youth.kids[lv-1])+' 名（能力'+(FAC_INFO.youth.abBase[lv-1])+'±5）';
+    case 'gym': return '主力消耗 -'+(lv-1)+' 点/场';
+    case 'commercial': return '赞助概率 '+(Math.round([0.25,0.30,0.35][lv-1]*100))+'% · 金额+'+(FAC_INFO.commercial?[0,150,350][lv-1]:0)+'~'+(FAC_INFO.commercial?[0,300,700][lv-1]:0)+'万';
+    case 'medical': return '伤病率 '+(Math.round([0.12,0.09,0.06][lv-1]*100))+'% · 复出体能'+[40,60,80][lv-1];
+    case 'shop': return '每周 +'+[0,10,25][lv-1]+'万';
+    case 'media': return '每周 +'+[0,15,35][lv-1]+'万';
+    case 'scout': return '市场 +'+[0,2,4][lv-1]+'名球员';
+    case 'analysis': return '主场实力 +'+[2,3,4][lv-1];
+    default: return '';
+  }
 }
 function upgradeFac(k){
   var lv=facilities[k];
