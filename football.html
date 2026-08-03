@@ -584,10 +584,16 @@ function typeForPos(pos){
   if(pos==='fw') return ['st','cf','atk'][(Math.random()*3)|0];
   return ['atk','def','gen'][(Math.random()*3)|0];
 }
-// 生成六维属性：按球员类型模板（base 为中心值，rngFn 提供随机）
+// 类型模板最大加成对应的基础能力上限（基础+加成上限=99，最强球员恰好99）
+function centerCap(ptype){
+  var t=ptype.tpl;
+  return 99-Math.max(t.spd,t.pow,t.tec,t.awa,t.sho,t.gkp);
+}
+// 生成六维属性：按球员类型模板（base 为中心值，受上限约束；rngFn 提供随机）
 function mkAttrs(rngFn,base,pos,ptype){
   var tpl=(ptype||ptypeById(typeForPos(pos))).tpl;
-  var mk=function(bi){ return clamp(Math.round(base+((rngFn()*22-11)|0)+bi),40,99); };
+  var base2=Math.min(base,centerCap(ptype||ptypeById(typeForPos(pos))));
+  var mk=function(bi){ return clamp(Math.round(base2+((rngFn()*22-11)|0)+bi),40,99); };
   return {spd:mk(tpl.spd),pow:mk(tpl.pow),tec:mk(tpl.tec),awa:mk(tpl.awa),sho:mk(tpl.sho),gkp:mk(tpl.gkp)};
 }
 function teamAbility(team){ var s=0,c=0; for(var i=0;i<team.length;i++){ if(team[i]){ s+=team[i].ab; c++; } } return c?s/c:0; }
