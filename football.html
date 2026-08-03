@@ -6,7 +6,8 @@
 <title>足球经理</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#0a0e14; font-family:"Segoe UI","Microsoft YaHei",sans-serif; user-select:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0a0e14; color:#dfe7f2; font-family:"Segoe UI","Microsoft YaHei",sans-serif; user-select:none; }
+  button { color:inherit; }
   #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
   canvas { display:block; background:#1a8f3c; box-shadow:0 0 60px rgba(0,0,0,.6); }
   #top { position:fixed; left:50%; top:0; transform:translateX(-50%); z-index:10; display:flex; align-items:center; gap:12px;
@@ -58,7 +59,9 @@
     background:linear-gradient(90deg,#57c8ff,#3ddc7a); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .dash-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
   .d-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
-  .panel { background:linear-gradient(180deg,rgba(17,24,38,.85),rgba(11,17,28,.85)); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:12px 14px; color:#dfe7f2; }
+  .panel { background:linear-gradient(180deg,rgba(17,24,38,.85),rgba(11,17,28,.85)); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:12px 14px; color:#dfe7f2;
+    box-shadow:0 4px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04); }
+  .panel:hover { border-color:rgba(255,255,255,.18); box-shadow:0 6px 24px rgba(0,0,0,.38); }
   .panel .p-title { font-size:11px; color:#8fa3bd; font-weight:800; letter-spacing:1px; margin-bottom:8px; display:flex; align-items:center; gap:6px;
     border-bottom:1px solid rgba(255,255,255,.08); padding-bottom:6px; }
   .panel .p-title .tag { margin-left:auto; font-size:9px; color:#8fa3bd; font-weight:600; }
@@ -151,6 +154,9 @@
     .dash-top b { font-size:14px; }
     .cash-big { font-size:24px; }
   }
+  /* 大屏放大：工作台整体缩放，字号自然变大 */
+  @media (min-width:1500px) { #dash { zoom:1.12; } }
+  @media (min-width:1900px) { #dash { zoom:1.25; } }
   .card { background:linear-gradient(180deg,#111826,#0b111c); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:18px 22px; max-width:820px; width:97%; max-height:94vh; overflow-y:auto; color:#dfe7f2; }
   .card h1 { font-size:24px; letter-spacing:2px; background:linear-gradient(90deg,#57c8ff,#3ddc7a); -webkit-background-clip:text; background-clip:text; color:transparent; margin-bottom:6px; text-align:center; }
   .tabs { display:flex; gap:6px; justify-content:center; margin-bottom:12px; flex-wrap:wrap; }
@@ -495,6 +501,9 @@ var FAC_INFO={
   analysis:{name:'📊 战术分析室',desc:'增强主场作战优势',base:18}
 };
 function facCost(k,lv){ return Math.max(20,Math.round(FAC_INFO[k].base*Math.pow(lv,1.5))); }
+// 维护费：每轮支出，随等级线性增长
+function facMaint(k,lv){ return Math.max(1,Math.round(FAC_INFO[k].base*(0.05+0.03*lv))); }
+function totalMaint(){ var s=0; for(var k in FAC_INFO) s+=facMaint(k,facilities[k]); return s; }
 // 效果曲线（线性从 Lv1 到 Lv20，收益递减感知：投入越大边际收益越小）
 function facGate(lv){ return Math.round((1+0.0789*(lv-1))*100)/100; }      // 门票 1.0→2.5
 function facGrowth(lv){ return Math.round((1+0.0474*(lv-1))*100)/100; }    // 成长 1.0→1.9
@@ -519,6 +528,9 @@ var invest={save:0,stock:0,stockVal:1};
 var stockLog=0;
 function settleWeek(){
   for(var k in actCd){ if(actCd[k]>0) actCd[k]--; }
+  // 设施维护费（等级越高越贵）
+  var maint=totalMaint();
+  if(maint>0){ myClub.cash-=maint; fin.facility+=maint; }
   if(invest.save>0) invest.save+=Math.round(invest.save*0.0035);
   if(invest.stock>0){
     var ch=(Math.random()*0.05-0.025);
@@ -2349,7 +2361,7 @@ function renderOps(){
         (maxed?'<span style="font-size:9px;color:#ffd857;font-weight:800;margin-left:auto">MAX</span>':
         '<button class="btn sm" data-upg="'+k+'" style="margin-left:auto">升级 '+cost+'万</button>')+
       '</div>'+
-      '<div style="font-size:9px;color:#8fa3bd;margin-top:2px">'+info.desc+'<br><b style="color:#3ddc7a">'+facEff(k,lv)+'</b></div>'+
+      '<div style="font-size:9px;color:#8fa3bd;margin-top:2px">'+info.desc+'<br><b style="color:#3ddc7a">'+facEff(k,lv)+'</b> · 维护 <b style="color:#ff9f0a">'+facMaint(k,lv)+'万/轮</b></div>'+
       '</div>';
   }
   // 投资理财区
@@ -2374,7 +2386,7 @@ function renderOps(){
       (cdd>0?'<span style="font-size:9px;color:#ff9f0a;font-weight:800">冷却'+cdd+'轮</span>':
       '<button class="btn sm" data-act="'+ac.id+'">'+ac.cost+'万</button>')+'</div>';
   }
-  el.innerHTML='<div class="p-title">🏗 俱乐部设施 <span class="tag">'+keys.length+'项 · 最高'+MAX_FAC+'级 · 长线经营</span></div>'+
+  el.innerHTML='<div class="p-title">🏗 俱乐部设施 <span class="tag">'+keys.length+'项 · 最高'+MAX_FAC+'级 · 总维护 <b style="color:#ff9f0a">'+totalMaint()+'万/轮</b></span></div>'+
     '<div class="fac-grid">'+items+'</div>'+invHtml+actHtml;
   el.querySelectorAll('[data-upg]').forEach(function(btn){
     btn.onclick=function(){ upgradeFac(this.getAttribute('data-upg')); };
@@ -2423,11 +2435,12 @@ function refreshUI(){
 function renderPanFinance(){
   var el=pan('Finance'); if(!el) return;
   var wages=Math.round(myClub.squad.reduce(function(s,q){return s+q.ab;},0)*0.05);
-  var training=20;
+  var training=15;
+  var maint=totalMaint();
   var expBonus=Math.round(60*0.5+20*0.25);
   var expSpon=100;
   var expInc=expBonus+expSpon+36;
-  var expOut=wages+training;
+  var expOut=wages+training+maint;
   var net=expInc-expOut;
   var inPct=Math.max(5,Math.min(95,Math.round(expInc/(expInc+expOut)*100)));
   var netIncome=(fin.gate+fin.bonus+fin.sponsor+fin.transferOut)-(fin.wages+fin.transferIn+fin.training+fin.facility+(fin.activity||0));
@@ -2437,7 +2450,7 @@ function renderPanFinance(){
       '<span style="font-size:10px;color:'+(net>=0?'#3ddc7a':'#ff6b81')+';font-weight:800">预计本周 '+(net>=0?'+':'')+net+'万</span>'+
     '</div>'+
     '<div class="flow-row"><span>收入</span><div class="flow-bar"><div class="flow-in" style="width:'+inPct+'%"></div><div class="flow-out" style="width:'+(100-inPct)+'%"></div></div><span>支出</span></div>'+
-    '<div class="flow-row" style="margin-top:4px;font-size:10px"><span>预计周收入 <b style="color:#3ddc7a">~'+expInc+'万</b></span><span style="margin-left:auto">周支出 <b style="color:#ff6b81">-'+expOut+'万</b></span></div>'+
+    '<div class="flow-row" style="margin-top:4px;font-size:10px"><span>预计周收入 <b style="color:#3ddc7a">~'+expInc+'万</b></span><span style="margin-left:auto">周支出 <b style="color:#ff6b81">-'+expOut+'万</b>（含维护'+maint+'）</span></div>'+
     '<div class="fin-grid">'+
       '<div class="li in"><span>门票</span><b>+'+fin.gate+'</b></div>'+
       '<div class="li out"><span>工资</span><b>-'+fin.wages+'</b></div>'+
