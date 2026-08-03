@@ -662,8 +662,14 @@ function facHomeAdd(lv){ return Math.round(2+0.316*(lv-1)); }              // �
 function basePrice(ab){
   return ab>=85?750:(ab>=75?400:(ab>=65?200:75));
 }
-function priceOf(ab){
-  return Math.round(basePrice(ab)*(0.9+Math.random()*0.2));
+function priceOf(ab,age){
+  // 基础价按能力分级，叠加 ±10% 波动；年龄修正：越年轻越贵（18岁+25%，32岁-30%）
+  var base=Math.round(basePrice(ab)*(0.9+Math.random()*0.2));
+  var ageMul=1;
+  if(age!==undefined&&age>0){
+    ageMul=clamp(1.25-(age-18)*0.05,0.7,1.25); // 18岁1.25 → 32岁0.7
+  }
+  return Math.max(15,Math.round(base*ageMul));
 }
 // 球员周薪（与工资系统一致：能力×系数万/周，A级更高）
 function weeklyWage(p){ return Math.max(2,Math.round((p.ab||0)*(myTier==='A'?0.04:0.032))); }
@@ -929,7 +935,7 @@ function applyEvent(ev,fix){
     var pool2=genSquad('event_'+Math.random(),80+((Math.random()*10)|0)).filter(function(q){ return q.pos===pos; });
     var star=pool2[(Math.random()*pool2.length)|0];
     star.age=18+((Math.random()*6)|0);
-    star.price=Math.round(priceOf(star.ab)*(eff.marketDiscount?0.5:1)); // 独家谈判权：价格减半
+    star.price=Math.round(priceOf(star.ab,star.age)*(eff.marketDiscount?0.5:1)); // 独家谈判权：价格减半
     market.push(star);
     msgs.push('转会市场出现强援 '+star.name+'（'+star.ab+'）'+(eff.marketDiscount?'，独家价'+star.price+'万':''));
   }
@@ -1318,7 +1324,7 @@ function refreshMarket(){
     }
     p.age=18+((Math.random()*12)|0);
     // 身价按球员实际能力定价
-    p.price=priceOf(p.ab);
+    p.price=priceOf(p.ab,p.age);
     market.push(p);
   }
 }
@@ -2714,7 +2720,7 @@ function showFinal(m){
     if(negRounds>=2&&myClub.cash<0){
       var topP=myClub.squad.slice().sort(function(a,b){return b.ab-a.ab;})[0];
       if(topP){
-        var sv=priceOf(topP.ab);
+        var sv=priceOf(topP.ab,topP.age);
         myClub.cash+=sv;
         myClub.squad.splice(myClub.squad.indexOf(topP),1);
         fin.transferOut+=sv;
@@ -3646,7 +3652,7 @@ function renderTransfer(){
   for(var j=0;j<sellSorted.length;j++){
     var q=sellSorted[j];
     var isSt=myClub.eleven.indexOf(q)>=0;
-    var sp=priceOf(q.ab);
+    var sp=priceOf(q.ab,q.age);
     html+='<div class="lu-row"><span class="lu-pos '+q.pos+'">'+q.pos.toUpperCase()+'</span>'+
       '<span class="lu-name">'+q.name+(q.inj>0?' <span class="inj">伤</span>':'')+'</span>'+
       '<span class="lu-ab">'+q.ab+'</span>'+
@@ -3680,7 +3686,7 @@ function renderTransfer(){
       var q=myClub.squad[idx];
       if(myClub.eleven.indexOf(q)>=0&&myClub.squad.length<=11){ showMsg('至少要留 11 人可出场'); return; }
       var in11=myClub.eleven.indexOf(q);
-      var sp=parseInt(this.getAttribute('data-price'))||priceOf(q.ab);
+      var sp=parseInt(this.getAttribute('data-price'))||priceOf(q.ab,q.age);
       myClub.cash+=sp;
       fin.transferOut+=sp;
       myClub.squad.splice(idx,1);
