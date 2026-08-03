@@ -2734,9 +2734,10 @@ function endMatch(){
   var tierMulA=myTier==='A'; // A级票价更高
   var wages=Math.round(myClub.squad.reduce(function(s,q){return s+q.ab;},0)*(tierMulA?0.04:0.032));
   myClub.cash-=wages;
-  var gate=Math.round(((isHomeGame?(tierMulA?25:18):(tierMulA?12:9))+(myWin?(tierMulA?15:12):(myDraw?(tierMulA?5:4):0)))*facGate(facilities.stadium)*(gateBoostRounds>0?1.5:(gateBoostRounds<0?0.7:1)));
+  var baseGate=((isHomeGame?(tierMulA?25:18):(tierMulA?12:9))+(myWin?(tierMulA?15:12):(myDraw?(tierMulA?5:4):0)))*(gateBoostRounds>0?1.5:(gateBoostRounds<0?0.7:1));
+  var gate=Math.round(baseGate*facGate(facilities.stadium));
   myClub.cash+=gate;
-  m._wages=wages; m._gate=gate; m._isHomeGame=isHomeGame; m._bonus=bonus;
+  m._wages=wages; m._gate=gate; m._baseGate=baseGate; m._isHomeGame=isHomeGame; m._bonus=bonus;
   fin.gate+=gate; fin.wages+=wages; fin.bonus+=bonus;
   // 状态/成长/伤病
   for(var i=0;i<myClub.squad.length;i++){
@@ -2836,7 +2837,7 @@ function showFinal(m){
         '<div style="height:100%;width:'+myShotPct+'%;background:#57c8ff"></div></div>'+
       '<span style="width:34px;color:#8fa3bd">'+oppShotPct+'%</span></div>'+
     '</div>'+
-    (m._wages!==undefined?'<div style="margin-top:6px;font-size:10px;color:#8fa3bd">财务：门票收入 +'+m._gate+'万 · 工资支出 -'+m._wages+'万'+(m._isHomeGame?'（主场）':'（客场）')+'</div>':'')+
+    (m._wages!==undefined?'<div style="margin-top:6px;font-size:10px;color:#8fa3bd">财务：门票收入 +'+m._gate+'万'+(m._baseGate!==undefined&&facGate(facilities.stadium)>1?('（基础 '+m._baseGate+'万 × 🏟 球场Lv'+facilities.stadium+' '+facGate(facilities.stadium).toFixed(2)+'）'):'')+' · 工资支出 -'+m._wages+'万'+(m._isHomeGame?'（主场）':'（客场）')+'</div>':'')+
     '<div style="text-align:center;font-size:11px;color:#8fa3bd;margin-top:4px">当前排名：第 '+(rankOf(myIdx)+1)+' 位</div>'+
     '<div style="margin-top:6px;font-size:11px;color:#8fa3bd">球员评分：</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">';
   var mvp=null,mvpR=0;
@@ -3401,6 +3402,7 @@ function renderPanFinance(){
     '</div>'+
     '<div class="flow-row"><span>收入</span><div class="flow-bar"><div class="flow-in" style="width:'+inPct+'%"></div><div class="flow-out" style="width:'+(100-inPct)+'%"></div></div><span>支出</span></div>'+
     '<div class="flow-row" style="margin-top:4px;font-size:10px"><span>预计周收入 <b style="color:#3ddc7a">~'+expInc+'万</b></span><span style="margin-left:auto">周支出 <b style="color:#ff6b81">-'+expOut+'万</b>（含维护'+maint+'）</span></div>'+
+    '<div style="font-size:10px;color:#8fa3bd;margin-top:3px">🏟 球场 Lv'+facilities.stadium+'：门票收入 ×'+facGate(facilities.stadium).toFixed(2)+'（满级 ×2.5）</div>'+
     '<div class="fin-grid">'+
       '<div class="li in"><span>门票</span><b>+'+fin.gate+'</b></div>'+
       '<div class="li out"><span>工资</span><b>-'+fin.wages+'</b></div>'+
