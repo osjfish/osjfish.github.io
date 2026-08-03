@@ -1747,7 +1747,7 @@ function aiHold(m,p){
         var min=((m.clock/60)|0)+1;
         // 射门消息按距离与结果分类（避免"远距离禁区内劲射"等错误）
         var dTxt=dToGate<175?'禁区内':(dToGate<300?'中距离':'远距离');
-        var shotsTxt=onT?(dToGate<175?'禁区内劲射！':(dToGate<300?'大力轰门！':'远射发炮！')):(dToGate<175?'近在咫尺打飞！':(dToGate<300?'抽射偏出！':'高射炮！'));
+        var shotsTxt=onT?(dToGate<175?'劲射！':(dToGate<300?'大力轰门！':'远射发炮！')):(dToGate<175?'打飞！':(dToGate<300?'抽射偏出！':'高射炮！'));
         addEvent(min,(onT?'射门！':'射门偏出！')+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' '+dTxt+' '+shotsTxt);
         return;
       }
@@ -2239,6 +2239,8 @@ function resolveShot(m,shooter,ang){
 }
 function gkSaveCheck(m){
   var b=m.ball;
+  // 只有射正（奔门框而去）才会触发门将扑救判定；偏出球直接出界，门将无需扑救
+  if(!b._onT) return false;
   var gk=b.vx>0?playersOf(m,1)[0]:playersOf(m,0)[0];
   if(gk.dive>=0&&Math.abs(gk.y-b.y)<40){
     // 门将扑救成功率：门将防守能力影响（能力越高越稳）
@@ -2246,9 +2248,7 @@ function gkSaveCheck(m){
       b.owner=gk;
       gk.dive=-1; gk.cd=1.5;
       m.rating[gk.pl.name]=(m.rating[gk.pl.name]||6)+0.6;
-      // 射正被扑 = 化解射门；偏出球被收 = 没收（与射门消息不矛盾）
-      var onTxt=b._onT?'化解射门':'将球没收';
-      addEvent(((m.clock/60)|0)+1,'扑救 '+(gk.team===0?m.home.name:m.away.name)+' '+gk.pl.name+' '+onTxt);
+      addEvent(((m.clock/60)|0)+1,'扑救 '+(gk.team===0?m.home.name:m.away.name)+' '+gk.pl.name+' 化解射门');
       return true;
     }
   }
