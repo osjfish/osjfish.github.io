@@ -465,6 +465,10 @@ function tacticById(id){
   for(var i=0;i<TACTICS.length;i++){ if(TACTICS[i].id===id) return TACTICS[i]; }
   return TACTICS[0];
 }
+// 随机战术（对手每场比赛使用不同战术）
+function randTactic(){
+  return TACTICS[(Math.random()*TACTICS.length)|0].id;
+}
 window.ensureEleven=function(){};
 window.autoLineup=function(){};
 window.roleList=function(){};
@@ -1263,6 +1267,9 @@ function simAIMatch(hIdx,aIdx,tier){
   var home=aiClubs.filter(function(c){return c.idx===hIdx;})[0];
   var away=aiClubs.filter(function(c){return c.idx===aIdx;})[0];
   if(!home||!away) return;
+  // AI 每场比赛随机战术（不再固定攻守平衡）
+  home.tactic=randTactic();
+  away.tactic=randTactic();
   // AI 体能管理：赛前按综合评分轮换（体能差的自动轮休），赛后结算体能/伤病（与玩家同规则）
   window.buildEleven(home);
   window.buildEleven(away);
@@ -1555,6 +1562,8 @@ function startMatch(){
   }
 var oppIdx=opponentOf(round);
   var opp=aiClubs[oppIdx];
+  // 对手每场比赛随机战术（赛前侦察到的是预测，开赛时确定）
+  opp.tactic=randTactic();
   // 根据赛程表确定主客场
   var pairs=fixtures[myTier]&&fixtures[myTier][round];
   var isHome=true;
@@ -3407,6 +3416,7 @@ function renderOpponent(){
   var oppIdx=opponentOf(round);
   if(oppIdx<0||oppIdx>=aiClubs.length){ return; }
   var opp=aiClubs[oppIdx];
+  opp.tactic=randTactic(); // 赛前侦察：战术为随机预测
   var html='<div class="section-title">🔍 第'+round+'轮对手：'+opp.name+'<span class="teamDot" style="background:'+opp.color+';margin-left:6px"></span></div>';
   html+='<div style="font-size:11px;color:#8fa3bd;margin-bottom:6px">阵型 '+opp.form+' · 战术 <b style="color:#3ddc7a">'+tacticById(opp.tactic||'balanced').name+'</b> · 首发实力 <b style="color:#3ddc7a">'+Math.round(teamAbility(opp.eleven))+'</b></div>';
   var elv=opp.eleven.filter(function(x){ return x; });
