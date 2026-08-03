@@ -328,6 +328,10 @@
   @media (min-width:901px) {
     #rating { left:auto; right:10px; top:44px; bottom:64px; max-height:none; width:200px; grid-template-columns:repeat(2,1fr); font-size:12px; padding:6px 8px; }
   }
+  /* 超宽屏：画布两侧留白充足，评分框回到左下角，与右下操作区互不遮挡 */
+  @media (min-width:1500px) {
+    #rating { left:10px; right:auto; top:auto; bottom:64px; width:220px; }
+  }
   /* 中等宽度：解说框收窄，避免与右侧评分栏重叠 */
   @media (min-width:901px) and (max-width:1250px) {
     #events { width:min(420px,55vw); }
@@ -4040,18 +4044,19 @@ function fitGame(){
   var w=window.innerWidth,h=window.innerHeight;
   var mobile=w<=900;
   var landscape=mobile&&w>h; // 手机横屏：画面填满内容区（padding 190/216/44/20），信息框在两侧padding区
-  var inMatch=!!match; // 比赛进行中：顶部比分条44 + 底部信息区170 预留；桌面/平板另为右侧评分栏预留 210
-  var availW=w-(landscape?414:(mobile?8:(inMatch?226:16)));
+  var wide=w>=1500; // 超宽屏：评分框在左下角，画布全屏居中
+  var inMatch=!!match; // 比赛进行中：顶部比分条44 + 底部信息区170 预留；中宽屏另为右侧评分栏预留 210
+  var availW=w-(landscape?414:(mobile?8:(inMatch&&!wide?226:16)));
   var availH=h-(landscape?72:(mobile?178:(inMatch?214:16)));
   var s=Math.min(availW/W, availH/H);
   var cw=Math.round(W*s), ch=Math.round(H*s);
   cv.style.width=cw+'px';
   cv.style.height=ch+'px';
   if(!mobile){
-    // 桌面/平板：画布由 JS 定位——比赛时限制在左侧区域，避开右侧评分栏；非比赛居中
+    // 桌面/平板：画布由 JS 定位——中宽屏比赛时限制在左侧区域避开评分栏；超宽屏/非比赛全屏居中
     cv.style.position='absolute';
-    var maxRight=w-(inMatch?210:0);
-    var region=inMatch?maxRight:w; // 比赛时在左侧区域内居中（避开评分栏），非比赛全屏居中
+    var maxRight=w-((inMatch&&!wide)?210:0);
+    var region=inMatch&&!wide?maxRight:w;
     cv.style.left=Math.max(4,Math.round((region-cw)/2))+'px';
     cv.style.top=(inMatch?44:Math.max(0,Math.round((h-ch)/2)))+'px';
   } else {
