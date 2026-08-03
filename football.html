@@ -1752,6 +1752,27 @@ var ROLE_AI={
 function aiPlayer(m,p,dt){
   var b=m.ball, pr=p.pl;
   if(p.role==='gk'){ aiGK(m,p,dt); return; }
+  // 紧急响应（不受决策间隙限制）：
+  // 1) 队友传球给自己 → 立即迎球
+  if(b._passTo===p&&b.owner!==p&&(p.role!=='df'||(p.team===0?b.x<W/2+60:b.x>W/2-60))){
+    p.decT=0.06+Math.random()*0.08;
+    p.lbx=b.x; p.lby=b.y;
+    goTo(p,b.x,b.y,dt,1.15);
+    return;
+  }
+  // 2) 无主球且自己是全队最近者 → 立即追球
+  if(!b.owner&&b._passTo===undefined){
+    var mn=nearestTo(m,p.team);
+    if(p===mn&&dist2(p,b)<220*220&&(p.role!=='df'||(p.team===0?b.x<W/2+60:b.x>W/2-60))){
+      var gkO=playersOf(m,1-p.team)[0];
+      if(!(gkO&&dist2(gkO,b)<140*140)){
+        p.decT=0.06+Math.random()*0.08;
+        p.lbx=b.x; p.lby=b.y;
+        goTo(p,b.x,b.y,dt,1);
+        return;
+      }
+    }
+  }
   // 决策间隙约0.1秒；球快速移动（传球/射门/抢断）时立即响应
   p.decT=(p.decT||0)-dt;
   var bd2=Math.abs(b.x-(p.lbx!==undefined?p.lbx:b.x))+Math.abs(b.y-(p.lby!==undefined?p.lby:b.y));
@@ -2047,14 +2068,14 @@ function formationMove(m,p,dt){
   var tx=p.homeX+shift+p.wx;
   var ty=p.homeY+(m.ball.y-MIDY)*0.08+p.wy;
   // 持球队友时：前锋/边路前插拉扯（意识高跑位更激进）
-  if(m.ball.owner&&m.ball.owner.team===p.team&&m.ball.owner!==p&&p.role!=='def'&&p.role!=='gk'){
+    if(m.ball.owner&&m.ball.owner.team===p.team&&m.ball.owner!==p&&p.role!=='df'&&p.role!=='gk'){
     tx=p.homeX+att*130*P.forward*af+shift+p.wx;
     ty=p.homeY+(Math.random()<0.3?30:-30)*af+p.wy;
   }
   // 接应：队友持球时靠拢拉开接球路线（意识高接应范围更大）
   if(m.ball.owner&&m.ball.owner.team===p.team&&m.ball.owner!==p&&p.role!=='gk'){
     var dToOwn=Math.sqrt(dist2(p,m.ball.owner));
-    if(dToOwn>140&&dToOwn<420*af&&p.role!=='def'){
+    if(dToOwn>140&&dToOwn<420*af&&p.role!=='df'){
       var dirX=m.ball.owner.x>p.x?1:-1;
       tx=m.ball.owner.x+dirX*(70*af+p.wx);
       ty=m.ball.owner.y+p.wy;
