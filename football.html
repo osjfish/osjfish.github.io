@@ -299,21 +299,21 @@
     #top .mt { display:none; }
     #top .cash, #top #roundTxt { display:none; }
     #timeline { top:34px; height:3px; width:min(300px,58vw); }
-    /* 底部信息区三区分离：解说框居中在上，评分在左下，按钮在右下 */
-    #events { bottom:120px; left:50%; transform:translateX(-50%); max-height:90px; font-size:11px; padding:4px 10px; width:min(560px,94vw); }
+    /* 底部信息区：解说框8行居中，评分框右移与按钮相邻（第一横排为控球/射门） */
+    #events { bottom:150px; left:50%; transform:translateX(-50%); max-height:150px; font-size:11px; padding:4px 10px; width:min(560px,94vw); }
     #controls { right:6px; bottom:4px; }
     #controls .btn { font-size:14px; padding:6px 12px; }
-    #rating { display:grid; left:6px; bottom:4px; font-size:13px; padding:6px 10px; max-height:112px; width:min(300px,64vw); grid-template-columns:repeat(3,1fr); }
+    #rating { display:grid; left:auto; right:88px; bottom:4px; font-size:13px; padding:6px 10px; max-height:142px; width:min(330px,58vw); grid-template-columns:repeat(3,1fr); }
     #toast { font-size:22px; top:24%; }
     #roundTxt { font-size:9px; padding:1px 6px; }
   }
-  /* 手机横屏：比赛画面居中，信息框分列左右不重叠 */
+  /* 手机横屏：比赛画面居中，事件框在画面右侧(8行)，评分框贴画面左缘 */
   @media (max-width:900px) and (orientation:landscape) {
-    #wrap { padding:44px 210px 24px 190px; }
-    #events { bottom:4px; left:50%; transform:translateX(-50%); max-height:52px; font-size:10px; width:min(420px,52vw); }
+    #wrap { padding:44px 216px 20px 190px; }
+    #events { left:auto; right:216px; transform:none; top:44px; bottom:auto; max-height:150px; font-size:11px; width:200px; }
     #controls { right:6px; bottom:6px; }
     #controls .btn { font-size:13px; padding:5px 10px; }
-    #rating { display:block; left:4px; top:46px; bottom:64px; font-size:12px; padding:6px 8px; max-height:none; width:176px; grid-template-columns:repeat(2,1fr); overflow-y:auto; }
+    #rating { display:grid; left:8px; top:44px; bottom:auto; right:auto; font-size:12px; padding:6px 8px; max-height:none; width:178px; grid-template-columns:repeat(2,1fr); overflow-y:auto; }
     #toast { font-size:20px; top:20%; }
   }
 </style>
@@ -3847,7 +3847,7 @@ function updateHud(){
   var rl=document.getElementById('rating');
   var posTotal=match.poss[0]+match.poss[1];
   var pos0=posTotal>0?Math.round(match.poss[0]/posTotal*100):50;
-  var html='<div style="color:#8fa3bd;margin-bottom:3px">控球 '+pos0+'% : '+(100-pos0)+'% · 射门 '+match.shots[0]+'/'+match.shots[1]+'</div>';
+  var html='<div class="r3head" style="grid-column:1/-1;color:#8fa3bd;font-size:11px;margin-bottom:3px;white-space:nowrap">控球 '+pos0+'% : '+(100-pos0)+'% · 射门 '+match.shots[0]+'/'+match.shots[1]+'</div>';
   for(var i=0;i<myClub.eleven.length;i++){
     var p=myClub.eleven[i];
     var rt=Math.min(10,Math.max(3.5,match.rating[p.name]||6));
