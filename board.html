@@ -1169,8 +1169,8 @@
                     if (lastDist > 0) {
                         const scaleFactor = dist / lastDist;
 
-                        if (state.selected.length > 0 && state.tool === 'select') {
-                            // 双指缩放选中项
+                        if (state.selected.length > 0) {
+                            // 双指缩放选中项（任意工具下，选中元素即缩放元素本体）
                             const sb = getSelectionBounds();
                             const cx = sb.x + sb.w/2;
                             const cy = sb.y + sb.h/2;
@@ -1797,6 +1797,25 @@
                 syncDOMElements();
             };
 
+            // 滚轮直接缩放图片本体（选中时，任意工具），可超过原始尺寸
+            wrap.onwheel = (e) => {
+                if (state.selected.includes(imgEl)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+                    const cx = imgEl.x + imgEl.w / 2;
+                    const cy = imgEl.y + imgEl.h / 2;
+                    imgEl.w *= factor;
+                    imgEl.h *= factor;
+                    imgEl.x = cx - imgEl.w / 2;
+                    imgEl.y = cy - imgEl.h / 2;
+                    saveHistory(true);
+                    syncDOMElements();
+                    offscreenDirty = true;
+                    requestRender();
+                }
+            };
+
             wrap.appendChild(delBtn);
             document.body.appendChild(wrap);
             return wrap;
@@ -2226,6 +2245,7 @@
                                 w: w,
                                 h: h
                             });
+                            state.selected = [state.elements[state.elements.length - 1]]; // 导入后自动选中，双指可直接缩放图片本体
                             syncDOMElements(); // 尽管渲染在 canvas，但也调用一次同步以防万一
                             requestRender();
                         };
