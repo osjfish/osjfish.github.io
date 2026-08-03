@@ -3505,7 +3505,8 @@ function renderPanMatch(){
   var b2=document.getElementById('btnStartMatch2');
   if(b2) b2.onclick=function(){
     if(round>TOTAL_ROUNDS) return;
-    if(myClub.eleven.length<11){ showMsg('首发不足 11 人'); return; }
+    var _ec=0; for(var _ei=0;_ei<myClub.eleven.length;_ei++){ if(!myClub.eleven[_ei]) _ec++; }
+    if(_ec>0){ showMsg('首发有 '+_ec+' 个位置空缺，请先补齐 11 人再开赛'); return; }
     var pp=resultsByRound[round]&&resultsByRound[round][myTier]?resultsByRound[round][myTier].some(function(mr){
       return (mr.home===myIdx||mr.away===myIdx)&&mr.home!==mr.away;
     }):false;
@@ -4121,7 +4122,8 @@ fitGame();
 
 document.getElementById('btnStartMatch').onclick=function(){
   if(round>TOTAL_ROUNDS) return;
-  if(myClub.eleven.length<11){ showMsg('首发不足 11 人'); return; }
+  var _ec2=0; for(var _ei2=0;_ei2<myClub.eleven.length;_ei2++){ if(!myClub.eleven[_ei2]) _ec2++; }
+  if(_ec2>0){ showMsg('首发有 '+_ec2+' 个位置空缺，请先补齐 11 人再开赛'); return; }
   // 本轮已打完则不允许重开（防重复计分）
   var played=resultsByRound[round]&&resultsByRound[round][myTier]?resultsByRound[round][myTier].some(function(mr){
     return (mr.home===myIdx||mr.away===myIdx)&&mr.home!==mr.away;
