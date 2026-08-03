@@ -324,6 +324,35 @@
     #rating { display:grid; left:8px; top:44px; bottom:20px; right:auto; font-size:12px; padding:6px 8px; max-height:none; width:178px; grid-template-columns:repeat(2,1fr); overflow-y:auto; }
     #toast { font-size:20px; top:calc(44px + (100vh - 64px)/2); }
   }
+  /* ===== 比赛卡片式布局：比分条+画面=比赛卡；播报=卡片；评分+控制=卡片(一左一右) =====
+     竖屏：上中下排列；横屏：比赛卡在左，右侧播报+评分控制上下排列 */
+  #matchUI { position:fixed; inset:0; z-index:8; background:radial-gradient(1200px 500px at 50% -10%, rgba(61,220,122,.05), transparent 60%), #0a0e14; }
+  #matchUI.hide { display:none; }
+  #matchUI.show { display:flex; }
+  #mcard { position:relative; flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; padding:0 10px; }
+  #mcard #top { position:static; left:auto; right:auto; transform:none; width:auto; border-radius:0 0 12px 12px; justify-content:center; flex-wrap:nowrap; }
+  #mcard #timeline { position:static; left:auto; top:auto; transform:none; width:auto; margin:6px 10px 0; }
+  #mcard #wrap { position:relative; flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; padding:8px 0; }
+  #sideCol { flex:0 0 268px; min-width:0; display:flex; flex-direction:column; padding:0 10px 10px 0; gap:10px; }
+  #sideCol #events { position:static; left:auto; right:auto; bottom:auto; transform:none; width:auto; min-height:92px; max-height:220px; }
+  #bottomRow { display:flex; gap:10px; flex:1 1 auto; min-height:0; }
+  #bottomRow #rating { position:static; left:auto; right:auto; top:auto; bottom:auto; width:auto; flex:1 1 auto; min-width:0; max-height:none; overflow-y:auto; grid-template-columns:repeat(2,1fr); font-size:12px; padding:6px 8px; }
+  #bottomRow #controls { position:static; left:auto; right:auto; bottom:auto; width:58px; flex:0 0 auto; }
+  #bottomRow #controls .btn { font-size:13px; padding:6px 8px; }
+  /* 竖屏：上中下 */
+  @media (orientation:portrait) {
+    #matchUI.show { flex-direction:column; }
+    #mcard { flex:1 1 0; }
+    #sideCol { flex:0 0 auto; width:auto; padding:0 10px 10px; gap:8px; }
+    #sideCol #events { flex:0 0 104px; min-height:0; }
+    #bottomRow { flex:0 0 150px; }
+  }
+  /* 横屏：左比赛卡 + 右列（播报在上、评分+控制在下） */
+  @media (orientation:landscape) {
+    #matchUI.show { flex-direction:row; }
+  }
+  /* 战术列表：统一居中弹出，任何屏幕都不遮挡 */
+  #tacList { left:50%; top:50%; right:auto; bottom:auto; transform:translate(-50%,-50%); }
   /* 平板/桌面（非手机）：评分框固定在右侧竖栏，画布在 fitGame 中为其预留空间 */
   @media (min-width:901px) {
     #rating { left:auto; right:10px; top:44px; bottom:64px; max-height:none; width:200px; grid-template-columns:repeat(2,1fr); font-size:12px; padding:6px 8px; }
@@ -343,23 +372,31 @@
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="game" width="1050" height="680"></canvas></div>
-<div id="top">
-  <span class="teamDot" id="dotHome" style="background:#3a7bff"></span>
-  <span class="nm" id="homeName">主队</span>
-  <span class="sc" id="score0">0</span>
-  <span class="ck" id="clock">0'</span>
-  <span class="sc" id="score1">0</span>
-  <span class="nm" id="awayName">客队</span>
-  <span class="teamDot" id="dotAway" style="background:#ff4d4d"></span>
-  <span class="mt" id="roundTxt">R1</span>
-  <span class="cash" id="cashTxt"></span>
-  <span class="mt" id="mtTxt"></span>
+<div id="matchUI" class="hide">
+  <div id="mcard">
+    <div id="top">
+      <span class="teamDot" id="dotHome" style="background:#3a7bff"></span>
+      <span class="nm" id="homeName">主队</span>
+      <span class="sc" id="score0">0</span>
+      <span class="ck" id="clock">0'</span>
+      <span class="sc" id="score1">0</span>
+      <span class="nm" id="awayName">客队</span>
+      <span class="teamDot" id="dotAway" style="background:#ff4d4d"></span>
+      <span class="mt" id="roundTxt">R1</span>
+      <span class="cash" id="cashTxt"></span>
+      <span class="mt" id="mtTxt"></span>
+    </div>
+    <div id="timeline"><div id="timelineFill"></div></div>
+    <div id="wrap"><canvas id="game" width="1050" height="680"></canvas></div>
+  </div>
+  <div id="sideCol">
+    <div id="events"></div>
+    <div id="bottomRow">
+      <div id="rating"></div>
+      <div id="controls"></div>
+    </div>
+  </div>
 </div>
-<div id="timeline"><div id="timelineFill"></div></div>
-<div id="events"></div>
-<div id="controls"></div>
-<div id="rating"></div>
 <div id="toast"></div>
 <div id="report"><div class="card" id="reportCard"></div></div>
 <div id="dash">
@@ -1624,7 +1661,9 @@ var oppIdx=opponentOf(round);
       paramsHome:params(opp,true), paramsAway:params(myClub,false) };
   }
   spawnMatch(match);
-  fitGame(); // 比赛布局：画布缩小，为底部信息区留出空间
+  var mu=document.getElementById('matchUI');
+  if(mu){ mu.classList.remove('hide'); mu.classList.add('show'); }
+  fitGame(); // 比赛卡片布局：画布填满剩余空间
   document.getElementById('dash').classList.add('hide');
   document.getElementById('top').classList.remove('hide');
   document.getElementById('homeName').textContent=match.home.name;
@@ -2870,6 +2909,8 @@ function showFinal(m){
   card.innerHTML+='</div>';
   document.getElementById('dash').classList.add('hide');
   document.getElementById('top').classList.add('hide');
+  var _mu2=document.getElementById('matchUI');
+  if(_mu2){ _mu2.classList.add('hide'); _mu2.classList.remove('show'); }
   document.getElementById('report').classList.add('show');
   document.getElementById('btnNext').onclick=function(){
     round++;
@@ -3199,6 +3240,8 @@ function renderScreen(){
   renderTable();
   document.getElementById('dash').classList.remove('hide');
   document.getElementById('top').classList.add('hide');
+  var mu=document.getElementById('matchUI');
+  if(mu){ mu.classList.add('hide'); mu.classList.remove('show'); }
   document.getElementById('btnRound').textContent=round;
   var ctEl=document.getElementById('cashTxt');
   ctEl.textContent=myClub.cash+'万';
@@ -4041,27 +4084,14 @@ document.querySelectorAll('.tab').forEach(function(t){
 });
 // ================= 自适应 =================
 function fitGame(){
-  var w=window.innerWidth,h=window.innerHeight;
-  var mobile=w<=900;
-  var landscape=mobile&&w>h; // 手机横屏：画面填满内容区（padding 190/216/44/20），信息框在两侧padding区
-  var wide=w>=1500; // 超宽屏：评分框在左下角，画布全屏居中
-  var inMatch=!!match; // 比赛进行中：顶部比分条44 + 底部信息区170 预留；中宽屏另为右侧评分栏预留 210
-  var availW=w-(landscape?414:(mobile?8:(inMatch&&!wide?226:16)));
-  var availH=h-(landscape?72:(mobile?178:(inMatch?214:16)));
-  var s=Math.min(availW/W, availH/H);
-  var cw=Math.round(W*s), ch=Math.round(H*s);
-  cv.style.width=cw+'px';
-  cv.style.height=ch+'px';
-  if(!mobile){
-    // 桌面/平板：画布由 JS 定位——中宽屏比赛时限制在左侧区域避开评分栏；超宽屏/非比赛全屏居中
-    cv.style.position='absolute';
-    var maxRight=w-((inMatch&&!wide)?210:0);
-    var region=inMatch&&!wide?maxRight:w;
-    cv.style.left=Math.max(4,Math.round((region-cw)/2))+'px';
-    cv.style.top=(inMatch?44:Math.max(0,Math.round((h-ch)/2)))+'px';
-  } else {
-    cv.style.position='';
-  }
+  // 卡片式布局：画布填满"比赛卡"内 wrap 的剩余空间（顶部比分条+时间线已占用上部分）
+  var wrap=document.getElementById('wrap');
+  if(!wrap) return;
+  var aw=Math.max(200,wrap.clientWidth-12), ah=Math.max(120,wrap.clientHeight-12);
+  var s=Math.min(aw/W, ah/H);
+  cv.style.width=Math.round(W*s)+'px';
+  cv.style.height=Math.round(H*s)+'px';
+  cv.style.position='';
 }
 window.addEventListener('resize',fitGame);
 window.addEventListener('orientationchange',function(){ setTimeout(fitGame,250); });
@@ -4114,6 +4144,8 @@ function renderPickClub(){
   if(!el) return;
   document.getElementById('dash').classList.add('hide');
   document.getElementById('top').classList.add('hide');
+  var _mu3=document.getElementById('matchUI');
+  if(_mu3){ _mu3.classList.add('hide'); _mu3.classList.remove('show'); }
   var html='<div class="card"><h1>足球经理</h1><div style="text-align:center;color:#8fa3bd;font-size:12px;margin-bottom:10px">选择你的球队</div>';
   html+='<div class="section-title">A级联赛（18队）</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
   for(var i=0;i<aiClubs.length;i++){
