@@ -675,6 +675,8 @@ var actCd={retreat:0,physio:0,feast:0,camp:0,birthday:0,christmas:0,psyche:0,bon
 var actThisWeek=null; // 本轮已举办的活动
 // ===== 意外事件系统（每轮结束后 0~3 个）=====
 var nextHomeBonus=0, oppDebuff=0, gateBoostRounds=0, sponsorExtra=0, youthBonus=0;
+var negRounds=0; // 连续负资产轮数
+var crisisMsgs=[]; // 本轮财务危机消息（进经理简讯）
 var EVENTS=[
   // —— 伤病/健康 ——
   {id:1,name:'训练拉伤',type:'bad',desc:'主力前锋训练中拉伤大腿，可能缺席下轮。',eff:{inj:{rounds:1}},fix:{cost:30,desc:'花30万安排康复理疗，下轮前复出',fixEff:{}}},
@@ -780,6 +782,11 @@ function buildBriefs(){
   if(curRank<=3&&myTier==='A') briefs.push('🏆 目前身处冠军争夺区！');
   if(curRank>=n-1&&myTier==='A') briefs.push('⚠️ 目前身处降级区，需要抢分！');
   if(myTier==='B'&&curRank<=2) briefs.push('⬆️ 目前身处升级区！');
+  // 财务危机与经营提醒
+  if(!contracts.length) briefs.push('⚠️ 目前没有赞助合同，去「💼 商务运营」页寻找赞助商签约！');
+  if(myClub.cash<0) briefs.push('🔴 球队已资不抵债（'+myClub.cash+'万）：持续负资产将被迫出售球员，设施可能降级！');
+  else if(myClub.cash<100) briefs.push('⚠️ 资金紧张（'+myClub.cash+'万），注意控制支出！');
+  for(var ci=0;ci<crisisMsgs.length;ci++) briefs.push(crisisMsgs[ci]);
   return briefs;
 }
 function showRoundEndCards(evts,briefs){
@@ -1077,8 +1084,11 @@ function initLeague(){
   for(var i=0;i<aiClubs.length;i++){
     var c=aiClubs[i];
     var tbl=c.tier==='A'?leagueTable.A:leagueTable.B;
-    tbl.push({idx:c.idx,name:c.name,short:c.short,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,prevPts:0,form:[]});
+    tbl.push({idx:c.idx,name:c.name,short:c.short,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,prevPts:0,form:[],ab:c.ab});
   }
+  // 开赛前默认积分榜按球队实力排序（实力强者排名靠前，吸引高端赞助商）
+  leagueTable.A.sort(function(a,b){ return b.ab-a.ab; });
+  leagueTable.B.sort(function(a,b){ return b.ab-a.ab; });
   ROT_A=leagueTable.A.map(function(r,i){return i;});
   ROT_B=leagueTable.B.map(function(r,i){return i;});
   TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
@@ -2680,8 +2690,10 @@ function showFinal(m){
     myClub.cash-=15; fin.training+=15;
     // 投资理财每轮结算（储蓄利息 + 股市波动）
     settleWeek();
-    // 资金危机：负资产时自动出售最强球员救急
-    if(myClub.cash<-100){
+    // 资金危机：负资产连续2轮强制出售最强球员；负资产每轮20%概率设施降级（不低于1级）
+    crisisMsgs=[];
+    if(myClub.cash<0) negRounds++; else negRounds=0;
+    if(negRounds>=2&&myClub.cash<0){
       var topP=myClub.squad.slice().sort(function(a,b){return b.ab-a.ab;})[0];
       if(topP){
         var sv=priceOf(topP.ab);
@@ -2689,7 +2701,15 @@ function showFinal(m){
         myClub.squad.splice(myClub.squad.indexOf(topP),1);
         fin.transferOut+=sv;
         window.ensureEleven();
-        evTxt=(evTxt?evTxt+' ｜ ':'')+'⚠️ 资金危机，出售 '+topP.name+' 救急 +'+sv+'万';
+        crisisMsgs.push('🔴 连续两轮资不抵债，强制出售 '+topP.name+' 救急 +'+sv+'万');
+      }
+    }
+    if(myClub.cash<0&&Math.random()<0.2){
+      var dKeys=Object.keys(FAC_INFO).filter(function(k){ return facilities[k]>1; });
+      if(dKeys.length){
+        var dk=dKeys[(Math.random()*dKeys.length)|0];
+        facilities[dk]--;
+        crisisMsgs.push('🏚️ 资金紧张，'+FAC_INFO[dk].name+' 降为 Lv'+facilities[dk]);
       }
     }
     var evTxt2=window.weeklyEvent();
@@ -3051,7 +3071,7 @@ function renderBusiness(){
   for(var sp=0;sp<sponCandidates.length;sp++){
     var s2=sponCandidates[sp];
     candHtml+='<div class="fac-item">'+
-      '<div style="font-size:14px;font-weight:800">'+s2.name+' <span style="font-size:10px;font-weight:900;border-radius:4px;padding:1px 6px;background:rgba(255,224,138,.15);color:#ffe08a">'+s2.tier.name+'</span></div>'+
+      '<div style="font-size:14px;font-weight:800">🏢 '+s2.name+'</div>'+
       '<div style="font-size:12px;color:#8fa3bd;margin:4px 0">每轮 <b style="color:#3ddc7a">+'+s2.perWeek+'万</b> × '+s2.term+'轮</div>'+
       (contracts.length>=2?'<div style="font-size:11px;color:#ff9f0a;font-weight:800">合同已满（最多2份）</div>':
       '<button class="btn sm" data-spon="'+sp+'">签约</button>')+'</div>';
@@ -3574,6 +3594,7 @@ function doReset(){
   fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0,activity:0};
   facilities={stadium:1,training:1,youth:1,commercial:1,medical:1,analysis:1};
   initStocks(); invest.deposits=[];
+  negRounds=0; crisisMsgs=[];
   actCd={retreat:0,physio:0,feast:0,camp:0,birthday:0,christmas:0,psyche:0,bonus:0}; actThisWeek=null;
   sponCandidates=[]; contracts=[];
   msgLog=[]; market=[]; match=null; aiClubs=[]; NAMES_CACHE=[];
@@ -3863,6 +3884,8 @@ function selectTeam(idx){
   myTier=myClub.tier;
   TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
   round=1;
+  // 第一轮前就刷新赞助商（开局积分榜按实力排名，强队开赛前即有商家求赞助）
+  refreshSponCandidates();
   document.getElementById('homeName').textContent=myClub.name;
   document.getElementById('pickClub').classList.add('hide');
   saveGame();
