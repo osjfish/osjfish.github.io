@@ -250,7 +250,7 @@
   #controls .btn { padding:9px 18px; font-size:16px; }
   #tacList { position:fixed; right:10px; bottom:210px; z-index:12; width:210px; background:rgba(8,12,20,.96); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:10px; display:none; }
   #tacList .btn { display:block; width:100%; margin:4px 0; text-align:left; font-size:14px; padding:8px 12px; }
-  #toast { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:13; pointer-events:none; font-size:32px; font-weight:900; color:#fff; text-shadow:0 3px 16px rgba(0,0,0,.8); opacity:0; transition:opacity .25s; white-space:nowrap; max-width:94vw; overflow:hidden; text-overflow:ellipsis; }
+  #toast { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:200; pointer-events:none; font-size:32px; font-weight:900; color:#fff; text-shadow:0 3px 16px rgba(0,0,0,.8); opacity:0; transition:opacity .25s; white-space:nowrap; max-width:94vw; overflow:hidden; text-overflow:ellipsis; }
   #report { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center; background:rgba(4,7,12,.92); }
   #report .card { max-width:620px; }
   #report.show { display:flex; }
@@ -2904,7 +2904,7 @@ function showFinal(m){
   if(mvp) card.innerHTML+='<div style="margin-top:4px;font-size:11px;color:#ffe08a">⭐ MVP：'+mvp.name+'（'+mvpR.toFixed(1)+'分）</div>';
   if(goalScorers.length) card.innerHTML+='<div style="margin-top:3px;font-size:11px;color:#3ddc7a">⚽ 进球：'+goalScorers.join('、')+'</div>';
   else if(myScore>0) card.innerHTML+='<div style="margin-top:3px;font-size:11px;color:#3ddc7a">⚽ 进球：对方乌龙/混战中打进</div>';
-  card.innerHTML+='</div><div style="text-align:center;margin-top:10px">';
+  card.innerHTML+='</div><div style="display:flex;justify-content:center;gap:8px;margin-top:10px">';
   if(round<TOTAL_ROUNDS) card.innerHTML+='<button class="btn" id="btnNext">第 '+(round+1)+' 轮</button>';
   else card.innerHTML+='<button class="btn" id="btnNext">赛季结束</button>';
   card.innerHTML+='</div>';
@@ -3017,7 +3017,7 @@ function showChampion(){
     champHistory.slice(0,5).map(function(h,i){ return '<tr><td>S'+(champHistory.length-i)+'</td><td>'+h.champ+'</td><td>'+(h.rank===1?'<b style="color:#ffe08a">🏆冠军</b>':'第'+h.rank+'名')+'</td></tr>'; }).join('')+'</table>'+
     '<div style="margin-top:14px;color:#8fa3bd;font-size:11px">升降级已生效，新赛季各队实力保持不变</div>'+
     '<div style="font-size:11px;color:#3ddc7a;margin-top:4px">🩹 新赛季开始：全员体力已恢复、伤病已痊愈</div>'+
-    '<div style="text-align:center;margin-top:10px"><button class="btn" id="btnNextSeason">进入新赛季</button></div>';
+    '<div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn" id="btnNextSeason">进入新赛季</button></div>';
   document.getElementById('report').classList.add('show');
   document.getElementById('btnNextSeason').onclick=function(){
     season++;
@@ -3063,10 +3063,12 @@ function addEvent(min,txt){
   var m=match;
   if(!m) return;
   m.events.push({min:min,txt:txt});
-  if(m.events.length>30) m.events.shift();
+  if(m.events.length>40) m.events.shift();
   var el=document.getElementById('events');
+  // 按播报框实际高度显示尽可能多的行（框高自适应不同屏幕）
+  var maxRows=Math.max(5,Math.floor((el.clientHeight-12)/17));
   el.innerHTML='';
-  for(var i=Math.max(0,m.events.length-4);i<m.events.length;i++){
+  for(var i=Math.max(0,m.events.length-maxRows);i<m.events.length;i++){
     var e=m.events[i];
     var cls='';
     if(e.txt.indexOf('进球')>=0) cls='goal';
