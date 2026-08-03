@@ -99,6 +99,9 @@
   .zone { font-size:9px; font-weight:800; border-radius:3px; padding:0 4px; }
   .zone.champ { background:rgba(61,220,122,.2); color:#3ddc7a; }
   .zone.demote { background:rgba(255,70,90,.2); color:#ff6b81; }
+  .zone.t1 { background:linear-gradient(135deg,#ffd857,#ff9f0a); color:#3a2b00; border-radius:4px; padding:1px 5px; }
+  .zone.t2 { background:linear-gradient(135deg,#e3e8f0,#9aa7b8); color:#1c2430; border-radius:4px; padding:1px 5px; }
+  .zone.t3 { background:linear-gradient(135deg,#e8b98a,#b06b2e); color:#2a1505; border-radius:4px; padding:1px 5px; }
   /* 本轮赛果 */
   .res-row { display:flex; align-items:center; gap:6px; font-size:11px; padding:4px 2px; border-bottom:1px solid rgba(255,255,255,.05); color:#cfd8e3; }
   .res-row .rn { flex:1; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -2717,8 +2720,11 @@ function renderPanTable(tbl){
     var pos=i+1;
     var mine=r.idx===myIdx;
     var zone='';
-    if(pos<=2) zone='<span class="zone champ">升</span>';
-    else if(pos>=sorted.length-1) zone='<span class="zone demote">降</span>';
+    var isA=myTier==='A';
+    // A级：前三名金银铜特别标注；降级区仅A级存在（B级为底层联赛不再降级）
+    if(isA&&pos<=3) zone='<span class="zone t'+pos+'">'+pos+'</span>';
+    else if(!isA&&pos<=2) zone='<span class="zone champ">升</span>';
+    else if(isA&&pos>=sorted.length-1) zone='<span class="zone demote">降</span>';
     var fm=r.form.length?r.form.slice(-3).map(function(f){return f==='W'?'<span style="color:#3ddc7a">●</span>':(f==='D'?'<span style="color:#ffe08a">●</span>':'<span style="color:#ff6b81">●</span>');}).join(''):'';
     rows.push('<tr class="'+(mine?'mine':'')+'"><td class="pos">'+pos+'</td><td>'+zone+'</td><td class="nm">'+r.name+'</td><td>'+r.p+'</td><td>'+r.w+'</td><td>'+r.d+'</td><td>'+r.l+'</td><td>'+r.gf+'-'+r.ga+'</td><td><b>'+r.pts+'</b></td><td>'+fm+'</td></tr>');
   }
@@ -3134,9 +3140,15 @@ function renderTable(){
     for(var f=0;f<r.form.length;f++) formHtml+='<span class="posdot '+r.form[f]+'">'+r.form[f]+'</span>';
     if(!formHtml) formHtml='<span style="color:#5a6678">-</span>';
     var move=r.pts>r.prevPts?'<span style="color:#3ddc7a">▲</span>':(r.pts<r.prevPts?'<span style="color:#ff6b81">▼</span>':'<span style="color:#5a6678">–</span>');
+    // A级前三名金银铜标注；B级前二升级标注；降级提示仅A级存在
+    var rkZone='';
+    if(tableViewTier==='A'&&i<3) rkZone='<span class="zone t'+(i+1)+'">'+(i+1)+'</span>';
+    else if(tableViewTier==='B'&&i<2) rkZone='<span class="zone champ">'+(i+1)+'</span>';
+    else if(tableViewTier==='A'&&i>=sorted.length-2) rkZone=(i+1)+'<span class="zone demote">降</span>';
+    else rkZone=(i+1);
     var clubInfo=aiClubs.filter(function(c){return c.idx===r.idx;})[0];
   var color=clubInfo?clubInfo.color:'#5a6678';
-  html+='<tr'+(r.idx===myIdx?' class="mine"':'')+'><td>'+(i+1)+' '+move+'</td><td><span class="teamDot" style="background:'+color+';width:9px;height:9px"></span> '+r.name+'</td><td>'+r.p+'</td><td>'+r.w+'</td><td>'+r.d+'</td><td>'+r.l+'</td><td>'+r.gf+'/'+r.ga+'</td><td>'+(r.gf-r.ga)+'</td><td>'+formHtml+'</td><td><b>'+r.pts+'</b></td></tr>';
+  html+='<tr'+(r.idx===myIdx?' class="mine"':'')+'><td>'+rkZone+' '+move+'</td><td><span class="teamDot" style="background:'+color+';width:9px;height:9px"></span> '+r.name+'</td><td>'+r.p+'</td><td>'+r.w+'</td><td>'+r.d+'</td><td>'+r.l+'</td><td>'+r.gf+'/'+r.ga+'</td><td>'+(r.gf-r.ga)+'</td><td>'+formHtml+'</td><td><b>'+r.pts+'</b></td></tr>';
   }
   html+='</table>';
   el.innerHTML=html;
