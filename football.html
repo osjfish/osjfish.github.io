@@ -3139,7 +3139,9 @@ function renderLineup(){
   var sl=document.getElementById('luStarters');
   var slB=document.getElementById('luBench');
   sl.innerHTML=''; slB.innerHTML='';
-  var sorted=myClub.squad.slice().sort(function(a,b){ return b.ab-a.ab; });
+  // 按位置排序：门将→后卫→中场→前锋，位置内按总评递减
+  var POS_ORDER={gk:0,df:1,mf:2,fw:3};
+  var sorted=myClub.squad.slice().sort(function(a,b){ return (POS_ORDER[a.pos]-POS_ORDER[b.pos])||(b.ab-a.ab); });
   function pcard(p,pi){
     var in11=myClub.eleven.indexOf(p)>=0;
     var row=document.createElement('div');
@@ -3184,11 +3186,12 @@ function showPosPicker(p){
   var cost=30+Math.round(p.ab*0.2);
   var order=['gk','df','mf','fw'];
   var html='<div style="font-size:14px;font-weight:800;margin-bottom:6px">🔄 改练位置：'+p.name+'（'+POS_NAMES[p.pos]+'）</div>'+
-    '<div style="color:#8fa3bd;font-size:12px;margin-bottom:10px">费用 <b style="color:#ffd857">'+cost+'万</b> · 总评将按新位置权重重新计算（六维不变）</div>'+
+    '<div style="color:#8fa3bd;font-size:12px;margin-bottom:10px">费用 <b style="color:#ffd857">'+cost+'万</b> · 六维不变，总评按新位置权重重算</div>'+
     '<div style="display:flex;gap:6px;flex-wrap:wrap">';
   for(var i=0;i<order.length;i++){
     var o=order[i];
-    html+='<button class="fbtn'+(p.pos===o?' sel':'')+'" data-pos="'+o+'" style="flex:1;padding:8px 0">'+POS_NAMES[o]+'</button>';
+    var newAb=calcAb({pos:o,spd:p.spd,pow:p.pow,tec:p.tec,awa:p.awa,sho:p.sho,gkp:p.gkp});
+    html+='<button class="fbtn'+(p.pos===o?' sel':'')+'" data-pos="'+o+'" style="flex:1;padding:8px 0">'+POS_NAMES[o]+'（总评 '+newAb+'）</button>';
   }
   html+='</div><div style="text-align:center;margin-top:10px"><button class="fbtn" data-close="1">关闭</button></div>';
   box.innerHTML=html;
