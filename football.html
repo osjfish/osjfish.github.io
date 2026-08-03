@@ -42,7 +42,17 @@
   .d-chip.dim { color:#8fa3bd; font-weight:700; }
   .d-form { font-size:11px; color:#8fa3bd; letter-spacing:2px; }
   .d-cash { font-size:15px; font-weight:900; color:#ffd857; }
-  .dash-grid { flex:1; display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:12px; padding:12px 16px; overflow-y:auto; overflow-x:hidden; }
+  /* 工作台：侧边栏 + 主区 */
+  .dash-body { flex:1; display:flex; min-height:0; }
+  .dash-side { width:164px; flex-shrink:0; padding:12px 10px; display:flex; flex-direction:column; gap:5px;
+    border-right:1px solid rgba(255,255,255,.08); background:rgba(8,12,20,.55); overflow-y:auto; }
+  .side-btn { cursor:pointer; text-align:left; border:1px solid rgba(255,255,255,.1); background:rgba(17,24,38,.75);
+    color:#cfd8e3; border-radius:9px; padding:9px 12px; font-size:12px; font-weight:700; }
+  .side-btn:hover { background:rgba(61,220,122,.12); border-color:rgba(61,220,122,.35); }
+  .side-btn.sel { border-color:#3ddc7a; color:#3ddc7a; background:rgba(61,220,122,.12); }
+  .side-btn .sd { display:block; font-size:9px; color:#8fa3bd; font-weight:600; margin-top:2px; }
+  .dash-main { flex:1; overflow-y:auto; padding:12px 16px; min-width:0; }
+  .dash-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
   .d-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
   .panel { background:linear-gradient(180deg,rgba(17,24,38,.85),rgba(11,17,28,.85)); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:12px 14px; color:#dfe7f2; }
   .panel .p-title { font-size:11px; color:#8fa3bd; font-weight:800; letter-spacing:1px; margin-bottom:8px; display:flex; align-items:center; gap:6px;
@@ -120,12 +130,18 @@
   .inv-row .inv-l { font-size:11px; font-weight:800; min-width:66px; }
   .inv-row .btn.sm { padding:2px 7px; font-size:9px; }
   @media (max-width:760px) { .fac-grid { grid-template-columns:1fr; } }
+  /* 底部操作条（移动端横向） */
   @media (max-width:1100px) {
     .dash-grid { grid-template-columns:1fr 1fr; }
     .d-col:last-child { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; }
   }
   @media (max-width:760px) {
-    .dash-grid { grid-template-columns:1fr; padding:10px; }
+    .dash-body { flex-direction:column; }
+    .dash-side { width:100%; flex-direction:row; overflow-x:auto; border-right:0; border-bottom:1px solid rgba(255,255,255,.08); padding:8px; }
+    .side-btn { flex:0 0 auto; padding:7px 12px; font-size:11px; }
+    .side-btn .sd { display:none; }
+    .dash-main { padding:10px; }
+    .dash-grid { grid-template-columns:1fr; }
     .d-col, .d-col:last-child { grid-column:auto; display:flex; }
     .dash-top { padding:8px 10px; gap:6px; font-size:12px; }
     .dash-top b { font-size:14px; }
@@ -268,31 +284,36 @@
     <span class="d-chip dim">第<span id="dRound">1</span>轮</span>
     <span class="d-chip green" id="dRank">第1名</span>
     <span class="d-form" id="dForm"></span>
-    <span class="d-cash" id="dCash">💰 300万</span>
+    <span class="d-cash" id="dCash">💰 400万</span>
     <button class="btn sm" id="btnSfx2" style="margin-left:auto">🔊</button>
+    <button class="btn sm" id="btnReset2" style="background:rgba(255,110,90,.6);color:#fff">🔄 初始化</button>
   </div>
-  <div class="dash-grid">
-    <div class="d-col">
-      <div class="panel" id="panFinance"></div>
-      <div class="panel" id="panMatch"></div>
-      <div class="panel" id="panResults"></div>
+  <div class="dash-body">
+    <div class="dash-side">
+      <button class="side-btn" data-drawer="lineup">🧢 阵容战术<span class="sd">首发 · 阵型 · 战术</span></button>
+      <button class="side-btn" data-drawer="operations">🏗 设施投资<span class="sd">升级 · 储蓄 · 活动</span></button>
+      <button class="side-btn" data-drawer="transfer">🔄 转会市场<span class="sd">买入 · 出售</span></button>
+      <button class="side-btn" data-drawer="fixtures">📅 赛程<span class="sd">全部轮次对阵</span></button>
+      <button class="side-btn" data-drawer="table">🏆 积分榜<span class="sd">排名 · 升降级</span></button>
+      <button class="side-btn" data-drawer="opponent">🔍 对手情报<span class="sd">下轮对手分析</span></button>
     </div>
-    <div class="d-col">
-      <div class="panel" id="panTable"></div>
-      <div class="panel" id="panNews"></div>
+    <div class="dash-main">
+      <div class="dash-grid">
+        <div class="d-col">
+          <div class="panel" id="panFinance"></div>
+          <div class="panel" id="panMatch"></div>
+          <div class="panel" id="panResults"></div>
+        </div>
+        <div class="d-col">
+          <div class="panel" id="panTable"></div>
+          <div class="panel" id="panNews"></div>
+        </div>
+        <div class="d-col">
+          <div class="panel" id="panSquad"></div>
+          <div class="panel" id="panStats"></div>
+        </div>
+      </div>
     </div>
-    <div class="d-col">
-      <div class="panel" id="panSquad"></div>
-      <div class="panel" id="panStats"></div>
-    </div>
-  </div>
-  <div class="dash-bar">
-    <button class="btn sm" data-drawer="lineup">🧢 阵容战术</button>
-    <button class="btn sm" data-drawer="operations">🏗 设施投资</button>
-    <button class="btn sm" data-drawer="transfer">🔄 转会市场</button>
-    <button class="btn sm" data-drawer="fixtures">📅 赛程</button>
-    <button class="btn sm" data-drawer="table">🏆 积分榜</button>
-    <button class="btn sm" data-drawer="opponent">🔍 对手情报</button>
   </div>
 </div>
 <div id="screen">
@@ -2563,6 +2584,7 @@ function renderPanStats(){
 }
 function openDrawer(v){
   lastDrawer=v;
+  setSideSel(v);
   document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('sel'); });
   var tab=document.querySelector('.tab[data-v="'+v+'"]');
   if(tab) tab.classList.add('sel');
@@ -2657,23 +2679,6 @@ function renderLineup(){
   hint.style.cssText='font-size:10px;color:#5a6678';
   hint.textContent='点击球场槽位指定人选 · 点击球员卡切换首发/替补';
   quick.appendChild(hint);
-  var resetBtn=document.createElement('button');
-  resetBtn.className='fbtn';
-  resetBtn.style.cssText='border-color:#ff6b81;color:#ff6b81';
-  resetBtn.textContent='🔄 初始化';
-  resetBtn.title='清除所有数据，重新开始';
-  resetBtn.onclick=function(){
-  if(confirm('确定要初始化吗？所有数据将被清除！')){
-    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
-    // 重置内存数据
-    myClub=null; myIdx=-1; myTier='A'; round=1; season=1;
-    leagueTable={A:[],B:[]}; resultsByRound={}; champHistory=[];
-    ach={firstWin:false,champ:0,winStreak:0,season:0};
-    market=[]; match=null; aiClubs=[];
-    initLeague(); refreshMarket(); renderPickClub();
-  }
-};
-  quick.appendChild(resetBtn);
   fr.appendChild(quick);
   var pitch=document.getElementById('pitch');
   pitch.innerHTML='';
@@ -2779,6 +2784,21 @@ function openSlotPicker(slotIdx){
   });
 }
 var mktFilter='';
+// 全局初始化：清除存档并重置全部游戏状态（含设施/投资/活动/财务）
+function doReset(){
+  if(!confirm('确定要初始化吗？所有数据将被清除！')) return;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  myClub=null; myIdx=-1; myTier='A'; round=1; season=1;
+  leagueTable={A:[],B:[]}; fixtures={A:{},B:{}}; resultsByRound={}; champHistory=[];
+  ach={firstWin:false,champ:0,winStreak:0,season:0};
+  fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0,activity:0};
+  facilities={stadium:1,training:1,youth:1,commercial:1,medical:1,analysis:1};
+  invest={save:0,stock:0,stockVal:1}; stockLog=0;
+  actCd={feast:0,retreat:0,bonus:0,physio:0};
+  msgLog=[]; market=[]; match=null; aiClubs=[]; NAMES_CACHE=[];
+  ROT_A=[]; ROT_B=[]; lastDrawer=null;
+  initLeague(); refreshMarket(); renderPickClub();
+}
 function renderTransfer(){
   var el=document.getElementById('transferBox');
   var html='<div class="section-title">🏪 转会市场（每轮刷新 · 资金 '+myClub.cash+'万）</div>';
@@ -3060,15 +3080,23 @@ document.getElementById('btnStartMatch').onclick=function(){
   if(played){ showMsg('本轮比赛已完成，请进入下一轮'); return; }
   startMatch();
 };
-// 看板 → 抽屉
-document.querySelectorAll('.dash-bar [data-drawer]').forEach(function(btn){
+// 看板 → 抽屉（侧边栏目录）
+document.querySelectorAll('.dash-side [data-drawer]').forEach(function(btn){
   btn.onclick=function(){ openDrawer(this.getAttribute('data-drawer')); };
 });
+function setSideSel(dv){
+  document.querySelectorAll('.dash-side [data-drawer]').forEach(function(x){
+    x.classList.toggle('sel', x.getAttribute('data-drawer')===dv);
+  });
+}
 var btnClose=document.getElementById('btnCloseDrawer');
 if(btnClose) btnClose.onclick=function(){
   document.getElementById('screen').classList.add('hide');
   document.getElementById('dash').classList.remove('hide');
+  setSideSel(null);
 };
+var btnReset2=document.getElementById('btnReset2');
+if(btnReset2) btnReset2.onclick=function(){ doReset(); };
 var btnSfx2=document.getElementById('btnSfx2');
 if(btnSfx2) btnSfx2.onclick=function(){ toggleSfx(); };
 document.getElementById('btnSfx').onclick=function(){ toggleSfx(); };
