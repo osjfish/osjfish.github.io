@@ -172,6 +172,8 @@
   #subs .sub { cursor:pointer; font-size:11px; padding:3px 6px; border-radius:5px; }
   #subs .sub:hover { background:rgba(61,220,122,.2); }
   #subs .sub.sel { background:rgba(255,224,138,.28); color:#ffe08a; }
+  #tacList { position:fixed; right:10px; bottom:196px; z-index:12; width:172px; background:rgba(8,12,20,.96); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:8px; display:none; }
+  #tacList .btn { display:block; width:100%; margin:3px 0; text-align:left; font-size:11px; padding:5px 10px; }
   #toast { position:fixed; left:50%; top:28%; transform:translate(-50%,-50%); z-index:13; pointer-events:none; font-size:32px; font-weight:900; color:#fff; text-shadow:0 3px 16px rgba(0,0,0,.8); opacity:0; transition:opacity .25s; }
   #report { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center; background:rgba(4,7,12,.92); }
   #report .card { max-width:620px; }
@@ -272,12 +274,11 @@
   <div class="dash-grid">
     <div class="d-col">
       <div class="panel" id="panFinance"></div>
-      <div class="panel" id="panFac"></div>
       <div class="panel" id="panMatch"></div>
+      <div class="panel" id="panResults"></div>
     </div>
     <div class="d-col">
       <div class="panel" id="panTable"></div>
-      <div class="panel" id="panResults"></div>
       <div class="panel" id="panNews"></div>
     </div>
     <div class="d-col">
@@ -287,6 +288,7 @@
   </div>
   <div class="dash-bar">
     <button class="btn sm" data-drawer="lineup">🧢 阵容战术</button>
+    <button class="btn sm" data-drawer="operations">🏗 设施投资</button>
     <button class="btn sm" data-drawer="transfer">🔄 转会市场</button>
     <button class="btn sm" data-drawer="fixtures">📅 赛程</button>
     <button class="btn sm" data-drawer="table">🏆 积分榜</button>
@@ -301,6 +303,7 @@
     </div>
     <div class="tabs">
       <div class="tab sel" data-v="lineup">阵容战术</div>
+      <div class="tab" data-v="operations">设施投资</div>
       <div class="tab" data-v="transfer">转会</div>
       <div class="tab" data-v="opponent">对手</div>
       <div class="tab" data-v="fixtures">赛程</div>
@@ -315,6 +318,7 @@
         <div style="font-size:10px;color:#8fa3bd;margin-top:5px">点击球员换首发/替补 · 点阵型槽换同位置 · 红点=体能低 · 伤=缺阵</div>
       </div>
     </div>
+    <div id="view-operations" class="view"></div>
     <div id="view-transfer" class="view">
       <div id="transferBox"></div>
     </div>
@@ -370,17 +374,17 @@ var REGIONS=[
   {id:'macau',name:'澳门',tier:'B',ab:55,color:'#ffb8b8',short:'澳'}
 ];
 var TACTICS=[
-  { id:'balanced', name:'⚖ 攻守平衡', desc:'攻守均衡、节奏适中，最稳妥的选择',
+  { id:'balanced', name:'攻守平衡', desc:'攻守均衡、节奏适中，最稳妥的选择',
     mentality:'bal', press:'mid', line:'mid', passAgg:0.35, tempo:1.0, direct:0.3, wing:0.45, counter:1.1, shootMul:1.0, shootDist:450, forward:1.1, tackleMul:1.0, retreatMul:1.0 },
-  { id:'tikitaka', name:'🧠 传控渗透', desc:'高控球率、短传渗透，丢球立即反抢；攻坚稍弱',
+  { id:'tikitaka', name:'传控渗透', desc:'高控球率、短传渗透，丢球立即反抢；攻坚稍弱',
     mentality:'bal', press:'high', line:'mid', passAgg:0.65, tempo:0.85, direct:0.15, wing:0.45, counter:1.0, shootMul:0.9, shootDist:430, forward:1.1, tackleMul:1.05, retreatMul:0.95 },
-  { id:'gegenpress', name:'⚡ 高位压迫', desc:'丢球就地反抢，快速直塞；防线前压，忌被打身后',
+  { id:'gegenpress', name:'高位压迫', desc:'丢球就地反抢，快速直塞；防线前压，忌被打身后',
     mentality:'att', press:'high', line:'high', passAgg:0.3, tempo:1.15, direct:0.6, wing:0.45, counter:1.35, shootMul:1.15, shootDist:480, forward:1.3, tackleMul:0.85, retreatMul:0.9 },
-  { id:'counter', name:'🛡 防守反击', desc:'低位防守，抢断后快速纵向反击',
+  { id:'counter', name:'防守反击', desc:'低位防守，抢断后快速纵向反击',
     mentality:'def', press:'low', line:'low', passAgg:0.25, tempo:1.25, direct:0.8, wing:0.45, counter:1.6, shootMul:1.05, shootDist:460, forward:0.9, tackleMul:1.1, retreatMul:1.05 },
-  { id:'bus', name:'🧱 低位密集防守', desc:'全员收缩禁区前沿，密集拦截；进攻投入极少',
+  { id:'bus', name:'低位防守', desc:'全员收缩禁区前沿，密集拦截；进攻投入极少',
     mentality:'def', press:'low', line:'low', passAgg:0.2, tempo:0.85, direct:0.5, wing:0.45, counter:1.2, shootMul:0.7, shootDist:400, forward:0.75, tackleMul:1.3, retreatMul:1.1 },
-  { id:'direct', name:'🚀 长传调度', desc:'跳过中场，直接长传找前锋，攻击纵深',
+  { id:'direct', name:'长传调度', desc:'跳过中场，直接长传找前锋，攻击纵深',
     mentality:'bal', press:'mid', line:'mid', passAgg:0.5, tempo:1.2, direct:1.0, wing:0.45, counter:1.25, shootMul:1.1, shootDist:480, forward:1.15, tackleMul:1.0, retreatMul:1.0 }
 ];
 function tacticById(id){
@@ -524,7 +528,7 @@ function runActivity(id){
     if(a.fit>0) myClub.squad[i].fit=clamp(myClub.squad[i].fit+a.fit,40,100);
   }
   showMsg('🎉 '+a.name+' 举办成功 — '+a.desc);
-  renderScreen();
+  refreshUI();
 }
 function invSave(amt){
   if(amt>0){
@@ -535,7 +539,7 @@ function invSave(amt){
     if(take<=0) return;
     invest.save-=take; myClub.cash+=take;
   }
-  renderScreen();
+  refreshUI();
 }
 function invStock(amt){
   if(amt>0){
@@ -547,7 +551,7 @@ function invStock(amt){
     myClub.cash+=Math.round(sell*invest.stockVal);
     invest.stock-=sell;
   }
-  renderScreen();
+  refreshUI();
 }
 var leagueTable={A:[],B:[]};
 var ROT_A=[],ROT_B=[];
@@ -2286,22 +2290,21 @@ function renderScreen(){
   dc.style.color=myClub.cash<0?'#ff6b81':(myClub.cash<150?'#ff9f0a':'#ffd857');
   // ===== 左列：财务面板 =====
   renderPanFinance();
-  // ===== 左列：设施面板 =====
-  renderPanFac();
   // ===== 左列：本轮对阵 =====
   renderPanMatch();
+  // ===== 左列：本轮赛果 =====
+  renderPanResults();
   // ===== 中列：积分榜 =====
   renderPanTable(tbl);
-  // ===== 中列：本轮赛果 =====
-  renderPanResults();
   // ===== 中列：消息流 =====
   renderPanNews();
   // ===== 右列：首发 =====
   renderPanSquad();
   // ===== 右列：数据 =====
   renderPanStats();
-  // 抽屉内容（阵容/转会/对手/赛程/积分榜全视图）
+  // 抽屉内容（阵容/运营/转会/对手/赛程/积分榜全视图）
   renderLineup();
+  renderOps();
   renderTransfer();
   renderOpponent();
   renderFixtures();
@@ -2317,8 +2320,9 @@ function renderScreen(){
 }
 // ===== 看板面板渲染 =====
 function pan(name){ return document.getElementById('pan'+name); }
-function renderPanFac(){
-  var el=pan('Fac'); if(!el) return;
+function renderOps(){
+  var el=document.getElementById('view-operations');
+  if(!el) return;
   var keys=Object.keys(FAC_INFO);
   var items='';
   for(var i=0;i<keys.length;i++){
@@ -2398,7 +2402,14 @@ function upgradeFac(k){
   facilities[k]++;
   fin.facility+=cost; // 设施投入计入支出
   showMsg(FAC_INFO[k].name+' 升级至 Lv'+facilities[k]+'！');
+  refreshUI();
+}
+// 刷新界面并保持当前抽屉页（若打开）
+var lastDrawer=null;
+function refreshUI(){
+  var wasOpen=!document.getElementById('screen').classList.contains('hide');
   renderScreen();
+  if(wasOpen&&lastDrawer) openDrawer(lastDrawer);
 }
 function renderPanFinance(){
   var el=pan('Finance'); if(!el) return;
@@ -2551,6 +2562,7 @@ function renderPanStats(){
     (assister.length?assister.map(function(s,i){return '<div class="res-row"><span class="rn">'+(i+1)+'. '+s.name+'</span><span style="color:#57c8ff;font-weight:900">'+s.assists+'助</span></div>';}).join(''):'<div style="font-size:10px;color:#5a6b80">暂无助攻</div>');
 }
 function openDrawer(v){
+  lastDrawer=v;
   document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('sel'); });
   var tab=document.querySelector('.tab[data-v="'+v+'"]');
   if(tab) tab.classList.add('sel');
@@ -2896,17 +2908,33 @@ function updateControls(){
   var b2=document.createElement('button'); b2.className='btn sm'; b2.textContent='⇄ 换人';
   b2.onclick=function(){ toggleSubs(); };
   c.appendChild(b2);
-  var b3=document.createElement('button'); b3.className='btn sm'; b3.textContent='🧠 战术';
+  var b3=document.createElement('button'); b3.className='btn sm'; b3.textContent='战术';
   b3.onclick=function(){
-    var order=['balanced','gegenpress','bus'];
-    var i=order.indexOf(myClub.tactic);
-    myClub.tactic=order[(i+1)%order.length];
-    var tc=tacticById(myClub.tactic);
-    myClub.mentality=tc.mentality; myClub.press=tc.press; myClub.line=tc.line;
-    if(match.home===myClub) match.paramsHome=params(myClub,true);
-    else match.paramsAway=params(myClub,false);
-    showMsg('战术：'+tc.name+' —— '+tc.desc);
-    document.getElementById('mtTxt').textContent='我的战术：'+tc.name;
+    var tl=document.getElementById('tacList');
+    if(tl&&tl.style.display==='block'){ tl.style.display='none'; return; }
+    if(!tl){
+      tl=document.createElement('div');
+      tl.id='tacList';
+      document.body.appendChild(tl);
+    }
+    tl.innerHTML='';
+    for(var i=0;i<TACTICS.length;i++){
+      var t=TACTICS[i];
+      var tb=document.createElement('button');
+      tb.className='btn sm';
+      tb.textContent=(t.id===myClub.tactic?'▸ ':'')+t.name;
+      tb.title=t.desc;
+      tb.onclick=(function(tc){ return function(){
+        myClub.tactic=tc.id; myClub.mentality=tc.mentality; myClub.press=tc.press; myClub.line=tc.line;
+        if(match.home===myClub) match.paramsHome=params(myClub,true);
+        else match.paramsAway=params(myClub,false);
+        showMsg('战术：'+tc.name+' —— '+tc.desc);
+        document.getElementById('mtTxt').textContent='我的战术：'+tc.name;
+        tl.style.display='none';
+      }; })(t);
+      tl.appendChild(tb);
+    }
+    tl.style.display='block';
   };
   c.appendChild(b3);
 }
