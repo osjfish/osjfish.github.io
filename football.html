@@ -192,11 +192,12 @@
   .lu-col-title { font-size:12px; font-weight:800; color:#8fa3bd; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,.1); padding-bottom:5px; }
   .lu-col-list { display:flex; flex-direction:column; gap:4px; max-height:440px; overflow-y:auto; }
   .lu-row { display:flex; align-items:center; gap:8px; cursor:pointer; border:1px solid rgba(255,255,255,.1); border-radius:8px;
-    padding:6px 10px; font-size:12px; background:rgba(20,28,42,.8); }
+    padding:6px 10px; font-size:12px; background:rgba(20,28,42,.8); min-width:0; }
   .lu-row:hover { background:rgba(61,220,122,.1); }
   .lu-row.sel { border-color:#ffe08a; background:rgba(255,224,138,.08); }
   .lu-row .lu-pos { width:34px; text-align:center; font-size:10px; font-weight:900; border-radius:4px; padding:2px 0; }
-  .lu-row .lu-name { flex:1; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lu-row .lu-name { flex:1 1 auto; min-width:0; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lu-row .lu-pos, .lu-row .lu-ab, .lu-row .lu-age, .lu-row .lu-fit, .lu-row .lu-st, .lu-row .btn { flex:0 0 auto; }
   .lu-row .lu-ab { font-weight:900; color:#3ddc7a; width:30px; text-align:right; }
   .lu-row .lu-attr { color:#8fa3bd; font-size:10px; white-space:nowrap; }
   .lu-row .lu-age { color:#8fa3bd; font-size:10px; width:34px; text-align:center; }
@@ -216,6 +217,13 @@
   @media (max-width:820px) {
     .tr-wrap, .fx-wrap { flex-direction:column; }
     .tr-left, .tr-right, .fx-col { width:100%; }
+  }
+  /* 平板等中等宽度：阵容列表换行、隐藏次要信息，确保球员名字完整显示 */
+  @media (max-width:1150px) {
+    .lu-wrap { flex-wrap:wrap; }
+    .lu-left { flex:0 0 auto; }
+    .lu-mid, .lu-right { flex:1 1 280px; min-width:280px; }
+    .lu-row .lu-attr, .lu-row .lu-age { display:none; }
   }
   @media (max-width:820px) {
     .lu-wrap { flex-direction:column; align-items:center; }
@@ -315,6 +323,12 @@
     #controls .btn { font-size:13px; padding:5px 10px; }
     #rating { display:grid; left:8px; top:44px; bottom:20px; right:auto; font-size:12px; padding:6px 8px; max-height:none; width:178px; grid-template-columns:repeat(2,1fr); overflow-y:auto; }
     #toast { font-size:20px; top:calc(44px + (100vh - 64px)/2); }
+  }
+  /* 平板/桌面矮屏（横屏、小窗口）：隐藏评分框防遮挡，解说框与按钮收到底部留白区，战术列表居中弹出 */
+  @media (min-width:901px) and (max-height:1000px) {
+    #rating { display:none !important; }
+    #events { max-height:96px; bottom:8px; }
+    #tacList { left:50%; top:50%; right:auto; bottom:auto; transform:translate(-50%,-50%); }
   }
 </style>
 </head>
@@ -1077,7 +1091,8 @@ function refreshSponCandidates(){
     var term=Math.min(4+((Math.random()*9)|0),Math.max(2,remainRounds));
     var tierIdx=bandIdx+((Math.random()*(SPON_TIERS.length-bandIdx))|0);
     var tb=SPON_TIERS[tierIdx];
-    next.push({name:nm, tier:tb, perWeek:Math.round((tb.min+((Math.random()*(tb.maxW-tb.min))|0))*sponMul), term:term});
+    var baseV=Math.round(tb.min+((Math.random()*(tb.maxW-tb.min))|0));
+    next.push({name:nm, tier:tb, base:baseV, perWeek:Math.round(baseV*sponMul), term:term});
   }
   sponCandidates=next;
 }
@@ -1088,7 +1103,7 @@ function signSpon(i){
   var remainRounds=TOTAL_ROUNDS-round+1;
   var term=Math.min(s.term,remainRounds);
   if(term<1){ showMsg('本赛季剩余轮数不足'); return; }
-  contracts.push({name:s.name, perWeek:s.perWeek, remain:term});
+  contracts.push({name:s.name, perWeek:s.perWeek, base:s.base||s.perWeek, remain:term});
   sponCandidates.splice(i,1);
   showMsg('🤝 与「'+s.name+'」签订赞助合同：每轮 +'+s.perWeek+'万，为期 '+term+' 轮');
   refreshUI();
@@ -1599,6 +1614,7 @@ var oppIdx=opponentOf(round);
       paramsHome:params(opp,true), paramsAway:params(myClub,false) };
   }
   spawnMatch(match);
+  fitGame(); // 比赛布局：画布缩小，为底部信息区留出空间
   document.getElementById('dash').classList.add('hide');
   document.getElementById('top').classList.remove('hide');
   document.getElementById('homeName').textContent=match.home.name;
@@ -2947,6 +2963,7 @@ function showChampion(){
     '<div class="section-title">🏆 历史冠军</div><table><tr><th>赛季</th><th>冠军</th><th>我的排名</th></tr>'+
     champHistory.slice(0,5).map(function(h,i){ return '<tr><td>S'+(champHistory.length-i)+'</td><td>'+h.champ+'</td><td>'+(h.rank===1?'<b style="color:#ffe08a">🏆冠军</b>':'第'+h.rank+'名')+'</td></tr>'; }).join('')+'</table>'+
     '<div style="margin-top:14px;color:#8fa3bd;font-size:11px">升降级已生效，新赛季各队实力保持不变</div>'+
+    '<div style="font-size:11px;color:#3ddc7a;margin-top:4px">🩹 新赛季开始：全员体力已恢复、伤病已痊愈</div>'+
     '<div style="text-align:center;margin-top:10px"><button class="btn" id="btnNextSeason">进入新赛季</button></div>';
   document.getElementById('report').classList.add('show');
   document.getElementById('btnNextSeason').onclick=function(){
@@ -2966,6 +2983,13 @@ function showChampion(){
     myTier=aiClubs[myIdx].tier;
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
     round=1; resultsByRound={};
+    // 赛季结束：全联盟球员体力与伤病全部恢复
+    for(var _rc=0;_rc<aiClubs.length;_rc++){
+      for(var _rp=0;_rp<aiClubs[_rc].squad.length;_rp++){
+        aiClubs[_rc].squad[_rp].fit=100;
+        aiClubs[_rc].squad[_rp].inj=0;
+      }
+    }
     fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0,activity:0};
     // 新赛季保底资金：俱乐部老板注资，避免破产开局
     if(myClub.cash<100){
@@ -3221,23 +3245,43 @@ function renderOps(){
 function renderBusiness(){
   var el=document.getElementById('view-business');
   if(!el) return;
+  // 商务中心加成卡：直观体现设施对赞助金额的加成
+  var comLv=facilities.commercial;
+  var comPct=Math.round(facSponBonus(comLv)*100);
+  var comCard='<div class="p-title" style="margin-top:20px">💼 商务中心 <span class="tag">提升赞助金额</span></div>'+
+    '<div class="card3"><div class="fac-item" style="border-color:rgba(255,215,87,.4)">'+
+    '<div style="font-size:14px;font-weight:800">💼 商务中心 Lv'+comLv+'（满级 Lv'+MAX_FAC+'）</div>'+
+    '<div style="font-size:22px;font-weight:900;color:#ffd857;margin:6px 0">赞助金额 +'+comPct+'%</div>'+
+    '<div style="font-size:11px;color:#8fa3bd;line-height:1.6">'+(comPct>0?
+      '当前所有赞助合同与候选均按基础价 ×'+(1+comPct/100)+' 结算（每轮多收 '+comPct+'%）<br>继续升级可提升加成，满级翻倍'
+      :'赞助金额目前无加成（Lv'+comLv+'）<br>升级商务中心后，新刷新的赞助商金额将按比例提升，满级 +100%')+'</div>'+
+    '<div style="font-size:10px;color:#5a6b80;margin-top:6px">已签合同金额按签约时的加成锁定</div></div></div>';
   // 赞助商
   var sponHtml='';
   if(contracts.length){
     for(var sc=0;sc<contracts.length;sc++){
+      var _ct=contracts[sc];
+      var _ctBase=_ct.base||_ct.perWeek;
+      var _ctMul=_ct.perWeek>_ctBase?('（基础 '+_ctBase+'万 + 商务中心加成 '+( _ct.perWeek-_ctBase)+'万）'):'（基础 '+_ctBase+'万/轮）';
       sponHtml+='<div class="fac-item">'+
-        '<div style="font-size:14px;font-weight:800">📄 '+contracts[sc].name+'</div>'+
-        '<div style="font-size:12px;color:#3ddc7a;font-weight:800;margin:4px 0">每轮 +'+contracts[sc].perWeek+'万</div>'+
-        '<div style="font-size:11px;color:#8fa3bd">剩余 '+contracts[sc].remain+' 轮</div></div>';
+        '<div style="font-size:14px;font-weight:800">📄 '+_ct.name+'</div>'+
+        '<div style="font-size:12px;color:#3ddc7a;font-weight:800;margin:4px 0">每轮 +'+_ct.perWeek+'万</div>'+
+        '<div style="font-size:10px;color:#8fa3bd">'+_ctMul+'</div>'+
+        '<div style="font-size:11px;color:#8fa3bd">剩余 '+_ct.remain+' 轮</div></div>';
     }
   }
   if(sponHtml) sponHtml='<div class="p-title">🤝 当前赞助合同</div><div class="card3">'+sponHtml+'</div>';
   var candHtml='';
   for(var sp=0;sp<sponCandidates.length;sp++){
     var s2=sponCandidates[sp];
+    var s2Base=s2.base||s2.perWeek;
+    var s2MulTxt=s2.perWeek>s2Base
+      ?('<div style="font-size:10px;color:#8fa3bd">基础 '+s2Base+'万/轮 × 商务中心加成 +'+( s2.perWeek-s2Base)+'万</div>')
+      :'';
     candHtml+='<div class="fac-item">'+
       '<div style="font-size:14px;font-weight:800">🏢 '+s2.name+'</div>'+
       '<div style="font-size:12px;color:#8fa3bd;margin:4px 0">每轮 <b style="color:#3ddc7a">+'+s2.perWeek+'万</b> × '+s2.term+'轮</div>'+
+      s2MulTxt+
       (contracts.length>=2?'<div style="font-size:11px;color:#ff9f0a;font-weight:800">合同已满（最多2份）</div>':
       '<button class="btn sm" data-spon="'+sp+'">签约</button>')+'</div>';
   }
@@ -3294,7 +3338,7 @@ function renderBusiness(){
     '</div>'+
     '<div class="p-title" style="margin-top:20px">📈 个股行情 <span class="tag">点击买卖</span></div>'+
     '<div class="card3">'+stockCards+'</div>';
-  el.innerHTML=sponHtml+candHtml+invHtml;
+  el.innerHTML=comCard+sponHtml+candHtml+invHtml;
   el.querySelectorAll('[data-spon]').forEach(function(btn){
     btn.onclick=function(){ signSpon(parseInt(this.getAttribute('data-spon'))); };
   });
@@ -4005,8 +4049,9 @@ function fitGame(){
   var w=window.innerWidth,h=window.innerHeight;
   var mobile=w<=900;
   var landscape=mobile&&w>h; // 手机横屏：画面填满内容区（padding 190/216/44/20），信息框在两侧padding区
+  var inMatch=!!match; // 比赛进行中：顶部比分条44 + 底部信息区170 预留空间，避免悬浮框遮挡画布
   var availW=w-(landscape?414:(mobile?8:16));
-  var availH=h-(landscape?72:(mobile?178:16));
+  var availH=h-(landscape?72:(mobile?178:(inMatch?214:16)));
   var s=Math.min(availW/W, availH/H);
   cv.style.width=Math.round(W*s)+'px';
   cv.style.height=Math.round(H*s)+'px';
