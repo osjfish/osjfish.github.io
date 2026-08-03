@@ -440,24 +440,34 @@
             });
             if (!resp.ok) throw new Error('API request failed');
             var data = await resp.json();
-            // 模型偶发空回复：自动重试最多 2 次，避免回答为空
+            // 发起单次请求（支持关闭思考参数；服务端不支持时抛 status=400 供降级）
+            var doAsk = async function(useNoThink) {
+                var b = {
+                    model: model,
+                    messages: [{ role: 'system', content: sys }].concat(history),
+                    temperature: 0.7,
+                    max_tokens: 150
+                };
+                if (useNoThink) b.chat_template_kwargs = { thinking: false }; // 不允许思考
+                var r = await fetch('https://api.deepseek.com/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                    body: JSON.stringify(b)
+                });
+                if (!r.ok) { var er = new Error('API request failed'); er.status = r.status; throw er; }
+                var d = await r.json();
+                return String((d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || '').trim();
+            };
+            // 模型偶发空回复：自动重试最多 2 次；服务端不支持禁止思考参数时自动降级
             var aiResp = '';
+            var noThink = true;
             for (var attempt = 0; attempt < 2; attempt++) {
-                if (attempt > 0) {
-                    var retry = await fetch('https://api.deepseek.com/chat/completions', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-                        body: JSON.stringify({
-                            model: model,
-                            messages: [{ role: 'system', content: sys }].concat(history),
-                            temperature: 0.7,
-                            max_tokens: 150
-                        })
-                    });
-                    if (!retry.ok) throw new Error('API request failed');
-                    data = await retry.json();
+                try {
+                    aiResp = await doAsk(noThink);
+                } catch (e) {
+                    if (noThink && e && e.status === 400) { noThink = false; attempt--; continue; }
+                    throw e;
                 }
-                aiResp = String((data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '').trim();
                 if (aiResp) break;
             }
             load.remove();
@@ -481,7 +491,7 @@
         return '\u4f60\u662f\u6c34\u6d52\u731c\u4eba\u7269\u4e3b\u6301\u4eba\u300c\u9152\u4e2d\u4ed9\u300d\u3002\n' +
             '\u9152\u7c7b\uff1a' + WINE_NAMES[currentWine] + '\n' +
             '\u4f60\u9009\u7684\u4eba\u7269\uff1a' + currentChar.name + '\n\n' +
-            '\u3010\u89c4\u5219\u3011\u53ea\u56de\u7b54\u300c\u662f\u300d\u6216\u300c\u4e0d\u662f\u300d\uff0c\u4e0d\u8bf4\u4efb\u4f55\u5176\u4ed6\u5185\u5bb9\u3002\n' +
+            '\u3010\u89c4\u5219\u3011\u53ea\u56de\u7b54\u300c\u662f\u300d\u6216\u300c\u4e0d\u662f\u300d\uff0c\u4e0d\u8bf4\u4efb\u4f55\u5176\u4ed6\u5185\u5bb9\uff0c\u4e0d\u8f93\u51fa\u4efb\u4f55\u601d\u8003\u8fc7\u7a0b\u3002\n' +
             '\u731c\u5bf9\u65f6\u56de\u7b54\u300c\u4f60\u731c\u5bf9\u4e86\uff01\u6b63\u662f' + currentChar.name + '\uff01\u300d\n\n' +
             '\u53ef\u9009\u4eba\u7269\uff1a' + cl;
     }
