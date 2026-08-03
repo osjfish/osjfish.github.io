@@ -918,7 +918,7 @@ function applyEvent(ev,fix){
   if(fix&&ev.fix) eff=ev.fix.fixEff&&Object.keys(ev.fix.fixEff).length?ev.fix.fixEff:null;
   if(fix&&ev.type==='good'&&ev.fix&&(!ev.fix.fixEff||!Object.keys(ev.fix.fixEff).length)) eff=null;
   var mul=1;
-  if(fix){
+  if(fix&&ev.fix){
     if(ev.type==='bad'){ myClub.cash-=ev.fix.cost; }
     else { myClub.cash-=ev.fix.cost; if(!eff) { eff=ev.eff; mul=2; } }
   }
@@ -1446,6 +1446,8 @@ function loadGame(){
     if(d.invest&&d.invest.stocks) invest=d.invest;
     else { initStocks(); invest.deposits=[]; } // 旧版投资结构作废重置
     if(d.actCd) actCd=d.actCd;
+    // 旧档活动冷却缺键补全
+    for(var _ak=0;_ak<actInfo.length;_ak++){ if(actCd[actInfo[_ak].id]===undefined) actCd[actInfo[_ak].id]=0; }
     if(d.contracts) contracts=d.contracts;
     if(d.sponCandidates) sponCandidates=d.sponCandidates;
     if(d.facilities) facilities=d.facilities;
@@ -3639,7 +3641,7 @@ function doReset(){
   negRounds=0; crisisMsgs=[];
   actCd={retreat:0,physio:0,feast:0,camp:0,birthday:0,christmas:0,psyche:0,bonus:0}; actThisWeek=null;
   sponCandidates=[]; contracts=[];
-  msgLog=[]; market=[]; match=null; aiClubs=[]; NAMES_CACHE=[];
+  msgLog=[]; market=[]; match=null; aiClubs=[]; NAMES_CACHE=[]; NAME_SET=null;
   ROT_A=[]; ROT_B=[]; lastDrawer=null;
   initLeague(); refreshMarket(); renderPickClub();
 }
