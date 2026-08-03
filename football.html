@@ -386,7 +386,7 @@ window.assignPlayer=function(){return true;};
 window.reformEleven=function(){};
 window.weeklyEvent=function(){};
 window.headline=function(){return '';};
-window.buildEleven=function(team){var e=[],r=window.roleList(team.form||'4-3-3'),b;for(var i=0;i<r.length;i++){b=null;for(var j=0;j<team.squad.length;j++){var p=team.squad[j];if(e.indexOf(p)>=0||p.inj>0||p.pos!==r[i])continue;if(!b||p.ab>b.ab)b=p;}if(!b){for(var k=0;k<team.squad.length;k++){if(e.indexOf(team.squad[k])<0&&team.squad[k].inj<=0){b=team.squad[k];break;}}}e.push(b||null);}team.eleven=e;};
+window.buildEleven=function(team){var e=[],r=window.roleList(team.form||'4-3-3'),b;var sc=function(p){return Math.round(p.ab*0.6+(p.fit||100)*0.3+(p.mor||50)*0.1);};for(var i=0;i<r.length;i++){b=null;for(var j=0;j<team.squad.length;j++){var p=team.squad[j];if(e.indexOf(p)>=0||p.inj>0||p.pos!==r[i])continue;if(!b||sc(p)>sc(b))b=p;}if(!b){for(var k=0;k<team.squad.length;k++){if(e.indexOf(team.squad[k])<0&&team.squad[k].inj<=0){b=team.squad[k];break;}}}e.push(b||null);}team.eleven=e;};
 var LEAGUE_A_TEAMS=18, LEAGUE_A_ROUNDS=34; // 双循环
 var LEAGUE_B_TEAMS=16, LEAGUE_B_ROUNDS=30;
 var FORMS={ '4-3-3':{gk:[[.06,.06]],df:[[.2,.2],[.2,.4],[.2,.6],[.2,.8]],mf:[[.4,.25],[.4,.5],[.4,.75]],fw:[[.7,.2],[.7,.5],[.7,.8]]},
@@ -405,7 +405,9 @@ window.autoLineup=function(){
   var need=[f.gk.length,f.df.length,f.mf.length,f.fw.length];
   var roles=['gk','df','mf','fw'];
   var pool=myClub.squad.filter(function(q){ return q.inj<=0; }).slice();
-  pool.sort(function(a,b){ return b.ab-a.ab; });
+  // 综合评分：能力60% + 体能30% + 士气10%（轮换更合理，避免主力累垮）
+  var score=function(q){ return Math.round(q.ab*0.6+q.fit*0.3+q.mor*0.1); };
+  pool.sort(function(a,b){ return score(b)-score(a); });
   var picks=[],used=[];
   for(var o=0;o<roles.length;o++){
     var cnt=0;
@@ -1731,7 +1733,9 @@ function endMatch(){
   for(var i=0;i<myClub.squad.length;i++){
     var p=myClub.squad[i];
     var played=myClub.eleven.indexOf(p)>=0;
-    p.fit=clamp(p.fit+(played?-6:5),40,100);
+    // 体能：首发 -4，非首发恢复（训练中心加速恢复），受伤后恢复慢
+    var recMul=FAC_INFO.training.growth[facilities.training-1]||1;
+    p.fit=clamp(p.fit+(played?-4:Math.round(9*recMul)),40,100);
     p.mor=clamp(p.mor+(myWin?8:(myDraw?2:-5)),20,100);
     if(played){ p.played++; p.rating=Math.round((m.rating[p.name]||6)*10)/10; }
     p.hot=(p.played>=2&&p.rating>=7.5);
