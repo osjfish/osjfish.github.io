@@ -116,6 +116,9 @@
   .fac-prog i { display:block; height:100%; background:linear-gradient(90deg,#57c8ff,#3ddc7a); }
   .fac-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px 12px; }
   .fac-item { padding:6px 2px; border-bottom:1px solid rgba(255,255,255,.05); }
+  .inv-row { display:flex; align-items:center; gap:6px; font-size:11px; padding:5px 2px; border-bottom:1px solid rgba(255,255,255,.05); flex-wrap:wrap; }
+  .inv-row .inv-l { font-size:11px; font-weight:800; min-width:66px; }
+  .inv-row .btn.sm { padding:2px 7px; font-size:9px; }
   @media (max-width:760px) { .fac-grid { grid-template-columns:1fr; } }
   @media (max-width:1100px) {
     .dash-grid { grid-template-columns:1fr 1fr; }
@@ -369,15 +372,15 @@ var REGIONS=[
 var TACTICS=[
   { id:'balanced', name:'⚖ 攻守平衡', desc:'攻守均衡、节奏适中，最稳妥的选择',
     mentality:'bal', press:'mid', line:'mid', passAgg:0.35, tempo:1.0, direct:0.3, wing:0.45, counter:1.1, shootMul:1.0, shootDist:450, forward:1.1, tackleMul:1.0, retreatMul:1.0 },
-  { id:'tikitaka', name:'🧠 传控', desc:'高控球率、短传渗透，丢球立即反抢；攻坚稍弱',
+  { id:'tikitaka', name:'🧠 传控渗透', desc:'高控球率、短传渗透，丢球立即反抢；攻坚稍弱',
     mentality:'bal', press:'high', line:'mid', passAgg:0.65, tempo:0.85, direct:0.15, wing:0.45, counter:1.0, shootMul:0.9, shootDist:430, forward:1.1, tackleMul:1.05, retreatMul:0.95 },
-  { id:'gegenpress', name:'⚡ 高位逼抢', desc:'丢球就地反抢，快速直塞；防线高，忌被打身后',
+  { id:'gegenpress', name:'⚡ 高位压迫', desc:'丢球就地反抢，快速直塞；防线前压，忌被打身后',
     mentality:'att', press:'high', line:'high', passAgg:0.3, tempo:1.15, direct:0.6, wing:0.45, counter:1.35, shootMul:1.15, shootDist:480, forward:1.3, tackleMul:0.85, retreatMul:0.9 },
   { id:'counter', name:'🛡 防守反击', desc:'低位防守，抢断后快速纵向反击',
     mentality:'def', press:'low', line:'low', passAgg:0.25, tempo:1.25, direct:0.8, wing:0.45, counter:1.6, shootMul:1.05, shootDist:460, forward:0.9, tackleMul:1.1, retreatMul:1.05 },
-  { id:'bus', name:'🚌 摆大巴', desc:'全员退守禁区，密集拦截，反击寥寥',
+  { id:'bus', name:'🧱 低位密集防守', desc:'全员收缩禁区前沿，密集拦截；进攻投入极少',
     mentality:'def', press:'low', line:'low', passAgg:0.2, tempo:0.85, direct:0.5, wing:0.45, counter:1.2, shootMul:0.7, shootDist:400, forward:0.75, tackleMul:1.3, retreatMul:1.1 },
-  { id:'direct', name:'🚀 长传冲吊', desc:'跳过中场，直接长传找前锋',
+  { id:'direct', name:'🚀 长传调度', desc:'跳过中场，直接长传找前锋，攻击纵深',
     mentality:'bal', press:'mid', line:'mid', passAgg:0.5, tempo:1.2, direct:1.0, wing:0.45, counter:1.25, shootMul:1.1, shootDist:480, forward:1.15, tackleMul:1.0, retreatMul:1.0 }
 ];
 function tacticById(id){
@@ -463,39 +466,89 @@ function pDef(p){ return 9+(p.def-45)*0.55; }
 var season=1, TOTAL_ROUNDS=0, myIdx=-1, myTier='A', round=1;
 var resultsByRound={}, champHistory=[];
 // 赛季财务：收入/支出明细（每轮累加，新赛季重置）
-var fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0};
+var fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0,activity:0};
 var ach={firstWin:false,champ:0,winStreak:0,season:0};
-// 俱乐部设施：10项，等级1-20，费用曲线 base×lv^1.2（前期便宜后期昂贵，长线经营）
-var facilities={stadium:1,training:1,youth:1,gym:1,commercial:1,medical:1,shop:1,media:1,scout:1,analysis:1};
+// 俱乐部设施：6项核心设施，等级1-20，费用曲线 base×lv^1.5（前期不便宜，后期昂贵，长线经营）
+var facilities={stadium:1,training:1,youth:1,commercial:1,medical:1,analysis:1};
 var MAX_FAC=20;
 var FAC_INFO={
-  stadium:{name:'🏟 球场',desc:'提升门票收入',base:12},
-  training:{name:'🎓 训练中心',desc:'提升成长率与体能恢复',base:9},
-  youth:{name:'🌱 青训学院',desc:'赛季末培养年轻新秀',base:10},
-  gym:{name:'🏋 健身房',desc:'降低主力体能消耗',base:5},
-  commercial:{name:'💼 商务中心',desc:'提升赞助金额与概率',base:12},
-  medical:{name:'🏥 医疗中心',desc:'降低伤病概率、加速复出',base:7},
-  shop:{name:'🛍 球迷商店',desc:'每周商品销售收入',base:4},
-  media:{name:'📺 媒体部',desc:'每周转播权收入',base:6},
-  scout:{name:'🔭 球探网络',desc:'转会市场出现更多球员',base:9},
-  analysis:{name:'📊 战术分析室',desc:'增强主场作战优势',base:5}
+  stadium:{name:'🏟 球场',desc:'提升门票收入',base:30},
+  training:{name:'🎓 训练中心',desc:'提升成长率与体能恢复',base:25},
+  youth:{name:'🌱 青训学院',desc:'赛季末培养年轻新秀',base:25},
+  commercial:{name:'💼 商务中心',desc:'提升赞助金额与概率',base:30},
+  medical:{name:'🏥 医疗中心',desc:'降低伤病概率、加速复出',base:22},
+  analysis:{name:'📊 战术分析室',desc:'增强主场作战优势',base:18}
 };
-function facCost(k,lv){ return Math.max(10,Math.round(FAC_INFO[k].base*Math.pow(lv,1.2))); }
+function facCost(k,lv){ return Math.max(20,Math.round(FAC_INFO[k].base*Math.pow(lv,1.5))); }
 // 效果曲线（线性从 Lv1 到 Lv20，收益递减感知：投入越大边际收益越小）
 function facGate(lv){ return Math.round((1+0.0789*(lv-1))*100)/100; }      // 门票 1.0→2.5
 function facGrowth(lv){ return Math.round((1+0.0474*(lv-1))*100)/100; }    // 成长 1.0→1.9
 function facRecover(lv){ return Math.round(9+0.42*(lv-1)); }               // 恢复 9→17
 function facKids(lv){ return Math.min(4,Math.max(1,Math.round(1+0.158*(lv-1)))); } // 新秀 1→4
 function facAbBase(lv){ return Math.round(58+0.84*(lv-1)); }               // 新秀能力 58→74
-function facGymSave(lv){ return Math.max(1,Math.round(4-0.158*(lv-1))); }  // 消耗 4→1
 function facSponRate(lv){ return Math.round((0.25+0.0105*(lv-1))*100)/100; } // 赞助概率 .25→.45
 function facSponAdd(lv){ return Math.round(63.2*(lv-1)); }                 // 赞助加成 0→1200
 function facInjRate(lv){ return Math.round((0.12-0.0053*(lv-1))*100)/100; } // 伤病率 .12→.02
 function facFitBack(lv){ return Math.round(40+2.63*(lv-1)); }              // 复出体能 40→90
-function facShop(lv){ return Math.round(2.63*(lv-1)); }                    // 周收入 0→50
-function facMedia(lv){ return Math.round(4.21*(lv-1)); }                   // 周收入 0→80
-function facScout(lv){ return Math.round(3+0.263*(lv-1)); }                // 市场人数 3→8
 function facHomeAdd(lv){ return Math.round(2+0.316*(lv-1)); }              // 主场加成 2→8
+// 球队活动（消耗金钱提升士气/体能，带轮次冷却）
+var actInfo=[
+  {id:'feast',name:'🍽 庆功宴会',desc:'士气 +8',cost:60,cd:2,mor:8,fit:0},
+  {id:'retreat',name:'🏞 团队拓展',desc:'士气 +5 · 体能 +8',cost:40,cd:1,mor:5,fit:8},
+  {id:'bonus',name:'🎁 赢球奖金',desc:'士气 +15',cost:150,cd:4,mor:15,fit:0},
+  {id:'physio',name:'🩺 康复理疗',desc:'体能 +12',cost:50,cd:1,mor:0,fit:12}
+];
+var actCd={feast:0,retreat:0,bonus:0,physio:0};
+// 投资理财：储蓄（每轮0.35%利息）+ 股市（每轮±2.5%波动）
+var invest={save:0,stock:0,stockVal:1};
+var stockLog=0;
+function settleWeek(){
+  for(var k in actCd){ if(actCd[k]>0) actCd[k]--; }
+  if(invest.save>0) invest.save+=Math.round(invest.save*0.0035);
+  if(invest.stock>0){
+    var ch=(Math.random()*0.05-0.025);
+    invest.stockVal=Math.max(0.3,invest.stockVal*(1+ch));
+    stockLog=ch;
+  } else stockLog=0;
+}
+function runActivity(id){
+  var a=actInfo.filter(function(x){return x.id===id;})[0];
+  if(!a) return;
+  if(actCd[id]>0){ showMsg(a.name+' 冷却中，还需 '+actCd[id]+' 轮'); return; }
+  if(myClub.cash<a.cost){ showMsg('资金不足：'+a.name+' 需要 '+a.cost+' 万'); return; }
+  myClub.cash-=a.cost;
+  fin.activity=(fin.activity||0)+a.cost;
+  actCd[id]=a.cd;
+  for(var i=0;i<myClub.squad.length;i++){
+    if(a.mor>0) myClub.squad[i].mor=clamp(myClub.squad[i].mor+a.mor,20,100);
+    if(a.fit>0) myClub.squad[i].fit=clamp(myClub.squad[i].fit+a.fit,40,100);
+  }
+  showMsg('🎉 '+a.name+' 举办成功 — '+a.desc);
+  renderScreen();
+}
+function invSave(amt){
+  if(amt>0){
+    if(myClub.cash<amt){ showMsg('资金不足'); return; }
+    myClub.cash-=amt; invest.save+=amt;
+  } else {
+    var take=Math.min(-amt,invest.save);
+    if(take<=0) return;
+    invest.save-=take; myClub.cash+=take;
+  }
+  renderScreen();
+}
+function invStock(amt){
+  if(amt>0){
+    if(myClub.cash<amt){ showMsg('资金不足'); return; }
+    myClub.cash-=amt; invest.stock+=amt;
+  } else {
+    var sell=Math.min(-amt,invest.stock);
+    if(sell<=0) return;
+    myClub.cash+=Math.round(sell*invest.stockVal);
+    invest.stock-=sell;
+  }
+  renderScreen();
+}
 var leagueTable={A:[],B:[]};
 var ROT_A=[],ROT_B=[];
 var fixtures={A:{},B:{}}; // 按轮次存储所有配对
@@ -680,8 +733,7 @@ function simulateAIGames(){
 var market=[];
 function refreshMarket(){
   market=[];
-  var scoutN=facScout(facilities.scout); // 球探网络：更多球员
-  for(var i=0;i<scoutN;i++){
+  for(var i=0;i<3;i++){
     var pos=['gk','df','mf','fw'][(Math.random()*4)|0];
     var ab=Math.round(55+Math.random()*35);
     var pool=genSquad('market_'+i,ab).filter(function(q){ return q.pos===pos; });
@@ -701,6 +753,7 @@ function saveGame(){
     var d={
       myClub:myClub, round:round, ROT_A:ROT_A, ROT_B:ROT_B, leagueTable:leagueTable, fixtures:fixtures, aiClubs:aiClubs,
       resultsByRound:resultsByRound, champHistory:champHistory, ach:ach, fin:fin, facilities:facilities,
+      invest:invest, actCd:actCd,
       market:market, names:NAMES_CACHE, sfx:SFX_ON,
       matchActive:!!(match&&!match.over)
     };
@@ -745,6 +798,10 @@ function loadGame(){
     resultsByRound=d.resultsByRound||{};
     if(d.fin) fin=d.fin;
     if(fin.facility===undefined) fin.facility=0;
+    if(fin.activity===undefined) fin.activity=0;
+    if(d.invest) invest=d.invest;
+    else invest={save:0,stock:0,stockVal:1};
+    if(d.actCd) actCd=d.actCd;
     if(d.facilities) facilities=d.facilities;
     else facilities={stadium:1,training:1,youth:1,gym:1,commercial:1,medical:1,shop:1,media:1,scout:1,analysis:1};
     // 旧存档补全缺失设施键
@@ -1329,11 +1386,11 @@ function doPass(m,p,tgt,basePow,cd){
   m.ball.owner=null;
   m.ball.vx=dx/dd*passPow;
   m.ball.vy=dy/dd*passPow;
-  // 传球精度：传球能力越高越准；节奏越快越容易传偏（快节奏=推进快但失误多，慢节奏更稳）
-  var misP=(100-p.pl.pas)/200*(0.6+0.5*P2.tempo);
+  // 传球精度：传球能力越高越准；节奏越快越易偏；距离越远（长传）越易失误——短传稳、长传搏
+  var misP=(100-p.pl.pas)/200*(0.6+0.5*P2.tempo)*(0.55+dd/700);
   if(Math.random()<misP){
-    m.ball._passTx=tgt.x+(Math.random()-.5)*110;
-    m.ball._passTy=tgt.y+(Math.random()-.5)*70;
+    m.ball._passTx=tgt.x+(Math.random()-.5)*(90+dd*0.18);
+    m.ball._passTy=tgt.y+(Math.random()-.5)*(55+dd*0.1);
   } else {
     m.ball._passTx=tgt.x; m.ball._passTy=tgt.y;
   }
@@ -1848,10 +1905,9 @@ function endMatch(){
   for(var i=0;i<myClub.squad.length;i++){
     var p=myClub.squad[i];
     var played=myClub.eleven.indexOf(p)>=0;
-    // 体能：首发消耗（健身房减少），非首发恢复（训练中心加速恢复），受伤后恢复慢
+    // 体能：首发消耗，非首发恢复（训练中心加速恢复），受伤后恢复慢
     var recMul=facGrowth(facilities.training);
-    var gymSave=facGymSave(facilities.gym);
-    p.fit=clamp(p.fit+(played?(-gymSave):Math.round(9*recMul)),40,100);
+    p.fit=clamp(p.fit+(played?(-4):Math.round(9*recMul)),40,100);
     p.mor=clamp(p.mor+(myWin?8:(myDraw?2:-5)),20,100);
     if(played){ p.played++; p.rating=Math.round((m.rating[p.name]||6)*10)/10; }
     p.hot=(p.played>=2&&p.rating>=7.5);
@@ -1956,13 +2012,8 @@ function showFinal(m){
     var evTxt='';
     // 每轮训练/医疗固定开销
     myClub.cash-=15; fin.training+=15;
-    // 球迷商店/媒体部周收入
-    var shopIn=facShop(facilities.shop);
-    var mediaIn=facMedia(facilities.media);
-    if(shopIn||mediaIn){
-      myClub.cash+=shopIn+mediaIn;
-      fin.gate+=shopIn+mediaIn;
-    }
+    // 投资理财每轮结算（储蓄利息 + 股市波动）
+    settleInvest();
     // 资金危机：负资产时自动出售最强球员救急
     if(myClub.cash<-100){
       var topP=myClub.squad.slice().sort(function(a,b){return b.ab-a.ab;})[0];
@@ -2060,7 +2111,7 @@ function showChampion(){
     myTier=aiClubs[myIdx].tier;
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
     round=1; resultsByRound={};
-    fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0};
+    fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0,activity:0};
     // 新赛季保底资金：俱乐部老板注资，避免破产开局
     if(myClub.cash<100){
       var bail=100-myClub.cash;
@@ -2287,10 +2338,44 @@ function renderPanFac(){
       '<div style="font-size:9px;color:#8fa3bd;margin-top:2px">'+info.desc+'<br><b style="color:#3ddc7a">'+facEff(k,lv)+'</b></div>'+
       '</div>';
   }
+  // 投资理财区
+  var stockVal=Math.round(invest.stock*invest.stockVal);
+  var stockCh=(stockLog*100).toFixed(1);
+  var invHtml='<div class="p-title" style="margin-top:12px">💰 投资理财 <span class="tag">每轮结算</span></div>'+
+    '<div class="inv-row"><span class="inv-l">🏦 储蓄</span><b>'+invest.save+'万</b>'+
+      '<span style="font-size:9px;color:#8fa3bd">利息+0.35%/轮</span>'+
+      '<button class="btn sm" data-inv="s100">存100</button><button class="btn sm" data-inv="s500">存500</button>'+
+      '<button class="btn sm" data-inv="t100">取100</button><button class="btn sm" data-inv="t500">取500</button></div>'+
+    '<div class="inv-row"><span class="inv-l">📈 股市</span><b style="color:'+(stockLog>=0?'#3ddc7a':'#ff6b81')+'">'+stockVal+'万</b>'+
+      '<span style="font-size:9px;color:#8fa3bd">成本'+invest.stock+'万 · 今日'+(stockLog>=0?'+':'')+stockCh+'%</span>'+
+      '<button class="btn sm" data-inv="b100">买100</button><button class="btn sm" data-inv="b500">买500</button>'+
+      '<button class="btn sm" data-inv="a100">卖100</button><button class="btn sm" data-inv="a500">卖500</button></div>'+
+    '<div style="font-size:9px;color:#5a6b80">储蓄稳健 · 股市每轮±2.5%波动，择机低买高卖</div>';
+  // 球队活动区
+  var actHtml='<div class="p-title" style="margin-top:12px">🎉 球队活动 <span class="tag">提升士气/体能</span></div>';
+  for(var a=0;a<actInfo.length;a++){
+    var ac=actInfo[a];
+    var cdd=actCd[ac.id]||0;
+    actHtml+='<div class="inv-row"><span class="inv-l">'+ac.name+'</span><span style="font-size:9px;color:#8fa3bd;flex:1">'+ac.desc+'</span>'+
+      (cdd>0?'<span style="font-size:9px;color:#ff9f0a;font-weight:800">冷却'+cdd+'轮</span>':
+      '<button class="btn sm" data-act="'+ac.id+'">'+ac.cost+'万</button>')+'</div>';
+  }
   el.innerHTML='<div class="p-title">🏗 俱乐部设施 <span class="tag">'+keys.length+'项 · 最高'+MAX_FAC+'级 · 长线经营</span></div>'+
-    '<div class="fac-grid">'+items+'</div>';
+    '<div class="fac-grid">'+items+'</div>'+invHtml+actHtml;
   el.querySelectorAll('[data-upg]').forEach(function(btn){
     btn.onclick=function(){ upgradeFac(this.getAttribute('data-upg')); };
+  });
+  el.querySelectorAll('[data-inv]').forEach(function(btn){
+    btn.onclick=function(){
+      var op=this.getAttribute('data-inv');
+      if(op[0]==='s') invSave(parseInt(op.slice(1)));
+      else if(op[0]==='t') invSave(-parseInt(op.slice(1)));
+      else if(op[0]==='b') invStock(parseInt(op.slice(1)));
+      else if(op[0]==='a') invStock(-parseInt(op.slice(1)));
+    };
+  });
+  el.querySelectorAll('[data-act]').forEach(function(btn){
+    btn.onclick=function(){ runActivity(this.getAttribute('data-act')); };
   });
 }
 function facEff(k,lv){
@@ -2298,12 +2383,8 @@ function facEff(k,lv){
     case 'stadium': return '门票 ×'+facGate(lv).toFixed(2);
     case 'training': return '成长+'+(Math.round((facGrowth(lv)-1)*100))+'% · 恢复 '+facRecover(lv)+'/轮';
     case 'youth': return '赛季末新秀 '+facKids(lv)+' 名（能力'+facAbBase(lv)+'±5）';
-    case 'gym': return '主力消耗 -'+facGymSave(lv)+' 点/场';
     case 'commercial': return '赞助概率 '+(Math.round(facSponRate(lv)*100))+'% · 金额+'+facSponAdd(lv)+'~'+(facSponAdd(lv)+500)+'万';
     case 'medical': return '伤病率 '+(Math.round(facInjRate(lv)*100))+'% · 复出体能'+facFitBack(lv);
-    case 'shop': return '每周 +'+facShop(lv)+'万';
-    case 'media': return '每周 +'+facMedia(lv)+'万';
-    case 'scout': return '市场 '+facScout(lv)+' 名球员';
     case 'analysis': return '主场实力 +'+facHomeAdd(lv);
     default: return '';
   }
@@ -2329,7 +2410,7 @@ function renderPanFinance(){
   var expOut=wages+training;
   var net=expInc-expOut;
   var inPct=Math.max(5,Math.min(95,Math.round(expInc/(expInc+expOut)*100)));
-  var netIncome=(fin.gate+fin.bonus+fin.sponsor+fin.transferOut)-(fin.wages+fin.transferIn+fin.training+fin.facility);
+  var netIncome=(fin.gate+fin.bonus+fin.sponsor+fin.transferOut)-(fin.wages+fin.transferIn+fin.training+fin.facility+(fin.activity||0));
   el.innerHTML='<div class="p-title">💰 俱乐部财务</div>'+
     '<div style="display:flex;align-items:baseline;gap:8px">'+
       '<span class="cash-big">'+myClub.cash+'<small> 万</small></span>'+
@@ -2346,6 +2427,7 @@ function renderPanFinance(){
       '<div class="li out"><span>训练</span><b>-'+fin.training+'</b></div>'+
       '<div class="li in"><span>卖出</span><b>+'+fin.transferOut+'</b></div>'+
       '<div class="li out"><span>设施</span><b>-'+fin.facility+'</b></div>'+
+      '<div class="li out"><span>活动</span><b>-'+(fin.activity||0)+'</b></div>'+
       '<div class="li"><span>赛季净收益</span><b style="color:'+(netIncome>=0?'#3ddc7a':'#ff6b81')+'">'+(netIncome>=0?'+':'')+netIncome+'</b></div>'+
     '</div>';
 }
