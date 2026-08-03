@@ -2602,6 +2602,25 @@ function updateMatch(m,dt){
   if(m.phase!=='play') return;
   m.clock+=dt*60*m.speed;
   if(m.counterT>0) m.counterT-=sdt;
+  // AI 教练实时调整战术（每45秒评估一次：落后追分/领先求稳/随机变化）
+  if(m.clock-(m._tacT||0)>=45){
+    m._tacT=m.clock;
+    var aiTeams=[m.home,m.away];
+    for(var _aiT=0;_aiT<aiTeams.length;_aiT++){
+      var _at=aiTeams[_aiT];
+      if(_at===myClub) continue; // 只调整 AI 队
+      var _aiGoals=_at===m.home?m.score[0]:m.score[1];
+      var _myGoals=_at===m.home?m.score[1]:m.score[0];
+      var _diff=_aiGoals-_myGoals;
+      if(_diff<=-2){ _at.tactic='gegenpress'; }        // 落后2球：高位压迫抢攻
+      else if(_diff<0&&m.clock>40*60){ _at.tactic='direct'; } // 落后：长传冲吊
+      else if(_diff>=2&&m.clock>55*60){ _at.tactic='bus'; }   // 领先2球：低位防守守住
+      else if(_diff>=1&&m.clock>65*60){ _at.tactic='counter'; } // 领先：防反
+      else { _at.tactic=randTactic(); }                // 正常：随机调整
+      if(_at===m.home) m.paramsHome=params(_at,true);
+      else m.paramsAway=params(_at,false);
+    }
+  }
   if(m.clock>=90*60){ endMatch(); return; }
   if(m.clock>=45*60&&m.half===1){ 
     m.half=2; 
@@ -3339,7 +3358,6 @@ function renderPanMatch(){
     return (mr.home===myIdx||mr.away===myIdx)&&mr.home!==mr.away;
   }):false;
   var tacName=tacticById(myClub.tactic||'balanced').name;
-  var oppTac=tacticById(opp.tactic||'balanced').name;
   var oppAb=Math.round(teamAbility(opp.eleven));
   el.innerHTML='<div class="p-title">⚽ 第'+round+'轮 <span class="tag">'+(isHome?'主场':'客场')+'</span></div>'+
     '<div class="match-card">'+
@@ -3350,7 +3368,7 @@ function renderPanMatch(){
         '<div class="nm2">'+opp.name+'</div><div class="sub2">实力'+oppAb+'</div></div>'+
     '</div>'+
     '<div class="opp-info">'+(isHome?'<span class="home-tag">主</span>':'<span class="away-tag">客</span>')+
-      ' 我的战术 <b>'+tacName+'</b> · 对手 <b>'+oppTac+'</b>（'+opp.form+'）</div>'+
+      ' 我的战术 <b>'+tacName+'</b> · 对手阵型 '+opp.form+'</div>'+
     (played?'<div style="text-align:center;font-size:11px;color:#8fa3bd">✅ 本轮已完成，请进入下一轮</div>':
     '<button class="btn btn-start" id="btnStartMatch2">🏟 开始比赛</button>');
   var b2=document.getElementById('btnStartMatch2');
@@ -3465,9 +3483,8 @@ function renderOpponent(){
   var oppIdx=opponentOf(round);
   if(oppIdx<0||oppIdx>=aiClubs.length){ return; }
   var opp=aiClubs[oppIdx];
-  opp.tactic=randTactic(); // 赛前侦察：战术为随机预测
   var html='<div class="section-title">🔍 第'+round+'轮对手：'+opp.name+'<span class="teamDot" style="background:'+opp.color+';margin-left:6px"></span></div>';
-  html+='<div style="font-size:11px;color:#8fa3bd;margin-bottom:6px">阵型 '+opp.form+' · 战术 <b style="color:#3ddc7a">'+tacticById(opp.tactic||'balanced').name+'</b> · 首发实力 <b style="color:#3ddc7a">'+Math.round(teamAbility(opp.eleven))+'</b></div>';
+  html+='<div style="font-size:11px;color:#8fa3bd;margin-bottom:6px">阵型 '+opp.form+' · 首发实力 <b style="color:#3ddc7a">'+Math.round(teamAbility(opp.eleven))+'</b></div>';
   var elv=opp.eleven.filter(function(x){ return x; });
   html+='<table><tr><th>位置</th><th>球员</th><th>总评</th><th>速</th><th>力</th><th>技</th><th>意</th><th>射</th><th>守</th><th>年龄</th></tr>';
   for(var i=0;i<elv.length;i++){
