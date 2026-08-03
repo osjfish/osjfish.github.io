@@ -999,6 +999,32 @@ function finishRoundEnd(){
   renderScreen();
   openDrawer(null);
 }
+// 应用内弹窗（替代浏览器 alert/confirm/prompt）：返回 Promise，ok=true 确认
+function appModal(opts){
+  return new Promise(function(resolve){
+    var overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;';
+    var box=document.createElement('div');
+    box.style.cssText='background:linear-gradient(180deg,#162034,#0d1422);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:20px 22px;width:min(420px,92vw);box-shadow:0 14px 44px rgba(0,0,0,.6);';
+    var html='<div style="font-size:16px;font-weight:900;margin-bottom:8px">'+(opts.title||'提示')+'</div>'+
+      '<div style="font-size:13px;color:#cfd8e3;line-height:1.7">'+(opts.desc||'')+'</div>'+
+      '<div style="display:flex;gap:10px;margin-top:16px">';
+    if(opts.cancelText!==undefined){
+      html+='<button class="btn" data-m="cancel" style="flex:1;background:rgba(255,255,255,.12);color:#dfe7f2">'+(opts.cancelText||'取消')+'</button>';
+    }
+    html+='<button class="btn" data-m="ok" style="flex:1'+(opts.danger?';background:linear-gradient(90deg,#ff6b81,#e74c3c)':'')+'">'+(opts.confirmText||'确定')+'</button></div>';
+    box.innerHTML=html;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    function close(v){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); resolve(v); }
+    box.addEventListener('click',function(ev){
+      var t=ev.target;
+      var m=t.closest&&t.closest('[data-m]');
+      if(!m) return;
+      close(m.getAttribute('data-m')==='ok');
+    });
+  });
+}
 // 应用事件效果（mul=增强倍数，fix=是否化解/增强）
 function applyEvent(ev,fix){
   var eff=ev.eff;
@@ -1551,7 +1577,11 @@ function loadGame(){
     ach=d.ach||{firstWin:false,champ:0,winStreak:0,season:0};
     if(d.market) market=d.market; else refreshMarket();
     NAMES_CACHE=d.names||[];
-    if(typeof d.sfx==='boolean'){ SFX_ON=d.sfx; var sb=document.getElementById('btnSfx'); if(sb) sb.textContent='🔊 音效'+(SFX_ON?'':'关'); }
+    if(typeof d.sfx==='boolean'){
+      SFX_ON=d.sfx;
+      var _sbA=document.getElementById('btnSfx'); if(_sbA) _sbA.textContent='🔊 音效'+(SFX_ON?'':'关');
+      var _sbB=document.getElementById('btnSfx2'); if(_sbB) _sbB.textContent='🔊 音效'+(SFX_ON?'':'关');
+    }
     var el=myClub.eleven||[];
     var seen={}, clean=[];
     for(var i=0;i<el.length;i++){
@@ -3506,7 +3536,10 @@ function renderPanMatch(){
   if(b2) b2.onclick=function(){
     if(round>TOTAL_ROUNDS) return;
     var _ec=0; for(var _ei=0;_ei<myClub.eleven.length;_ei++){ if(!myClub.eleven[_ei]) _ec++; }
-    if(_ec>0){ showMsg('首发有 '+_ec+' 个位置空缺，请先补齐 11 人再开赛'); return; }
+    if(_ec>0){
+      appModal({title:'首发空缺，无法开赛', desc:'首发还有 <b style="color:#ffd857">'+_ec+'</b> 个位置没有安排球员，请先到<b style="color:#3ddc7a">阵容战术</b>补齐 11 人再开赛。', confirmText:'知道了'});
+      return;
+    }
     var pp=resultsByRound[round]&&resultsByRound[round][myTier]?resultsByRound[round][myTier].some(function(mr){
       return (mr.home===myIdx||mr.away===myIdx)&&mr.home!==mr.away;
     }):false;
@@ -3854,20 +3887,22 @@ function openSlotPicker(slotIdx){
 var mktFilter='';
 // 全局初始化：清除存档并重置全部游戏状态（含设施/投资/活动/财务）
 function doReset(){
-  if(!confirm('确定要初始化吗？所有数据将被清除！')) return;
-  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
-  myClub=null; myIdx=-1; myTier='A'; round=1; season=1;
-  leagueTable={A:[],B:[]}; fixtures={A:{},B:{}}; resultsByRound={}; champHistory=[];
-  ach={firstWin:false,champ:0,winStreak:0,season:0};
-  fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0,activity:0};
-  facilities={stadium:1,training:1,youth:1,commercial:1,medical:1,analysis:1};
-  initStocks(); invest.deposits=[];
-  negRounds=0; crisisMsgs=[];
-  actCd={retreat:0,physio:0,feast:0,camp:0,birthday:0,christmas:0,psyche:0,bonus:0}; actThisWeek=null;
-  sponCandidates=[]; contracts=[];
-  msgLog=[]; market=[]; match=null; aiClubs=[]; NAMES_CACHE=[]; NAME_SET=null;
-  ROT_A=[]; ROT_B=[]; lastDrawer=null;
-  initLeague(); refreshMarket(); renderPickClub();
+  appModal({title:'⚠ 确认初始化', desc:'确定要初始化吗？<b style="color:#ff6b81">所有数据将被清除！</b>此操作不可恢复。', confirmText:'确定清空', cancelText:'取消', danger:true}).then(function(ok){
+    if(!ok) return;
+    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+    myClub=null; myIdx=-1; myTier='A'; round=1; season=1;
+    leagueTable={A:[],B:[]}; fixtures={A:{},B:{}}; resultsByRound={}; champHistory=[];
+    ach={firstWin:false,champ:0,winStreak:0,season:0};
+    fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0,activity:0};
+    facilities={stadium:1,training:1,youth:1,commercial:1,medical:1,analysis:1};
+    initStocks(); invest.deposits=[];
+    negRounds=0; crisisMsgs=[];
+    actCd={retreat:0,physio:0,feast:0,camp:0,birthday:0,christmas:0,psyche:0,bonus:0}; actThisWeek=null;
+    sponCandidates=[]; contracts=[];
+    msgLog=[]; market=[]; match=null; aiClubs=[]; NAMES_CACHE=[]; NAME_SET=null;
+    ROT_A=[]; ROT_B=[]; lastDrawer=null;
+    initLeague(); refreshMarket(); renderPickClub();
+  });
 }
 function renderTransfer(){
   var el=document.getElementById('transferBox');
@@ -4123,7 +4158,10 @@ fitGame();
 document.getElementById('btnStartMatch').onclick=function(){
   if(round>TOTAL_ROUNDS) return;
   var _ec2=0; for(var _ei2=0;_ei2<myClub.eleven.length;_ei2++){ if(!myClub.eleven[_ei2]) _ec2++; }
-  if(_ec2>0){ showMsg('首发有 '+_ec2+' 个位置空缺，请先补齐 11 人再开赛'); return; }
+  if(_ec2>0){
+    appModal({title:'首发空缺，无法开赛', desc:'首发还有 <b style="color:#ffd857">'+_ec2+'</b> 个位置没有安排球员，请先到<b style="color:#3ddc7a">阵容战术</b>补齐 11 人再开赛。', confirmText:'知道了'});
+    return;
+  }
   // 本轮已打完则不允许重开（防重复计分）
   var played=resultsByRound[round]&&resultsByRound[round][myTier]?resultsByRound[round][myTier].some(function(mr){
     return (mr.home===myIdx||mr.away===myIdx)&&mr.home!==mr.away;
