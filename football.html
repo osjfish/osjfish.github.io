@@ -1028,6 +1028,33 @@ function loadGame(){
       genFixtures('A',LEAGUE_A_ROUNDS); genFixtures('B',LEAGUE_B_ROUNDS);
     }
     resultsByRound=d.resultsByRound||{};
+    // 旧档赛果主客错位修复（换边污染的历史记录：home/away 与赛程不符则交换）
+    for(var _rk2 in resultsByRound){
+      for(var _t2=0;_t2<2;_t2++){
+        var _tier2=_t2===0?'A':'B';
+        var _list=resultsByRound[_rk2]?resultsByRound[_rk2][_tier2]:null;
+        if(!_list) continue;
+        var _prs=fixtures[_tier2]&&fixtures[_tier2][_rk2];
+        if(!_prs) continue;
+        for(var _rc=0;_rc<_list.length;_rc++){
+          var _rec=_list[_rc];
+          if(!_rec||_rec.home===undefined) continue;
+          var _ok=false;
+          for(var _pp=0;_pp<_prs.length;_pp++){
+            if(_prs[_pp][0]===_rec.home&&_prs[_pp][1]===_rec.away){ _ok=true; break; }
+          }
+          if(!_ok){
+            for(var _pp2=0;_pp2<_prs.length;_pp2++){
+              if(_prs[_pp2][0]===_rec.away&&_prs[_pp2][1]===_rec.home){
+                var _t=_rec.home; _rec.home=_rec.away; _rec.away=_t;
+                var _s=_rec.hs; _rec.hs=_rec.as; _rec.as=_s;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
     if(d.fin) fin=d.fin;
     if(fin.facility===undefined) fin.facility=0;
     if(fin.activity===undefined) fin.activity=0;
@@ -2181,8 +2208,13 @@ function endMatch(){
   }
   for(var n in m.rating){ m.rating[n]=Math.round(clamp(m.rating[n],3.5,10)*10)/10; }
   if(!resultsByRound[round]) resultsByRound[round]={A:[],B:[]};
-  // score[0] 恒为 home 队进球（换边时已整体对调），无需按 myIdx 换算
-  resultsByRound[round][myTier].push({home:m.home.idx,away:m.away.idx,hs:m.score[0],as:m.score[1]});
+  // 赛果记录：按开局主客归因（换边后 m.home 已对调，不能用 m.home.idx/score[0] 直接对应）
+  var oppIdx2=m.isHome?m.home.idx:m.away.idx;      // 换边后 home=开局客队；isHome=true 时对手=换边后 home
+  var myGoals2=m.isHome?m.score[1]:m.score[0];     // 换边后我方进球与对手对调了数组下标
+  var oppGoals2=m.isHome?m.score[0]:m.score[1];
+  var recHome=m.isHome?myIdx:oppIdx2;
+  var recAway=m.isHome?oppIdx2:myIdx;
+  resultsByRound[round][myTier].push({home:recHome,away:recAway,hs:recHome===myIdx?myGoals2:oppGoals2,as:recHome===myIdx?oppGoals2:myGoals2});
   // 排名快照滚动：prevRank=上一轮结束排名，lastRank=本轮结束排名（积分榜升降箭头）
   var _rs=function(a,b){ return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga); };
   var _tsX=['A','B'];
