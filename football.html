@@ -2132,6 +2132,14 @@ function endMatch(){
   if(!resultsByRound[round]) resultsByRound[round]={A:[],B:[]};
   // score[0] 恒为 home 队进球（换边时已整体对调），无需按 myIdx 换算
   resultsByRound[round][myTier].push({home:m.home.idx,away:m.away.idx,hs:m.score[0],as:m.score[1]});
+  // 记录两级联赛的排名快照（用于积分榜排名升降箭头）
+  var rankSort=function(a,b){ return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga); };
+  var _tiersX=['A','B'];
+  for(var _tx=0;_tx<_tiersX.length;_tx++){
+    var _tblX=tableOf(_tiersX[_tx]);
+    var _srtX=_tblX.slice().sort(rankSort);
+    for(var _rk=0;_rk<_srtX.length;_rk++) _srtX[_rk].prevRank=_rk+1;
+  }
   window.ensureEleven();
   SFX.whistle(false);
   showFinal(m);
@@ -2719,6 +2727,9 @@ function renderPanTable(tbl){
     var r=sorted[i];
     var pos=i+1;
     var mine=r.idx===myIdx;
+    // 排名升降箭头（对比上一轮排名快照）
+    var move='–';
+    if(r.prevRank) move=(pos<r.prevRank?'<span style="color:#3ddc7a">▲</span>':(pos>r.prevRank?'<span style="color:#ff6b81">▼</span>':'<span style="color:#5a6678">–</span>'));
     var zone='';
     var isA=myTier==='A';
     // A级：前三名金银铜特别标注；降级区仅A级存在（B级为底层联赛不再降级）
@@ -2726,7 +2737,7 @@ function renderPanTable(tbl){
     else if(!isA&&pos<=2) zone='<span class="zone champ">升</span>';
     else if(isA&&pos>=sorted.length-1) zone='<span class="zone demote">降</span>';
     var fm=r.form.length?r.form.slice(-3).map(function(f){return f==='W'?'<span style="color:#3ddc7a">●</span>':(f==='D'?'<span style="color:#ffe08a">●</span>':'<span style="color:#ff6b81">●</span>');}).join(''):'';
-    rows.push('<tr class="'+(mine?'mine':'')+'"><td class="pos">'+pos+'</td><td>'+zone+'</td><td class="nm">'+r.name+'</td><td>'+r.p+'</td><td>'+r.w+'</td><td>'+r.d+'</td><td>'+r.l+'</td><td>'+r.gf+'-'+r.ga+'</td><td><b>'+r.pts+'</b></td><td>'+fm+'</td></tr>');
+    rows.push('<tr class="'+(mine?'mine':'')+'"><td class="pos">'+pos+' '+move+'</td><td>'+zone+'</td><td class="nm">'+r.name+'</td><td>'+r.p+'</td><td>'+r.w+'</td><td>'+r.d+'</td><td>'+r.l+'</td><td>'+r.gf+'-'+r.ga+'</td><td><b>'+r.pts+'</b></td><td>'+fm+'</td></tr>');
   }
   el.innerHTML='<div class="p-title">🏆 积分榜 <span class="tag">'+(myTier==='A'?'A级':'B级')+' · 点击查看完整榜</span></div>'+
     '<table class="tbl"><tr><th>排名</th><th></th><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进失</th><th>分</th><th>近况</th></tr>'+rows.join('')+'</table>';
@@ -3139,7 +3150,9 @@ function renderTable(){
     var formHtml='';
     for(var f=0;f<r.form.length;f++) formHtml+='<span class="posdot '+r.form[f]+'">'+r.form[f]+'</span>';
     if(!formHtml) formHtml='<span style="color:#5a6678">-</span>';
-    var move=r.pts>r.prevPts?'<span style="color:#3ddc7a">▲</span>':(r.pts<r.prevPts?'<span style="color:#ff6b81">▼</span>':'<span style="color:#5a6678">–</span>');
+    // 排名升降箭头（对比上一轮排名快照）
+    var move='–';
+    if(r.prevRank) move=(i+1<r.prevRank?'<span style="color:#3ddc7a">▲</span>':(i+1>r.prevRank?'<span style="color:#ff6b81">▼</span>':'<span style="color:#5a6678">–</span>'));
     // A级前三名金银铜标注；B级前二升级标注；降级提示仅A级存在
     var rkZone='';
     if(tableViewTier==='A'&&i<3) rkZone='<span class="zone t'+(i+1)+'">'+(i+1)+'</span>';
