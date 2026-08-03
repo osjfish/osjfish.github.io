@@ -324,10 +324,16 @@
     #rating { display:grid; left:8px; top:44px; bottom:20px; right:auto; font-size:12px; padding:6px 8px; max-height:none; width:178px; grid-template-columns:repeat(2,1fr); overflow-y:auto; }
     #toast { font-size:20px; top:calc(44px + (100vh - 64px)/2); }
   }
-  /* 平板/桌面矮屏（横屏、小窗口）：隐藏评分框防遮挡，解说框与按钮收到底部留白区，战术列表居中弹出 */
+  /* 平板/桌面（非手机）：评分框固定在右侧竖栏，画布在 fitGame 中为其预留空间 */
+  @media (min-width:901px) {
+    #rating { left:auto; right:10px; top:44px; bottom:64px; max-height:none; width:200px; grid-template-columns:repeat(2,1fr); font-size:12px; padding:6px 8px; }
+  }
+  /* 中等宽度：解说框收窄，避免与右侧评分栏重叠 */
+  @media (min-width:901px) and (max-width:1250px) {
+    #events { width:min(420px,55vw); }
+  }
+  /* 矮屏：战术列表居中弹出，避免遮挡画布 */
   @media (min-width:901px) and (max-height:1000px) {
-    #rating { display:none !important; }
-    #events { max-height:96px; bottom:8px; }
     #tacList { left:50%; top:50%; right:auto; bottom:auto; transform:translate(-50%,-50%); }
   }
 </style>
@@ -3246,28 +3252,15 @@ function renderOps(){
 function renderBusiness(){
   var el=document.getElementById('view-business');
   if(!el) return;
-  // 商务中心加成卡：直观体现设施对赞助金额的加成
-  var comLv=facilities.commercial;
-  var comPct=Math.round(facSponBonus(comLv)*100);
-  var comCard='<div class="p-title" style="margin-top:20px">💼 商务中心 <span class="tag">提升赞助金额</span></div>'+
-    '<div class="card3"><div class="fac-item" style="border-color:rgba(255,215,87,.4)">'+
-    '<div style="font-size:14px;font-weight:800">💼 商务中心 Lv'+comLv+'（满级 Lv'+MAX_FAC+'）</div>'+
-    '<div style="font-size:22px;font-weight:900;color:#ffd857;margin:6px 0">赞助金额 +'+comPct+'%</div>'+
-    '<div style="font-size:11px;color:#8fa3bd;line-height:1.6">'+(comPct>0?
-      '当前所有赞助合同与候选均按基础价 ×'+(1+comPct/100)+' 结算（每轮多收 '+comPct+'%）<br>继续升级可提升加成，满级翻倍'
-      :'赞助金额目前无加成（Lv'+comLv+'）<br>升级商务中心后，新刷新的赞助商金额将按比例提升，满级 +100%')+'</div>'+
-    '<div style="font-size:10px;color:#5a6b80;margin-top:6px">已签合同金额按签约时的加成锁定</div></div></div>';
   // 赞助商
   var sponHtml='';
   if(contracts.length){
     for(var sc=0;sc<contracts.length;sc++){
       var _ct=contracts[sc];
       var _ctBase=_ct.base||_ct.perWeek;
-      var _ctMul=_ct.perWeek>_ctBase?('（基础 '+_ctBase+'万 + 商务中心加成 '+( _ct.perWeek-_ctBase)+'万）'):'（基础 '+_ctBase+'万/轮）';
       sponHtml+='<div class="fac-item">'+
         '<div style="font-size:14px;font-weight:800">📄 '+_ct.name+'</div>'+
-        '<div style="font-size:12px;color:#3ddc7a;font-weight:800;margin:4px 0">每轮 +'+_ct.perWeek+'万</div>'+
-        '<div style="font-size:10px;color:#8fa3bd">'+_ctMul+'</div>'+
+        '<div style="font-size:12px;color:#3ddc7a;font-weight:800;margin:4px 0">每轮 +'+_ct.perWeek+'万'+( _ct.perWeek>_ctBase?'（含商务中心加成 '+( _ct.perWeek-_ctBase)+'万）':'')+'</div>'+
         '<div style="font-size:11px;color:#8fa3bd">剩余 '+_ct.remain+' 轮</div></div>';
     }
   }
@@ -3276,13 +3269,9 @@ function renderBusiness(){
   for(var sp=0;sp<sponCandidates.length;sp++){
     var s2=sponCandidates[sp];
     var s2Base=s2.base||s2.perWeek;
-    var s2MulTxt=s2.perWeek>s2Base
-      ?('<div style="font-size:10px;color:#8fa3bd">基础 '+s2Base+'万/轮 × 商务中心加成 +'+( s2.perWeek-s2Base)+'万</div>')
-      :'';
     candHtml+='<div class="fac-item">'+
       '<div style="font-size:14px;font-weight:800">🏢 '+s2.name+'</div>'+
-      '<div style="font-size:12px;color:#8fa3bd;margin:4px 0">每轮 <b style="color:#3ddc7a">+'+s2.perWeek+'万</b> × '+s2.term+'轮</div>'+
-      s2MulTxt+
+      '<div style="font-size:12px;color:#8fa3bd;margin:4px 0">每轮 <b style="color:#3ddc7a">+'+s2.perWeek+'万</b>'+(s2.perWeek>s2Base?'（含商务中心加成 '+( s2.perWeek-s2Base)+'万）':'')+' × '+s2.term+'轮</div>'+
       (contracts.length>=2?'<div style="font-size:11px;color:#ff9f0a;font-weight:800">合同已满（最多2份）</div>':
       '<button class="btn sm" data-spon="'+sp+'">签约</button>')+'</div>';
   }
@@ -3339,7 +3328,7 @@ function renderBusiness(){
     '</div>'+
     '<div class="p-title" style="margin-top:20px">📈 个股行情 <span class="tag">点击买卖</span></div>'+
     '<div class="card3">'+stockCards+'</div>';
-  el.innerHTML=comCard+sponHtml+candHtml+invHtml;
+  el.innerHTML=sponHtml+candHtml+invHtml;
   el.querySelectorAll('[data-spon]').forEach(function(btn){
     btn.onclick=function(){ signSpon(parseInt(this.getAttribute('data-spon'))); };
   });
@@ -4051,12 +4040,23 @@ function fitGame(){
   var w=window.innerWidth,h=window.innerHeight;
   var mobile=w<=900;
   var landscape=mobile&&w>h; // 手机横屏：画面填满内容区（padding 190/216/44/20），信息框在两侧padding区
-  var inMatch=!!match; // 比赛进行中：顶部比分条44 + 底部信息区170 预留空间，避免悬浮框遮挡画布
-  var availW=w-(landscape?414:(mobile?8:16));
+  var inMatch=!!match; // 比赛进行中：顶部比分条44 + 底部信息区170 预留；桌面/平板另为右侧评分栏预留 210
+  var availW=w-(landscape?414:(mobile?8:(inMatch?226:16)));
   var availH=h-(landscape?72:(mobile?178:(inMatch?214:16)));
   var s=Math.min(availW/W, availH/H);
-  cv.style.width=Math.round(W*s)+'px';
-  cv.style.height=Math.round(H*s)+'px';
+  var cw=Math.round(W*s), ch=Math.round(H*s);
+  cv.style.width=cw+'px';
+  cv.style.height=ch+'px';
+  if(!mobile){
+    // 桌面/平板：画布由 JS 定位——比赛时限制在左侧区域，避开右侧评分栏；非比赛居中
+    cv.style.position='absolute';
+    var maxRight=w-(inMatch?210:0);
+    var region=inMatch?maxRight:w; // 比赛时在左侧区域内居中（避开评分栏），非比赛全屏居中
+    cv.style.left=Math.max(4,Math.round((region-cw)/2))+'px';
+    cv.style.top=(inMatch?44:Math.max(0,Math.round((h-ch)/2)))+'px';
+  } else {
+    cv.style.position='';
+  }
 }
 window.addEventListener('resize',fitGame);
 window.addEventListener('orientationchange',function(){ setTimeout(fitGame,250); });
