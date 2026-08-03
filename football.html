@@ -503,15 +503,33 @@ var SURNAMES=['王','李','张','刘','陈','杨','赵','黄','周','吴','徐',
 var GIVEN=['志强','伟','建国','明','勇','军','磊','晨','鹏','飞','杰','涛','强','宁','浩','宇','翔','洋','凯','龙','峰','超','波','斌','刚','亮','峰','胜','毅','刚','勇','强','志','文','辉','平','安','宗','阳','俊','秀','英','华','丽','红','婷','敏','静','丽','霞','桂','兰','凤','云','洁','琳','萍','玲','新','建华','光辉','明辉','国平','家辉','志刚','春华','秋实','翰林','思远','嘉诚','天宇','浩然','思远','明哲','泽宇','致远','文博','博文','子涵','雨泽','明杰','宇航','瑞霖','昊然','博宇','俊杰','嘉懿','子轩','昊天','天佑','俊豪','铭泽','浩宇','宇轩','一鸣','志远','明达','德华','建国','志伟','明强','建华','伟强','志斌','明华','伟斌','晓明','晓东','晓峰','海涛','海峰','永强','志明','国华','伟国','海波','海峰','永康','建国','志强','伟强','建华','明强','伟国','海峰','志明','永强','国华','伟国','海波','海峰','永康','建平','伟平','志平','明平','卫平','国平','家平','世平','天平','和平','永平','安平','庆平','小平','建安','伟安','志安','明安','卫安','国安','家安','世安','天安','永安','平安','庆安','小安','建明','伟明','志明','明明','卫明','国民','家明','世明','天民','永明','平民','庆明','小明','建诚','伟诚','志成','明诚','卫诚','国诚','家诚','世诚','天诚','永诚','平诚','庆诚','小诚','建辉','伟辉','志辉','明辉','卫辉','国辉','家辉','世辉','天辉','永辉','平辉','庆辉','小辉']
 function seedHash(s){var h=0,i;for(i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return function(){h=(h*1103515245+12345)&0x7fffffff;return h/0x7fffffff;};}
 // 生成全局唯一球员姓名（避免同名，几十年游戏生涯名字池足够：姓氏100×名200=2万组合）
+var NAME_SET=null;
+function nameSet(){
+  if(NAME_SET) return NAME_SET;
+  NAME_SET={};
+  for(var i=0;i<NAMES_CACHE.length;i++) NAME_SET[NAMES_CACHE[i]]=1;
+  return NAME_SET;
+}
 function uniqName(rngFn){
-  var na,tries=0;
+  var na,tries=0,set=nameSet();
   do{
     na=SURNAMES[(rngFn()*SURNAMES.length)|0]+GIVEN[(rngFn()*GIVEN.length)|0];
     tries++;
     if(tries>60){ na+=('一二三四五六七八九'[tries%10]); }
-  }while(NAMES_CACHE.indexOf(na)>=0);
+  }while(set[na]);
+  set[na]=1;
   NAMES_CACHE.push(na);
   return na;
+}
+// 单独生成一名球员（市场/事件用，避免整队生成的开销）
+function genOnePlayer(seed,center,pos){
+  var rng=seedHash(String(seed));
+  var na=uniqName(rng);
+  var attrs=mkAttrs(rng,center,pos);
+  var p={name:na,pos:pos,spd:attrs.spd,pow:attrs.pow,tec:attrs.tec,awa:attrs.awa,sho:attrs.sho,gkp:attrs.gkp,
+    age:18+((rng()*17)|0),fit:100,mor:50,inj:0,played:0,goals:0,assists:0,rating:6.0};
+  p.ab=calcAb(p);
+  return p;
 }
 function genSquad(teamId,ab){
   var list=[];
@@ -1258,13 +1276,27 @@ function refreshMarket(){
   var n=3+((Math.random()*8)|0); // 3-10 名球员
   for(var i=0;i<n;i++){
     var pos=['gk','df','mf','fw'][(Math.random()*4)|0];
-    // 能力按递减概率分布：潜力球员最多，顶级球员稀有（95+仅约1%）
+    // 能力按递减概率分布（目标档位）；位置偏向会把实际ab抬高，生成后校验落在档位内，不达标重试
     var rr=Math.random();
-    var ab=rr<0.35?(55+((Math.random()*10)|0)):(rr<0.65?(65+((Math.random()*10)|0)):(rr<0.89?(75+((Math.random()*10)|0)):(rr<0.99?(85+((Math.random()*10)|0)):(95+((Math.random()*5)|0)))));
-    var pool=genSquad('market_'+i,ab).filter(function(q){ return q.pos===pos; });
-    var p=pool[(Math.random()*pool.length)|0];
+    var lo,hi;
+    if(rr<0.35){ lo=55; hi=64; }
+    else if(rr<0.65){ lo=65; hi=74; }
+    else if(rr<0.89){ lo=75; hi=84; }
+    else if(rr<0.99){ lo=85; hi=94; }
+    else { lo=95; hi=99; }
+    var p=null;
+    var center=Math.round((lo+hi)/2);
+    for(var t=0;t<25&&!p;t++){
+      var cand=genOnePlayer('mkt_'+i+'_'+t,center,pos);
+      if(cand.ab>=lo&&cand.ab<=hi){ p=cand; }
+      else {
+        // 误差反馈：实际能力偏高则降低中心值，偏低则提高（位置偏向会抬升10+点）
+        center=clamp(center+Math.round((lo+hi)/2-cand.ab),40,99);
+        if(t===24) p=cand;
+      }
+    }
     p.age=18+((Math.random()*12)|0);
-    // 身价按球员实际能力定价（位置偏向会抬高实际ab，不能用生成中心值）
+    // 身价按球员实际能力定价
     p.price=priceOf(p.ab);
     market.push(p);
   }
