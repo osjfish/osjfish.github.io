@@ -246,8 +246,10 @@
   #report { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center; background:rgba(4,7,12,.92); }
   #report .card { max-width:620px; }
   #report.show { display:flex; }
-  #rating { position:fixed; left:10px; bottom:8px; z-index:11; background:rgba(8,12,20,.88); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px 12px; font-size:15px; color:#cfd8e3; max-height:220px; overflow-y:auto; }
-  #rating .row { display:flex; justify-content:space-between; gap:6px; padding:2px 0; }
+  #rating { position:fixed; left:10px; bottom:8px; z-index:11; background:rgba(8,12,20,.88); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px 12px; font-size:15px; color:#cfd8e3; max-height:220px; overflow-y:auto; display:grid; grid-template-columns:1fr; gap:2px 10px; }
+  #rating .r3 { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  #rating .r3n { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #rating .r3v { font-weight:800; }
   .cash { color:#ffd857; font-weight:800; }
   /* ===== 专业化 UI 增强 ===== */
   .teamDot { width:12px; height:12px; border-radius:50%; display:inline-block; border:1px solid rgba(255,255,255,.4); }
@@ -298,13 +300,21 @@
     #top .cash, #top #roundTxt { display:none; }
     #timeline { top:34px; height:3px; width:min(300px,58vw); }
     /* 底部信息区三区分离：解说框居中在上，评分在左下，按钮在右下 */
-    #events { bottom:120px; left:50%; transform:translateX(-50%); max-height:56px; font-size:9px; padding:3px 8px; width:min(520px,92vw); }
+    #events { bottom:120px; left:50%; transform:translateX(-50%); max-height:90px; font-size:11px; padding:4px 10px; width:min(560px,94vw); }
     #controls { right:6px; bottom:4px; }
     #controls .btn { font-size:14px; padding:6px 12px; }
-    #rating { display:block; left:6px; bottom:4px; font-size:12px; padding:6px 8px; max-height:108px; width:min(220px,46vw); }
-    #rating .row { padding:1px 0; }
+    #rating { display:grid; left:6px; bottom:4px; font-size:13px; padding:6px 10px; max-height:112px; width:min(300px,64vw); grid-template-columns:repeat(3,1fr); }
     #toast { font-size:22px; top:24%; }
     #roundTxt { font-size:9px; padding:1px 6px; }
+  }
+  /* 手机横屏：比赛画面居中，信息框分列左右不重叠 */
+  @media (max-width:900px) and (orientation:landscape) {
+    #wrap { padding:44px 210px 24px 190px; }
+    #events { bottom:4px; left:50%; transform:translateX(-50%); max-height:52px; font-size:10px; width:min(420px,52vw); }
+    #controls { right:6px; bottom:6px; }
+    #controls .btn { font-size:13px; padding:5px 10px; }
+    #rating { display:block; left:4px; top:46px; bottom:64px; font-size:12px; padding:6px 8px; max-height:none; width:176px; grid-template-columns:repeat(2,1fr); overflow-y:auto; }
+    #toast { font-size:20px; top:20%; }
   }
 </style>
 </head>
@@ -1309,14 +1319,14 @@ function refreshMarket(){
   var n=3+((Math.random()*8)|0); // 3-10 名球员
   for(var i=0;i<n;i++){
     var pos=['gk','df','mf','fw'][(Math.random()*4)|0];
-    // 能力按递减概率分布（目标档位）；位置偏向会把实际ab抬高，生成后校验落在档位内，不达标重试
+    // 能力按递减概率分布（目标档位）；基础数值整体下调，顶级球员基础 90-94，加成后恰达 99
     var rr=Math.random();
     var lo,hi;
-    if(rr<0.40){ lo=55; hi=64; }
-    else if(rr<0.72){ lo=65; hi=74; }
-    else if(rr<0.93){ lo=75; hi=84; }
-    else if(rr<0.99){ lo=85; hi=94; }
-    else { lo=95; hi=99; }
+    if(rr<0.40){ lo=50; hi=59; }
+    else if(rr<0.72){ lo=60; hi=69; }
+    else if(rr<0.93){ lo=70; hi=79; }
+    else if(rr<0.99){ lo=80; hi=89; }
+    else { lo=90; hi=94; }
     var p=null;
     var center=Math.round((lo+hi)/2);
     for(var t=0;t<25&&!p;t++){
@@ -3837,15 +3847,12 @@ function updateHud(){
   var rl=document.getElementById('rating');
   var posTotal=match.poss[0]+match.poss[1];
   var pos0=posTotal>0?Math.round(match.poss[0]/posTotal*100):50;
-  var html='<div style="color:#8fa3bd">控球 '+pos0+'% : '+(100-pos0)+'% · 射门 '+match.shots[0]+'/'+match.shots[1]+'</div>';
-  html+='<div style="color:#8fa3bd;margin-top:2px">评分</div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">';
+  var html='<div style="color:#8fa3bd;margin-bottom:3px">控球 '+pos0+'% : '+(100-pos0)+'% · 射门 '+match.shots[0]+'/'+match.shots[1]+'</div>';
   for(var i=0;i<myClub.eleven.length;i++){
     var p=myClub.eleven[i];
     var rt=Math.min(10,Math.max(3.5,match.rating[p.name]||6));
-    html+='<div class="row"><span>'+p.name+'</span><span style="color:'+(rt>=7?'#3ddc7a':(rt<6?'#ff6b81':'#ffe08a'))+'">'+rt.toFixed(1)+'</span></div>';
+    html+='<div class="r3"><div class="r3n">'+p.name+'</div><div class="r3v" style="color:'+(rt>=7?'#3ddc7a':(rt<6?'#ff6b81':'#ffe08a'))+'">'+rt.toFixed(1)+'</div></div>';
   }
-  html+='</div>';
   rl.innerHTML=html;
 }
 // ================= 主循环 =================
@@ -3874,8 +3881,9 @@ document.querySelectorAll('.tab').forEach(function(t){
 function fitGame(){
   var w=window.innerWidth,h=window.innerHeight;
   var mobile=w<=900;
-  var availW=w-(mobile?8:16);
-  var availH=h-(mobile?158:16);
+  var landscape=mobile&&w>h; // 手机横屏：画面居中，左右留给信息框
+  var availW=w-(landscape?400:(mobile?8:16));
+  var availH=h-(landscape?70:(mobile?178:16));
   var s=Math.min(availW/W, availH/H);
   cv.style.width=Math.round(W*s)+'px';
   cv.style.height=Math.round(H*s)+'px';
