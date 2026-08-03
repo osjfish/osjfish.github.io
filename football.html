@@ -612,8 +612,9 @@ function facGrowth(lv){ return Math.round((1+0.0474*(lv-1))*100)/100; }    // �
 function facRecover(lv){ return Math.round(9+0.42*(lv-1)); }               // 恢复 9→17
 function facKids(lv){ return Math.min(4,Math.max(1,Math.round(1+0.158*(lv-1)))); } // 新秀 1→4
 function facAbBase(lv){ return Math.round(58+0.84*(lv-1)); }               // 新秀能力 58→74
-function facSponRate(lv){ return Math.round((0.25+0.0105*(lv-1))*100)/100; } // 赞助概率 .25→.45
-function facSponAdd(lv){ return Math.round(63.2*(lv-1)); }                 // 赞助加成 0→1200
+function facSponRate(lv){ return Math.round((0.25+0.0105*(lv-1))*100)/100; } // 赞助概率 .25→.45（保留）
+function facSponAdd(lv){ return Math.round(63.2*(lv-1)); }                 // 赞助加成 0→1200（保留）
+function facSponBonus(lv){ return (lv-1)/19; }                             // 商务中心：赞助金额加成比例 0%→100%（满级翻倍）
 function facInjRate(lv){ return Math.round((0.12-0.0053*(lv-1))*100)/100; } // 伤病率 .12→.02
 function facFitBack(lv){ return Math.round(40+2.63*(lv-1)); }              // 复出体能 40→90
 function facHomeAdd(lv){ return Math.round(2+0.316*(lv-1)); }              // 主场加成 2→8
@@ -976,8 +977,8 @@ function refreshSponCandidates(){
   if(remainRounds<2){ sponCandidates=[]; return; }
   var band=sponBand(); // 当前排名允许的最高档
   var bandIdx=SPON_TIERS.indexOf(band);
-  // 商务中心设施：提升合同金额
-  var sponAdd=facSponAdd(facilities.commercial);
+  // 商务中心设施：按比例提升赞助金额（满级 +100%）
+  var sponMul=1+facSponBonus(facilities.commercial);
   // 每周生成 3 个新候选（档位 = 当前档及以下，排名低不会出现高额赞助）
   var next=[];
   var usedNames={};
@@ -988,7 +989,7 @@ function refreshSponCandidates(){
     var term=Math.min(4+((Math.random()*9)|0),Math.max(2,remainRounds));
     var tierIdx=bandIdx+((Math.random()*(SPON_TIERS.length-bandIdx))|0);
     var tb=SPON_TIERS[tierIdx];
-    next.push({name:nm, tier:tb, perWeek:Math.round((tb.min+((Math.random()*(tb.maxW-tb.min))|0))*(1+sponAdd/800)), term:term});
+    next.push({name:nm, tier:tb, perWeek:Math.round((tb.min+((Math.random()*(tb.maxW-tb.min))|0))*sponMul), term:term});
   }
   sponCandidates=next;
 }
@@ -1599,6 +1600,13 @@ function spawnMatch(m){
           if(cand.pos===order[o]&&used.indexOf(cand)<0){ picked=cand; used.push(cand); break; }
         }
         if(!picked) continue;
+        // 客串（非本职位置）：六维打8折，原数据不变（_orig 引用用于进球/助攻结算）
+        if(picked.pos!==order[o]){
+          var orig=picked;
+          picked={name:orig.name,pos:orig.pos,age:orig.age,fit:orig.fit,mor:orig.mor,inj:orig.inj,played:orig.played,goals:orig.goals,assists:orig.assists,rating:orig.rating,hot:orig.hot,
+            spd:Math.round(orig.spd*0.8),pow:Math.round(orig.pow*0.8),tec:Math.round(orig.tec*0.8),awa:Math.round(orig.awa*0.8),sho:Math.round(orig.sho*0.8),gkp:Math.round(orig.gkp*0.8),_orig:orig};
+          picked.ab=calcAb(picked);
+        }
         var t=home?list[k][0]:(1-list[k][0]);
         m.players.push({team:home?0:1,pl:picked,role:order[o],x:W*0.06+t*W*0.88,y:list[k][1]*H*0.96+H*0.02,
           vx:0,vy:0,face:home?0:Math.PI,protect:0,shootCd:0,homeX:0,homeY:0});
@@ -1645,7 +1653,7 @@ function aiPlayer(m,p,dt){
     }
     return;
   }
-  p.decT=(b.owner===p)?(0.35+Math.random()*0.2):(0.7+Math.random()*0.6);
+  p.decT=0.15+Math.random()*0.1; // 决策间隙约0.2秒（球快速移动时已立即响应）
   p.lbx=b.x; p.lby=b.y;
   var att=p.team===0?1:-1;
   var gateX=att>0?W:0;
@@ -2394,13 +2402,18 @@ function goal(m,t){
   m.lastGoal=t;
   var shooter=m.ball.lastShooter;
   m.goalCeleb=2;
-  if(shooter){ m.rating[shooter.pl.name]=(m.rating[shooter.pl.name]||6)+2; shooter.pl.goals++; }
+  if(shooter){
+    var rp=shooter.pl._orig||shooter.pl; // 客串副本记到原球员
+    m.rating[rp.name]=(m.rating[rp.name]||6)+2;
+    rp.goals++;
+  }
   // 本场进球记录（用于赛后报告）
   if(!m.goalScorers) m.goalScorers=[];
   m.goalScorers.push({team:t, name:shooter?shooter.pl.name:((t===0?m.home:m.away).name), my:((t===0&&m.home===myClub)||(t===1&&m.away===myClub))});
   // 助攻：进球前最后一位同队传球者（且非射门者本人）
   if(m.lastPasser&&m.lastPasser!==shooter&&m.lastPasser.team===t){
-    m.lastPasser.pl.assists=(m.lastPasser.pl.assists||0)+1;
+    var ap=m.lastPasser.pl._orig||m.lastPasser.pl;
+    ap.assists=(ap.assists||0)+1;
   }
   m.lastPasser=null;
   // 失球方门将扣分
@@ -3148,7 +3161,7 @@ function facEff(k,lv){
     case 'stadium': return '门票 ×'+facGate(lv).toFixed(2);
     case 'training': return '成长+'+(Math.round((facGrowth(lv)-1)*100))+'% · 恢复 '+facRecover(lv)+'/轮';
     case 'youth': return '赛季末新秀 '+facKids(lv)+' 名（能力'+facAbBase(lv)+'±5）';
-    case 'commercial': return '赞助合同金额 +'+Math.round(facSponAdd(lv)*1.25)+'~'+(facSponAdd(lv)+220)+'万';
+    case 'commercial': return '赞助金额 +'+(Math.round(facSponBonus(lv)*100))+'%（满级+100%）';
     case 'medical': return '伤病率 '+(Math.round(facInjRate(lv)*100))+'% · 复出体能'+facFitBack(lv);
     case 'analysis': return '主场实力 +'+facHomeAdd(lv);
     default: return '';
