@@ -3121,10 +3121,11 @@ function renderLineup(){
     row.innerHTML='<span class="lu-pos '+p.pos+'">'+p.pos.toUpperCase()+'</span>'+
       '<span class="lu-name">'+p.name+(p.hot?' 🔥':'')+(p.inj>0?' <span class="inj">伤</span>':'')+'</span>'+
       '<span class="lu-ab">'+p.ab+'</span>'+
-      '<span class="lu-attr">速'+p.spd+' 力'+p.pow+' 技'+p.tec+' 意'+p.awa+(p.pos==='gk'?' 守'+p.gkp:' 射'+p.sho)+(p.played>0?' · '+p.rating.toFixed(1)+'分':'')+'</span>'+
+      '<span class="lu-attr">速'+p.spd+' 力'+p.pow+' 技'+p.tec+' 意'+p.awa+' 射'+p.sho+' 守'+p.gkp+(p.played>0?' · '+p.rating.toFixed(1)+'分':'')+'</span>'+
       '<span class="lu-age">'+p.age+'岁</span>'+
       '<span class="lu-fit"><span class="stbar '+(p.fit<60?'low':'')+'"><i style="width:'+p.fit+'%"></i></span></span>'+
-      (in11?'<span class="lu-st">★首发</span>':'<span class="lu-st sub">替补</span>');
+      (in11?'<span class="lu-st">★首发</span>':'<span class="lu-st sub">替补</span>')+
+      '<button class="btn sm" data-repos="'+pi+'" style="flex:0 0 auto;padding:2px 8px;font-size:10px;background:rgba(87,200,255,.2);color:#57c8ff">改位</button>';
     row.onclick=function(pi){ return function(){
       var q=sorted[pi];
       if(q.inj>0){ showMsg('球员受伤缺阵'); return; }
@@ -3135,6 +3136,11 @@ function renderLineup(){
       }
       renderLineup();
     }; }(pi);
+    var rpBtn=row.querySelector('[data-repos]');
+    if(rpBtn) rpBtn.onclick=function(ev){
+      ev.stopPropagation();
+      showPosPicker(sorted[parseInt(this.getAttribute('data-repos'))]);
+    };
     (in11?sl:slB).appendChild(row);
   }
   var starters=sorted.filter(function(p){ return myClub.eleven.indexOf(p)>=0; });
@@ -3144,6 +3150,47 @@ function renderLineup(){
   saveGame();
 }
 // 点击球场槽位 → 弹出同位置球员选择器
+function showPosPicker(p){
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;';
+  var box=document.createElement('div');
+  box.style.cssText='background:#111826;border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:16px;width:min(340px,92vw);';
+  var cost=30+Math.round(p.ab*0.2);
+  var order=['gk','df','mf','fw'];
+  var html='<div style="font-size:14px;font-weight:800;margin-bottom:6px">🔄 改练位置：'+p.name+'（'+POS_NAMES[p.pos]+'）</div>'+
+    '<div style="color:#8fa3bd;font-size:12px;margin-bottom:10px">费用 <b style="color:#ffd857">'+cost+'万</b> · 总评将按新位置权重重新计算（六维不变）</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+  for(var i=0;i<order.length;i++){
+    var o=order[i];
+    html+='<button class="fbtn'+(p.pos===o?' sel':'')+'" data-pos="'+o+'" style="flex:1;padding:8px 0">'+POS_NAMES[o]+'</button>';
+  }
+  html+='</div><div style="text-align:center;margin-top:10px"><button class="fbtn" data-close="1">关闭</button></div>';
+  box.innerHTML=html;
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  function close(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+  box.addEventListener('click',function(ev){
+    var t=ev.target;
+    var pp=t.closest&&t.closest('[data-pos]');
+    if(pp){ var np=pp.getAttribute('data-pos'); close(); if(np!==p.pos) changePos(p,np); return; }
+    if(t.closest&&t.closest('[data-close]')) close();
+  });
+}
+function changePos(p,newPos){
+  var cost=30+Math.round(p.ab*0.2);
+  if(myClub.cash<cost){ showMsg('资金不足，改位置需 '+cost+' 万'); return; }
+  myClub.cash-=cost;
+  fin.training+=cost;
+  p.pos=newPos;
+  p.ab=calcAb(p);
+  // 位置固定：若当前首发槽位与新位置不符则移出首发
+  var roles=window.roleList(myClub.form);
+  for(var i=0;i<myClub.eleven.length;i++){
+    if(myClub.eleven[i]===p&&roles[i]!==newPos){ myClub.eleven[i]=null; }
+  }
+  showMsg('🔄 '+p.name+' 改练'+POS_NAMES[newPos]+'成功（费用'+cost+'万）· 总评'+p.ab);
+  refreshUI();
+}
 function openSlotPicker(slotIdx){
   var roles=window.roleList(myClub.form);
   var role=roles[slotIdx];
@@ -3161,7 +3208,7 @@ function openSlotPicker(slotIdx){
     var p=cands[i];
     html+='<div class="mkt-card" style="cursor:pointer" data-pick="'+i+'"><div class="info"><b>'+p.name+'</b> <span class="badge '+p.pos+'">'+p.pos.toUpperCase()+'</span>'+(p.hot?' 🔥':'')+(p.fit<60?' <span style="color:#ff6b81">体能低</span>':'')+
       '<div class="abbar"><div class="abtrack"><div class="abfill" style="width:'+p.ab+'%"></div></div><span class="abnum">'+p.ab+'</span></div>'+
-      '<div style="color:#8fa3bd;font-size:10px">速'+p.spd+' 力'+p.pow+' 技'+p.tec+' 意'+p.awa+(p.pos==='gk'?' 守'+p.gkp:' 射'+p.sho)+' · '+p.age+'岁 · 士气'+p.mor+'</div></div></div>';
+      '<div style="color:#8fa3bd;font-size:10px">速'+p.spd+' 力'+p.pow+' 技'+p.tec+' 意'+p.awa+' 射'+p.sho+' 守'+p.gkp+' · '+p.age+'岁 · 士气'+p.mor+'</div></div></div>';
   }
   if(!cands.length&&!cur) html+='<div style="color:#5a6678;font-size:11px">没有可用的'+POS_NAMES[role]+'球员</div>';
   html+='<div style="text-align:center;margin-top:8px"><button class="fbtn" data-close="1">关闭</button></div>';
@@ -3219,7 +3266,7 @@ function renderTransfer(){
     var afford=myClub.cash>=p.price;
     html+='<div class="mkt-card"><div class="info"><b>'+p.name+'</b> <span class="badge '+p.pos+'">'+p.pos.toUpperCase()+'</span>'+
       '<div class="abbar"><div class="abtrack"><div class="abfill" style="width:'+p.ab+'%"></div></div><span class="abnum">'+p.ab+'</span></div>'+
-      '<div style="color:#8fa3bd;font-size:10px">'+p.age+'岁 · 周薪 <b style="color:#ffd857">'+weeklyWage(p)+'万</b> · 速'+p.spd+' 力'+p.pow+' 技'+p.tec+' 意'+p.awa+(p.pos==='gk'?' 守'+p.gkp:' 射'+p.sho)+'</div></div>'+
+      '<div style="color:#8fa3bd;font-size:10px">'+p.age+'岁 · 周薪 <b style="color:#ffd857">'+weeklyWage(p)+'万</b> · 速'+p.spd+' 力'+p.pow+' 技'+p.tec+' 意'+p.awa+' 射'+p.sho+' 守'+p.gkp+'</div></div>'+
       '<span class="cash">💰 '+p.price+'万</span>'+
       '<button class="btn sm" '+(afford?'':'disabled')+' data-buy="'+origIdx+'">签约</button></div>';
   }
@@ -3233,7 +3280,7 @@ function renderTransfer(){
     html+='<div class="lu-row"><span class="lu-pos '+q.pos+'">'+q.pos.toUpperCase()+'</span>'+
       '<span class="lu-name">'+q.name+(q.inj>0?' <span class="inj">伤</span>':'')+'</span>'+
       '<span class="lu-ab">'+q.ab+'</span>'+
-      '<span class="lu-attr">速'+q.spd+' 力'+q.pow+' 技'+q.tec+' 意'+q.awa+(q.pos==='gk'?' 守'+q.gkp:' 射'+q.sho)+' · 周薪<b style="color:#ffd857">'+weeklyWage(q)+'万</b></span>'+
+      '<span class="lu-attr">速'+q.spd+' 力'+q.pow+' 技'+q.tec+' 意'+q.awa+' 射'+q.sho+' 守'+q.gkp+' · 周薪<b style="color:#ffd857">'+weeklyWage(q)+'万</b></span>'+
       (isSt?'<span class="lu-st">★首发</span>':'<span class="lu-st sub">替补</span>')+
       '<button class="btn sm" data-sell="'+myClub.squad.indexOf(q)+'" data-price="'+sp+'" style="background:rgba(255,110,90,.7);flex:0 0 auto">+'+sp+'万</button></div>';
   }
