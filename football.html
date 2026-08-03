@@ -706,7 +706,7 @@ var EVENTS=[
   {id:22,name:'周边授权',type:'good',desc:'俱乐部授权推出联名商品。',eff:{cash:40},fix:null},
   // —— 转会 ——
   {id:23,name:'豪门挖角',type:'bad',desc:'豪门球队报价求购你的主力球星！',eff:{mor:-8},fix:{cost:100,desc:'花100万加薪续约锁定核心',fixEff:{mor:4}}},
-  {id:24,name:'球探遗珠',type:'good',desc:'球探在小联赛发现一名天才球员！',eff:{marketStrong:true},fix:{cost:50,desc:'花50万尽快谈下独家谈判权',fixEff:{marketStrong:true}}},
+  {id:24,name:'球探遗珠',type:'good',desc:'球探在小联赛发现一名天才球员！',eff:{marketStrong:true},fix:{cost:50,desc:'花50万拿下独家谈判权，强援价格减半',fixEff:{marketStrong:true,marketDiscount:true}}},
   {id:25,name:'球员心猿意马',type:'bad',desc:'有球员向经纪人表达了离队意愿。',eff:{mor:-8},fix:{cost:60,desc:'花60万承诺主力位置与奖金',fixEff:{mor:2}}},
   {id:26,name:'自由球员',type:'good',desc:'一名实力派自由球员主动上门求职！',eff:{marketStrong:true},fix:null},
   {id:27,name:'对手减员',type:'good',desc:'下轮对手的主力门将意外受伤！',eff:{oppDebuff:5},fix:null},
@@ -888,9 +888,9 @@ function applyEvent(ev,fix){
     var pool2=genSquad('event_'+Math.random(),80+((Math.random()*10)|0)).filter(function(q){ return q.pos===pos; });
     var star=pool2[(Math.random()*pool2.length)|0];
     star.age=18+((Math.random()*6)|0);
-    star.price=priceOf(star.ab);
+    star.price=Math.round(priceOf(star.ab)*(eff.marketDiscount?0.5:1)); // 独家谈判权：价格减半
     market.push(star);
-    msgs.push('转会市场出现强援 '+star.name+'（'+star.ab+'）');
+    msgs.push('转会市场出现强援 '+star.name+'（'+star.ab+'）'+(eff.marketDiscount?'，独家价'+star.price+'万':''));
   }
   return msgs.join('，');
 }
@@ -1256,7 +1256,9 @@ function refreshMarket(){
   var n=3+((Math.random()*8)|0); // 3-10 名球员
   for(var i=0;i<n;i++){
     var pos=['gk','df','mf','fw'][(Math.random()*4)|0];
-    var ab=Math.round(55+Math.random()*35);
+    // 能力按递减概率分布：潜力球员最多，顶级球员稀有
+    var rr=Math.random();
+    var ab=rr<0.35?(55+((Math.random()*10)|0)):(rr<0.65?(65+((Math.random()*10)|0)):(rr<0.9?(75+((Math.random()*10)|0)):(85+((Math.random()*15)|0))));
     var pool=genSquad('market_'+i,ab).filter(function(q){ return q.pos===pos; });
     var p=pool[(Math.random()*pool.length)|0];
     p.age=18+((Math.random()*12)|0);
@@ -1636,16 +1638,20 @@ function kickBall(m,shooter,power,angle){
   shooter.shootCd=0.6;
   m.lastTouch=shooter.team;
 }
-// ---- AI ----
+// ---- AI（角色权重化分层决策）----
+// 角色AI权重：射门/传球/盘带/逼抢倾向（df后卫 mf中场 fw前锋）
+var ROLE_AI={
+  df:{shoot:0.15, pass:0.85, dribble:0.18, press:0.85, defend:1.3},
+  mf:{shoot:0.55, pass:0.75, dribble:0.42, press:1.0,  defend:1.0},
+  fw:{shoot:1.30, pass:0.35, dribble:0.80, press:1.20, defend:0.7}
+};
 function aiPlayer(m,p,dt){
-  var b=m.ball, pr=p.pl, team=p.team===0?m.home:m.away;
-  var P=p.team===0?m.paramsHome:m.paramsAway;
+  var b=m.ball, pr=p.pl;
   if(p.role==='gk'){ aiGK(m,p,dt); return; }
-  // 决策间隙：持球者约0.4秒决策一次，无球者约0.8秒；球快速移动（传球/射门）时立即响应
+  // 决策间隙约0.1秒；球快速移动（传球/射门/抢断）时立即响应
   p.decT=(p.decT||0)-dt;
   var bd2=Math.abs(b.x-(p.lbx!==undefined?p.lbx:b.x))+Math.abs(b.y-(p.lby!==undefined?p.lby:b.y));
   if(p.decT>0&&bd2<140){
-    // 保持当前动作（惯性移动），不重复决策
     if(p.face!==undefined&&(Math.abs(p.vx)+Math.abs(p.vy))<10){
       var attd=p.team===0?1:-1;
       p.vx=Math.cos(p.face)*pSpeed(pr)*0.9;
@@ -1653,50 +1659,79 @@ function aiPlayer(m,p,dt){
     }
     return;
   }
-  p.decT=0.06+Math.random()*0.08; // 决策间隙约0.1秒（球快速移动时已立即响应）
+  p.decT=0.06+Math.random()*0.08;
   p.lbx=b.x; p.lby=b.y;
-  var att=p.team===0?1:-1;
-  var gateX=att>0?W:0;
-  if(b.owner===p){
-    var dToGate=Math.abs(p.x-gateX);
-    // 突破：禁区外有推进空间时优先盘带突入（减少无谓远射），禁区附近敢于内切
-    var aheadBlocked0=false;
-    var ax0=p.x+att*110;
-    for(var abi=0;abi<m.players.length;abi++){
-      var aq0=m.players[abi];
-      if(aq0.team!==p.team&&aq0.role!=='gk'&&Math.abs(aq0.x-ax0)<36&&Math.abs(aq0.y-p.y)<48){ aheadBlocked0=true; break; }
+  if(b.owner===p) aiHold(m,p);
+  else aiOff(m,p,dt);
+}
+// ===== 持球决策（按优先级）=====
+function aiHold(m,p){
+  var b=m.ball, pr=p.pl;
+  var P=p.team===0?m.paramsHome:m.paramsAway;
+  var att=p.team===0?1:-1, gateX=att>0?W:0;
+  var dToGate=Math.abs(p.x-gateX);
+  var RA=ROLE_AI[p.role]||ROLE_AI.mf;
+  // 前方空间探测（110px 推进窗口）
+  var aheadBlocked=false, ax=p.x+att*110;
+  for(var abi=0;abi<m.players.length;abi++){
+    var aq=m.players[abi];
+    if(aq.team!==p.team&&aq.role!=='gk'&&Math.abs(aq.x-ax)<36&&Math.abs(aq.y-p.y)<48){ aheadBlocked=true; break; }
+  }
+  // 被逼抢探测
+  var threat=false, near=null, nbd=1e9;
+  for(var i=0;i<m.players.length;i++){
+    var q=m.players[i];
+    if(q.team!==p.team&&dist2(q,p)<70*70) threat=true;
+    if(q.team!==p.team&&q.role!=='gk'&&dist2(q,p)<nbd){ nbd=dist2(q,p); near=q; }
+  }
+  var inBox=dToGate<175&&Math.abs(p.y-MIDY)<145;
+  // 1) 边路传中（边路战术）
+  if(P.wing>0.6&&Math.abs(p.y-MIDY)>90&&dToGate<180&&Math.random()<0.05*P.wing){
+    var crossY=MIDY+(Math.random()<0.5?-55:55);
+    kickBall(m,p,640*P.tempo,Math.atan2(crossY-p.y,att));
+    addEvent(((m.clock/60)|0)+1,'传中 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 起脚传中');
+    return;
+  }
+  // 2) 长传调度（direct 战术，中后场）
+  if(P.direct>0.7&&dToGate>400&&Math.random()<0.012*P.direct){
+    var bestFwd=null;
+    for(var qx2=0;qx2<m.players.length;qx2++){
+      var fw2=m.players[qx2];
+      if(fw2.team!==p.team||fw2.role!=='fw'||fw2===p) continue;
+      if(!bestFwd||(att>0?fw2.x>bestFwd.x:fw2.x<bestFwd.x)) bestFwd=fw2;
     }
-    var inBox=dToGate<175&&Math.abs(p.y-MIDY)<145; // 禁区（门前区域）
-    if(!inBox&&!aheadBlocked0&&dToGate>150&&dToGate<380&&p.role!=='df'&&Math.random()<0.6){
-      // 盘带突入：朝球门方向+避开中路密集区（向有空间一侧内切）
-      var goalY=MIDY+(p.y>MIDY?-1:1)*35; // 目标：远门柱方向内切
-      p.vx=att*pSpeed(pr)*1.02;
-      p.vy=(goalY-p.y)*0.5+Math.sin(m.clock*0.1+pr.name.length)*14;
-      p.face=Math.atan2(p.vy,p.vx);
+    if(bestFwd&&Math.abs(bestFwd.x-p.x)>250){
+      var ddx2=bestFwd.x-p.x,ddy2=bestFwd.y-p.y,ddd2=Math.sqrt(ddx2*ddx2+ddy2*ddy2)||1;
+      m.ball.owner=null;
+      m.ball.vx=ddx2/ddd2*780*P.tempo;
+      m.ball.vy=ddy2/ddd2*780*P.tempo;
+      m.ball._passTx=bestFwd.x; m.ball._passTy=bestFwd.y;
+      m.ball._passTo=bestFwd;
+      p.shootCd=0.6;
+      m.lastTouch=p.team; m.lastPasser=p;
+      addEvent(((m.clock/60)|0)+1,'长传 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 长传冲吊');
       return;
     }
-    if(dToGate<P.shootDist){
-      // 门前近距离持球：射门冷却大幅缩短，避免捡漏后继续带球深入
-      if(p.shootCd>0&&dToGate<160) p.shootCd=Math.min(p.shootCd,0.05);
-      if(dToGate<90) p.shootCd=0;
-      if(p.shootCd<=0){
-      // 智能射门评估：禁区内敢射，禁区外多突破少远射
-      var shootP=inBox?0.45:P.shootRate*P.shootMul;
-      if(dToGate>320) shootP*=0.5;
+  }
+  // 3) 射门：禁区果断/机会评估（角色权重）
+  if(dToGate<P.shootDist){
+    if(p.shootCd>0&&dToGate<160) p.shootCd=Math.min(p.shootCd,0.05);
+    if(dToGate<90) p.shootCd=0;
+    if(p.shootCd<=0){
+      var shootP=inBox?0.5:P.shootRate*P.shootMul*RA.shoot;
+      if(dToGate>320) shootP*=0.45;
       var marked=false;
       for(var mi=0;mi<m.players.length;mi++){
         var mq=m.players[mi];
         if(mq.team!==p.team&&mq.role!=='gk'&&dist2(mq,p)<70*70&&(mq.x-p.x)*att>0) marked=true;
       }
       if(marked) shootP*=0.45;
-      var angleGood=Math.abs(p.y-MIDY)<75; // 中路角度好
+      var angleGood=Math.abs(p.y-MIDY)<75;
       var gk0=playersOf(m,1-p.team)[0];
       var gkD=gk0?Math.sqrt(dist2(gk0,p)):999;
-      var gkOut=gkD>170; // 门将失位/离得远 → 敢于起脚
-      if(angleGood) shootP*=1.3;
-      if(dToGate>420) shootP*=0.55;
+      var gkOut=gkD>170;
+      if(angleGood) shootP*=1.25;
       if(gkOut&&dToGate>150) shootP*=1.3;
-      if(p.role==='df') shootP*=0.45;
       if(dToGate<130||Math.random()<shootP){
         var aim=(Math.random()<0.4?-1:(Math.random()<0.5?0:1));
         var ang=Math.atan2((MIDY+aim*26-(pr.sho*0.3+pr.pow*0.1)-p.y)/Math.max(1,Math.abs(p.x-gateX)),att);
@@ -1713,192 +1748,90 @@ function aiPlayer(m,p,dt){
       }
     }
   }
-    // 边路传中：边路战术下，边路球员接近底线时起球找禁区
-    if(P.wing>0.6&&Math.abs(p.y-MIDY)>90&&dToGate<180&&Math.random()<0.05*P.wing){
-      var crossY=MIDY+(Math.random()<0.5?-55:55);
-      kickBall(m,p,640*P.tempo,Math.atan2(crossY-p.y,att));
-      addEvent(((m.clock/60)|0)+1,'传中 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 起脚传中');
-      return;
-    }
-    // 长传冲吊：中后场直接起长球找最靠前的前锋
-    if(P.direct>0.7&&dToGate>400&&Math.random()<0.012*P.direct){
-      var bestFwd=null;
-      for(var qx2=0;qx2<m.players.length;qx2++){
-        var fw2=m.players[qx2];
-        if(fw2.team!==p.team||fw2.role!=='fw'||fw2===p) continue;
-        if(!bestFwd||(att>0?fw2.x>bestFwd.x:fw2.x<bestFwd.x)) bestFwd=fw2;
-      }
-      if(bestFwd&&Math.abs(bestFwd.x-p.x)>250){
-        var ddx2=bestFwd.x-p.x,ddy2=bestFwd.y-p.y,ddd2=Math.sqrt(ddx2*ddx2+ddy2*ddy2)||1;
-        m.ball.owner=null;
-        m.ball.vx=ddx2/ddd2*780*P.tempo;
-        m.ball.vy=ddy2/ddd2*780*P.tempo;
-        m.ball._passTx=bestFwd.x; m.ball._passTy=bestFwd.y;
-        m.ball._passTo=bestFwd;
-        p.shootCd=0.6;
-        m.lastTouch=p.team; m.lastPasser=p;
-        addEvent(((m.clock/60)|0)+1,'长传 '+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' 长传冲吊');
-        return;
-      }
-    }
-    // 逼抢→传球/突破：被逼抢时优先传球或护球摆脱，绝不硬冲
-    var threat=false,near=null,nbd=1e9;
-    for(var i=0;i<m.players.length;i++){
-      var q=m.players[i];
-      if(q.team!==p.team&&dist2(q,p)<70*70){ threat=true; }
-      if(q.team!==p.team&&q.role!=='gk'&&dist2(q,p)<nbd){ nbd=dist2(q,p); near=q; }
-    }
-    if(threat){
-      var passChance=Math.min(0.95,0.7*P.passAgg/0.35);
-      if(Math.random()<passChance){
-        var bt0=bestPassTarget(m,p);
-        var tgt=bt0?bt0.q:null;
-        if(!tgt) tgt=escapePassTarget(m,p);
-        if(tgt){
-          doPass(m,p,tgt,250,0.5);
-          return;
-        }
-        // 无传球目标：横移/回撤摆脱，不硬冲门将
-        if(near){
-          var away=Math.atan2(p.y-near.y,p.x-near.x);
-          // 靠近边界时优先往场内变向，避免被压死在边线
-          if(p.x<70&&Math.cos(away)<0) away=0;
-          else if(p.x>W-70&&Math.cos(away)>0) away=Math.PI;
-          if(p.y<70&&Math.sin(away)<0) away=Math.PI/2;
-          else if(p.y>H-70&&Math.sin(away)>0) away=-Math.PI/2;
-          var sp=pSpeed(pr);
-          p.vx=Math.cos(away)*sp*0.7+att*sp*0.15;
-          p.vy=Math.sin(away)*sp*0.8;
-          p.face=Math.atan2(p.vy,p.vx);
-          return;
-        }
-      } else if(near){
-        // 护球：背身护球，朝安全方向慢速移动，等待队友接应
-        var holdA=Math.atan2(p.y-near.y,p.x-near.x);
-        if(p.x<70&&Math.cos(holdA)<0) holdA=0;
-        else if(p.x>W-70&&Math.cos(holdA)>0) holdA=Math.PI;
-        if(p.y<70&&Math.sin(holdA)<0) holdA=Math.PI/2;
-        else if(p.y>H-70&&Math.sin(holdA)>0) holdA=-Math.PI/2;
-        var spH=pSpeed(pr);
-        p.vx=Math.cos(holdA)*spH*0.5+att*spH*0.3;
-        p.vy=Math.sin(holdA)*spH*0.6;
-        p.face=Math.atan2(p.vy,p.vx);
-        return;
-      }
-    }
-    // 无压力：按场况智能决策（射门/传球/盘带权衡）
-    if(!threat){
-      var btA=bestPassTarget(m,p); // {q,score} score越低目标越好
-      var tgtA=btA?btA.q:null;
-      // 前方空间探测：推进方向 78px 内是否有防守者
-      var aheadX2=p.x+att*78;
-      var aheadBlocked=false, nearDef2=null, ndD2=1e9;
-      for(var si=0;si<m.players.length;si++){
-        var sqp=m.players[si];
-        if(sqp.team===p.team||sqp.role==='gk') continue;
-        if(Math.abs(sqp.x-aheadX2)<36&&Math.abs(sqp.y-p.y)<46){ aheadBlocked=true; }
-        var d2=dist2(sqp,p);
-        if(d2<ndD2){ ndD2=d2; nearDef2=sqp; }
-      }
-      var spdF=clamp(0.3+(pr.spd-50)/120,0.15,1.0); // 速度决定盘带倾向
-      var counterPush=m.counterT>0&&m.counterTeam===p.team;
-      var keepBall=P.passAgg>=0.45; // 传控型战术多传导，防反/长传型多盘带推进
-      // 反击冲刺：前方有空间直接加速带球
-      if(counterPush&&!aheadBlocked){
-        p.vx=att*pSpeed(pr)*1.12;
-        p.vy=(MIDY-p.y)*0.35+Math.sin(m.clock*0.12+pr.name.length)*16;
-        p.face=Math.atan2(p.vy,p.vx);
-        return;
-      }
-      if(aheadBlocked){
-        // 被堵：高质量空位机会才传，否则护球变向找空隙（低频传导）
-        if(tgtA&&btA.score<420&&Math.random()<0.008*P.passAgg+0.008){
-          doPass(m,p,tgtA);
-          return;
-        }
-        if(nearDef2){
-          var ex=att*60+(p.x-nearDef2.x)*0.5;
-          var ey=(p.y-nearDef2.y)*0.6;
-          var eev=Math.sqrt(ex*ex+ey*ey)||1;
-          var spEv=pSpeed(pr);
-          p.vx=ex/eev*spEv*0.85; p.vy=ey/eev*spEv*0.7;
-          p.face=Math.atan2(p.vy,p.vx);
-          return;
-        }
-      } else {
-        // 有推进空间：盘带 vs 高质量直塞 vs 普通传导
-        var dribbleP=clamp(0.5+0.25*spdF-0.25*(keepBall?1:0)+0.2*(counterPush?1:0),0.15,0.9);
-        if(tgtA&&btA.score<300&&Math.random()<0.35){
-          doPass(m,p,tgtA); // 高质量威胁球（空位/直塞前锋）
-          return;
-        }
-        if(Math.random()<dribbleP){
-          // 直冲盘带：朝球门 + 轻微横向摆动
-          p.vx=att*pSpeed(pr);
-          p.vy=(MIDY-p.y)*0.4+Math.sin(m.clock*0.12+pr.name.length)*22;
-          p.face=Math.atan2(p.vy,p.vx);
-          return;
-        }
-        // 低频传导保持球权，其余继续推进
-        if(tgtA&&Math.random()<0.05*P.passAgg){
-          doPass(m,p,tgtA);
-          return;
-        }
-      }
-    }
-    // 预判避让：前方 50px 内有防守者时提前变向（不贴身才反应）
-    var aheadX=p.x+att*50;
-    var aheadY=null;
-    for(var ai=0;ai<m.players.length;ai++){
-      var aq=m.players[ai];
-      if(aq.team!==p.team&&aq.role!=='gk'&&Math.abs(aq.x-aheadX)<38&&Math.abs(aq.y-p.y)<48){
-        aheadY=aq.y; break;
-      }
-    }
-    if(aheadY!==null&&!threat){
-      p.vx=att*pSpeed(pr)*0.88;
-      p.vy=(aheadY>p.y?-1:1)*pSpeed(pr)*0.55;
+  // 4) 突破：禁区外有空间+角色盘带倾向+速度 → 突入内切
+  if(!inBox&&!aheadBlocked&&dToGate>150&&dToGate<400){
+    var spdF=clamp(0.5+pr.spd/200,0.5,1.2);
+    var counterPush=m.counterT>0&&m.counterTeam===p.team;
+    if(Math.random()<clamp(0.9*RA.dribble*spdF+(counterPush?0.3:0),0.15,0.95)){
+      var goalY=MIDY+(p.y>MIDY?-1:1)*35;
+      p.vx=att*pSpeed(pr)*(counterPush?1.12:1.02);
+      p.vy=(goalY-p.y)*0.5+Math.sin(m.clock*0.1+pr.name.length)*14;
       p.face=Math.atan2(p.vy,p.vx);
       return;
     }
-    // 正常盘带：朝球门 + 轻微横向摆动
-    p.vx=att*pSpeed(pr);
-    p.vy=(MIDY-p.y)*0.4+Math.sin(m.clock*0.12+pr.name.length)*22;
+  }
+  // 5) 传球：被逼抢或高质量机会（角色传球倾向）
+  var bt=bestPassTarget(m,p);
+  var passNow=false;
+  if(threat){ passNow=Math.random()<clamp(0.8*RA.pass,0.3,0.95); }
+  else if(bt){ passNow=Math.random()<(0.3*RA.pass); }
+  if(passNow){
+    var tgt=bt?bt.q:null;
+    if(!tgt) tgt=escapePassTarget(m,p);
+    if(tgt){ doPass(m,p,tgt,threat?250:230,0.4); return; }
+  }
+  // 6) 被逼抢且无法出球：摆脱/护球
+  if(threat&&near){
+    var away=Math.atan2(p.y-near.y,p.x-near.x);
+    if(p.x<70&&Math.cos(away)<0) away=0;
+    else if(p.x>W-70&&Math.cos(away)>0) away=Math.PI;
+    if(p.y<70&&Math.sin(away)<0) away=Math.PI/2;
+    else if(p.y>H-70&&Math.sin(away)>0) away=-Math.PI/2;
+    var sp=pSpeed(pr);
+    if(Math.random()<0.5){ // 护球慢速
+      p.vx=Math.cos(away)*sp*0.5+att*sp*0.3;
+      p.vy=Math.sin(away)*sp*0.6;
+    } else { // 摆脱加速
+      p.vx=Math.cos(away)*sp*0.7+att*sp*0.15;
+      p.vy=Math.sin(away)*sp*0.8;
+    }
     p.face=Math.atan2(p.vy,p.vx);
     return;
   }
-  // 追球/逼抢/站位
-  // 对方门将持球：全体退守站位，不逼抢门将（给门将留出传球空间）
+  // 7) 被堵推进：变向找空隙
+  if(aheadBlocked){
+    var ex=att*60+(p.x-(near?near.x:gateX))*0.5;
+    var ey=(p.y-(near?near.y:MIDY))*0.6;
+    var eev=Math.sqrt(ex*ex+ey*ey)||1;
+    var spEv=pSpeed(pr);
+    p.vx=ex/eev*spEv*0.85; p.vy=ey/eev*spEv*0.7;
+    p.face=Math.atan2(p.vy,p.vx);
+    return;
+  }
+  // 8) 默认推进（朝球门+轻微横摆）
+  p.vx=att*pSpeed(pr);
+  p.vy=(MIDY-p.y)*0.4+Math.sin(m.clock*0.12+pr.name.length)*22;
+  p.face=Math.atan2(p.vy,p.vx);
+}
+// ===== 无球决策（按优先级）=====
+function aiOff(m,p,dt){
+  var b=m.ball;
+  var P=p.team===0?m.paramsHome:m.paramsAway;
+  var att=p.team===0?1:-1;
+  var RA=ROLE_AI[p.role]||ROLE_AI.mf;
+  // 1) 对方门将持球：退守站位不逼抢
   if(b.owner&&b.owner.role==='gk'&&b.owner.team!==p.team){
     var retX=p.team===0?Math.min(p.homeX,W*0.55):Math.max(p.homeX,W*0.45);
     goTo(p,retX,p.homeY,dt,1.05);
     return;
   }
-  // 接应：队友传球给自己时，主动迎球（相向跑向球，后卫限防守范围内）
+  // 2) 接应队友传球
   if(b._passTo===p&&b.owner!==p&&(p.role!=='df'||(p.team===0?b.x<W/2+60:b.x>W/2-60))){ goTo(p,b.x,b.y,dt,1.15); return; }
   var myNearest=nearestTo(m,p.team);
-  // 后卫防守范围：己方半场 + 中线附近 60px（可适度前压逼抢）
   var inMyHalf=p.team===0?b.x<W/2+60:b.x>W/2-60;
+  // 3) 无主球：最近者追球（门将保护圈除外）
   if(!b.owner&&p===myNearest&&dist2(p,b)<220*220&&(p.role!=='df'||inMyHalf)){
-    // 门将保护圈（只对对方球员生效）：loose ball 靠近对方门将时本方球员不得追抢
     var gkOwn=playersOf(m,1-p.team)[0];
     if(!(gkOwn&&dist2(gkOwn,b)<140*140)){ goTo(p,b.x,b.y,dt,1); return; }
   }
+  // 4) 对方持球 → 防守分层
   if(b.owner&&b.owner.team!==p.team&&b.owner.role!=='gk'){
-    // 逼抢僵持保护：贴近持球者超过1.2秒仍未得球 → 后撤拉开再逼抢，避免顶死
     var dOwn=Math.sqrt(dist2(p,b.owner));
     if(dOwn<PLAYER_R*2.4){ p.pressT=(p.pressT||0)+dt; } else { p.pressT=0; }
-    if(p.pressT>1.2){
-      p.pressT=0;
-      var awayA=Math.atan2(p.y-b.owner.y,p.x-b.owner.x);
-      goTo(p,p.x+Math.cos(awayA)*80,p.y+Math.sin(awayA)*80,dt,1.25);
-      return;
-    }
-    // 高压战术（传控/高位逼抢）→ 2 人同时上抢；中低压 → 仅最近 1 人
+    if(p.pressT>1.2){ p.pressT=0; var awayA=Math.atan2(p.y-b.owner.y,p.x-b.owner.x); goTo(p,p.x+Math.cos(awayA)*80,p.y+Math.sin(awayA)*80,dt,1.25); return; }
+    // 逼抢（角色权重：后卫警戒大、前锋压迫强）
     var pressers=(P.press>=1.3)?2:1;
-    var pRange=150+50*P.press/1.1;
-    if(p.role==='df') pRange*=1.35; // 后卫警戒范围更大
-    if(p.role==='fw') pRange*=0.8;
+    var pRange=(150+50*P.press/1.1)*RA.press;
     var nearerCnt=0;
     for(var pr_i=0;pr_i<m.players.length;pr_i++){
       var pr2=m.players[pr_i];
@@ -1909,7 +1842,7 @@ function aiPlayer(m,p,dt){
       goTo(p,b.owner.x,b.owner.y,dt,nearerCnt===0?1.0:1.08);
       return;
     }
-    // 协防：距持球者一定范围内、全队第 2 近的 1 人，站持球者与球门连线上保持 100px 距离（封堵射门路线）
+    // 协防封堵：第二近者站持球者与球门连线
     var dCar=Math.sqrt(dist2(p,b.owner));
     if(dCar<(p.role==='df'?540:460)*(0.8+0.3*P.press/1.1)&&(p.role!=='df'||inMyHalf)){
       var nearer=0;
@@ -1928,9 +1861,21 @@ function aiPlayer(m,p,dt){
         return;
       }
     }
+    // 后卫回防：斜插持球者与球门连线拦截点
+    if(p.role==='df'){
+      var gx3=p.team===0?0:W;
+      var dvx3=gx3-b.owner.x,dvy3=MIDY-b.owner.y;
+      var dd3=Math.sqrt(dvx3*dvx3+dvy3*dvy3)||1;
+      var ax3=b.owner.x+dvx3/dd3*120;
+      var ay3=b.owner.y+dvy3/dd3*120;
+      var tx0=p.homeX+(b.x-W/2)*P.shift*att;
+      if((p.team===0&&ax3<tx0)||(p.team===1&&ax3>tx0)){ goTo(p,ax3,ay3,dt,1.05); return; }
+    }
   }
+  // 5) 默认阵型站位（椭圆活动区，角色范围）
   formationMove(m,p,dt);
 }
+
 function nearestTo(m,team){
   var best=null,bd=1e9;
   for(var i=0;i<m.players.length;i++){
