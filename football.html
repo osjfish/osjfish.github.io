@@ -2904,10 +2904,16 @@ function showFinal(m){
   if(mvp) card.innerHTML+='<div style="margin-top:4px;font-size:11px;color:#ffe08a">⭐ MVP：'+mvp.name+'（'+mvpR.toFixed(1)+'分）</div>';
   if(goalScorers.length) card.innerHTML+='<div style="margin-top:3px;font-size:11px;color:#3ddc7a">⚽ 进球：'+goalScorers.join('、')+'</div>';
   else if(myScore>0) card.innerHTML+='<div style="margin-top:3px;font-size:11px;color:#3ddc7a">⚽ 进球：对方乌龙/混战中打进</div>';
-  card.innerHTML+='</div><div style="display:flex;justify-content:center;gap:8px;margin-top:10px;width:100%">';
-  if(round<TOTAL_ROUNDS) card.innerHTML+='<button class="btn" id="btnNext" style="margin:0 auto">第 '+(round+1)+' 轮</button>';
-  else card.innerHTML+='<button class="btn" id="btnNext" style="margin:0 auto">赛季结束</button>';
   card.innerHTML+='</div>';
+  // 底部按钮行：createElement 追加，确保任何屏幕下水平居中
+  var btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;justify-content:center;align-items:center;width:100%;margin-top:12px';
+  var nextBtn=document.createElement('button');
+  nextBtn.className='btn';
+  nextBtn.id='btnNext';
+  nextBtn.textContent=round<TOTAL_ROUNDS?('第 '+(round+1)+' 轮'):'赛季结束';
+  btnRow.appendChild(nextBtn);
+  card.appendChild(btnRow);
   document.getElementById('dash').classList.add('hide');
   document.getElementById('top').classList.add('hide');
   var _mu2=document.getElementById('matchUI');
@@ -3016,8 +3022,16 @@ function showChampion(){
     '<div class="section-title">🏆 历史冠军</div><table><tr><th>赛季</th><th>冠军</th><th>我的排名</th></tr>'+
     champHistory.slice(0,5).map(function(h,i){ return '<tr><td>S'+(champHistory.length-i)+'</td><td>'+h.champ+'</td><td>'+(h.rank===1?'<b style="color:#ffe08a">🏆冠军</b>':'第'+h.rank+'名')+'</td></tr>'; }).join('')+'</table>'+
     '<div style="margin-top:14px;color:#8fa3bd;font-size:11px">升降级已生效，新赛季各队实力保持不变</div>'+
-    '<div style="font-size:11px;color:#3ddc7a;margin-top:4px">🩹 新赛季开始：全员体力已恢复、伤病已痊愈</div>'+
-    '<div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><button class="btn" id="btnNextSeason">进入新赛季</button></div>';
+    '<div style="font-size:11px;color:#3ddc7a;margin-top:4px">🩹 新赛季开始：全员体力已恢复、伤病已痊愈</div>';
+  // 底部按钮行：createElement 追加，确保水平居中
+  var btnRow2=document.createElement('div');
+  btnRow2.style.cssText='display:flex;justify-content:center;align-items:center;width:100%;margin-top:12px';
+  var nsBtn=document.createElement('button');
+  nsBtn.className='btn';
+  nsBtn.id='btnNextSeason';
+  nsBtn.textContent='进入新赛季';
+  btnRow2.appendChild(nsBtn);
+  card.appendChild(btnRow2);
   document.getElementById('report').classList.add('show');
   document.getElementById('btnNextSeason').onclick=function(){
     season++;
