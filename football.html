@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="utf-8">
@@ -4196,6 +4196,102 @@ if(loaded&&myIdx>=0&&myClub){
   renderPickClub();
 }
 requestAnimationFrame(frame);
+
+// ===== 顶层定义（修复：aiGK 函数体括号缺失导致以下函数被吞入函数内，仅比赛时守门员持球才会赋值；此处顶层重新定义保证加载即生效） =====
+
+window.ensureEleven=function(){
+  var roles=window.roleList(myClub.form);
+  for(var i=0;i<roles.length;i++){
+    if(myClub.eleven[i]) continue;
+    var best=null;
+    for(var j=0;j<myClub.squad.length;j++){
+      var p=myClub.squad[j];
+      if(p.inj>0||myClub.eleven.indexOf(p)>=0||p.pos!==roles[i]) continue;
+      if(!best||p.ab>best.ab) best=p;
+    }
+    if(!best){
+      for(var k=0;k<myClub.squad.length;k++){ var q=myClub.squad[k]; if(q.inj<=0&&myClub.eleven.indexOf(q)<0){ best=q; break; } }
+    }
+    if(best) myClub.eleven[i]=best;
+  }
+}
+window.assignPlayer=function(q){
+  var roles=window.roleList(myClub.form);
+  for(var i=0;i<roles.length;i++){ if(roles[i]===q.pos&&!myClub.eleven[i]){ myClub.eleven[i]=q; return true; } }
+  var wi=-1,wa=-1;
+  for(var j=0;j<roles.length;j++){
+    if(roles[j]!==q.pos) continue;
+    var cur=myClub.eleven[j];
+    if(cur&&cur!==q&&(wi<0||cur.ab<wa)){ wi=j; wa=cur.ab; }
+  }
+  if(wi>=0){ myClub.eleven[wi]=q; return true; }
+  return false;
+}
+window.reformEleven=function(){
+  var roles=window.roleList(myClub.form);
+  var old=myClub.eleven||[];
+  var used={}, el=[];
+  for(var i=0;i<roles.length;i++){
+    var r=roles[i];
+    var best=null;
+    for(var j=0;j<old.length;j++){
+      var p=old[j];
+      if(p&&p.pos===r&&!used[p.name]){ best=p; used[p.name]=true; break; }
+    }
+    if(!best){
+      for(var k=0;k<myClub.squad.length;k++){
+        var q=myClub.squad[k];
+        if(q.inj<=0&&q.pos===r&&!used[q.name]){ best=q; used[q.name]=true; break; }
+      }
+    }
+    if(!best){
+      for(var k2=0;k2<myClub.squad.length;k2++){ var q2=myClub.squad[k2]; if(q2.inj<=0&&!used[q2.name]){ best=q2; used[q2.name]=true; break; } }
+    }
+    el.push(best||null);
+  }
+  myClub.eleven=el;
+}
+var PRESETS=[
+  {n:'⚔ 全力进攻',m:'att',p:'high',l:'high'},
+  {n:'⚖ 攻守均衡',m:'bal',p:'mid',l:'mid'},
+  {n:'🛡 摆大巴',m:'def',p:'low',l:'low'}
+];
+window.headline=function(){
+  var opp=opponentOf(round);
+  var oppClub=aiClubs.filter(function(c){return c.idx===opp;})[0];
+  if(!oppClub) return '⚽ 第'+round+'轮';
+  var myRk=rankOf(myIdx)+1;
+  var n=tableOf(myTier).length;
+  if(round===TOTAL_ROUNDS){
+    if(myRk<=2&&myTier==='A') return '🏆 收官战！冲击冠军';
+    if(myRk<=2&&myTier==='B') return '🏆 收官战！冲击升级';
+    if(myRk>=n-1&&myTier==='A') return '⬇ 保级生死战！';
+    return '⚽ 赛季收官战';
+  }
+  if(oppClub.ab>=80) return '🔥 焦点战：对阵劲旅 '+oppClub.name;
+  if(oppClub.ab<=60) return '💪 对手偏弱，全力争胜';
+  return '⚽ 第'+round+'轮：对阵 '+oppClub.name;
+}
+window.weeklyEvent=function(){
+  var r=Math.random();
+  if(r<0.35){
+    for(var i=0;i<myClub.squad.length;i++) myClub.squad[i].mor=clamp(myClub.squad[i].mor+5,20,100);
+    return '🔥 更衣室气氛火热，全队士气 +5';
+  }
+  if(r<0.55){
+    var cand=myClub.squad.filter(function(q){ return q.age<=25&&q.ab<95&&q.inj<=0; });
+    if(cand.length){
+      var c=cand[(Math.random()*cand.length)|0];
+      growAttrs(c);
+      return '📈 青训捷报：'+c.name+' 训练进步 +1';
+    }
+  }
+  if(r<0.75){
+    for(var j=0;j<myClub.squad.length;j++) myClub.squad[j].fit=clamp(myClub.squad[j].fit+6,40,100);
+    return '💆 队医团队介入，全队体能小幅恢复 +6';
+  }
+  return null;
+}
 </script>
 </body>
 </html>
