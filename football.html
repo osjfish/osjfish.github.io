@@ -289,19 +289,21 @@
   }
   @media (max-width:900px) {
     #wrap { padding-top:42px; padding-bottom:108px; }
-    #top { font-size:10px; padding:3px 8px; gap:6px; border-radius:0 0 10px 10px; }
-    #top .sc { font-size:15px; min-width:18px; }
-    #top .ck { min-width:38px; }
+    #top { font-size:10px; padding:3px 8px; gap:6px; border-radius:0 0 10px 10px; flex-wrap:nowrap; }
+    #top .nm { max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+    #top .sc { font-size:17px; min-width:18px; }
+    #top .ck { min-width:34px; font-size:12px; }
     #top .mt { display:none; }
-    #top .cash { font-size:10px; }
+    #top .cash, #top #roundTxt { display:none; }
+    #btnSfx { font-size:10px; padding:3px 8px; }
     #timeline { top:34px; height:3px; width:min(300px,58vw); }
     #events { bottom:4px; max-height:60px; font-size:9px; padding:3px 8px; width:min(430px,86vw); }
     #controls { right:4px; bottom:4px; }
     #controls .btn { font-size:14px; padding:6px 12px; }
-    #rating { display:none; }
+    #rating { display:block; left:4px; bottom:52px; font-size:12px; padding:6px 8px; max-height:118px; width:min(210px,46vw); }
+    #rating .row { padding:1px 0; }
     #toast { font-size:22px; top:24%; }
     #roundTxt { font-size:9px; padding:1px 6px; }
-    #btnSfx { font-size:10px; padding:3px 8px; }
   }
 </style>
 </head>
@@ -1738,12 +1740,15 @@ function aiHold(m,p){
         kickBall(m,p,400+pr.sho*6+pr.pow*5,ang);
         m.shots[p.team]++;
         var onT=Math.random()<0.2+pr.sho*0.0025+pr.tec*0.002;
+        m.ball._onT=onT; // 供扑救消息区分（射正化解/偏球没收）
         if(onT) m.onTarget[p.team]++;
         else m.rating[pr.name]=(m.rating[pr.name]||6)-0.1;
         resolveShot(m,p,ang);
         var min=((m.clock/60)|0)+1;
-        var shotsTxt=onT?['起脚射门！','大力轰门！','远距离发炮！','禁区内劲射！'][(Math.random()*4)|0]:['射门偏出','高射炮','稍稍偏出立柱','打飞了'][(Math.random()*4)|0];
-        addEvent(min,(onT?'射门！':'打偏 ')+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' '+shotsTxt);
+        // 射门消息按距离与结果分类（避免"远距离禁区内劲射"等错误）
+        var dTxt=dToGate<175?'禁区内':(dToGate<300?'中距离':'远距离');
+        var shotsTxt=onT?(dToGate<175?'禁区内劲射！':(dToGate<300?'大力轰门！':'远射发炮！')):(dToGate<175?'近在咫尺打飞！':(dToGate<300?'抽射偏出！':'高射炮！'));
+        addEvent(min,(onT?'射门！':'射门偏出！')+(p.team===0?m.home.name:m.away.name)+' '+pr.name+' '+dTxt+' '+shotsTxt);
         return;
       }
     }
@@ -2241,7 +2246,9 @@ function gkSaveCheck(m){
       b.owner=gk;
       gk.dive=-1; gk.cd=1.5;
       m.rating[gk.pl.name]=(m.rating[gk.pl.name]||6)+0.6;
-      addEvent(((m.clock/60)|0)+1,'扑救 '+(gk.team===0?m.home.name:m.away.name)+' '+gk.pl.name+' 化解射门');
+      // 射正被扑 = 化解射门；偏出球被收 = 没收（与射门消息不矛盾）
+      var onTxt=b._onT?'化解射门':'将球没收';
+      addEvent(((m.clock/60)|0)+1,'扑救 '+(gk.team===0?m.home.name:m.away.name)+' '+gk.pl.name+' '+onTxt);
       return true;
     }
   }
