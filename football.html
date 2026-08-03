@@ -368,17 +368,17 @@ var REGIONS=[
 ];
 var TACTICS=[
   { id:'balanced', name:'⚖ 攻守平衡', desc:'攻守均衡、节奏适中，最稳妥的选择',
-    mentality:'bal', press:'mid', line:'mid', passAgg:0.35, tempo:1.0, direct:0.3, wing:0.45, counter:1.1, shootMul:1.0, shootDist:450, forward:1.1 },
-  { id:'tikitaka', name:'🧠 传控', desc:'高控球率、短传渗透、丢球立即反抢',
-    mentality:'bal', press:'high', line:'mid', passAgg:0.65, tempo:0.85, direct:0.15, wing:0.45, counter:1.0, shootMul:0.9, shootDist:430, forward:1.1 },
-  { id:'gegenpress', name:'⚡ 高位逼抢', desc:'丢球就地反抢，夺回球权后快速直塞',
-    mentality:'att', press:'high', line:'high', passAgg:0.3, tempo:1.15, direct:0.6, wing:0.45, counter:1.35, shootMul:1.15, shootDist:480, forward:1.3 },
+    mentality:'bal', press:'mid', line:'mid', passAgg:0.35, tempo:1.0, direct:0.3, wing:0.45, counter:1.1, shootMul:1.0, shootDist:450, forward:1.1, tackleMul:1.0, retreatMul:1.0 },
+  { id:'tikitaka', name:'🧠 传控', desc:'高控球率、短传渗透，丢球立即反抢；攻坚稍弱',
+    mentality:'bal', press:'high', line:'mid', passAgg:0.65, tempo:0.85, direct:0.15, wing:0.45, counter:1.0, shootMul:0.9, shootDist:430, forward:1.1, tackleMul:1.05, retreatMul:0.95 },
+  { id:'gegenpress', name:'⚡ 高位逼抢', desc:'丢球就地反抢，快速直塞；防线高，忌被打身后',
+    mentality:'att', press:'high', line:'high', passAgg:0.3, tempo:1.15, direct:0.6, wing:0.45, counter:1.35, shootMul:1.15, shootDist:480, forward:1.3, tackleMul:0.85, retreatMul:0.9 },
   { id:'counter', name:'🛡 防守反击', desc:'低位防守，抢断后快速纵向反击',
-    mentality:'def', press:'low', line:'low', passAgg:0.25, tempo:1.25, direct:0.8, wing:0.45, counter:1.6, shootMul:1.05, shootDist:460, forward:0.9 },
-  { id:'bus', name:'🚌 摆大巴', desc:'全员退守禁区，极度保守',
-    mentality:'def', press:'low', line:'low', passAgg:0.2, tempo:0.85, direct:0.5, wing:0.45, counter:1.2, shootMul:0.7, shootDist:400, forward:0.75 },
+    mentality:'def', press:'low', line:'low', passAgg:0.25, tempo:1.25, direct:0.8, wing:0.45, counter:1.6, shootMul:1.05, shootDist:460, forward:0.9, tackleMul:1.1, retreatMul:1.05 },
+  { id:'bus', name:'🚌 摆大巴', desc:'全员退守禁区，密集拦截，反击寥寥',
+    mentality:'def', press:'low', line:'low', passAgg:0.2, tempo:0.85, direct:0.5, wing:0.45, counter:1.2, shootMul:0.7, shootDist:400, forward:0.75, tackleMul:1.3, retreatMul:1.1 },
   { id:'direct', name:'🚀 长传冲吊', desc:'跳过中场，直接长传找前锋',
-    mentality:'bal', press:'mid', line:'mid', passAgg:0.5, tempo:1.2, direct:1.0, wing:0.45, counter:1.25, shootMul:1.1, shootDist:480, forward:1.15 }
+    mentality:'bal', press:'mid', line:'mid', passAgg:0.5, tempo:1.2, direct:1.0, wing:0.45, counter:1.25, shootMul:1.1, shootDist:480, forward:1.15, tackleMul:1.0, retreatMul:1.0 }
 ];
 function tacticById(id){
   for(var i=0;i<TACTICS.length;i++){ if(TACTICS[i].id===id) return TACTICS[i]; }
@@ -632,12 +632,14 @@ function simAIMatch(hIdx,aIdx,tier){
     }
   }
   var ha=teamAbility(home.eleven), aa=teamAbility(away.eleven);
-  // 战术影响：攻击战术进球期望更高，摆大巴更低
+  // 战术影响：射门加成 + 反击加速 + 抢断效率；对方高压逼抢会压制本方进攻
   var ht=home.tactic?tacticById(home.tactic):null;
   var at=away.tactic?tacticById(away.tactic):null;
-  var hAdj=ht?(ht.shootMul-1)*0.5:0;
-  var aAdj=at?(at.shootMul-1)*0.5:0;
-  var expH=clamp(1.5+(ha-aa)/60+0.2+hAdj,0.2,6.0), expA=clamp(1.5+(aa-ha)/60+aAdj,0.2,5.5);
+  var tacAdj=function(t){ if(!t) return 0; return (t.shootMul-1)*0.5+(t.counter-1)*0.2+(t.tackleMul?((t.tackleMul-1)*0.3):0); };
+  var hAdj=tacAdj(ht), aAdj=tacAdj(at);
+  var hPressPen=(at&&at.press==='high')?0.12:0;
+  var aPressPen=(ht&&ht.press==='high')?0.12:0;
+  var expH=clamp(1.5+(ha-aa)/60+0.2+hAdj-hPressPen,0.2,6.0), expA=clamp(1.5+(aa-ha)/60+aAdj-aPressPen,0.2,5.5);
   var hg=poisson(expH), ag=poisson(expA);
   var hr=tableOf(tier).filter(function(r){return r.idx===hIdx;})[0];
   var ar=tableOf(tier).filter(function(r){return r.idx===aIdx;})[0];
@@ -848,9 +850,12 @@ function params(team,home){
   var shootDist=tac?tac.shootDist:(att?500:(def?400:450));
   var forward=tac?tac.forward:(att?1.35:(def?0.85:1.1));
   var pressVal=(def?1.25:(att?0.95:1.1))*pressMul;
+  var tackleMul=tac&&tac.tackleMul!==undefined?tac.tackleMul:1;
+  var retreatMul=tac&&tac.retreatMul!==undefined?tac.retreatMul:1;
   return { shootMul:shootMul, shootDist:shootDist,
     press:pressVal, forward:forward, shift:(att?0.17:(def?0.08:0.13))*lineMul,
-    tackle:clamp((0.03+ab*0.0009)*(0.85+0.3*pressVal/1.1),0.03,0.12),
+    tackle:clamp((0.03+ab*0.0009)*(0.85+0.3*pressVal/1.1)*tackleMul,0.03,0.15),
+    retreat:retreatMul,
     shootRate:clamp(0.015+ab*0.0003,0.015,0.045),
     passAgg:tac?tac.passAgg:0.35, tempo:tac?tac.tempo:1.0, direct:tac?tac.direct:0.3,
     wing:tac?tac.wing:0.45, counter:tac?tac.counter:1.1, buildUp:(tac&&tac.direct>=0.8)?'direct':((tac&&tac.passAgg>=0.45)?'short':'mid') };
@@ -1277,10 +1282,10 @@ function formationMove(m,p,dt){
     // 仅当拦截点比当前目标更靠近本方球门时执行（避免上前失位）
     if((p.team===0&&ax<tx)||(p.team===1&&ax>tx)){ goTo(p,ax,ay,dt,1.05); return; }
   }
-  // 回防加速：球在自己身后且远离时快速回撤；反击窗口内全队加速前插
+  // 回防加速：球在自己身后且远离时快速回撤；反击窗口内全队加速前插（防线越高压回防越慢）
   var behind=(p.team===0&&m.ball.x<p.x)||(p.team===1&&m.ball.x>p.x);
   var burst=(m.counterT>0&&m.counterTeam===p.team)?(1+(P.counter-1)*0.7):1;
-  goTo(p,tx,ty,dt,(behind&&p.role!=='fw'?1.12:0.95)*burst);
+  goTo(p,tx,ty,dt,(behind&&p.role!=='fw'?1.12*(P.retreat||1):0.95)*burst);
 }
 function bestPassTarget(m,p){
   var gateX=p.team===0?W:0;
