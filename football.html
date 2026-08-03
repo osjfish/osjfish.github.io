@@ -469,6 +469,11 @@ function tacticById(id){
 function randTactic(){
   return TACTICS[(Math.random()*TACTICS.length)|0].id;
 }
+// 随机阵型（对手阵型有变化）
+function randForm(){
+  var ks=Object.keys(FORMS);
+  return ks[(Math.random()*ks.length)|0];
+}
 window.ensureEleven=function(){};
 window.autoLineup=function(){};
 window.roleList=function(){};
@@ -1160,7 +1165,7 @@ function initLeague(){
   for(var t=0;t<REGIONS.length;t++){
     var r=REGIONS[t];
     var squad=genSquad(r.id,r.ab);
-    var club={idx:t,name:r.name,short:r.short,color:r.color,ab:r.ab,tier:r.tier,squad:squad,form:'4-3-3',mentality:'bal',press:'mid',line:'mid',tactic:'balanced',eleven:[],cash:800};
+    var club={idx:t,name:r.name,short:r.short,color:r.color,ab:r.ab,tier:r.tier,squad:squad,form:randForm(),mentality:'bal',press:'mid',line:'mid',tactic:'balanced',eleven:[],cash:800};
     var _el=[],_roles=_rl(club.form||'4-3-3'),_b;for(var _ri=0;_ri<_roles.length;_ri++){_b=null;for(var _si=0;_si<club.squad.length;_si++){var _p=club.squad[_si];if(_el.indexOf(_p)>=0||_p.inj>0||_p.pos!==_roles[_ri])continue;if(!_b||_p.ab>_b.ab)_b=_p;}if(!_b){for(var _sk=0;_sk<club.squad.length;_sk++){if(_el.indexOf(club.squad[_sk])<0&&club.squad[_sk].inj<=0){_b=club.squad[_sk];break;}}}_el.push(_b||null);}club.eleven=_el;
     aiClubs.push(club);
   }
@@ -1267,9 +1272,11 @@ function simAIMatch(hIdx,aIdx,tier){
   var home=aiClubs.filter(function(c){return c.idx===hIdx;})[0];
   var away=aiClubs.filter(function(c){return c.idx===aIdx;})[0];
   if(!home||!away) return;
-  // AI 每场比赛随机战术（不再固定攻守平衡）
+  // AI 每场比赛随机战术与阵型（不再固定攻守平衡/433）
   home.tactic=randTactic();
   away.tactic=randTactic();
+  home.form=randForm();
+  away.form=randForm();
   // AI 体能管理：赛前按综合评分轮换（体能差的自动轮休），赛后结算体能/伤病（与玩家同规则）
   window.buildEleven(home);
   window.buildEleven(away);
@@ -1562,8 +1569,10 @@ function startMatch(){
   }
 var oppIdx=opponentOf(round);
   var opp=aiClubs[oppIdx];
-  // 对手每场比赛随机战术（赛前侦察到的是预测，开赛时确定）
+  // 对手每场比赛随机战术与阵型（赛前侦察到的是预测，开赛时确定）
   opp.tactic=randTactic();
+  opp.form=randForm();
+  window.buildEleven(opp);
   // 根据赛程表确定主客场
   var pairs=fixtures[myTier]&&fixtures[myTier][round];
   var isHome=true;
