@@ -1850,8 +1850,8 @@ function aiHold(m,p){
       }
       // 门前/禁区内：无人盯防时果断射门（避免单刀回传），被盯防再权衡
       var shootP;
-      if(dToGate<130) shootP=0.85;                     // 门前必射
-      else if(inBox) shootP=marked?0.55:0.85;          // 禁区内：空位大胆射
+      if(dToGate<130) shootP=0.9;                     // 门前必射
+      else if(inBox) shootP=marked?0.55:0.95;         // 禁区内：空位95%射门，5%留给队友更好位置
       else {
         shootP=P.shootRate*P.shootMul*RA.shoot;        // 禁区外：角色权重
         if(dToGate>320) shootP*=0.45;
@@ -1894,10 +1894,10 @@ function aiHold(m,p){
       return;
     }
   }
-  // 5) 传球：被逼抢或高质量机会（角色传球倾向）；禁区内不轻易回传
+  // 5) 传球：被逼抢或高质量机会（角色传球倾向）；禁区内5%机会给位置更好的队友
   var bt=bestPassTarget(m,p);
   var passNow=false;
-  if(inBox){ passNow=false; } // 禁区内优先射门/盘带，不横传回传
+  if(inBox){ passNow=Math.random()<0.05; } // 禁区内极少回传，仅队友位置明显更好时
   else if(threat){ passNow=Math.random()<clamp(0.8*RA.pass,0.3,0.95); }
   else if(bt){ passNow=Math.random()<(0.3*RA.pass); }
   if(passNow){
@@ -2212,8 +2212,10 @@ function passBlocked(m,a,b){
 function aiGK(m,p,dt){
   var b=m.ball, pr=p.pl;
   var gateX=p.team===0?0:W, dir=p.team===0?1:-1;
-  // 对方持球逼近球门：出击抢断（门将抢断率高）
-  if(b.owner&&b.owner.team!==p.team&&b.owner.role!=='gk'&&Math.abs(b.owner.x-gateX)<180&&p.gkCd<=0){
+  // 对方持球逼近球门：仅当持球者突入禁区（门前160px×左右130px）才出击没收
+  if(b.owner&&b.owner.team!==p.team&&b.owner.role!=='gk'&&p.gkCd<=0){
+    var inGKBox=Math.abs(b.owner.x-gateX)<160&&Math.abs(b.owner.y-MIDY)<130;
+    if(inGKBox){
     var distG=Math.sqrt(dist2(p,b.owner));
     if(distG<95){
       if(Math.random()<0.35){
@@ -2231,6 +2233,7 @@ function aiGK(m,p,dt){
       p.y+=(b.owner.y-p.y)*Math.min(1,dt*6);
       p.face=dir;
       return;
+    }
     }
   }
   if(b.owner===p){
