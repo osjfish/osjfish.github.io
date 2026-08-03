@@ -1843,14 +1843,20 @@ function aiHold(m,p){
     if(p.shootCd>0&&dToGate<160) p.shootCd=Math.min(p.shootCd,0.05);
     if(dToGate<90) p.shootCd=0;
     if(p.shootCd<=0){
-      var shootP=inBox?0.5:P.shootRate*P.shootMul*RA.shoot;
-      if(dToGate>320) shootP*=0.45;
       var marked=false;
       for(var mi=0;mi<m.players.length;mi++){
         var mq=m.players[mi];
         if(mq.team!==p.team&&mq.role!=='gk'&&dist2(mq,p)<70*70&&(mq.x-p.x)*att>0) marked=true;
       }
-      if(marked) shootP*=0.45;
+      // 门前/禁区内：无人盯防时果断射门（避免单刀回传），被盯防再权衡
+      var shootP;
+      if(dToGate<130) shootP=0.85;                     // 门前必射
+      else if(inBox) shootP=marked?0.55:0.85;          // 禁区内：空位大胆射
+      else {
+        shootP=P.shootRate*P.shootMul*RA.shoot;        // 禁区外：角色权重
+        if(dToGate>320) shootP*=0.45;
+        if(marked) shootP*=0.45;
+      }
       var angleGood=Math.abs(p.y-MIDY)<75;
       var gk0=playersOf(m,1-p.team)[0];
       var gkD=gk0?Math.sqrt(dist2(gk0,p)):999;
@@ -1888,10 +1894,11 @@ function aiHold(m,p){
       return;
     }
   }
-  // 5) 传球：被逼抢或高质量机会（角色传球倾向）
+  // 5) 传球：被逼抢或高质量机会（角色传球倾向）；禁区内不轻易回传
   var bt=bestPassTarget(m,p);
   var passNow=false;
-  if(threat){ passNow=Math.random()<clamp(0.8*RA.pass,0.3,0.95); }
+  if(inBox){ passNow=false; } // 禁区内优先射门/盘带，不横传回传
+  else if(threat){ passNow=Math.random()<clamp(0.8*RA.pass,0.3,0.95); }
   else if(bt){ passNow=Math.random()<(0.3*RA.pass); }
   if(passNow){
     var tgt=bt?bt.q:null;
