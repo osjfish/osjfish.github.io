@@ -435,17 +435,40 @@
                     model: model,
                     messages: [{ role: 'system', content: sys }].concat(history),
                     temperature: 0.7,
-                    max_tokens: 50
+                    max_tokens: 150
                 })
             });
             if (!resp.ok) throw new Error('API request failed');
             var data = await resp.json();
-            var aiResp = data.choices[0].message.content.trim();
+            // 模型偶发空回复：自动重试最多 2 次，避免回答为空
+            var aiResp = '';
+            for (var attempt = 0; attempt < 2; attempt++) {
+                if (attempt > 0) {
+                    var retry = await fetch('https://api.deepseek.com/chat/completions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [{ role: 'system', content: sys }].concat(history),
+                            temperature: 0.7,
+                            max_tokens: 150
+                        })
+                    });
+                    if (!retry.ok) throw new Error('API request failed');
+                    data = await retry.json();
+                }
+                aiResp = String((data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '').trim();
+                if (aiResp) break;
+            }
             load.remove();
-            addAi(aiResp);
-            history.push({ role: 'assistant', content: aiResp });
-            if (aiResp.indexOf('\u731c\u5bf9\u4e86') !== -1) {
-                setTimeout(function() { showResult(true); }, 800);
+            if (!aiResp) {
+                addAi('\u2026\u2026\u9152\u4e2d\u4ed9\u4e00\u65f6\u8bed\u585e\uff0c\u8bf7\u518d\u95ee\u4e00\u6b21\u3002');
+            } else {
+                addAi(aiResp);
+                history.push({ role: 'assistant', content: aiResp });
+                if (aiResp.indexOf('\u731c\u5bf9\u4e86') !== -1) {
+                    setTimeout(function() { showResult(true); }, 800);
+                }
             }
         } catch (e) {
             load.remove();
