@@ -3024,31 +3024,29 @@ function showChampion(){
   if(kidInfo.length) showMsg('🌱 青训学院培养出 '+kidInfo.length+' 名新秀：'+kidInfo.join('、'));
   // 赛季老化：年龄+1、退役、补员
   seasonAging();
-  // 升降级
-  var myTbl=tableOf(myTier);
-  var otherTier=myTier==='A'?'B':'A';
-  var otherTbl=tableOf(otherTier);
-  var myBot=myTbl.slice().sort(function(a,b){return a.pts-b.pts||(a.gf-a.ga)-(b.gf-b.ga);});
-  var otherTop=otherTbl.slice().sort(function(a,b){return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga);});
-  var promo=otherTop.slice(0,2), demote=myBot.slice(0,2);
-  for(var p=0;p<promo.length;p++){
-    var c=aiClubs.filter(function(x){return x.idx===promo[p].idx;})[0];
-    if(c) c.tier=myTier;
+  // 升降级（固定规则，与玩家所在级别无关：B级前两名升至A级联赛，A级后两名降至B级联赛）
+  var tblA3=tableOf('A'), tblB3=tableOf('B');
+  var sortDesc3=function(a,b){ return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga); };
+  var sortAsc3=function(a,b){ return a.pts-b.pts||(a.gf-a.ga)-(b.gf-b.ga); };
+  var promoB3=tblB3.slice().sort(sortDesc3).slice(0,2); // B级前二 → 升级
+  var demoteA3=tblA3.slice().sort(sortAsc3).slice(0,2);  // A级后二 → 降级
+  for(var p=0;p<promoB3.length;p++){
+    var c=aiClubs.filter(function(x){return x.idx===promoB3[p].idx;})[0];
+    if(c) c.tier='A';
   }
-  for(var d=0;d<demote.length;d++){
-    var c2=aiClubs.filter(function(x){return x.idx===demote[d].idx;})[0];
-    if(c2) c2.tier=otherTier;
+  for(var d=0;d<demoteA3.length;d++){
+    var c2=aiClubs.filter(function(x){return x.idx===demoteA3[d].idx;})[0];
+    if(c2) c2.tier='B';
   }
-  var promoStr=promo.map(function(x){return x.name;}).join('、');
-  var demoteStr=demote.map(function(x){return x.name;}).join('、');
+  var promoStr=promoB3.map(function(x){return x.name;}).join('、');
+  var demoteStr=demoteA3.map(function(x){return x.name;}).join('、');
   var myTierName=myTier==='A'?'A级联赛':'B级联赛';
-  var otherTierName=myTier==='A'?'B级联赛':'A级联赛';
   var card=document.getElementById('reportCard');
   card.innerHTML='<h1>🏆 赛季'+season+'结束</h1>'+
     '<div style="text-align:center;font-size:18px;font-weight:900;color:#ffe08a;margin:8px 0">'+myTierName+'冠军：'+champ.name+'（'+champ.pts+'分）</div>'+
     '<div style="text-align:center;font-size:12px;color:#8fa3bd">'+myClub.name+' 第'+myRank+'名 · '+myRow.pts+'分 · 资金 '+myClub.cash+'万（含赞助 +'+sponsor+'万）</div>'+
-    '<div style="margin:8px 0;font-size:12px;color:#3ddc7a">⬆ 升级：'+promoStr+' 升至'+myTierName+'</div>'+
-    '<div style="margin:8px 0;font-size:12px;color:#ff6b81">⬇ 降级：'+demoteStr+' 降至'+otherTierName+'</div>'+
+    '<div style="margin:8px 0;font-size:12px;color:#3ddc7a">⬆ 升级：'+promoStr+'（B级前二）升至A级联赛</div>'+
+    '<div style="margin:8px 0;font-size:12px;color:#ff6b81">⬇ 降级：'+demoteStr+'（A级后二）降至B级联赛</div>'+
     '<div class="section-title">🏆 历史冠军</div><table><tr><th>赛季</th><th>冠军</th><th>我的排名</th></tr>'+
     champHistory.slice(0,5).map(function(h,i){ return '<tr><td>S'+(champHistory.length-i)+'</td><td>'+h.champ+'</td><td>'+(h.rank===1?'<b style="color:#ffe08a">🏆冠军</b>':'第'+h.rank+'名')+'</td></tr>'; }).join('')+'</table>'+
     '<div style="margin-top:14px;color:#8fa3bd;font-size:11px">升降级已生效，新赛季各队实力保持不变</div>'+
@@ -3080,11 +3078,15 @@ function showChampion(){
     myTier=aiClubs[myIdx].tier;
     TOTAL_ROUNDS=myTier==='A'?LEAGUE_A_ROUNDS:LEAGUE_B_ROUNDS;
     round=1; resultsByRound={};
-    // 赛季结束：全联盟球员体力与伤病全部恢复
+    // 赛季结束：全联盟球员体力与伤病全部恢复；射手榜/助攻榜按新赛季重新统计
     for(var _rc=0;_rc<aiClubs.length;_rc++){
       for(var _rp=0;_rp<aiClubs[_rc].squad.length;_rp++){
         aiClubs[_rc].squad[_rp].fit=100;
         aiClubs[_rc].squad[_rp].inj=0;
+        aiClubs[_rc].squad[_rp].goals=0;
+        aiClubs[_rc].squad[_rp].assists=0;
+        aiClubs[_rc].squad[_rp].played=0;
+        aiClubs[_rc].squad[_rp].rating=6.0;
       }
     }
     fin={wages:0,gate:0,bonus:0,sponsor:0,transferIn:0,transferOut:0,training:0,sellGain:0,facility:0,activity:0};
