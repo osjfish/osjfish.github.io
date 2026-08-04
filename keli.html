@@ -107,7 +107,7 @@ textarea.biji{min-height:170px}
 .hint{font-size:12px;color:var(--ink-soft);margin-top:6px}
 .counter{font-size:12px;color:var(--ink-soft);margin-left:auto}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-.gen-btn{display:flex;flex-direction:column;gap:8px;padding:16px;text-align:left;min-height:96px}
+.gen-btn{display:flex;align-items:center;gap:8px;padding:14px 16px;text-align:left;min-height:54px}
 .gen-btn .t{font-weight:700;letter-spacing:2px;font-size:15px}
 .gen-btn .d{font-size:12px;color:var(--ink-soft)}
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
@@ -201,7 +201,6 @@ textarea.biji{min-height:170px}
   <div class="seal">课例<br>评析</div>
   <div class="brand">
     <h1>课例评析</h1>
-    <p>听评课 AI 助手 · 把听课笔记变成教研成果</p>
   </div>
   <div class="spacer"></div>
   <div class="ai-pick">
@@ -221,10 +220,9 @@ textarea.biji{min-height:170px}
 <main>
   <section id="view-workspace" class="view">
     <div class="card">
-      <div class="step-label"><span class="no">一</span>上传 / 录入教案<span class="flow">→ 本课的教学设计文本</span></div>
+      <div class="step-label"><span class="no">一</span>上传 / 录入教案</div>
       <div class="left-sec">
         <button class="btn" id="btnImportJiaoan">导入教案文件</button>
-        <span class="hint">支持 .txt .md .docx .pdf 及图片（首次解析需联网加载解析库）</span>
         <input type="file" id="fileJiaoan" accept=".txt,.md,.docx,.pdf,.png,.jpg,.jpeg" hidden>
         <span class="counter" id="jiaCount">0 字</span>
       </div>
@@ -232,7 +230,7 @@ textarea.biji{min-height:170px}
     </div>
 
     <div class="card">
-      <div class="step-label"><span class="no">二</span>听课笔记<span class="flow">→ 记录课堂实录、观察与随想</span></div>
+      <div class="step-label"><span class="no">二</span>听课笔记</div>
       <div class="left-sec">
         <button class="btn" id="btnSaveRecord">保存到记录库</button>
         <span class="hint" id="recStatus"></span>
@@ -242,26 +240,22 @@ textarea.biji{min-height:170px}
     </div>
 
     <div class="card">
-      <div class="step-label">生成评课成果<span class="flow">→ 一键生成，三份成果分页展示</span></div>
+      <div class="step-label">生成评课成果</div>
       <div class="grid3">
         <button class="btn gen-btn primary" id="btnPing">
           <span class="t">生成评课要点</span>
-          <span class="d">亮点 · 不足 · 改进建议 · 总体评价</span>
         </button>
         <button class="btn gen-btn jade" id="btnAnli">
           <span class="t">生成案例分析</span>
-          <span class="d">典型片段 · 理论剖析 · 教学启示</span>
         </button>
         <button class="btn gen-btn gold" id="btnLunwen">
           <span class="t">生成教学论文</span>
-          <span class="d">论文初稿 · 摘要 · 结构完整</span>
         </button>
       </div>
-      <p class="muted" style="margin-top:10px">生成前请确认：① 教案与笔记已填写；② 右上角已选好 AI 通道。</p>
     </div>
 
     <div class="card">
-      <div class="step-label">展示区<span class="flow">· 三份成果独立查看、复制、下载</span></div>
+      <div class="step-label">展示区</div>
       <div class="tabs">
         <button class="tab on" data-shot="pingke">评课要点<span class="badge" id="bd-pingke" hidden>成</span></button>
         <button class="tab" data-shot="anli">案例分析<span class="badge" id="bd-anli" hidden>成</span></button>
@@ -295,7 +289,6 @@ textarea.biji{min-height:170px}
   <section id="view-settings" class="view" hidden>
     <div class="card">
       <div class="set-sec">AI 通道管理</div>
-      <p class="muted" style="margin-bottom:12px">密钥仅保存在本机浏览器（localStorage），不会上传到任何服务器。所有通道均采用 OpenAI 兼容的 /chat/completions 协议。豆包（火山方舟）需先在控制台创建「推理接入点」，将接入点 ID（ep- 开头）填入「模型 / 接入点 ID」一栏。</p>
       <div id="providers"></div>
       <div style="display:flex;gap:10px">
         <button class="btn jade" id="btnAddCustom">+ 添加自定义接口</button>
@@ -304,7 +297,6 @@ textarea.biji{min-height:170px}
     </div>
     <div class="card tpl">
       <div class="set-sec">提示词模板</div>
-      <p class="muted" style="margin-bottom:12px">可自由编辑，{教案} 与 {听课笔记} 会被替换为实际内容，修改后自动保存。</p>
       <div class="top"><span class="nm">评课要点模板</span><button class="btn" data-restore="pingke">恢复默认</button></div>
       <textarea id="tpl_pingke"></textarea>
       <div class="top" style="margin-top:16px"><span class="nm">案例分析模板</span><button class="btn" data-restore="anli">恢复默认</button></div>
@@ -314,7 +306,6 @@ textarea.biji{min-height:170px}
     </div>
     <div class="card">
       <div class="set-sec">数据与存储</div>
-      <p class="muted" style="margin-bottom:12px">所有教案、笔记、生成结果均存于本机浏览器，可整体导出备份。</p>
       <button class="btn" id="btnExportAll">导出全部数据(JSON)</button>
       <button class="btn" id="btnClearAll" style="margin-left:8px">清空本机数据</button>
     </div>
