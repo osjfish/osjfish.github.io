@@ -2993,12 +2993,21 @@ function showFinal(m){
   };
 }
 function showChampion(){
+  // A级(34轮)比B级(30轮)多4轮：玩家在B级赛季结束时A级尚有剩余轮次，
+  // 先补完A级全部比赛，保证升降级按完整赛季积分榜结算
+  if(myTier==='B'&&round<=LEAGUE_A_ROUNDS){
+    for(var _rr=round;_rr<=LEAGUE_A_ROUNDS;_rr++){
+      round=_rr;
+      simulateAIGames();
+    }
+    round=TOTAL_ROUNDS+1;
+  }
   var tbl=tableOf(myTier);
   var sorted=tbl.slice().sort(function(a,b){ return b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga); });
   var champ=sorted[0];
   var myRow=tbl.filter(function(r){return r.idx===myIdx;})[0];
   var myRank=myRow?sorted.indexOf(myRow)+1:0;
-  champHistory.unshift({champ:champ.name,rank:myRank,pts:champ.pts});
+  champHistory.unshift({champ:champ.name,rank:myRank,pts:champ.pts,season:season});
   ach.season++;
   if(myRank===1) ach.champ++;
   if(champHistory.length>8) champHistory.pop();
@@ -3048,7 +3057,7 @@ function showChampion(){
     '<div style="margin:8px 0;font-size:12px;color:#3ddc7a">⬆ 升级：'+promoStr+'（B级前二）升至A级联赛</div>'+
     '<div style="margin:8px 0;font-size:12px;color:#ff6b81">⬇ 降级：'+demoteStr+'（A级后二）降至B级联赛</div>'+
     '<div class="section-title">🏆 历史冠军</div><table><tr><th>赛季</th><th>冠军</th><th>我的排名</th></tr>'+
-    champHistory.slice(0,5).map(function(h,i){ return '<tr><td>S'+(champHistory.length-i)+'</td><td>'+h.champ+'</td><td>'+(h.rank===1?'<b style="color:#ffe08a">🏆冠军</b>':'第'+h.rank+'名')+'</td></tr>'; }).join('')+'</table>'+
+    champHistory.slice(0,5).map(function(h,i){ return '<tr><td>S'+(h.season||(champHistory.length-i))+'</td><td>'+h.champ+'</td><td>'+(h.rank===1?'<b style="color:#ffe08a">🏆冠军</b>':'第'+h.rank+'名')+'</td></tr>'; }).join('')+'</table>'+
     '<div style="margin-top:14px;color:#8fa3bd;font-size:11px">升降级已生效，新赛季各队实力保持不变</div>'+
     '<div style="font-size:11px;color:#3ddc7a;margin-top:4px">🩹 新赛季开始：全员体力已恢复、伤病已痊愈</div>';
   // 底部按钮行：createElement 追加，确保水平居中
