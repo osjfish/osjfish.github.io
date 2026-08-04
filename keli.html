@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>课例评析</title>
+<style>
+:root{
+  --paper:#f7f2e6;
+  --paper-deep:#efe8d6;
+  --ink:#2c2822;
+  --ink-soft:#5c5548;
+  --cinnabar:#b03a2e;
+  --cinnabar-dark:#8e2d23;
+  --indigo:#3a4a56;
+  --gold:#b08d57;
+  --gold-light:#d8c39a;
+  --line:#d9cbae;
+  --jade:#3f6b5a;
+  --ok:#3f6b5a;
+  --err:#b03a2e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Songti SC","STSong","SimSun","Noto Serif SC",serif;
+  background:
+    radial-gradient(1200px 600px at 110% -10%, rgba(176,58,46,.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(58,74,86,.07), transparent 60%),
+    var(--paper);
+  color:var(--ink);
+  font-size:15px;
+  line-height:1.7;
+}
+header{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 26px;
+  background:linear-gradient(180deg,#fff8ea,#f7f2e6);
+  border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:20;
+}
+.seal{
+  width:46px;height:46px;flex:none;
+  background:var(--cinnabar);color:#fff8ea;
+  border-radius:8px 8px 8px 2px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;letter-spacing:2px;font-size:15px;
+  box-shadow:2px 2px 0 rgba(44,40,34,.15);
+  writing-mode:vertical-rl;line-height:1.15;
+}
+.brand h1{font-size:20px;letter-spacing:4px;font-weight:700;color:var(--cinnabar-dark)}
+.brand p{font-size:12px;color:var(--ink-soft);letter-spacing:2px}
+.spacer{flex:1}
+.ai-pick{display:flex;align-items:center;gap:8px;font-size:13px}
+.ai-pick label{color:var(--ink-soft);letter-spacing:1px}
+select,input[type=text],input[type=password],textarea{
+  font-family:inherit;font-size:14px;color:var(--ink);
+  background:#fffdf4;border:1px solid var(--line);border-radius:6px;
+  padding:7px 10px;outline:none;transition:border-color .15s, box-shadow .15s;
+}
+select:focus,input:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(176,141,87,.18)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ink-soft);display:inline-block;flex:none}
+.dot.ok{background:var(--ok)}
+.dot.busy{background:var(--gold);animation:pulse 1s infinite}
+.dot.err{background:var(--err)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.nav{display:flex;gap:4px;padding:0 26px;border-bottom:1px solid var(--line);background:var(--paper-deep)}
+.nav button{
+  font-family:inherit;font-size:15px;letter-spacing:3px;
+  border:none;background:none;color:var(--ink-soft);
+  padding:10px 22px 8px;cursor:pointer;position:relative;
+  border-bottom:3px solid transparent;
+}
+.nav button:hover{color:var(--cinnabar)}
+.nav button.on{color:var(--cinnabar);border-bottom-color:var(--cinnabar);font-weight:700}
+main{padding:22px 26px 60px;max-width:1180px;margin:0 auto}
+.view[hidden]{display:none}
+.card{
+  background:linear-gradient(180deg,#fffdf5,#fbf6e9);
+  border:1px solid var(--line);border-radius:10px;
+  padding:18px 20px;margin-bottom:20px;
+  box-shadow:0 1px 0 rgba(44,40,34,.05);
+}
+.step-label{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:2px;margin-bottom:12px;color:var(--indigo);flex-wrap:wrap}
+.step-label .no{
+  width:26px;height:26px;border-radius:50%;flex:none;
+  background:var(--indigo);color:#fff8ea;
+  display:inline-flex;align-items:center;justify-content:center;font-size:14px;
+}
+.step-label .flow{font-size:13px;color:var(--ink-soft);font-weight:400;letter-spacing:1px}
+.left-sec{display:flex;gap:20px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap}
+.btn{
+  font-family:inherit;font-size:14px;letter-spacing:1px;
+  border:1px solid var(--line);background:#fffdf4;color:var(--ink);
+  padding:7px 16px;border-radius:6px;cursor:pointer;transition:all .15s;
+}
+.btn:hover{border-color:var(--gold);color:var(--cinnabar-dark)}
+.btn.primary{background:var(--cinnabar);color:#fff8ea;border-color:var(--cinnabar)}
+.btn.primary:hover{background:var(--cinnabar-dark)}
+.btn.jade{background:var(--jade);color:#f2efe4;border-color:var(--jade)}
+.btn.jade:hover{background:#345850}
+.btn.gold{background:var(--gold);color:#fffdf4;border-color:var(--gold)}
+.btn.gold:hover{filter:brightness(.94)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+textarea{width:100%;min-height:120px;resize:vertical;line-height:1.75}
+textarea.jiaoan{min-height:150px}
+textarea.biji{min-height:170px}
+.hint{font-size:12px;color:var(--ink-soft);margin-top:6px}
+.counter{font-size:12px;color:var(--ink-soft);margin-left:auto}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.gen-btn{display:flex;flex-direction:column;gap:8px;padding:16px;text-align:left;min-height:96px}
+.gen-btn .t{font-weight:700;letter-spacing:2px;font-size:15px}
+.gen-btn .d{font-size:12px;color:var(--ink-soft)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
+.tab{
+  font-family:inherit;font-size:14px;letter-spacing:2px;
+  border:1px solid transparent;border-bottom:none;background:none;
+  padding:9px 20px;cursor:pointer;color:var(--ink-soft);border-radius:8px 8px 0 0;
+}
+.tab:hover{color:var(--cinnabar)}
+.tab.on{background:#fffdf6;border-color:var(--line);color:var(--cinnabar);font-weight:700}
+.tab .badge{background:var(--gold);color:#fffdf4;border-radius:10px;font-size:11px;padding:0 7px;margin-left:6px}
+.out-tools{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.out-tools .meta{font-size:12px;color:var(--ink-soft);margin-right:auto}
+.out-pane{display:none}
+.out-pane.on{display:block}
+.md{
+  background:#fffdf6;border:1px solid var(--paper-deep);border-radius:8px;
+  padding:18px 22px;min-height:180px;line-height:1.9;
+}
+.md h1,.md h2,.md h3,.md h4{color:var(--indigo);margin:18px 0 8px;letter-spacing:1px}
+.md h1{font-size:20px;border-bottom:2px solid var(--gold-light);padding-bottom:6px}
+.md h2{font-size:17px}
+.md h3{font-size:16px;color:var(--cinnabar)}
+.md p{margin:6px 0}
+.md ul,.md ol{margin:6px 0;padding-left:26px}
+.md li{margin:3px 0}
+.md blockquote{border-left:3px solid var(--gold);background:var(--paper-deep);padding:6px 14px;margin:10px 0;color:var(--ink-soft);border-radius:0 6px 6px 0}
+.md code{background:var(--paper-deep);padding:1px 6px;border-radius:4px;font-size:13px;font-family:Consolas,monospace}
+.md pre{background:#2c2822;color:#efe8d6;padding:12px 16px;border-radius:8px;overflow:auto;font-size:13px}
+.md pre code{background:none;color:inherit;padding:0}
+.md table{border-collapse:collapse;margin:10px 0;width:100%}
+.md th,.md td{border:1px solid var(--line);padding:6px 10px;font-size:14px}
+.md th{background:var(--paper-deep)}
+.stream-caret::after{content:"▌";color:var(--cinnabar);animation:pulse 1s infinite}
+.records-head{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.records-head input{width:260px}
+.rec-item{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;
+  border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer;
+  background:#fffdf6;transition:border-color .15s;
+}
+.rec-item:hover{border-color:var(--gold)}
+.rec-item .rt{flex:1;min-width:0}
+.rec-item .rt .title{font-weight:700;letter-spacing:1px}
+.rec-item .rt .sub{font-size:12px;color:var(--ink-soft)}
+.rec-item .gots{font-size:12px;color:var(--jade);flex:none}
+.rec-item button{margin-left:4px}
+.set-sec{font-size:14px;letter-spacing:2px;font-weight:700;color:var(--indigo);margin:6px 0 12px;display:flex;align-items:center;gap:10px}
+.set-sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.provider{border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:12px;background:#fffdf6}
+.provider .ph{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.provider .ph .name{font-weight:700;letter-spacing:1px}
+.provider .badge-p{font-size:11px;background:var(--gold);color:#fffdf4;border-radius:10px;padding:1px 8px}
+.provider .ph .del{margin-left:auto}
+.provider .pf{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+.provider .pf .full{grid-column:1/-1}
+.provider label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+.provider input{width:100%}
+.provider select{width:100%}
+.tpl textarea{min-height:150px;font-size:13px}
+.tpl .top{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.tpl .top .nm{font-weight:700}
+.muted{color:var(--ink-soft);font-size:12px;letter-spacing:1px}
+.center{text-align:center}
+.empty{padding:40px;text-align:center;color:var(--ink-soft);letter-spacing:2px}
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);
+  background:var(--indigo);color:#f2efe4;padding:10px 22px;border-radius:8px;
+  font-size:14px;letter-spacing:1px;opacity:0;pointer-events:none;
+  transition:all .25s;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.2);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal-mask{position:fixed;inset:0;background:rgba(44,40,34,.35);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-mask.show{display:flex}
+.modal{background:#fbf7e9;border:1px solid var(--line);border-radius:10px;padding:20px 24px;width:460px;max-width:92vw;max-height:84vh;overflow:auto}
+.modal h3{letter-spacing:2px;color:var(--indigo);margin-bottom:8px}
+.modal .row{margin:10px 0}
+.modal .row label{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:4px}
+.modal .row input{width:100%}
+@media (max-width:820px){
+  .grid3{grid-template-columns:1fr}
+  .provider .pf{grid-template-columns:1fr}
+  .rec-item{flex-wrap:wrap}
+  main{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="seal">课例<br>评析</div>
+  <div class="brand">
+    <h1>课例评析</h1>
+    <p>听评课 AI 助手 · 把听课笔记变成教研成果</p>
+  </div>
+  <div class="spacer"></div>
+  <div class="ai-pick">
+    <label>AI 通道</label>
+    <select id="aiPick"></select>
+    <span class="dot" id="aiDot" title="连接状态"></span>
+    <button class="btn" id="btnTestTop">试连</button>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="on" data-view="workspace">工作台</button>
+  <button data-view="records">听课记录</button>
+  <button data-view="settings">设置</button>
+</nav>
+
+<main>
+  <section id="view-workspace" class="view">
+    <div class="card">
+      <div class="step-label"><span class="no">一</span>上传 / 录入教案<span class="flow">→ 本课的教学设计文本</span></div>
+      <div class="left-sec">
+        <button class="btn" id="btnImportJiaoan">导入教案文件</button>
+        <span class="hint">支持 .txt .md .docx .pdf 及图片（首次解析需联网加载解析库）</span>
+        <input type="file" id="fileJiaoan" accept=".txt,.md,.docx,.pdf,.png,.jpg,.jpeg" hidden>
+        <span class="counter" id="jiaCount">0 字</span>
+      </div>
+      <textarea id="jiaoan" class="jiaoan" placeholder="在此粘贴教案内容，或点击「导入教案文件」……"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="step-label"><span class="no">二</span>听课笔记<span class="flow">→ 记录课堂实录、观察与随想</span></div>
+      <div class="left-sec">
+        <button class="btn" id="btnSaveRecord">保存到记录库</button>
+        <span class="hint" id="recStatus"></span>
+        <span class="counter" id="biCount">0 字</span>
+      </div>
+      <textarea id="biji" class="biji" placeholder="记录这节课的教学过程、师生对话、亮点与问题、你的即时思考……"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="step-label"><span class="no">三四</span>生成评课成果<span class="flow">→ 一键生成，三份成果分页展示</span></div>
+      <div class="grid3">
+        <button class="btn gen-btn primary" id="btnPing">
+          <span class="t">生成评课要点</span>
+          <span class="d">亮点 · 不足 · 改进建议 · 总体评价</span>
+        </button>
+        <button class="btn gen-btn jade" id="btnAnli">
+          <span class="t">生成案例分析</span>
+          <span class="d">典型片段 · 理论剖析 · 教学启示</span>
+        </button>
+        <button class="btn gen-btn gold" id="btnLunwen">
+          <span class="t">生成教学论文</span>
+          <span class="d">论文初稿 · 摘要 · 结构完整</span>
+        </button>
+      </div>
+      <p class="muted" style="margin-top:10px">生成前请确认：① 教案与笔记已填写；② 右上角已选好 AI 通道。</p>
+    </div>
+
+    <div class="card">
+      <div class="step-label"><span class="no">成果</span>展示区<span class="flow">· 三份成果独立查看、复制、下载</span></div>
+      <div class="tabs">
+        <button class="tab on" data-shot="pingke">评课要点<span class="badge" id="bd-pingke" hidden>成</span></button>
+        <button class="tab" data-shot="anli">案例分析<span class="badge" id="bd-anli" hidden>成</span></button>
+        <button class="tab" data-shot="lunwen">教学论文<span class="badge" id="bd-lunwen" hidden>成</span></button>
+      </div>
+      <div class="out-tools">
+        <span class="meta" id="genMeta">尚未生成</span>
+        <button class="btn" id="btnStop" hidden>停止</button>
+        <button class="btn" id="btnCopy">复制文本</button>
+        <button class="btn" id="btnDownload">下载 .md</button>
+        <button class="btn" id="btnRedo">重新生成本页</button>
+      </div>
+      <div class="out-pane on" id="pane-pingke"><div class="empty">点击上方「生成评课要点」开始</div></div>
+      <div class="out-pane" id="pane-anli"><div class="empty">点击上方「生成案例分析」开始</div></div>
+      <div class="out-pane" id="pane-lunwen"><div class="empty">点击上方「生成教学论文」开始</div></div>
+    </div>
+  </section>
+
+  <section id="view-records" class="view" hidden>
+    <div class="records-head">
+      <input type="text" id="recTitle" placeholder="新课例标题（保存后回到工作台填写）">
+      <button class="btn primary" id="btnNewRecord">新建记录</button>
+      <span class="spacer"></span>
+      <button class="btn" id="btnExportJson">导出数据(JSON)</button>
+      <button class="btn" id="btnImportJson">导入记录</button>
+      <input type="file" id="fileJson" accept=".json" hidden>
+    </div>
+    <div id="recList" class="empty">暂无听课记录。回到「工作台」填写教案与笔记后点「保存到记录库」。</div>
+  </section>
+
+  <section id="view-settings" class="view" hidden>
+    <div class="card">
+      <div class="set-sec">AI 通道管理</div>
+      <p class="muted" style="margin-bottom:12px">密钥仅保存在本机浏览器（localStorage），不会上传到任何服务器。所有通道均采用 OpenAI 兼容的 /chat/completions 协议。豆包（火山方舟）需先在控制台创建「推理接入点」，将接入点 ID（ep- 开头）填入「模型 / 接入点 ID」一栏。</p>
+      <div id="providers"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn jade" id="btnAddCustom">+ 添加自定义接口</button>
+        <button class="btn" id="btnResetProviders">恢复默认通道</button>
+      </div>
+    </div>
+    <div class="card tpl">
+      <div class="set-sec">提示词模板</div>
+      <p class="muted" style="margin-bottom:12px">可自由编辑，{教案} 与 {听课笔记} 会被替换为实际内容，修改后自动保存。</p>
+      <div class="top"><span class="nm">评课要点模板</span><button class="btn" data-restore="pingke">恢复默认</button></div>
+      <textarea id="tpl_pingke"></textarea>
+      <div class="top" style="margin-top:16px"><span class="nm">案例分析模板</span><button class="btn" data-restore="anli">恢复默认</button></div>
+      <textarea id="tpl_anli"></textarea>
+      <div class="top" style="margin-top:16px"><span class="nm">教学论文模板</span><button class="btn" data-restore="lunwen">恢复默认</button></div>
+      <textarea id="tpl_lunwen"></textarea>
+    </div>
+    <div class="card">
+      <div class="set-sec">数据与存储</div>
+      <p class="muted" style="margin-bottom:12px">所有教案、笔记、生成结果均存于本机浏览器，可整体导出备份。</p>
+      <button class="btn" id="btnExportAll">导出全部数据(JSON)</button>
+      <button class="btn" id="btnClearAll" style="margin-left:8px">清空本机数据</button>
+    </div>
+  </section>
+</main>
+
+<div class="modal-mask" id="maskCustom">
+  <div class="modal">
+    <h3>添加自定义接口</h3>
+    <div class="row"><label>名称</label><input type="text" id="cuName" placeholder="如：本地 Ollama / 硅基流动"></div>
+    <div class="row"><label>Base URL</label><input type="text" id="cuBase" placeholder="如：http://localhost:11434/v1"></div>
+    <div class="row"><label>接口 / 接入点</label><input type="text" id="cuModel" placeholder="填写你的模型名或接入点 ID"></div>
+    <div class="row"><label>API Key（可选）</label><input type="password" id="cuKey" placeholder="无 Key 可留空"></div>
+    <div class="row" style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" id="cuCancel">取消</button>
+      <button class="btn primary" id="cuOk">添加</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+var LS={
+  get:function(k,d){try{var v=localStorage.getItem('kece_'+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set:function(k,v){try{localStorage.setItem('kece_'+k,JSON.stringify(v))}catch(e){}}
+};
+var DEFAULT_PROVIDERS=[
+  {id:'deepseek',type:'builtin',name:'DeepSeek',badge:'官方',base:'https://api.deepseek.com/v1',model:'deepseek-v4-flash',key:'',ph:'deepseek-v4-flash（通用）/ deepseek-v4-pro（深度思考）'},
+  {id:'doubao',type:'builtin',name:'豆包 · 火山方舟',badge:'接入点',base:'https://ark.cn-beijing.volces.com/api/v3',model:'',key:'',ph:'创建推理接入点后填接入点 ID（ep-xxxx）'},
+  {id:'custom1',type:'custom',name:'自定义接口示例',badge:'自定义',base:'',model:'',key:'',ph:'任意 OpenAI 兼容服务，可自行添加'}
+];
+var DEEPSEEK_MODELS=[
+  {v:'deepseek-v4-flash',l:'deepseek-v4-flash（通用）'},
+  {v:'deepseek-v4-pro',l:'deepseek-v4-pro（深度思考）'}
+];
+var DEF_TPL={
+  pingke:'你是一位资深教研员、特级教师，长期从事课堂观察与教学评价。请根据下面的【教案】与【听课笔记】，撰写一份专业、具体、有建设性的《评课要点》。\n\n按以下结构输出：\n一、总体印象（2-3 句）\n二、教学亮点（分条列出，每条注明听课笔记中的具体事实依据）\n三、存在问题（分条指出真问题，不挑刺）\n四、改进建议（分条，可操作、能落地）\n五、总体评价等级（优秀 / 良好 / 合格 / 待改进）与一句话总评\n\n要求：客观、专业、有温度；不空喊口号；引用听课笔记中的课堂细节作为依据。\n\n【教案】\n{教案}\n\n【听课笔记】\n{听课笔记}',
+  anli:'你是一位教育研究者，擅长基于真实课例做深度案例分析。请基于下面的【教案】与【听课笔记】，选择 1-2 个最具研讨价值的真实教学片段（如某个提问、某次活动、某段师生对话、某次突发状况的处理），撰写一份《教学案例分析》。\n\n结构如下：\n一、案例背景（课题、课型、学段、核心任务）\n二、案例描述（客观还原所选片段，含师生细节与关键语言）\n三、案例分析（运用教育学 / 心理学 / 学科教学理论——如建构主义、最近发展区、情境教学、教学评一体化、学习共同体等——剖析该片段的得与失）\n四、案例启示（迁移到常态课堂的 3-5 条建议）\n\n要求：描述与分析比例约 3:7；理论引用准确自然，不堆砌术语；务必紧扣本课细节，避免泛泛而谈。\n\n【教案】\n{教案}\n\n【听课笔记】\n{听课笔记}',
+  lunwen:'你是一位教研写作专家，擅长把课例转化为可发表的论文。请基于下面的【教案】与【听课笔记】，撰写一篇可直接投稿的《教学论文》初稿（2500-4000 字）。\n\n结构：\n标题（自拟，紧扣本课最突出的教学问题或特色）\n摘要（150 字左右）+ 关键词（3-5 个）\n一、引言（问题提出：从听课观察中提炼的真问题）\n二、理论依据（简明选取 1-2 个核心理论，结合本课）\n三、课例实施与实证（本课的实践过程 + 成效证据，引用听课笔记中的细节）\n四、研究结论与建议（分条，有推广价值）\n五、参考文献（3-5 条，规范著录）\n\n要求：论证有真实课例支撑；文字质朴严谨；避免空话、口号与学术八股。\n\n【教案】\n{教案}\n\n【听课笔记】\n{听课笔记}'
+};
+var S={providers:[],tpl:{},records:[],curId:null,aiId:null,shots:{pingke:'',anli:'',lunwen:''},busy:false,ctrl:null};
+var K={'pingke':'评课要点','anli':'案例分析','lunwen':'教学论文'};
+var $=function(id){return document.getElementById(id)};
+
+var STALE_MODELS=['deepseek-chat','deepseek-reasoner','doubao-seed-1-6-250615','doubao-seed-1-6-thinking-250615','doubao-seed-1-6-flash-250615','doubao-seed-1-6-220615','qwen2.5:7b','qwen2.5:14b'];
+
+function loadState(){
+  S.providers=LS.get('providers_v2',null);
+  if(!S.providers){
+    var old=LS.get('providers',null);
+    if(old){S.providers=cleanStored(old)}else{S.providers=JSON.parse(JSON.stringify(DEFAULT_PROVIDERS))}
+  }
+  mergeBuiltins();
+  var t=LS.get('tpl',null);
+  S.tpl=t||JSON.parse(JSON.stringify(DEF_TPL));
+  S.records=LS.get('records',[]);
+  S.curId=LS.get('curId',null);
+  S.aiId=LS.get('aiId',null);
+  var d=LS.get('draft',null);
+  if(d){$('jiaoan').value=d.jiaoan||'';$('biji').value=d.biji||''}
+  S.shots={pingke:'',anli:'',lunwen:''};
+}
+function cleanStored(list){
+  var isBuiltin={};
+  DEFAULT_PROVIDERS.forEach(function(d){isBuiltin[d.id]=true});
+  var out=[];
+  (list||[]).forEach(function(p){
+    if(!p||!p.id)return;
+    if(isBuiltin[p.id]){
+      p.type='builtin';
+      if(STALE_MODELS.indexOf(p.model)>=0)p.model='';
+      p.base='';
+    }else{
+      p.type=p.type||'custom';
+      if(STALE_MODELS.indexOf(p.model)>=0)p.model='';
+    }
+    out.push(p);
+  });
+  return out;
+}
+function mergeBuiltins(){
+  for(var i=0;i<S.providers.length;i++){
+    var p=S.providers[i];
+    for(var j=0;j<DEFAULT_PROVIDERS.length;j++){
+      var d=DEFAULT_PROVIDERS[j];
+      if(p.id===d.id){
+        p.base=d.base;
+        if(p.id==='doubao'&&!(p.model&&p.model.indexOf('ep-')===0))p.model='';
+        if(!p.model&&d.model)p.model=d.model;
+        p.badge=d.badge;
+        p.ph=d.ph;
+        p.type=d.type;
+      }
+    }
+  }
+}
+function saveProviders(){
+  LS.set('providers_v2',S.providers);
+  localStorage.removeItem('kece_providers');
+}
+function saveTpl(){LS.set('tpl',S.tpl)}
+function saveRecords(){LS.set('records',S.records)}
+function saveDraft(){LS.set('draft',{jiaoan:$('jiaoan').value,biji:$('biji').value})}
+function curProvider(){
+  for(var i=0;i<S.providers.length;i++){if(S.providers[i].id===S.aiId)return S.providers[i]}
+  return S.providers[0];
+}
+function setDot(state){
+  var d=$('aiDot');
+  d.className='dot'+(state?(' '+state):'');
+}
+function toast(msg){
+  var t=$('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(function(){t.classList.remove('show')},2600);
+}
+function count(v){return v.replace(/\s/g,'').length}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function inline(s){
+  return esc(s)
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g,'<em>$1</em>');
+}
+function mdToHtml(md){
+  var lines=md.replace(/\r\n/g,'\n').split('\n');
+  var html='',inCode=false,codeBuf=[],inTable=false,para=[],olN=0;
+  function flushPara(){
+    if(para.length){html+='<p>'+inline(para.join(' '))+'</p>';para=[]}
+  }
+  function isSep(l){
+    if(l.indexOf('|')<0)return false;
+    var c=l.replace(/^\s*\|\s*/,'').replace(/\s*\|\s*$/,'');
+    return c.replace(/\s+/g,'').match(/^\|?([\s:|-]*\|)*[\s:|-]*$/)&&c.indexOf('-')>=0;
+  }
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    if(/^```/.test(line.trim())){
+      if(inCode){html+='<pre><code>'+esc(codeBuf.join('\n'))+'</code></pre>';codeBuf=[];inCode=false}
+      else{flushPara();inCode=true}
+      continue;
+    }
+    if(inCode){codeBuf.push(line);continue}
+    var nl=lines[i+1]!==undefined?lines[i+1]:'';
+    if(line.indexOf('|')>=0&&isSep(nl)&&!inTable){
+      flushPara();
+      var cells=line.replace(/^\s*\|\s*|\s*\|\s*$/g,'').split('|');
+      html+='<table><thead><tr>'+cells.map(function(c){return '<th>'+inline(c.trim())+'</th>'}).join('')+'</tr></thead><tbody>';
+      inTable=true;i++;
+      continue;
+    }
+    if(inTable){
+      if(line.indexOf('|')<0||/^\s*$/.test(line)){html+='</tbody></table>';inTable=false}
+      else{
+        var cs=line.replace(/^\s*\|\s*|\s*\|\s*$/g,'').split('|');
+        html+='<tr>'+cs.map(function(c){return '<td>'+inline(c.trim())+'</td>'}).join('')+'</tr>';
+      }
+      continue;
+    }
+    if(/^\s*$/.test(line)){flushPara();olN=0;continue}
+    var m=line.match(/^(#{1,4})\s+(.*)$/);
+    if(m){flushPara();html+='<h'+m[1].length+'>'+inline(m[2])+'</h'+m[1].length+'>';continue}
+    if(/^\s*(---|\*\*\*)\s*$/.test(line)){flushPara();html+='<hr>';continue}
+    m=line.match(/^\s*>\s?(.*)$/);
+    if(m){flushPara();html+='<blockquote>'+inline(m[1])+'</blockquote>';continue}
+    m=line.match(/^\s*[-*+]\s+(.*)$/);
+    if(m){flushPara();html+='<ul><li>'+inline(m[1])+'</li></ul>';continue}
+    m=line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if(m){flushPara();olN++;html+='<ol start="'+olN+'"><li>'+inline(m[1])+'</li></ol>';continue}
+    para.push(line);
+  }
+  if(inTable){html+='</tbody></table>'}
+  if(inCode){html+='<pre><code>'+esc(codeBuf.join('\n'))+'</code></pre>'}
+  flushPara();
+  return html;
+}
+
+function renderAiPick(){
+  var sel=$('aiPick');
+  sel.innerHTML='';
+  for(var i=0;i<S.providers.length;i++){
+    var o=document.createElement('option');
+    o.value=S.providers[i].id;
+    o.textContent=S.providers[i].name;
+    sel.appendChild(o);
+  }
+  var has=false;
+  for(var j=0;j<S.providers.length;j++){if(S.providers[j].id===S.aiId){has=true;break}}
+  if(!has)S.aiId=S.providers.length?S.providers[0].id:null;
+  if(S.aiId)sel.value=S.aiId;
+  LS.set('aiId',S.aiId);
+}
+function renderProviders(){
+  var box=$('providers');
+  box.innerHTML='';
+  S.providers.forEach(function(p){
+    var div=document.createElement('div');
+    div.className='provider';
+    var ph=document.createElement('div');
+    ph.className='ph';
+    var nm=document.createElement('span');
+    nm.className='name';
+    nm.textContent=p.name;
+    var bp=document.createElement('span');
+    bp.className='badge-p';
+    bp.textContent=p.badge||'接口';
+    var tst=document.createElement('button');
+    tst.className='btn';
+    tst.textContent='测试';
+    var del=document.createElement('button');
+    del.className='btn del';
+    del.textContent='删除';
+    ph.appendChild(nm);ph.appendChild(bp);
+    var sp1=document.createElement('span');
+    sp1.className='spacer';
+    ph.appendChild(sp1);
+    ph.appendChild(tst);ph.appendChild(del);
+    var pf=document.createElement('div');
+    pf.className='pf';
+    function field(label,val,pholder,type){
+      var w=document.createElement('div');
+      var lb=document.createElement('label');
+      lb.textContent=label;
+      var inp=document.createElement('input');
+      inp.type=type||'text';
+      inp.value=val||'';
+      inp.placeholder=pholder||'';
+      inp.addEventListener('input',function(){
+        p[labelToKey(label)]=inp.value;
+        saveProviders();
+      });
+      w.appendChild(lb);w.appendChild(inp);
+      return w;
+    }
+    function labelToKey(l){if(l.indexOf('Base URL')>=0)return 'base';if(l.indexOf('模型')>=0)return 'model';return 'key'}
+    if(p.type==='builtin'){
+      var locked=document.createElement('div');
+      locked.className='full muted';
+      locked.textContent='接入地址已内置，无需填写';
+      pf.appendChild(locked);
+      if(p.id==='deepseek'){
+        pf.appendChild(modelField(p));
+      }else{
+        pf.appendChild(field('模型 / 接入点 ID',p.model,p.ph||'必填'));
+      }
+    }else{
+      pf.appendChild(field('API 地址(Base URL)',p.base,'必填'));
+      pf.appendChild(field('模型 / 接入点 ID',p.model,p.ph||'必填'));
+    }
+    pf.appendChild(field('API Key',p.key,'sk-… / 可留空','password'));
+    tst.addEventListener('click',function(){testProvider(p)});
+    del.addEventListener('click',function(){
+      if(!confirm('删除通道「'+p.name+'」？'))return;
+      S.providers=S.providers.filter(function(x){return x!==p});
+      saveProviders();renderProviders();renderAiPick();
+    });
+    div.appendChild(ph);div.appendChild(pf);
+    box.appendChild(div);
+  });
+}
+function buildDeepseekSelect(p){
+  var sel=document.createElement('select');
+  sel._options=[];
+  DEEPSEEK_MODELS.forEach(function(o){
+    var op=document.createElement('option');
+    op.value=o.v;
+    op.textContent=o.l;
+    sel.appendChild(op);
+    sel._options.push(op);
+  });
+  var cur=false;
+  DEEPSEEK_MODELS.forEach(function(o){if(o.v===p.model)cur=true});
+  sel.value=cur?p.model:DEEPSEEK_MODELS[0].v;
+  sel.addEventListener('change',function(){
+    p.model=sel.value;
+    saveProviders();
+  });
+  return sel;
+}
+function modelField(p){
+  var w=document.createElement('div');
+  var lb=document.createElement('label');
+  lb.textContent='模型';
+  w.appendChild(lb);
+  w.appendChild(buildDeepseekSelect(p));
+  return w;
+}
+function renderTpl(){
+  $('tpl_pingke').value=S.tpl.pingke;
+  $('tpl_anli').value=S.tpl.anli;
+  $('tpl_lunwen').value=S.tpl.lunwen;
+}
+function bindTpl(){
+  $('tpl_pingke').addEventListener('input',function(){S.tpl.pingke=this.value;saveTpl()});
+  $('tpl_anli').addEventListener('input',function(){S.tpl.anli=this.value;saveTpl()});
+  $('tpl_lunwen').addEventListener('input',function(){S.tpl.lunwen=this.value;saveTpl()});
+  document.querySelectorAll('[data-restore]').forEach(function(b){
+    b.addEventListener('click',function(){
+      var k=b.getAttribute('data-restore');
+      S.tpl[k]=DEF_TPL[k];saveTpl();renderTpl();
+      toast('已恢复默认模板');
+    });
+  });
+}
+function renderShots(){
+  $('bd-pingke').hidden=!S.shots.pingke;
+  $('bd-anli').hidden=!S.shots.anli;
+  $('bd-lunwen').hidden=!S.shots.lunwen;
+}
+function currentShot(){
+  var t=document.querySelector('.tab.on');
+  return t?t.getAttribute('data-shot'):'pingke';
+}
+function setShot(k){
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.classList.toggle('on',t.getAttribute('data-shot')===k);
+  });
+  document.querySelectorAll('.out-pane').forEach(function(p){
+    p.classList.toggle('on',p.id==='pane-'+k);
+  });
+  if(S.shots[k]){
+    $('genMeta').textContent='已生成 · '+count(S.shots[k])+' 字 · '+K[k]+' · '+curProviderName();
+  }
+}
+function curProviderName(){
+  var p=curProvider();
+  return p?p.name:'未设置';
+}
+
+function openShotPane(k,text){
+  var pane=$('pane-'+k);
+  pane.innerHTML='';
+  var wrap=document.createElement('div');
+  wrap.className='md';
+  wrap.id='md-'+k;
+  wrap.innerHTML=text?mdToHtml(text):'<div class="empty">生成中，请稍候……</div>';
+  pane.appendChild(wrap);
+}
+function appendDelta(k,delta){
+  var w=$('md-'+k);
+  if(!w)return;
+  w.classList.add('stream-caret');
+  w.innerHTML=mdToHtml((w._text||'')+delta);
+  w._text=(w._text||'')+delta;
+  $('genMeta').textContent='生成中 · '+count(w._text)+' 字 …';
+}
+function finishShot(k,text){
+  var w=$('md-'+k);
+  if(w)w.classList.remove('stream-caret');
+  S.shots[k]=text;
+  syncShotsToRecord();
+  saveRecords();
+  renderShots();
+  $('genMeta').textContent='已生成 · '+count(text)+' 字 · '+K[k]+' · '+curProviderName();
+  toast('「'+K[k]+'」生成完成');
+}
+function syncShotsToRecord(){
+  if(!S.curId)return;
+  for(var i=0;i<S.records.length;i++){
+    if(S.records[i].id===S.curId){
+      S.records[i].shots=JSON.parse(JSON.stringify(S.shots));
+      return;
+    }
+  }
+}
+function setBusy(v){
+  S.busy=v;
+  $('btnPing').disabled=v;
+  $('btnAnli').disabled=v;
+  $('btnLunwen').disabled=v;
+  $('btnRedo').disabled=v;
+  $('btnStop').hidden=!v;
+  $('btnTestTop').disabled=v;
+  setDot(v?'busy':'');
+}
+
+function checkProvider(p){
+  if(!p)return '未配置任何 AI 通道';
+  if(!p.base||!p.base.trim())return '未填写 API 地址（Base URL）';
+  if(!p.model||!p.model.trim())return '未填写模型 / 接入点 ID';
+  return '';
+}
+function callAIOnce(msgs,signal){
+  var p=curProvider();
+  var err=checkProvider(p);
+  if(err)return Promise.reject(new Error(err));
+  var url=p.base.replace(/\/+$/,'')+'/chat/completions';
+  var headers={'Content-Type':'application/json'};
+  if(p.key)headers['Authorization']='Bearer '+p.key;
+  return fetch(url,{
+    method:'POST',headers:headers,signal:signal,
+    body:JSON.stringify({model:p.model,messages:msgs,stream:false,temperature:0.7})
+  }).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error('HTTP '+r.status+': '+t.slice(0,200))});
+    return r.json();
+  }).then(function(j){
+    if(j&&j.choices&&j.choices[0]&&j.choices[0].message)return j.choices[0].message.content||'';
+    throw new Error('接口返回格式异常');
+  });
+}
+function callAIStream(msgs,onDelta,signal){
+  var p=curProvider();
+  var err=checkProvider(p);
+  if(err)return Promise.reject(new Error(err));
+  var url=p.base.replace(/\/+$/,'')+'/chat/completions';
+  var headers={'Content-Type':'application/json'};
+  if(p.key)headers['Authorization']='Bearer '+p.key;
+  return fetch(url,{
+    method:'POST',headers:headers,signal:signal,
+    body:JSON.stringify({model:p.model,messages:msgs,stream:true,temperature:0.7})
+  }).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error('HTTP '+r.status+': '+t.slice(0,200))});
+    var reader=r.body.getReader();
+    var dec=new TextDecoder();
+    var buf='';
+    return new Promise(function(res,rej){
+      function pump(){
+        reader.read().then(function(x){
+          if(x.done){res();return}
+          buf+=dec.decode(x.value,{stream:true});
+          var lines=buf.split('\n');
+          buf=lines.pop();
+          for(var i=0;i<lines.length;i++){
+            var ln=lines[i].trim();
+            if(!ln||ln.indexOf('data:')!==0)continue;
+            var data=ln.slice(5).trim();
+            if(data==='[DONE]')continue;
+            try{
+              var j=JSON.parse(data);
+              var d=j.choices&&j.choices[0]&&j.choices[0].delta;
+              if(d&&d.content)onDelta(d.content);
+            }catch(e){}
+          }
+          pump();
+        }).catch(rej);
+      }
+      pump();
+    });
+  });
+}
+function generate(kind){
+  if(S.busy){toast('已有任务进行中');return}
+  var jiaoan=$('jiaoan').value.trim();
+  var biji=$('biji').value.trim();
+  if(!jiaoan){toast('请先填写教案');return}
+  if(!biji){toast('请先填写听课笔记');return}
+  var p=curProvider();
+  if(!p){toast('请先在设置中配置 AI 通道');return}
+  var prompt=S.tpl[kind].replace(/\{教案\}/g,jiaoan).replace(/\{听课笔记\}/g,biji);
+  setShot(kind);
+  openShotPane(kind,'');
+  setBusy(true);
+  setDot('busy');
+  S.ctrl=new AbortController();
+  var text='';
+  callAIStream([{role:'user',content:prompt}],function(delta){
+    text+=delta;
+    appendDelta(kind,delta);
+  },S.ctrl.signal).then(function(){
+    if(!text)return callAIOnce([{role:'user',content:prompt}],S.ctrl.signal).then(function(t){text=t;openShotPane(kind,t)});
+  }).then(function(){
+    if(!text)text='（接口未返回内容）';
+    finishShot(kind,text);
+  }).catch(function(e){
+    if(e&&e.name==='AbortError'){
+      if(text){finishShot(kind,text)}
+      toast('已停止生成');
+    }else{
+      openShotPane(kind,'');
+      var w=$('md-'+kind);
+      w.innerHTML='<div class="empty" style="color:var(--err)">生成失败：'+esc(e.message||String(e))+'<br><br>请在「设置」中检查通道地址、模型名与密钥，或点「试连」验证。</div>';
+      toast('生成失败：'+e.message);
+    }
+  }).then(function(){
+    setBusy(false);
+    setDot('');
+  });
+}
+
+function testProvider(p){
+  if(S.busy)return;
+  setDot('busy');
+  var old=S.aiId;
+  S.aiId=p.id;
+  callAIOnce([{role:'user',content:'你好，请只回复"连接成功"四个字'}],null).then(function(t){
+    setDot('ok');
+    toast('通道「'+p.name+'」连接成功');
+  }).catch(function(e){
+    setDot('err');
+    toast('「'+p.name+'」连接失败：'+(e.message||'').slice(0,60));
+  }).then(function(){
+    S.aiId=old;
+    LS.set('aiId',S.aiId);
+    renderAiPick();
+    setTimeout(function(){setDot('')},3000);
+  });
+}
+function testCurrent(){
+  var p=curProvider();
+  if(!p){toast('未配置通道');return}
+  testProvider(p);
+}
+
+function getTitle(){
+  var t=$('recTitle').value.trim();
+  if(t)return t;
+  var j=$('jiaoan').value.trim().split('\n')[0]||'';
+  if(j&&j.length>30)j=j.slice(0,30);
+  var b=$('biji').value.trim().split('\n')[0]||'';
+  if(b&&b.length>30)b=b.slice(0,30);
+  var base=j||b||('课例 '+(S.records.length+1));
+  return base.replace(/^[#*\s]+/,'').trim();
+}
+function saveRecord(){
+  var jiaoan=$('jiaoan').value;
+  var biji=$('biji').value;
+  if(!jiaoan.trim()&&!biji.trim()){toast('内容为空，无需保存');return}
+  var rec=null;
+  for(var i=0;i<S.records.length;i++){if(S.records[i].id===S.curId){rec=S.records[i];break}}
+  var now=new Date().toISOString().slice(0,16).replace('T',' ');
+  if(!rec){
+    rec={id:'r'+Date.now(),title:getTitle(),date:now,modified:now,jiaoan:jiaoan,biji:biji,shots:{pingke:'',anli:'',lunwen:''}};
+    S.records.unshift(rec);
+  }else{
+    rec.jiaoan=jiaoan;rec.biji=biji;rec.modified=now;
+  }
+  rec.shots=JSON.parse(JSON.stringify(S.shots));
+  S.curId=rec.id;
+  LS.set('curId',S.curId);
+  saveRecords();
+  $('recStatus').textContent='已保存：'+rec.title+'（'+rec.modified+'）';
+  toast('已保存到记录库');
+}
+function newRecord(){
+  S.curId=null;
+  LS.set('curId',null);
+  $('jiaoan').value='';
+  $('biji').value='';
+  $('recTitle').value='';
+  $('recStatus').textContent='';
+  S.shots={pingke:'',anli:'',lunwen:''};
+  document.querySelectorAll('.out-pane').forEach(function(p){p.innerHTML='<div class="empty">尚未生成</div>'});
+  renderShots();
+  $('genMeta').textContent='尚未生成';
+  toast('已新建空白记录');
+}
+function loadRecord(rec){
+  S.curId=rec.id;
+  LS.set('curId',S.curId);
+  $('jiaoan').value=rec.jiaoan||'';
+  $('biji').value=rec.biji||'';
+  $('recTitle').value=rec.title||'';
+  $('recStatus').textContent='当前记录：'+(rec.title||'');
+  S.shots=rec.shots||{pingke:'',anli:'',lunwen:''};
+  renderShots();
+  openShotPane('pingke',S.shots.pingke);
+  openShotPane('anli',S.shots.anli);
+  openShotPane('lunwen',S.shots.lunwen);
+  setShot(currentShot());
+  if(S.shots[currentShot()]){
+    $('genMeta').textContent='已生成 · '+count(S.shots[currentShot()])+' 字 · '+K[currentShot()]+' · '+curProviderName();
+  }else{
+    $('genMeta').textContent='尚未生成';
+  }
+  switchView('workspace');
+}
+function renderRecords(){
+  var box=$('recList');
+  if(!S.records.length){
+    box.className='empty';
+    box.innerHTML='暂无听课记录。回到「工作台」填写教案与笔记后点「保存到记录库」。';
+    return;
+  }
+  box.className='';
+  box.innerHTML='';
+  S.records.forEach(function(rec){
+    var div=document.createElement('div');
+    div.className='rec-item';
+    var rt=document.createElement('div');
+    rt.className='rt';
+    var t=document.createElement('div');
+    t.className='title';
+    t.textContent=rec.title||'未命名课例';
+    var sub=document.createElement('div');
+    sub.className='sub';
+    var gots='';
+    var sh=rec.shots||{};
+    gots+=(sh.pingke?'评课✓ ':'评课— ');
+    gots+=(sh.anli?'案例✓ ':'案例— ');
+    gots+=(sh.lunwen?'论文✓':'论文—');
+    sub.textContent=rec.modified+' · '+gots;
+    rt.appendChild(t);rt.appendChild(sub);
+    var open=document.createElement('button');
+    open.className='btn primary';
+    open.textContent='打开';
+    var del=document.createElement('button');
+    del.className='btn';
+    del.textContent='删除';
+    div.appendChild(rt);
+    div.appendChild(open);
+    div.appendChild(del);
+    open.addEventListener('click',function(e){e.stopPropagation();loadRecord(rec)});
+    del.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(!confirm('删除「'+(rec.title||'未命名')+'」？'))return;
+      S.records=S.records.filter(function(x){return x!==rec});
+      if(S.curId===rec.id){S.curId=null;LS.set('curId',null)}
+      saveRecords();
+      renderRecords();
+      toast('已删除');
+    });
+    div.addEventListener('click',function(){loadRecord(rec)});
+    box.appendChild(div);
+  });
+}
+
+function switchView(name){
+  document.querySelectorAll('.view').forEach(function(v){v.hidden=v.id!=='view-'+name});
+  document.querySelectorAll('.nav button').forEach(function(b){
+    b.classList.toggle('on',b.getAttribute('data-view')===name);
+  });
+  if(name==='records')renderRecords();
+  if(name==='settings')renderProviders();
+}
+
+function parseFile(file,cb){
+  var ext=(file.name.split('.').pop()||'').toLowerCase();
+  var isImg=/^(png|jpe?g|gif|bmp|webp)$/.test(ext);
+  if(ext==='txt'||ext==='md'||ext==='text'){
+    var r=new FileReader();
+    r.onload=function(){cb(String(r.result||''))};
+    r.onerror=function(){toast('读取文件失败')};
+    r.readAsText(file);
+    return;
+  }
+  if(ext==='docx'){
+    loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js').then(function(){
+      return mammoth.extractRawText({arrayBuffer:file.arrayBuffer()});
+    }).then(function(res){cb(res.value||'')}).catch(function(e){toast('解析 docx 失败：'+e.message)});
+    return;
+  }
+  if(ext==='pdf'){
+    loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js').then(function(){
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      return file.arrayBuffer().then(function(buf){
+        return pdfjsLib.getDocument({data:buf}).promise;
+      });
+    }).then(function(doc){
+      var tasks=[];
+      for(var i=1;i<=doc.numPages;i++){
+        tasks.push(doc.getPage(i).then(function(pg){return pg.getTextContent()}).then(function(c){
+          return c.items.map(function(it){return it.str}).join(' ');
+        }));
+      }
+      return Promise.all(tasks);
+    }).then(function(pages){cb(pages.join('\n\n'))}).catch(function(e){toast('解析 PDF 失败：'+e.message)});
+    return;
+  }
+  if(isImg){
+    loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js').then(function(){
+      toast('正在识别图片文字，可能需要数十秒…');
+      return Tesseract.recognize(file,'chi_sim');
+    }).then(function(res){cb(res.data.text||'')}).catch(function(e){toast('图片识别失败：'+e.message)});
+    return;
+  }
+  toast('不支持的文件类型');
+}
+function loadScript(src){
+  return new Promise(function(res,rej){
+    if(window.__cdns&&window.__cdns[src]){res();return}
+    var s=document.createElement('script');
+    s.src=src;
+    s.onload=function(){window.__cdns=window.__cdns||{};window.__cdns[src]=1;res()};
+    s.onerror=function(){rej(new Error('解析库加载失败（需联网）'))};
+    document.head.appendChild(s);
+  });
+}
+
+function download(name,content,type){
+  var blob=new Blob([content],{type:type||'text/plain;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},200);
+}
+function copyText(txt){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){toast('已复制到剪贴板')}).catch(function(){
+      fallbackCopy(txt);
+    });
+  }else{fallbackCopy(txt)}
+}
+function fallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;
+  document.body.appendChild(ta);
+  ta.select();
+  try{document.execCommand('copy');toast('已复制到剪贴板')}catch(e){toast('复制失败')}
+  ta.remove();
+}
+function safeName(s){
+  return String(s||'').replace(/[\\/:*?"<>|\n\r]/g,' ').replace(/\s+/g,' ').trim()||'课例';
+}
+function exportJson(scope){
+  var payload={app:'课例评析',exported:new Date().toISOString().slice(0,16).replace('T',' '),tpl:S.tpl,records:S.records};
+  if(scope==='all'){payload.providers=S.providers.map(function(p){return {id:p.id,type:p.type,name:p.name,base:p.base,model:p.model}})}
+  download('课例评析备份_'+(scope==='all'?'全部':S.records.length+'条记录')+'.json',JSON.stringify(payload,null,2),'application/json');
+  toast('已导出');
+}
+
+function bindAll(){
+  document.querySelectorAll('.nav button').forEach(function(b){
+    b.addEventListener('click',function(){switchView(b.getAttribute('data-view'))});
+  });
+  $('aiPick').addEventListener('change',function(){
+    S.aiId=this.value;
+    LS.set('aiId',S.aiId);
+    toast('已切换通道：'+curProviderName());
+  });
+  $('btnTestTop').addEventListener('click',testCurrent);
+  $('jiaoan').addEventListener('input',function(){$('jiaCount').textContent=count(this.value)+' 字';saveDraft()});
+  $('biji').addEventListener('input',function(){$('biCount').textContent=count(this.value)+' 字';saveDraft()});
+  $('btnImportJiaoan').addEventListener('click',function(){$('fileJiaoan').click()});
+  $('fileJiaoan').addEventListener('change',function(){
+    var f=this.files[0];
+    if(!f)return;
+    parseFile(f,function(text){
+      $('jiaoan').value=text;
+      $('jiaCount').textContent=count(text)+' 字';
+      saveDraft();
+      toast('教案已导入：'+f.name);
+    });
+    this.value='';
+  });
+  $('btnSaveRecord').addEventListener('click',saveRecord);
+  $('btnNewRecord').addEventListener('click',newRecord);
+  $('btnPing').addEventListener('click',function(){generate('pingke')});
+  $('btnAnli').addEventListener('click',function(){generate('anli')});
+  $('btnLunwen').addEventListener('click',function(){generate('lunwen')});
+  $('btnRedo').addEventListener('click',function(){generate(currentShot())});
+  $('btnStop').addEventListener('click',function(){
+    if(S.ctrl)S.ctrl.abort();
+  });
+  $('btnCopy').addEventListener('click',function(){
+    var k=currentShot();
+    if(!S.shots[k]){toast('该页尚未生成内容');return}
+    copyText(S.shots[k]);
+  });
+  $('btnDownload').addEventListener('click',function(){
+    var k=currentShot();
+    if(!S.shots[k]){toast('该页尚未生成内容');return}
+    download(safeName(getTitle())+'_'+K[k]+'.md',S.shots[k],'text/markdown;charset=utf-8');
+    toast('已下载');
+  });
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click',function(){setShot(t.getAttribute('data-shot'))});
+  });
+  $('btnAddCustom').addEventListener('click',function(){$('maskCustom').classList.add('show')});
+  $('cuCancel').addEventListener('click',function(){$('maskCustom').classList.remove('show')});
+  $('maskCustom').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show')});
+  $('cuOk').addEventListener('click',function(){
+    var name=$('cuName').value.trim();
+    var base=$('cuBase').value.trim();
+    var model=$('cuModel').value.trim();
+    if(!name||!base||!model){toast('名称、Base URL、接口必填');return}
+    S.providers.push({
+      id:'c'+Date.now(),type:'custom',name:name,badge:'自定义',
+      base:base,model:model,key:$('cuKey').value.trim()
+    });
+    saveProviders();
+    renderProviders();
+    renderAiPick();
+    $('maskCustom').classList.remove('show');
+    $('cuName').value='';$('cuBase').value='';$('cuModel').value='';$('cuKey').value='';
+    toast('已添加「'+name+'」');
+  });
+  $('btnResetProviders').addEventListener('click',function(){
+    if(!confirm('恢复默认通道？自定义通道将被清空。'))return;
+    S.providers=JSON.parse(JSON.stringify(DEFAULT_PROVIDERS));
+    saveProviders();renderProviders();renderAiPick();
+    toast('已恢复默认通道');
+  });
+  $('btnExportJson').addEventListener('click',function(){exportJson('records')});
+  $('btnExportAll').addEventListener('click',function(){exportJson('all')});
+  $('btnImportJson').addEventListener('click',function(){$('fileJson').click()});
+  $('fileJson').addEventListener('change',function(){
+    var f=this.files[0];
+    if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      try{
+        var j=JSON.parse(String(r.result||''));
+        if(j&&j.records&&j.records.length){
+          S.records=S.records.concat(j.records);
+          saveRecords();
+          renderRecords();
+          toast('已导入 '+j.records.length+' 条记录');
+        }else if(j&&j.tpl){
+          S.tpl=j.tpl;saveTpl();renderTpl();toast('已导入模板');
+        }else{
+          toast('文件格式不识别');
+        }
+      }catch(e){toast('导入失败：JSON 解析错误')}
+    };
+    r.readAsText(f);
+    this.value='';
+  });
+  $('btnClearAll').addEventListener('click',function(){
+    if(!confirm('清空本机全部数据（记录、模板、通道配置）？此操作不可恢复。'))return;
+    ['providers_v2','providers','tpl','records','curId','aiId','draft'].forEach(function(k){localStorage.removeItem('kece_'+k)});
+    toast('已清空，即将刷新');
+    setTimeout(function(){location.reload()},600);
+  });
+  bindTpl();
+}
+
+loadState();
+renderAiPick();
+renderProviders();
+renderTpl();
+renderShots();
+bindAll();
+$('jiaCount').textContent=count($('jiaoan').value)+' 字';
+$('biCount').textContent=count($('biji').value)+' 字';
+setShot('pingke');
+</script>
+</body>
+</html>
