@@ -13,7 +13,7 @@
   --cinnabar:#b03a2e;
   --cinnabar-dark:#8e2d23;
   --indigo:#3a4a56;
-  --gold:#b08d57;
+  --gold:#8f6c3a;
   --gold-light:#d8c39a;
   --line:#d9cbae;
   --jade:#3f6b5a;
@@ -57,7 +57,7 @@ select,input[type=text],input[type=password],textarea{
   background:#fffdf4;border:1px solid var(--line);border-radius:6px;
   padding:7px 10px;outline:none;transition:border-color .15s, box-shadow .15s;
 }
-select:focus,input:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(176,141,87,.18)}
+select:focus,input:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(143,108,58,.18)}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ink-soft);display:inline-block;flex:none}
 .dot.ok{background:var(--ok)}
 .dot.busy{background:var(--gold);animation:pulse 1s infinite}
@@ -242,7 +242,7 @@ textarea.biji{min-height:170px}
     </div>
 
     <div class="card">
-      <div class="step-label"><span class="no">三四</span>生成评课成果<span class="flow">→ 一键生成，三份成果分页展示</span></div>
+      <div class="step-label">生成评课成果<span class="flow">→ 一键生成，三份成果分页展示</span></div>
       <div class="grid3">
         <button class="btn gen-btn primary" id="btnPing">
           <span class="t">生成评课要点</span>
@@ -261,7 +261,7 @@ textarea.biji{min-height:170px}
     </div>
 
     <div class="card">
-      <div class="step-label"><span class="no">成果</span>展示区<span class="flow">· 三份成果独立查看、复制、下载</span></div>
+      <div class="step-label">展示区<span class="flow">· 三份成果独立查看、复制、下载</span></div>
       <div class="tabs">
         <button class="tab on" data-shot="pingke">评课要点<span class="badge" id="bd-pingke" hidden>成</span></button>
         <button class="tab" data-shot="anli">案例分析<span class="badge" id="bd-anli" hidden>成</span></button>
@@ -641,6 +641,8 @@ function setShot(k){
   });
   if(S.shots[k]){
     $('genMeta').textContent='已生成 · '+count(S.shots[k])+' 字 · '+K[k]+' · '+curProviderName();
+  }else{
+    $('genMeta').textContent='尚未生成';
   }
 }
 function curProviderName(){
@@ -813,7 +815,7 @@ function testProvider(p){
     S.aiId=old;
     LS.set('aiId',S.aiId);
     renderAiPick();
-    setTimeout(function(){setDot('')},3000);
+    setTimeout(function(){if(!S.busy)setDot('')},3000);
   });
 }
 function testCurrent(){
