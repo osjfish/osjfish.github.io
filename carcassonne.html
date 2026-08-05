@@ -61,10 +61,10 @@ body{
   background:var(--panel);border-radius:16px;padding:10px;
   display:flex;flex-direction:column;align-items:center;gap:8px;
   box-shadow:0 6px 24px rgba(0,0,0,.45);backdrop-filter:blur(4px);
-  border:1px solid rgba(255,255,255,.12);min-width:128px;
+  border:1px solid rgba(255,255,255,.12);min-width:140px;
 }
 #curLabel{color:#d8c9a5;font-size:11.5px;letter-spacing:1px;text-align:center;line-height:1.4}
-#curTile{width:108px;height:108px;border-radius:8px;cursor:pointer;touch-action:none;
+#curTile{width:120px;height:120px;border-radius:8px;cursor:pointer;touch-action:none;
   box-shadow:0 0 0 3px rgba(255,255,255,.25);transition:box-shadow .15s}
 #curTile.rot{cursor:pointer}
 #curTile:hover{box-shadow:0 0 0 3px var(--gold)}
@@ -217,8 +217,8 @@ body{
   #topbar .sub{display:none}
   .p-chip{padding:4px 8px;font-size:11.5px}
   .p-chip .pname{max-width:44px}
-  #curWrap{left:8px;bottom:8px;min-width:104px;padding:8px;border-radius:14px}
-  #curTile{width:88px;height:88px}
+  #curWrap{left:8px;bottom:8px;min-width:112px;padding:8px;border-radius:14px}
+  #curTile{width:96px;height:96px}
   #curLabel{font-size:10.5px}
   #curBtns button{padding:7px 0;font-size:12px}
   #actionBar{bottom:auto;top:56px;right:8px;padding:6px;flex-direction:column}
@@ -232,7 +232,7 @@ body{
 }
 @media (min-width:900px){
   #curWrap{left:16px;bottom:16px}
-  #curTile{width:118px;height:118px}
+  #curTile{width:128px;height:128px}
 }
 </style>
 </head>
@@ -249,8 +249,8 @@ body{
     <canvas id="board"></canvas>
     <div id="hint" class="hide"></div>
     <div id="curWrap">
-      <div id="curLabel">抽牌中…</div>
-      <canvas id="curTile" width="216" height="216"></canvas>
+      <div id="curLabel">当前瓦片 · 点击旋转</div>
+      <canvas id="curTile" width="240" height="240"></canvas>
       <div id="curBtns">
         <button id="btnRotate">⟳ 旋转</button>
       </div>
@@ -398,7 +398,7 @@ function makeTile(typeId,rot){
   var rot=((rot||0)%4+4)%4;
   var edges=[0,1,2,3].map(function(i){return T.edges[(i+4-rot)%4]});
   var regs=T.regs.map(function(r){
-    var dirs=r.dirs?r.dirs.map(function(d){return (d+4-rot)%4}):[];
+    var dirs=r.dirs?r.dirs.map(function(d){return (d+rot)%4}):[];
     var half=r.half?r.half.map(function(h){return rotateHalf(h,rot)}):[];
     return {t:r.t,dirs:dirs,half:half,gid:null,meeple:null};
   });
@@ -455,11 +455,15 @@ function $board(){return document.getElementById('board')}
 function $cur(){return document.getElementById('curTile')}
 /* ================= 主题 ================= */
 var THEMES=[
- {name:'经典田园',grass:'#7fa05a',grass2:'#8fb06a',road:'#b08d57',roadLine:'#8a6a3c',cityFill:'#c98553',cityWall:'#8f6a4a',cityRoof:'#b3593a',monWall:'#b8b0a0',monRoof:'#a33b2a',ink:'#3d2e1e',fieldDot:'rgba(255,255,255,.14)',lake:'#5b8db8'},
- {name:'暮色城堡',grass:'#5f7a5a',grass2:'#6d8a66',road:'#9a7f5c',roadLine:'#7a6240',cityFill:'#b98a63',cityWall:'#7a6248',cityRoof:'#8f4a35',monWall:'#a09a90',monRoof:'#8a352a',ink:'#2e2418',fieldDot:'rgba(255,255,255,.1)',lake:'#4a7a9a'},
- {name:'雪原冬境',grass:'#dfe6e8',grass2:'#e8eef0',road:'#a8a29a',roadLine:'#8a847c',cityFill:'#c9b8a0',cityWall:'#9a8f80',cityRoof:'#b06050',monWall:'#c8c4bc',monRoof:'#a84838',ink:'#3a3630',fieldDot:'rgba(90,120,140,.12)',lake:'#7a9ab8'}
+ {name:'经典田园',grass:'#8fbf6e',grass2:'#9ccb7e',road:'#a6794e',roadLine:'#8a5f38',cityFill:'#e0905f',cityWall:'#9a5a3a',cityRoof:'#a04a30',monWall:'#f0e6d2',monRoof:'#c0392b',ink:'#3d2e1e',fieldDot:'rgba(70,110,50,.25)',border:'rgba(70,60,40,.45)'},
+ {name:'暮色城堡',grass:'#7fae66',grass2:'#8dbd74',road:'#a0744e',roadLine:'#825a3a',cityFill:'#d0865e',cityWall:'#8a5240',cityRoof:'#903f2e',monWall:'#e8ded0',monRoof:'#a83227',ink:'#2e2418',fieldDot:'rgba(60,95,45,.28)',border:'rgba(60,50,35,.5)'},
+ {name:'雪原冬境',grass:'#cfe3c8',grass2:'#dcecd6',road:'#9a948a',roadLine:'#7a746a',cityFill:'#d9a080',cityWall:'#96704f',cityRoof:'#a85040',monWall:'#f2eee8',monRoof:'#b04430',ink:'#3a3630',fieldDot:'rgba(90,130,100,.3)',border:'rgba(90,90,80,.45)'}
 ];
 var TH=THEMES[0];
+function setTheme(i){
+  TH=THEMES[i]||THEMES[0];
+  buildGrassPat();
+}
 /* 草地纹理（预生成） */
 var grassPat=null;
 function buildGrassPat(){
@@ -489,20 +493,22 @@ function drawTile(ctx,tile,x,y,sz,opts){
   ctx.rotate(tile.rot*Math.PI/2);
   ctx.translate(-50,-50);
   /* 草地底 */
-  if(grassPat){
-    var patKey='_pat';
-    if(!ctx[patKey])ctx[patKey]=ctx.createPattern(grassPat,'repeat');
-    ctx.fillStyle=ctx[patKey];
-    ctx.fillRect(0,0,100,100);
-  }else{ctx.fillStyle=TH.grass;ctx.fillRect(0,0,100,100)}
-  ctx.fillStyle='rgba(0,0,0,.06)';
-  ctx.fillRect(0,0,100,3);ctx.fillRect(0,97,100,3);
+  ctx.fillStyle=TH.grass;
+  ctx.fillRect(0,0,100,100);
+  ctx.fillStyle=TH.grass2;
+  ctx.fillRect(0,0,100,28);ctx.fillRect(0,72,100,28);
+  /* 草地纹理点 */
+  ctx.fillStyle=TH.fieldDot;
+  for(var ti=0;ti<26;ti++){
+    var gx=((ti*37)%90)+5,gy=((ti*53)%90)+5;
+    ctx.beginPath();ctx.arc(gx,gy,1.6,0,7);ctx.fill();
+  }
   /* 道路 */
   var roadSegs=tile.regs.filter(function(r){return r.t==='road'});
   ctx.lineCap='round';ctx.lineJoin='round';
   roadSegs.forEach(function(r){
     var d=r.dirs;
-    ctx.strokeStyle=TH.road;ctx.lineWidth=17;
+    ctx.strokeStyle=TH.roadLine;ctx.lineWidth=24;
     ctx.beginPath();
     if(d.length===1){
       var e=EDGE_CENTER[d[0]];
@@ -516,31 +522,31 @@ function drawTile(ctx,tile,x,y,sz,opts){
       for(var i=1;i<d.length;i++)ctx.lineTo(EDGE_CENTER[d[i]][0],EDGE_CENTER[d[i]][1]);
     }
     ctx.stroke();
-    ctx.strokeStyle=TH.roadLine;ctx.lineWidth=5;
+    ctx.strokeStyle=TH.road;ctx.lineWidth=13;
     ctx.stroke();
   });
   /* 道路交叉圆点 */
-  var roadCount=tile.regs.filter(function(r){return r.t==='road'&&r.dirs.length>1}).length;
-  if(roadCount||tile.regs.some(function(r){return r.t==='road'&&r.dirs.length>2})){
-    ctx.fillStyle=TH.road;ctx.beginPath();ctx.arc(50,50,9,0,7);ctx.fill();
+  var rd2=tile.regs.filter(function(r){return r.t==='road'&&r.dirs.length>=2}).length;
+  if(rd2){
+    ctx.fillStyle=TH.road;ctx.beginPath();ctx.arc(50,50,10,0,7);ctx.fill();
   }
-  /* 城市 */
-  tile.regs.filter(function(r){return r.t==='city'}).forEach(function(r){
-    drawCityShape(ctx,r.dirs);
-  });
+  /* 城市（梯形+城墙，清晰易辨） */
+  var cityRegs=tile.regs.filter(function(r){return r.t==='city'});
+  cityRegs.forEach(function(r){drawCityShape(ctx,r.dirs)});
   /* 修道院 */
   if(tile.mon)drawMonastery(ctx);
   /* 盾牌 */
-  if(tile.shield&&tile.regs.some(function(r){return r.t==='city'})){
+  if(tile.shield&&cityRegs.length){
     var sh=SHIELD_POS[tile.rot%4]||[50,30];
-    ctx.save();ctx.fillStyle='#e8c93a';
-    ctx.beginPath();ctx.moveTo(sh[0]-7,sh[1]-8);ctx.lineTo(sh[0]+7,sh[1]-8);
-    ctx.lineTo(sh[0]+7,sh[1]-2);ctx.arc(sh[0],sh[1]-2,7,0,Math.PI);
+    ctx.save();
+    ctx.fillStyle='#e8c93a';
+    ctx.beginPath();ctx.moveTo(sh[0]-8,sh[1]-9);ctx.lineTo(sh[0]+8,sh[1]-9);
+    ctx.lineTo(sh[0]+8,sh[1]-3);ctx.arc(sh[0],sh[1]-3,8,0,Math.PI);
     ctx.closePath();ctx.fill();
     ctx.strokeStyle='#8a7018';ctx.lineWidth=2;ctx.stroke();
     ctx.fillStyle='#8a7018';
-    ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('盾',sh[0],sh[1]-4);
+    ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('★',sh[0],sh[1]-5);
     ctx.restore();
   }
   /* 米宝 */
@@ -550,72 +556,75 @@ function drawTile(ctx,tile,x,y,sz,opts){
       drawMeeple(ctx,hb[0],hb[1],r.meeple,r.t);
     }
   });
+  /* 瓦片边框（清晰分隔） */
+  ctx.strokeStyle=opts.borderColor||TH.border;
+  ctx.lineWidth=3;
+  ctx.strokeRect(1.5,1.5,97,97);
   if(opts.glow){
-    ctx.strokeStyle=opts.glowColor||'#fff';ctx.lineWidth=3;
+    ctx.strokeStyle=opts.glowColor||'#fff';ctx.lineWidth=4;
     ctx.strokeRect(2,2,96,96);
   }
   ctx.restore();
 }
 var EDGE_CENTER={0:[50,3],1:[97,50],2:[50,97],3:[3,50]};
+var EDGE_END={0:[[14,9],[86,9]],1:[[91,14],[91,86]],2:[[14,91],[86,91]],3:[[9,14],[9,86]]};
+var CITY_IN={0:[50,44],1:[56,50],2:[50,56],3:[44,50]};
 var SHIELD_POS=[[50,26],[74,50],[50,74],[26,50]];
-function cityCorners(dirs){
-  /* 城市区域多边形：从各边中点向中心偏转 */
-  var pts=[];
-  dirs.forEach(function(d){
-    var e=EDGE_CENTER[d];
-    var mx=e[0]-50,my=e[1]-50;
-    /* 城市向内的偏移 */
-    var inx,iny;
-    if(d===0){inx=22;iny=34}
-    else if(d===1){inx=66;iny=22}
-    else if(d===2){inx=22;iny=66}
-    else{inx=34;iny=22}
-    pts.push({x:50+mx*inx/50,y:50+my*iny/50});
-    /* 边端点 */
-    if(d===0){pts.push({x:16,y:10});pts.push({x:84,y:10})}
-    if(d===1){pts.push({x:90,y:16});pts.push({x:90,y:84})}
-    if(d===2){pts.push({x:16,y:90});pts.push({x:84,y:90})}
-    if(d===3){pts.push({x:10,y:16});pts.push({x:10,y:84})}
-  });
-  return pts;
-}
 function drawCityShape(ctx,dirs){
   ctx.save();
-  var pts=cityCorners(dirs);
+  /* 城市主体：每边一个梯形向中心收拢，重叠即合并 */
   ctx.fillStyle=TH.cityFill;
-  ctx.beginPath();
-  pts.forEach(function(p,i){if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});
-  ctx.closePath();ctx.fill();
-  /* 屋顶线 */
-  ctx.strokeStyle=TH.cityRoof;ctx.lineWidth=5;
-  ctx.beginPath();
-  pts.forEach(function(p,i){if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});
-  ctx.closePath();ctx.stroke();
-  /* 城墙齿 */
+  ctx.strokeStyle=TH.cityWall;
+  ctx.lineWidth=4;
   dirs.forEach(function(d){
-    var e=EDGE_CENTER[d];
-    ctx.strokeStyle=TH.cityWall;ctx.lineWidth=7;
-    ctx.beginPath();ctx.moveTo(50,50);
-    ctx.lineTo(e[0]-50*(d===0?0.8:0),e[1]-50*(d===2?0.8:0));
-    ctx.stroke();
-    ctx.lineWidth=4;
-    var lx,ly;
-    if(d===0){lx=24;ly=5}if(d===1){lx=95;ly=24}if(d===2){lx=24;ly=95}if(d===3){lx=5;ly=24}
-    ctx.beginPath();ctx.moveTo(e[0],e[1]);
-    ctx.lineTo(lx,ly);
+    var p1=EDGE_END[d][0],p2=EDGE_END[d][1],tip=CITY_IN[d];
+    ctx.beginPath();
+    ctx.moveTo(p1[0],p1[1]);ctx.lineTo(tip[0],tip[1]);ctx.lineTo(p2[0],p2[1]);
+    ctx.closePath();
+    ctx.fill();
     ctx.stroke();
   });
+  /* 城墙线（城市边） */
+  ctx.lineWidth=7;
+  ctx.strokeStyle=TH.cityWall;
+  ctx.beginPath();
+  dirs.forEach(function(d){
+    var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
+    ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);
+  });
+  ctx.stroke();
+  /* 砖纹 */
+  ctx.strokeStyle='rgba(120,60,40,.35)';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  dirs.forEach(function(d){
+    var e=EDGE_CENTER[d];
+    var mx=(e[0]-50)*0.55,my=(e[1]-50)*0.55;
+    ctx.moveTo(50+mx*0.4,50+my*0.4);
+    ctx.lineTo(50+mx,50+my);
+  });
+  ctx.stroke();
   ctx.restore();
 }
 function drawMonastery(ctx){
   ctx.save();
-  ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(34,34,32,32);
-  ctx.fillStyle=TH.monWall;ctx.fillRect(40,36,20,28);
+  ctx.fillStyle='rgba(0,0,0,.15)';
+  ctx.fillRect(34,34,32,32);
+  /* 底座 */
+  ctx.fillStyle=TH.monWall;
+  ctx.fillRect(38,36,24,28);
+  /* 尖顶 */
   ctx.fillStyle=TH.monRoof;
-  ctx.beginPath();ctx.moveTo(37,36);ctx.lineTo(50,26);ctx.lineTo(63,36);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#7a6a55';
-  ctx.fillRect(47,48,6,16);
-  ctx.fillStyle='#e8c93a';ctx.beginPath();ctx.arc(50,22,4,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(35,36);ctx.lineTo(50,24);ctx.lineTo(65,36);ctx.closePath();ctx.fill();
+  /* 十字 */
+  ctx.strokeStyle='#fff';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(50,20);ctx.lineTo(50,28);ctx.moveTo(46,23);ctx.lineTo(54,23);ctx.stroke();
+  /* 门 */
+  ctx.fillStyle='#7a5a40';
+  ctx.beginPath();ctx.moveTo(46,64);ctx.lineTo(46,56);ctx.arc(50,56,4,Math.PI,0);ctx.lineTo(54,64);ctx.closePath();ctx.fill();
+  /* 窗 */
+  ctx.fillStyle='#7a5a40';
+  ctx.fillRect(42,40,5,7);ctx.fillRect(53,40,5,7);
   ctx.restore();
 }
 function drawMeeple(ctx,x,y,color,type){
@@ -896,7 +905,15 @@ function nextTurn(){
   tilePlaced=false;meepleMode=false;
   phase='place';
   var pl=players[curPlayer];
-  hint((pl.ai?'AI ':'')+pl.name+' 的回合：旋转或放置瓦片');
+  if(!pl.ai){
+    if(totalTiles-deck.length<=1){
+      hint('你的瓦片在左下角：点它旋转，点棋盘绿色位置放置');
+    }else{
+      hint(pl.name+' 的回合：绿色框是合法位置，点击放置');
+    }
+  }else{
+    hint('AI '+pl.name+' 思考中…');
+  }
   renderCurTile();
   render();
   if(pl.ai){
@@ -910,6 +927,11 @@ function placeTile(x,y){
   }
   boardMap[x+','+y]=curTile;curTile.x=x;curTile.y=y;
   tilePlaced=true;
+  /* 瓦片超出视野则自动居中 */
+  var pp=tileScreenPos(x,y);
+  if(pp.sx<0||pp.sy<0||pp.sx>stage.clientWidth||pp.sy>stage.clientHeight){
+    fitView();
+  }
   connectAll(curTile);
   phase='score';
   scoreCompleted(curTile);
@@ -1230,7 +1252,17 @@ function boardCenter(){
 function fitView(){
   var c=boardCenter();
   view.ox=c.x;view.oy=c.y;
-  view.zoom=1;
+  /* 自适应缩放：棋盘大时缩小 */
+  var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  for(var k in boardMap){
+    var p=k.split(','),x=+p[0],y=+p[1];
+    if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+  }
+  if(minX===1e9){view.zoom=1;render();return}
+  var w=stage.clientWidth,h=stage.clientHeight;
+  var tw=(maxX-minX+1)*view.cell,th=(maxY-minY+1)*view.cell;
+  view.zoom=Math.max(0.35,Math.min(1.1,Math.min(w/tw,h/th)));
+  view.zoom=Math.max(0.3,Math.min(2,view.zoom));
   render();
 }
 function tileScreenPos(x,y){
@@ -1265,6 +1297,16 @@ function render(){
     var p=tileScreenPos(t.x,t.y);
     drawTile(ctx,t,p.sx,p.sy,cell,{});
   }
+  /* 合法位置高亮（放置阶段） */
+  if(phase==='place'&&curTile&&!tilePlaced){
+    var spots=findPlacements(curTile);
+    spots.forEach(function(sp){
+      var pp=tileScreenPos(sp[0],sp[1]);
+      ctx.strokeStyle='rgba(130,220,130,.55)';
+      ctx.lineWidth=3;
+      ctx.strokeRect(pp.sx+3,pp.sy+3,cell-6,cell-6);
+    });
+  }
   /* 放置预览 */
   if(phase==='place'&&curTile&&!tilePlaced&&view.mouse){
     var m=view.mouse;
@@ -1272,8 +1314,8 @@ function render(){
     var ok=validPlacement(curTile,tc.x,tc.y);
     var pp=tileScreenPos(tc.x,tc.y);
     ctx.save();
-    ctx.globalAlpha=0.7;
-    drawTile(ctx,curTile,pp.sx,pp.sy,cell,{glow:true,glowColor:ok?'#7ddb7d':'#ff7777'});
+    ctx.globalAlpha=0.75;
+    drawTile(ctx,curTile,pp.sx,pp.sy,cell,{glow:true,glowColor:ok?'#5fd65f':'#ff7777'});
     ctx.restore();
   }
   /* 米宝热点 */
@@ -1297,14 +1339,26 @@ function render(){
 function renderCurTile(){
   var cc=$cur();
   var g=cc.getContext('2d');
-  g.clearRect(0,0,216,216);
+  g.clearRect(0,0,240,240);
   g.setTransform(2,0,0,2,0,0);
-  drawTile(g,curTile,0,0,108,{});
+  drawTile(g,curTile,0,0,120,{});
   /* 放置提示 */
   $id('btnRotate').style.display=tilePlaced?'none':'';
+  $id('curLabel').textContent=tilePlaced?'已放置 · 选择米宝':'当前瓦片 · 点击旋转';
+  var pl=players[curPlayer];
+  if(pl)$id('curLabel').textContent=tilePlaced?(meepleMode?'点击瓦片圆点放米宝':'已放置'):(pl.ai?'AI 思考中…':pl.name+' 的瓦片 · 点击旋转');
 }
 /* ================= 交互 ================= */
 var dragging=false,lastX=0,lastY=0,pinchDist=0,pinchZoom=1;
+var renderPending=false;
+function requestRender(){
+  if(renderPending)return;
+  renderPending=true;
+  requestAnimationFrame(function(){
+    renderPending=false;
+    render();
+  });
+}
 function onDown(e){
   var pt=eventPos(e);
   lastX=pt.x;lastY=pt.y;
@@ -1315,7 +1369,7 @@ function onDown(e){
     pinchZoom=view.zoom;
     dragging=false;
   }
-  render();
+  requestRender();
 }
 function onMove(e){
   var pt=eventPos(e);
@@ -1325,7 +1379,7 @@ function onMove(e){
       view.zoom=Math.max(0.3,Math.min(3,pinchZoom*d/pinchDist));
     }
     view.mouse=null;
-    render();
+    requestRender();
     return;
   }
   if(dragging){
@@ -1334,7 +1388,7 @@ function onMove(e){
     lastX=pt.x;lastY=pt.y;
   }
   view.mouse={x:pt.x,y:pt.y};
-  render();
+  requestRender();
 }
 function touchDist(e){
   var t=e.touches;
@@ -1453,7 +1507,7 @@ function rebuildEdges(){
   var T=TYPES.filter(function(x){return x.id===curTile.id})[0];
   curTile.edges=[0,1,2,3].map(function(i){return T.edges[(i+4-curTile.rot)%4]});
   curTile.regs=T.regs.map(function(r){
-    var dirs=r.dirs?r.dirs.map(function(d){return (d+4-curTile.rot)%4}):[];
+    var dirs=r.dirs?r.dirs.map(function(d){return (d+curTile.rot)%4}):[];
     return {t:r.t,dirs:dirs,half:r.half?r.half.map(function(h){return rotateHalf(h,curTile.rot)}):[],gid:null,meeple:null};
   });
 }
