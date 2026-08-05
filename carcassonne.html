@@ -299,6 +299,8 @@ body{
       <button id="btnRules" style="background:none;border:none;color:#8a6a18;font-size:12px;cursor:pointer;text-decoration:underline">游戏规则</button>
     </div>
     <div id="rulesBox" style="display:none;margin-top:10px;font-size:12px;color:var(--ink2);line-height:1.9;border-top:1px solid #d8c39a;padding-top:10px">
+      <b style="color:#5a4630">地形图例</b>
+      <div id="legendBox" style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px"></div>
       <b style="color:#5a4630">回合</b>：抽一张瓦片 → 旋转后拼接到已有版图（边必须同类相接：道路接道路/城市接城市/草地接草地）→ 可选派米宝占领。<br>
       <b style="color:#5a4630">米宝</b>：每人 7 个。放上米宝的地形若已有人占据则不能放；相连地形完成后米宝收回。<br>
       <b style="color:#5a4630">完成计分</b>：道路每片 1 分；城市每片 2 分+盾牌 2 分；修道院周围 8 格围满得 9 分。<br>
@@ -482,16 +484,15 @@ function setTheme(i){
   TH=THEMES[i]||THEMES[0];
   buildGrassPat();
 }
-/* 在 ctx 上绘制一个瓦片（局部 0..100 缩放到 sz） */
+/* 在 ctx 上绘制一个瓦片（局部 0..100 缩放到 sz）
+   注意：tile.regs 的 dirs/half 已是旋转后方向，直接映射固定坐标绘制，
+   不再使用 ctx.rotate，保证所有元素（城市/道路/盾/米宝）旋转一致 */
 function drawTile(ctx,tile,x,y,sz,opts){
   opts=opts||{};
   var s=sz/100;
   ctx.save();
   ctx.translate(x,y);
   ctx.scale(s,s);
-  ctx.translate(50,50);
-  ctx.rotate(tile.rot*Math.PI/2);
-  ctx.translate(-50,-50);
   /* 草地底 */
   ctx.fillStyle=TH.grass;
   ctx.fillRect(0,0,100,100);
@@ -530,14 +531,14 @@ function drawTile(ctx,tile,x,y,sz,opts){
   if(rd2){
     ctx.fillStyle=TH.road;ctx.beginPath();ctx.arc(50,50,10,0,7);ctx.fill();
   }
-  /* 城市（梯形+城墙，清晰易辨） */
+  /* 城市（圆拱块+城墙，按旋转后 dirs 绘制） */
   var cityRegs=tile.regs.filter(function(r){return r.t==='city'});
   cityRegs.forEach(function(r){drawCityShape(ctx,r.dirs)});
   /* 修道院 */
   if(tile.mon)drawMonastery(ctx);
-  /* 盾牌 */
+  /* 盾牌：画在第一个城市块上 */
   if(tile.shield&&cityRegs.length){
-    var sh=SHIELD_POS[tile.rot%4]||[50,30];
+    var sh=hotOfReg(tile,tile.regs.indexOf(cityRegs[0]));
     ctx.save();
     ctx.fillStyle='#e8c93a';
     ctx.beginPath();ctx.moveTo(sh[0]-8,sh[1]-9);ctx.lineTo(sh[0]+8,sh[1]-9);
@@ -568,63 +569,89 @@ function drawTile(ctx,tile,x,y,sz,opts){
 }
 var EDGE_CENTER={0:[50,3],1:[97,50],2:[50,97],3:[3,50]};
 var EDGE_END={0:[[14,9],[86,9]],1:[[91,14],[91,86]],2:[[14,91],[86,91]],3:[[9,14],[9,86]]};
-var CITY_IN={0:[50,44],1:[56,50],2:[50,56],3:[44,50]};
-var SHIELD_POS=[[50,26],[74,50],[50,74],[26,50]];
+var CITY_IN={0:[50,46],1:[54,50],2:[50,54],3:[46,50]};
 function drawCityShape(ctx,dirs){
   ctx.save();
-  /* 城市主体：每边一个梯形向中心收拢，重叠即合并 */
-  ctx.fillStyle=TH.cityFill;
-  ctx.strokeStyle=TH.cityWall;
-  ctx.lineWidth=4;
+  /* 圆拱城市块：每边一个拱形（城墙线 + 弧线向中心） */
   dirs.forEach(function(d){
     var p1=EDGE_END[d][0],p2=EDGE_END[d][1],tip=CITY_IN[d];
+    var mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2;
+    /* 拱形控制点：从边中点向中心偏移，并向外鼓 */
+    var cx=mx+(50-mx)*0.55,cy=my+(50-my)*0.55;
+    var ox=(my-50)*0.22,oy=(50-mx)*0.22;/* 垂直方向鼓出 */
     ctx.beginPath();
-    ctx.moveTo(p1[0],p1[1]);ctx.lineTo(tip[0],tip[1]);ctx.lineTo(p2[0],p2[1]);
+    ctx.moveTo(p1[0],p1[1]);
+    ctx.quadraticCurveTo(cx+ox,cy+oy,tip[0],tip[1]);
+    ctx.quadraticCurveTo(cx-ox,cy-oy,p2[0],p2[1]);
     ctx.closePath();
+    ctx.fillStyle=TH.cityFill;
     ctx.fill();
+    ctx.strokeStyle=TH.cityRoof;
+    ctx.lineWidth=3;
     ctx.stroke();
   });
   /* 城墙线（城市边） */
-  ctx.lineWidth=7;
   ctx.strokeStyle=TH.cityWall;
+  ctx.lineWidth=8;
   ctx.beginPath();
   dirs.forEach(function(d){
     var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
     ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);
   });
   ctx.stroke();
-  /* 砖纹 */
-  ctx.strokeStyle='rgba(120,60,40,.35)';
-  ctx.lineWidth=2;
-  ctx.beginPath();
+  /* 城墙垛口 */
+  ctx.fillStyle=TH.cityWall;
   dirs.forEach(function(d){
-    var e=EDGE_CENTER[d];
-    var mx=(e[0]-50)*0.55,my=(e[1]-50)*0.55;
-    ctx.moveTo(50+mx*0.4,50+my*0.4);
-    ctx.lineTo(50+mx,50+my);
+    var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
+    var dx=(p2[0]-p1[0])/4,dy=(p2[1]-p1[1])/4;
+    var ndx=(p2[1]-p1[1])/4,ndy=-(p2[0]-p1[0])/4;/* 垂直 */
+    for(var i=0;i<4;i++){
+      var bx=p1[0]+dx*i,by=p1[1]+dy*i;
+      ctx.fillRect(bx-ndx*1.5,by-ndy*1.5,Math.max(3,Math.abs(dx)*0.7),Math.max(3,Math.abs(ndx)*0.7));
+    }
   });
-  ctx.stroke();
+  /* 填充相邻拱之间的中心空隙（双城角/三城/全城） */
+  if(dirs.length>=2){
+    ctx.beginPath();
+    dirs.forEach(function(d,i){
+      var tip=CITY_IN[d];
+      if(i===0)ctx.moveTo(tip[0],tip[1]);
+      else ctx.lineTo(tip[0],tip[1]);
+    });
+    if(dirs.length===2){
+      /* 对边城市（如 coc）两点不成面积，跳过 */
+      if((dirs[0]%2)!==(dirs[1]%2))ctx.closePath();
+    }else{
+      ctx.closePath();
+    }
+    ctx.fillStyle=TH.cityFill;
+    ctx.fill();
+    ctx.strokeStyle=TH.cityRoof;
+    ctx.lineWidth=3;
+    ctx.stroke();
+  }
   ctx.restore();
 }
 function drawMonastery(ctx){
   ctx.save();
-  ctx.fillStyle='rgba(0,0,0,.15)';
-  ctx.fillRect(34,34,32,32);
-  /* 底座 */
+  /* 围墙 */
+  ctx.fillStyle='rgba(0,0,0,.12)';
+  ctx.fillRect(33,33,34,34);
+  /* 教堂主体 */
   ctx.fillStyle=TH.monWall;
-  ctx.fillRect(38,36,24,28);
+  ctx.fillRect(39,34,22,30);
   /* 尖顶 */
   ctx.fillStyle=TH.monRoof;
-  ctx.beginPath();ctx.moveTo(35,36);ctx.lineTo(50,24);ctx.lineTo(65,36);ctx.closePath();ctx.fill();
-  /* 十字 */
-  ctx.strokeStyle='#fff';ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(50,20);ctx.lineTo(50,28);ctx.moveTo(46,23);ctx.lineTo(54,23);ctx.stroke();
-  /* 门 */
-  ctx.fillStyle='#7a5a40';
-  ctx.beginPath();ctx.moveTo(46,64);ctx.lineTo(46,56);ctx.arc(50,56,4,Math.PI,0);ctx.lineTo(54,64);ctx.closePath();ctx.fill();
-  /* 窗 */
-  ctx.fillStyle='#7a5a40';
-  ctx.fillRect(42,40,5,7);ctx.fillRect(53,40,5,7);
+  ctx.beginPath();ctx.moveTo(36,35);ctx.lineTo(50,20);ctx.lineTo(64,35);ctx.closePath();ctx.fill();
+  /* 白色十字 */
+  ctx.strokeStyle='#fff';ctx.lineWidth=3.5;
+  ctx.beginPath();ctx.moveTo(50,17);ctx.lineTo(50,27);ctx.moveTo(45.5,21);ctx.lineTo(54.5,21);ctx.stroke();
+  /* 门（深色拱门） */
+  ctx.fillStyle='#6b4a33';
+  ctx.beginPath();ctx.moveTo(45,64);ctx.lineTo(45,57);ctx.arc(50,57,5,Math.PI,0);ctx.lineTo(55,64);ctx.closePath();ctx.fill();
+  /* 窗户 */
+  ctx.fillStyle='#6b4a33';
+  ctx.fillRect(41,40,6,8);ctx.fillRect(53,40,6,8);
   ctx.restore();
 }
 function drawMeeple(ctx,x,y,color,type){
@@ -1335,6 +1362,29 @@ function render(){
     });
   }
 }
+/* 瓦片地形文字描述 */
+function tileDesc(tile){
+  if(!tile)return '';
+  var parts=[];
+  var city=tile.regs.filter(function(r){return r.t==='city'}).length;
+  var road=tile.regs.filter(function(r){return r.t==='road'});
+  var mon=tile.regs.filter(function(r){return r.t==='mon'}).length;
+  if(city)parts.push(city>1?'双城':'城市');
+  if(road.length){
+    var dirs=road[0].dirs;
+    if(dirs.length===1)parts.push('小路');
+    else if(dirs.length===2){
+      if((dirs[0]%2)===(dirs[1]%2))parts.push('直路');
+      else parts.push('弯路');
+    }
+    else if(dirs.length===3)parts.push('三岔路');
+    else parts.push('十字路');
+  }
+  if(mon)parts.push('修道院');
+  if(tile.shield)parts.push('盾');
+  if(!parts.length)parts.push('草地');
+  return parts.join('·');
+}
 /* 渲染当前瓦片预览 */
 function renderCurTile(){
   var cc=$cur();
@@ -1344,9 +1394,18 @@ function renderCurTile(){
   drawTile(g,curTile,0,0,120,{});
   /* 放置提示 */
   $id('btnRotate').style.display=tilePlaced?'none':'';
-  $id('curLabel').textContent=tilePlaced?'已放置 · 选择米宝':'当前瓦片 · 点击旋转';
   var pl=players[curPlayer];
-  if(pl)$id('curLabel').textContent=tilePlaced?(meepleMode?'点击瓦片圆点放米宝':'已放置'):(pl.ai?'AI 思考中…':pl.name+' 的瓦片 · 点击旋转');
+  var label;
+  if(tilePlaced){
+    label=meepleMode?'点击瓦片圆点放米宝':'已放置';
+  }else if(pl&&pl.ai){
+    label='AI 思考中…';
+  }else if(pl){
+    label=pl.name+' · '+tileDesc(curTile);
+  }else{
+    label=tileDesc(curTile);
+  }
+  $id('curLabel').textContent=label;
 }
 /* ================= 交互 ================= */
 var dragging=false,lastX=0,lastY=0,pinchDist=0,pinchZoom=1;
@@ -1585,6 +1644,30 @@ function renderSetup(){
       +'<select data-i="'+i+'"><option value="0"'+(p.ai?'':' selected')+'>人</option><option value="1"'+(p.ai?' selected':'')+'>AI</option></select>'
       +(setupPlayers.length>2?'<button class="ps-del" data-i="'+i+'">✕</button>':'');
     box.appendChild(d);
+  });
+  renderLegend();
+}
+/* 图例：设置面板里的地形示例 */
+var LEGEND_TILES=[['ff','旷野（农夫放这里）'],['rr','道路（强盗放这里）'],['cf','城市（骑士放这里）'],['ffm','修道院（修士放这里）']];
+function renderLegend(){
+  var box=$id('legendBox');
+  if(!box)return;
+  box.innerHTML='';
+  LEGEND_TILES.forEach(function(lt){
+    var wrap=document.createElement('div');
+    wrap.style.cssText='text-align:center;flex:1;min-width:70px';
+    var cv=document.createElement('canvas');
+    cv.width=140;cv.height=140;
+    cv.style.cssText='width:70px;height:70px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.25);display:block;margin:0 auto';
+    var g=cv.getContext('2d');
+    g.setTransform(1.4,0,0,1.4,0,0);
+    drawTile(g,makeTile(lt[0],0),0,0,100,{});
+    var lb=document.createElement('div');
+    lb.textContent=lt[1];
+    lb.style.cssText='font-size:10.5px;color:var(--ink2);margin-top:4px;line-height:1.4';
+    wrap.appendChild(cv);
+    wrap.appendChild(lb);
+    box.appendChild(wrap);
   });
 }
 function bindSetup(){
