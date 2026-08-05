@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>卡卡颂 · Carcassonne</title>
+<style>
+:root{
+  --paper:#efe6d2;--ink:#3d2e1e;--ink2:#7a6a55;
+  --gold:#c9a227;--gold-d:#9a7c1f;
+  --red:#b5442e;--green:#4c7a3d;
+  --panel:rgba(61,46,30,.88);
+  --ok:#4c7a3d;--err:#b5442e;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:#3a342c;color:var(--ink);font-size:14px;line-height:1.5;
+  overscroll-behavior:none;
+}
+#app{display:flex;flex-direction:column;height:100%}
+/* ===== 顶栏 ===== */
+#topbar{
+  height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;
+  background:linear-gradient(180deg,#5a4630,#4a3826);
+  color:#f2e8d5;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:30;
+}
+#topbar .logo{
+  width:34px;height:34px;flex:none;border-radius:9px;
+  background:linear-gradient(135deg,#c9a227,#8a6a18);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+#topbar h1{font-size:16px;letter-spacing:2px;white-space:nowrap}
+#topbar .sub{font-size:11px;color:#c9b78f;display:none}
+.players{flex:1;display:flex;gap:6px;overflow-x:auto;padding:2px 0;scrollbar-width:none}
+.players::-webkit-scrollbar{display:none}
+.p-chip{
+  display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:12px;
+  background:rgba(255,255,255,.08);font-size:12.5px;white-space:nowrap;flex:none;
+  border:2px solid transparent;transition:all .2s;
+}
+.p-chip.active{border-color:#fff;background:rgba(255,255,255,.16);box-shadow:0 0 10px rgba(255,255,255,.15)}
+.p-chip .pdot{width:12px;height:12px;border-radius:50%;flex:none;border:2px solid rgba(255,255,255,.5)}
+.p-chip .pscore{font-weight:800;font-size:13px}
+.p-chip .pname{max-width:64px;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{
+  width:34px;height:34px;flex:none;border-radius:9px;border:none;cursor:pointer;
+  background:rgba(255,255,255,.1);color:#f2e8d5;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
+}
+.icon-btn:hover{background:rgba(255,255,255,.22)}
+/* ===== 主区 ===== */
+#stage{flex:1;position:relative;overflow:hidden;background:#26211b;
+  background-image:radial-gradient(ellipse at center,rgba(255,255,255,.05),transparent 70%)}
+#board{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+/* 当前瓦片预览 */
+#curWrap{
+  position:absolute;left:12px;bottom:12px;z-index:20;
+  background:var(--panel);border-radius:16px;padding:10px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  box-shadow:0 6px 24px rgba(0,0,0,.45);backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,.12);min-width:128px;
+}
+#curLabel{color:#d8c9a5;font-size:11.5px;letter-spacing:1px;text-align:center;line-height:1.4}
+#curTile{width:108px;height:108px;border-radius:8px;cursor:pointer;touch-action:none;
+  box-shadow:0 0 0 3px rgba(255,255,255,.25);transition:box-shadow .15s}
+#curTile.rot{cursor:pointer}
+#curTile:hover{box-shadow:0 0 0 3px var(--gold)}
+#curBtns{display:flex;gap:8px;width:100%}
+#curBtns button{
+  flex:1;border:none;border-radius:9px;padding:8px 0;font-size:13px;cursor:pointer;
+  font-family:inherit;letter-spacing:1px;color:#fff;
+}
+#btnRotate{background:#8a6a18}
+#btnRotate:hover{background:#a37f1c}
+#btnSkip{background:#5c5144}
+#btnSkip:hover{background:#6d6152}
+#btnPlace{background:#4c7a3d}
+#btnPlace:hover{background:#5b8f49}
+#btnPlace:disabled{opacity:.4;cursor:not-allowed}
+/* 提示条 */
+#hint{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:25;
+  background:var(--panel);color:#f2e8d5;padding:8px 20px;border-radius:24px;
+  font-size:13.5px;letter-spacing:1px;box-shadow:0 4px 16px rgba(0,0,0,.4);
+  backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12);
+  text-align:center;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:opacity .3s,transform .3s;
+}
+#hint.hide{opacity:0;transform:translateX(-50%) translateY(-10px);pointer-events:none}
+/* 操作条（放置模式） */
+#actionBar{
+  position:absolute;bottom:12px;right:12px;z-index:20;
+  display:flex;gap:8px;align-items:center;
+  background:var(--panel);border-radius:14px;padding:8px;
+  box-shadow:0 6px 24px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.12);
+}
+#actionBar button{
+  border:none;border-radius:10px;padding:9px 14px;font-size:13px;cursor:pointer;
+  font-family:inherit;color:#fff;letter-spacing:1px;
+}
+#btnPass{background:#5c5144}
+#btnPass:hover{background:#6d6152}
+#btnMeeple{background:#b5442e}
+#btnMeeple:hover{background:#cb5038}
+#btnMeeple:disabled{opacity:.4;cursor:not-allowed}
+/* 结算浮层 */
+#result{
+  position:absolute;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+  background:rgba(20,16,10,.7);backdrop-filter:blur(6px);padding:20px;
+}
+#result.show{display:flex;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#resultCard{
+  background:linear-gradient(180deg,#f7efdc,#efe3c8);border-radius:24px;
+  max-width:460px;width:100%;padding:26px 26px 22px;
+  box-shadow:0 12px 48px rgba(0,0,0,.5);border:1px solid #d8c39a;
+  text-align:center;max-height:86vh;overflow-y:auto;
+}
+#resultCard h2{font-size:22px;letter-spacing:3px;color:#5a4630;margin-bottom:6px}
+#resultCard .rsub{font-size:12px;color:var(--ink2);margin-bottom:16px}
+.r-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;margin-bottom:8px;background:#fffdf6;border:1px solid #e6dcc2}
+.r-row .pdot{width:16px;height:16px;border-radius:50%;flex:none;border:2px solid rgba(0,0,0,.15)}
+.r-row .nm{flex:1;text-align:left;font-weight:600}
+.r-row .sc{font-size:20px;font-weight:800}
+.r-row.win{background:linear-gradient(180deg,#fdf3d7,#f8e9c0);border-color:var(--gold);box-shadow:0 0 14px rgba(201,162,39,.35)}
+.r-row.win .nm{color:#8a6a18}
+.r-bar{height:6px;border-radius:3px;background:#eadfc4;overflow:hidden;margin-top:4px}
+.r-bar i{display:block;height:100%;border-radius:3px}
+#btnAgain{
+  margin-top:16px;border:none;border-radius:12px;padding:12px 34px;font-size:15px;
+  background:linear-gradient(180deg,#c9a227,#9a7c1f);color:#fff;cursor:pointer;
+  font-family:inherit;letter-spacing:2px;box-shadow:0 3px 10px rgba(0,0,0,.25);
+}
+#btnAgain:hover{filter:brightness(1.08)}
+/* 计分动画 */
+.score-pop{
+  position:absolute;z-index:40;color:#ffe9a0;font-size:22px;font-weight:800;
+  text-shadow:0 2px 6px rgba(0,0,0,.6);pointer-events:none;
+  animation:popUp 1.4s both;
+}
+@keyframes popUp{0%{opacity:0;transform:translateY(8px) scale(.7)}15%{opacity:1;transform:translateY(0) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translateY(-46px) scale(1)}}
+/* ===== 设置面板 ===== */
+#setupMask{
+  position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  background:rgba(24,19,13,.82);backdrop-filter:blur(8px);padding:16px;overflow-y:auto;
+}
+#setupMask.hide{display:none}
+#setup{
+  background:linear-gradient(180deg,#f7efdc,#efe3c8);border-radius:24px;
+  max-width:520px;width:100%;padding:24px 26px;box-shadow:0 12px 48px rgba(0,0,0,.55);
+  border:1px solid #d8c39a;max-height:92vh;overflow-y:auto;
+}
+#setup h2{text-align:center;font-size:22px;letter-spacing:4px;color:#5a4630;margin-bottom:4px}
+#setup .st-sub{text-align:center;font-size:12px;color:var(--ink2);margin-bottom:18px}
+.sec{margin-bottom:18px}
+.sec-t{font-size:13px;font-weight:700;color:#5a4630;letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-t::after{content:"";flex:1;height:1px;background:#d8c39a}
+.pick-row{display:flex;gap:8px;flex-wrap:wrap}
+.pick{
+  flex:1;min-width:86px;padding:10px 6px;border-radius:12px;border:2px solid #e0d3b4;
+  background:#fffdf6;cursor:pointer;text-align:center;transition:all .15s;
+}
+.pick:hover{border-color:#c9a227}
+.pick.on{border-color:var(--gold);background:#fdf3d7;box-shadow:0 0 10px rgba(201,162,39,.25)}
+.pick .pi{font-size:15px;font-weight:700}
+.pick .pd{font-size:10.5px;color:var(--ink2);margin-top:2px}
+.player-set{border:1px solid #e0d3b4;border-radius:14px;padding:12px;margin-bottom:10px;background:#fffdf6}
+.player-set .ps-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.player-set .pdot{width:18px;height:18px;border-radius:50%;flex:none;border:2px solid rgba(0,0,0,.12)}
+.player-set input[type=text]{
+  flex:1;border:1px solid #dccfb0;border-radius:8px;padding:6px 10px;font-size:13px;
+  font-family:inherit;background:#fff;outline:none;min-width:0;
+}
+.player-set input[type=text]:focus{border-color:var(--gold)}
+.player-set select{
+  border:1px solid #dccfb0;border-radius:8px;padding:6px 8px;font-size:12.5px;
+  font-family:inherit;background:#fff;outline:none;
+}
+.player-set .ps-del{
+  width:28px;height:28px;border:none;border-radius:8px;background:#f2e3de;color:#b5442e;
+  cursor:pointer;font-size:14px;flex:none;
+}
+.player-set .ps-del:hover{background:#e9d0c9}
+#btnAddPlayer{
+  width:100%;padding:9px;border-radius:12px;border:2px dashed #cbbd9c;background:none;
+  color:#8a6a18;cursor:pointer;font-family:inherit;font-size:13px;letter-spacing:1px;
+}
+#btnAddPlayer:hover{border-color:var(--gold);background:#fdf3d7}
+.opt-row{display:flex;gap:10px;flex-wrap:wrap}
+.opt{flex:1;min-width:130px}
+.opt label{display:block;font-size:11.5px;color:var(--ink2);margin-bottom:4px;letter-spacing:1px}
+.opt select,.opt input[type=number]{
+  width:100%;border:1px solid #dccfb0;border-radius:10px;padding:8px 10px;font-size:13px;
+  font-family:inherit;background:#fff;outline:none;
+}
+#btnStart{
+  width:100%;margin-top:8px;border:none;border-radius:14px;padding:14px;
+  font-size:16px;letter-spacing:4px;font-family:inherit;cursor:pointer;
+  background:linear-gradient(180deg,#c9a227,#9a7c1f);color:#fff;font-weight:700;
+  box-shadow:0 4px 14px rgba(0,0,0,.3);
+}
+#btnStart:hover{filter:brightness(1.08)}
+/* 结算明细 */
+#detailToggle{background:none;border:none;color:#8a6a18;font-size:12px;cursor:pointer;margin-top:4px;text-decoration:underline}
+#finalDetail{display:none;text-align:left;margin-top:10px;font-size:12.5px;color:var(--ink2);max-height:30vh;overflow-y:auto}
+#finalDetail.show{display:block}
+#finalDetail table{width:100%;border-collapse:collapse}
+#finalDetail td,#finalDetail th{padding:3px 6px;border-bottom:1px solid #eadfc4;font-size:12px}
+#finalDetail th{color:#8a6a18;text-align:left}
+/* ===== 移动端 ===== */
+@media (max-width:640px){
+  #topbar{height:48px;padding:0 8px;gap:8px}
+  #topbar h1{font-size:14px;letter-spacing:1px}
+  #topbar .sub{display:none}
+  .p-chip{padding:4px 8px;font-size:11.5px}
+  .p-chip .pname{max-width:44px}
+  #curWrap{left:8px;bottom:8px;min-width:104px;padding:8px;border-radius:14px}
+  #curTile{width:88px;height:88px}
+  #curLabel{font-size:10.5px}
+  #curBtns button{padding:7px 0;font-size:12px}
+  #actionBar{bottom:auto;top:56px;right:8px;padding:6px;flex-direction:column}
+  #actionBar button{padding:8px 10px;font-size:12px}
+  #hint{font-size:12.5px;padding:7px 14px;top:6px}
+  #resultCard{padding:20px 16px}
+}
+@media (max-width:400px){
+  .p-chip .pscore{font-size:12px}
+  #curWrap{min-width:96px}
+}
+@media (min-width:900px){
+  #curWrap{left:16px;bottom:16px}
+  #curTile{width:118px;height:118px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div class="logo">卡</div>
+    <h1>卡卡颂</h1>
+    <span class="sub">· 米宝与疆域</span>
+    <div class="players" id="players"></div>
+    <button class="icon-btn" id="btnMenu" title="菜单">☰</button>
+  </div>
+  <div id="stage">
+    <canvas id="board"></canvas>
+    <div id="hint" class="hide"></div>
+    <div id="curWrap">
+      <div id="curLabel">抽牌中…</div>
+      <canvas id="curTile" width="216" height="216"></canvas>
+      <div id="curBtns">
+        <button id="btnRotate">⟳ 旋转</button>
+      </div>
+    </div>
+    <div id="actionBar" style="display:none">
+      <button id="btnPass">跳过放置</button>
+      <button id="btnMeeple">放置米宝</button>
+    </div>
+    <div id="result">
+      <div id="resultCard">
+        <h2 id="rTitle">游戏结束</h2>
+        <div class="rsub" id="rSub"></div>
+    <div id="rRows"></div>
+    <div id="finalDetail"></div>
+    <button id="btnAgain">再来一局</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="setupMask">
+  <div id="setup">
+    <h2>卡卡颂</h2>
+    <div class="st-sub">中世纪拼图 · 米宝占地 · 疆域扩张</div>
+    <div class="sec">
+      <div class="sec-t">游戏模式</div>
+      <div class="pick-row">
+        <div class="pick on" data-mode="2"><div class="pi">快速对战</div><div class="pd">36 张瓦片</div></div>
+        <div class="pick" data-mode="3"><div class="pi">标准模式</div><div class="pd">72 张瓦片</div></div>
+        <div class="pick" data-mode="1"><div class="pi">教学演示</div><div class="pd">24 张瓦片</div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-t">玩家设置</div>
+      <div id="playerSets"></div>
+      <button id="btnAddPlayer">＋ 添加玩家</button>
+    </div>
+    <div class="sec">
+      <div class="sec-t">选项</div>
+      <div class="opt-row">
+        <div class="opt"><label>AI 难度</label><select id="optAi"><option value="1">简单（随机）</option><option value="2" selected>普通（贪心）</option><option value="3">困难（评估）</option></select></div>
+        <div class="opt"><label>主题</label><select id="optTheme"><option value="0" selected>经典田园</option><option value="1">暮色城堡</option><option value="2">雪原冬境</option></select></div>
+      </div>
+    </div>
+    <button id="btnStart">开 始 游 戏</button>
+    <div style="text-align:center;margin-top:12px">
+      <button id="btnRules" style="background:none;border:none;color:#8a6a18;font-size:12px;cursor:pointer;text-decoration:underline">游戏规则</button>
+    </div>
+    <div id="rulesBox" style="display:none;margin-top:10px;font-size:12px;color:var(--ink2);line-height:1.9;border-top:1px solid #d8c39a;padding-top:10px">
+      <b style="color:#5a4630">回合</b>：抽一张瓦片 → 旋转后拼接到已有版图（边必须同类相接：道路接道路/城市接城市/草地接草地）→ 可选派米宝占领。<br>
+      <b style="color:#5a4630">米宝</b>：每人 7 个。放上米宝的地形若已有人占据则不能放；相连地形完成后米宝收回。<br>
+      <b style="color:#5a4630">完成计分</b>：道路每片 1 分；城市每片 2 分+盾牌 2 分；修道院周围 8 格围满得 9 分。<br>
+      <b style="color:#5a4630">争夺</b>：同一地形多玩家米宝时，数量最多者独占分数；数量相同则共享。<br>
+      <b style="color:#5a4630">终局</b>：瓦片抽完即结束。未完成道路每片 1 分、未完成城市每片 1 分+盾牌 1 分、未完成修道院按邻片计分；<b>农夫</b>（草地米宝）每邻接一个完成城市得 3 分。<br>
+      <b style="color:#5a4630">操作</b>：拖动平移版图，滚轮/双指缩放；点击版图放置瓦片，点击瓦片圆点放米宝。
+    </div>
+  </div>
+</div>
+<script>
+"use strict";
+/* ================= 瓦片数据 =================
+   edges: N,E,S,W 每边 F=草地 C=城市 R=道路
+   m: 修道院  s: 盾牌(城市)
+   regs: 区域定义 [{t:'city'|'road'|'field'|'mon', dirs:[边方向], half:[半边] , pts:[热点xy]}]
+   半边编号: N0=北左 N1=北右 E0=东上 E1=东下 S0=南左 S1=南右 W0=西上 W1=西下
+*/
+var TYPES=[
+{id:'start',edges:['C','R','F','R'],count:1,desc:'起始',
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'road',dirs:[3]},{t:'field',half:['S0','S1']},{t:'field',half:['E0','E1']},{t:'field',half:['W0','W1']}]},
+{id:'ff',edges:['F','F','F','F'],count:2,desc:'旷野',
+ regs:[{t:'field',half:['N0','N1','E0','E1','S0','S1','W0','W1']}]},
+{id:'ffm',edges:['F','F','F','F'],count:4,desc:'修道院',m:1,
+ regs:[{t:'mon',dirs:[]},{t:'field',half:['N0','N1','E0','E1','S0','S1','W0','W1']}]},
+{id:'ffrm',edges:['F','F','R','F'],count:2,desc:'修道院·小路',m:1,
+ regs:[{t:'mon',dirs:[]},{t:'road',dirs:[2]},{t:'field',half:['N0','N1','E0','E1','S0','S1','W0','W1']}]},
+{id:'frrm',edges:['R','R','F','F'],count:1,desc:'修道院·双路',m:1,
+ regs:[{t:'mon',dirs:[]},{t:'road',dirs:[0]},{t:'road',dirs:[1]},{t:'field',half:['N0','N1','E0','E1','S0','S1','W0','W1']}]},
+{id:'frfrm',edges:['R','F','R','F'],count:1,desc:'修道院·对路',m:1,
+ regs:[{t:'mon',dirs:[]},{t:'road',dirs:[0]},{t:'road',dirs:[2]},
+       {t:'field',half:['N0','W0','W1','S0']},{t:'field',half:['N1','E0','E1','S1']}]},
+{id:'cf',edges:['C','F','F','F'],count:8,desc:'小城',
+ regs:[{t:'city',dirs:[0]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+{id:'cfs',edges:['C','F','F','F'],count:1,desc:'小城·盾',s:1,
+ regs:[{t:'city',dirs:[0]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+{id:'cfr',edges:['C','F','R','F'],count:6,desc:'城与路',
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+{id:'cfrs',edges:['C','F','R','F'],count:1,desc:'城与路·盾',s:1,
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+{id:'crf',edges:['C','R','F','F'],count:3,desc:'城·侧路',
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+{id:'crrf',edges:['C','R','R','F'],count:2,desc:'城·双路',s:1,
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'road',dirs:[2]},
+       {t:'field',half:['E0','W0']},{t:'field',half:['E1','S0','S1','W1']}]},
+{id:'crrfs',edges:['C','R','R','F'],count:1,desc:'城·双路盾',s:1,
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'road',dirs:[2]},
+       {t:'field',half:['E0','W0']},{t:'field',half:['E1','S0','S1','W1']}]},
+{id:'cc',edges:['C','C','F','F'],count:4,desc:'双城角',
+ regs:[{t:'city',dirs:[0,1]},{t:'field',half:['S0','S1','W0','W1']}]},
+{id:'ccs',edges:['C','C','F','F'],count:1,desc:'双城角·盾',s:1,
+ regs:[{t:'city',dirs:[0,1]},{t:'field',half:['S0','S1','W0','W1']}]},
+{id:'coc',edges:['C','F','C','F'],count:4,desc:'双城对',
+ regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'field',half:['E0','E1','W0','W1']}]},
+{id:'cocs',edges:['C','F','C','F'],count:1,desc:'双城对·盾',s:1,
+ regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'field',half:['E0','E1','W0','W1']}]},
+{id:'crc',edges:['C','R','C','F'],count:2,desc:'城·路·城',
+ regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'road',dirs:[1]},
+       {t:'field',half:['E0','W0']},{t:'field',half:['E1','W1']}]},
+{id:'ccc',edges:['C','C','C','F'],count:1,desc:'三城',s:1,
+ regs:[{t:'city',dirs:[0,1,2]},{t:'field',half:['W0','W1']}]},
+{id:'cccc',edges:['C','C','C','C'],count:2,desc:'全城',
+ regs:[{t:'city',dirs:[0,1,2,3]}]},
+{id:'ccccs',edges:['C','C','C','C'],count:1,desc:'全城·盾',s:1,
+ regs:[{t:'city',dirs:[0,1,2,3]}]},
+{id:'rr',edges:['R','F','R','F'],count:8,desc:'直路',
+ regs:[{t:'road',dirs:[0,2]},{t:'field',half:['N0','W0','W1','S0']},{t:'field',half:['N1','E0','E1','S1']}]},
+{id:'rrc',edges:['R','R','F','F'],count:10,desc:'弯路',
+ regs:[{t:'road',dirs:[0,1]},{t:'field',half:['N1','E0']},{t:'field',half:['N0','E1','S0','S1','W0','W1']}]},
+{id:'t',edges:['F','R','R','R'],count:4,desc:'三岔',
+ regs:[{t:'road',dirs:[1,2,3]},{t:'field',half:['N0','N1']},{t:'field',half:['S0','W1']},{t:'field',half:['S1','E1']}]},
+{id:'x',edges:['R','R','R','R'],count:1,desc:'十字',
+ regs:[{t:'road',dirs:[0,1,2,3]},{t:'field',half:['N0','W0']},{t:'field',half:['N1','E0']},{t:'field',half:['E1','S1']},{t:'field',half:['S0','W1']}]}
+];
+/* 边配对: dir 0=N 1=E 2=S 3=W; 对面= (dir+2)%4
+   半边配对: N0↔S1(上方瓦片的N0 对着下方瓦片的 S1 的对应位置) 实际:
+   当前瓦片 (x,y) 的 N 边 → 上方瓦片 (x,y-1) 的 S 边
+   N0 在 N 边的西侧 → 对应上方瓦片 S 边的西侧 = S0
+   所以 N0 ↔ S0, N1 ↔ S1, E0 ↔ W0, E1 ↔ W1, S0 ↔ N0, S1 ↔ N1, W0 ↔ E0, W1 ↔ E1
+   配对表: {N0:S0, N1:S1, E0:W0, E1:W1, S0:N0, S1:N1, W0:E0, W1:E1}
+*/
+var HALF_PAIR={N0:'S0',N1:'S1',E0:'W0',E1:'W1',S0:'N0',S1:'N1',W0:'E0',W1:'E1'};
+var EDGE_OPP={0:2,1:3,2:0,3:1};
+var DIR_DX=[0,1,0,-1],DIR_DY=[-1,0,1,0];
+var EDGE_HALVES={0:['N0','N1'],1:['E0','E1'],2:['S0','S1'],3:['W0','W1']};
+var HALF_EDGE={N0:0,N1:0,E0:1,E1:1,S0:2,S1:2,W0:3,W1:3};
+var HALF_ROT=[{N0:'N0',N1:'N1',E0:'E0',E1:'E1',S0:'S0',S1:'S1',W0:'W0',W1:'W1'},
+{N0:'E0',N1:'E1',E0:'S0',E1:'S1',S0:'W0',S1:'W1',W0:'N1',W1:'N0'},
+{N0:'S1',N1:'S0',E0:'W1',E1:'W0',S0:'N1',S1:'N0',W0:'E1',W1:'E0'},
+{N0:'W0',N1:'W1',E0:'N0',E1:'N1',S0:'E0',S1:'E1',W0:'S0',W1:'S1'}];
+function rotateHalf(h,rot){
+  rot=((rot%4)+4)%4;
+  return HALF_ROT[rot][h]||h;
+}
+/* 每张瓦片实例: {type, rot, edges[4], regs:[{t,dirs,half,hot[xy],gid,meeple}]} */
+function makeTile(typeId,rot){
+  var T=TYPES.filter(function(x){return x.id===typeId})[0];
+  var rot=((rot||0)%4+4)%4;
+  var edges=[0,1,2,3].map(function(i){return T.edges[(i+4-rot)%4]});
+  var regs=T.regs.map(function(r){
+    var dirs=r.dirs?r.dirs.map(function(d){return (d+4-rot)%4}):[];
+    var half=r.half?r.half.map(function(h){return rotateHalf(h,rot)}):[];
+    return {t:r.t,dirs:dirs,half:half,gid:null,meeple:null};
+  });
+  return {id:typeId,rot:rot,edges:edges,regs:regs,mon:T.m?1:0,shield:T.s?1:0};
+}
+/* 瓦片热点（局部坐标 0-100），绘制与点击共用，按旋转换算 */
+function tileHot(tile,ri){
+  var T=TYPES.filter(function(x){return x.id===tile.id})[0];
+  var base;
+  var t=T.regs[ri].t;
+  var dirs=tile.regs[ri].dirs;
+  var half=tile.regs[ri].half;
+  if(t==='city'){
+    var cx=50,cy=50;
+    dirs.forEach(function(d){
+      if(d===0)cy=16;if(d===1)cx=84;if(d===2)cy=84;if(d===3)cx=16;
+    });
+    return [cx,cy];
+  }
+  if(t==='road'){
+    if(dirs.length===1){var d=dirs[0];return d===0?[50,50]:d===1?[50,50]:d===2?[50,50]:[50,50]}
+    if(dirs.length===2){
+      var a=dirs[0],b=dirs[1];
+      if((a===0&&b===2)||(a===2&&b===0))return [50,50];
+      if((a===0&&b===1)||(a===1&&b===0))return [70,30];
+      if((a===1&&b===2)||(a===2&&b===1))return [70,70];
+      if((a===2&&b===3)||(a===3&&b===2))return [30,70];
+      if((a===3&&b===0)||(a===0&&b===3))return [30,30];
+    }
+    return [50,50];
+  }
+  if(t==='mon')return [50,50];
+  /* field: 用半边求重心近似 */
+  var xs=[],ys=[];
+  half.forEach(function(h){
+    if(h==='N0'){xs.push(22);ys.push(8)}if(h==='N1'){xs.push(78);ys.push(8)}
+    if(h==='E0'){xs.push(92);ys.push(22)}if(h==='E1'){xs.push(92);ys.push(78)}
+    if(h==='S0'){xs.push(22);ys.push(92)}if(h==='S1'){xs.push(78);ys.push(92)}
+    if(h==='W0'){xs.push(8);ys.push(22)}if(h==='W1'){xs.push(8);ys.push(78)}
+  });
+  if(xs.length){
+    var ax=0,ay=0;
+    for(var i=0;i<xs.length;i++){ax+=xs[i];ay+=ys[i]}
+    return [Math.round(ax/xs.length),Math.round(ay/ys.length)];
+  }
+  return [50,50];
+}
+/* ================= 游戏状态 ================= */
+var cv=$board(),ctx=cv.getContext('2d');
+var stage=$id('stage');
+var PLAYER_COLORS=['#d84339','#2f6fb0','#4c8a3d','#e0a01e','#8b5fb5'];
+function $id(i){return document.getElementById(i)}
+function $board(){return document.getElementById('board')}
+function $cur(){return document.getElementById('curTile')}
+/* ================= 主题 ================= */
+var THEMES=[
+ {name:'经典田园',grass:'#7fa05a',grass2:'#8fb06a',road:'#b08d57',roadLine:'#8a6a3c',cityFill:'#c98553',cityWall:'#8f6a4a',cityRoof:'#b3593a',monWall:'#b8b0a0',monRoof:'#a33b2a',ink:'#3d2e1e',fieldDot:'rgba(255,255,255,.14)',lake:'#5b8db8'},
+ {name:'暮色城堡',grass:'#5f7a5a',grass2:'#6d8a66',road:'#9a7f5c',roadLine:'#7a6240',cityFill:'#b98a63',cityWall:'#7a6248',cityRoof:'#8f4a35',monWall:'#a09a90',monRoof:'#8a352a',ink:'#2e2418',fieldDot:'rgba(255,255,255,.1)',lake:'#4a7a9a'},
+ {name:'雪原冬境',grass:'#dfe6e8',grass2:'#e8eef0',road:'#a8a29a',roadLine:'#8a847c',cityFill:'#c9b8a0',cityWall:'#9a8f80',cityRoof:'#b06050',monWall:'#c8c4bc',monRoof:'#a84838',ink:'#3a3630',fieldDot:'rgba(90,120,140,.12)',lake:'#7a9ab8'}
+];
+var TH=THEMES[0];
+/* 草地纹理（预生成） */
+var grassPat=null;
+function buildGrassPat(){
+  grassPat=document.createElement('canvas');grassPat.width=60;grassPat.height=60;
+  var g=grassPat.getContext('2d');
+  g.fillStyle=TH.grass;g.fillRect(0,0,60,60);
+  for(var i=0;i<34;i++){
+    var x=Math.random()*60,y=Math.random()*60;
+    g.fillStyle=TH.fieldDot;
+    g.beginPath();g.arc(x,y,1.2,0,7);g.fill();
+  }
+  g.fillStyle='rgba(255,255,255,.05)';
+  g.fillRect(0,30,60,2);
+}
+function setTheme(i){
+  TH=THEMES[i]||THEMES[0];
+  buildGrassPat();
+}
+/* 在 ctx 上绘制一个瓦片（局部 0..100 缩放到 sz） */
+function drawTile(ctx,tile,x,y,sz,opts){
+  opts=opts||{};
+  var s=sz/100;
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.scale(s,s);
+  ctx.translate(50,50);
+  ctx.rotate(tile.rot*Math.PI/2);
+  ctx.translate(-50,-50);
+  /* 草地底 */
+  if(grassPat){
+    var patKey='_pat';
+    if(!ctx[patKey])ctx[patKey]=ctx.createPattern(grassPat,'repeat');
+    ctx.fillStyle=ctx[patKey];
+    ctx.fillRect(0,0,100,100);
+  }else{ctx.fillStyle=TH.grass;ctx.fillRect(0,0,100,100)}
+  ctx.fillStyle='rgba(0,0,0,.06)';
+  ctx.fillRect(0,0,100,3);ctx.fillRect(0,97,100,3);
+  /* 道路 */
+  var roadSegs=tile.regs.filter(function(r){return r.t==='road'});
+  ctx.lineCap='round';ctx.lineJoin='round';
+  roadSegs.forEach(function(r){
+    var d=r.dirs;
+    ctx.strokeStyle=TH.road;ctx.lineWidth=17;
+    ctx.beginPath();
+    if(d.length===1){
+      var e=EDGE_CENTER[d[0]];
+      ctx.moveTo(50,50);ctx.lineTo(e[0],e[1]);
+    }else if(d.length===2){
+      var a=EDGE_CENTER[d[0]],b=EDGE_CENTER[d[1]];
+      if((d[0]%2)===(d[1]%2)){ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1])}
+      else{ctx.moveTo(a[0],a[1]);ctx.lineTo(50,50);ctx.lineTo(b[0],b[1])}
+    }else{
+      ctx.moveTo(EDGE_CENTER[d[0]][0],EDGE_CENTER[d[0]][1]);
+      for(var i=1;i<d.length;i++)ctx.lineTo(EDGE_CENTER[d[i]][0],EDGE_CENTER[d[i]][1]);
+    }
+    ctx.stroke();
+    ctx.strokeStyle=TH.roadLine;ctx.lineWidth=5;
+    ctx.stroke();
+  });
+  /* 道路交叉圆点 */
+  var roadCount=tile.regs.filter(function(r){return r.t==='road'&&r.dirs.length>1}).length;
+  if(roadCount||tile.regs.some(function(r){return r.t==='road'&&r.dirs.length>2})){
+    ctx.fillStyle=TH.road;ctx.beginPath();ctx.arc(50,50,9,0,7);ctx.fill();
+  }
+  /* 城市 */
+  tile.regs.filter(function(r){return r.t==='city'}).forEach(function(r){
+    drawCityShape(ctx,r.dirs);
+  });
+  /* 修道院 */
+  if(tile.mon)drawMonastery(ctx);
+  /* 盾牌 */
+  if(tile.shield&&tile.regs.some(function(r){return r.t==='city'})){
+    var sh=SHIELD_POS[tile.rot%4]||[50,30];
+    ctx.save();ctx.fillStyle='#e8c93a';
+    ctx.beginPath();ctx.moveTo(sh[0]-7,sh[1]-8);ctx.lineTo(sh[0]+7,sh[1]-8);
+    ctx.lineTo(sh[0]+7,sh[1]-2);ctx.arc(sh[0],sh[1]-2,7,0,Math.PI);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#8a7018';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#8a7018';
+    ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('盾',sh[0],sh[1]-4);
+    ctx.restore();
+  }
+  /* 米宝 */
+  tile.regs.forEach(function(r){
+    if(r.meeple!=null){
+      var hb=hotOfReg(tile,tile.regs.indexOf(r));
+      drawMeeple(ctx,hb[0],hb[1],r.meeple,r.t);
+    }
+  });
+  if(opts.glow){
+    ctx.strokeStyle=opts.glowColor||'#fff';ctx.lineWidth=3;
+    ctx.strokeRect(2,2,96,96);
+  }
+  ctx.restore();
+}
+var EDGE_CENTER={0:[50,3],1:[97,50],2:[50,97],3:[3,50]};
+var SHIELD_POS=[[50,26],[74,50],[50,74],[26,50]];
+function cityCorners(dirs){
+  /* 城市区域多边形：从各边中点向中心偏转 */
+  var pts=[];
+  dirs.forEach(function(d){
+    var e=EDGE_CENTER[d];
+    var mx=e[0]-50,my=e[1]-50;
+    /* 城市向内的偏移 */
+    var inx,iny;
+    if(d===0){inx=22;iny=34}
+    else if(d===1){inx=66;iny=22}
+    else if(d===2){inx=22;iny=66}
+    else{inx=34;iny=22}
+    pts.push({x:50+mx*inx/50,y:50+my*iny/50});
+    /* 边端点 */
+    if(d===0){pts.push({x:16,y:10});pts.push({x:84,y:10})}
+    if(d===1){pts.push({x:90,y:16});pts.push({x:90,y:84})}
+    if(d===2){pts.push({x:16,y:90});pts.push({x:84,y:90})}
+    if(d===3){pts.push({x:10,y:16});pts.push({x:10,y:84})}
+  });
+  return pts;
+}
+function drawCityShape(ctx,dirs){
+  ctx.save();
+  var pts=cityCorners(dirs);
+  ctx.fillStyle=TH.cityFill;
+  ctx.beginPath();
+  pts.forEach(function(p,i){if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});
+  ctx.closePath();ctx.fill();
+  /* 屋顶线 */
+  ctx.strokeStyle=TH.cityRoof;ctx.lineWidth=5;
+  ctx.beginPath();
+  pts.forEach(function(p,i){if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});
+  ctx.closePath();ctx.stroke();
+  /* 城墙齿 */
+  dirs.forEach(function(d){
+    var e=EDGE_CENTER[d];
+    ctx.strokeStyle=TH.cityWall;ctx.lineWidth=7;
+    ctx.beginPath();ctx.moveTo(50,50);
+    ctx.lineTo(e[0]-50*(d===0?0.8:0),e[1]-50*(d===2?0.8:0));
+    ctx.stroke();
+    ctx.lineWidth=4;
+    var lx,ly;
+    if(d===0){lx=24;ly=5}if(d===1){lx=95;ly=24}if(d===2){lx=24;ly=95}if(d===3){lx=5;ly=24}
+    ctx.beginPath();ctx.moveTo(e[0],e[1]);
+    ctx.lineTo(lx,ly);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+function drawMonastery(ctx){
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(34,34,32,32);
+  ctx.fillStyle=TH.monWall;ctx.fillRect(40,36,20,28);
+  ctx.fillStyle=TH.monRoof;
+  ctx.beginPath();ctx.moveTo(37,36);ctx.lineTo(50,26);ctx.lineTo(63,36);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#7a6a55';
+  ctx.fillRect(47,48,6,16);
+  ctx.fillStyle='#e8c93a';ctx.beginPath();ctx.arc(50,22,4,0,7);ctx.fill();
+  ctx.restore();
+}
+function drawMeeple(ctx,x,y,color,type){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle=color;
+  ctx.beginPath();ctx.arc(0,-9,7,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(5,0);ctx.lineTo(5,10);ctx.lineTo(-5,10);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.25)';
+  ctx.beginPath();ctx.arc(0,-9,7,0,Math.PI);ctx.fill();
+  ctx.restore();
+}
+/* ================= 棋盘与放置 ================= */
+function key(x,y){return x+','+y}
+function boardGet(x,y){return boardMap[key(x,y)]||null}
+function boardSet(x,y,t){boardMap[key(x,y)]=t;t.x=x;t.y=y}
+function validPlacement(tile,x,y){
+  if(boardGet(x,y))return false;
+  for(var d=0;d<4;d++){
+    var nx=x+DIR_DX[d],ny=y+DIR_DY[d];
+    var nb=boardGet(nx,ny);
+    if(!nb)continue;
+    var myEdge=tile.edges[d],nbEdge=nb.edges[EDGE_OPP[d]];
+    if(myEdge!==nbEdge)return false;
+  }
+  return true;
+}
+function findPlacements(tile){
+  var res=[];
+  var minX=0,maxX=0,minY=0,maxY=0;
+  for(var k in boardMap){
+    var p=k.split(','),x=+p[0],y=+p[1];
+    if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+  }
+  for(var xx=minX-1;xx<=maxX+1;xx++){
+    for(var yy=minY-1;yy<=maxY+1;yy++){
+      if(validPlacement(tile,xx,yy))res.push([xx,yy]);
+    }
+  }
+  return res;
+}
+/* ================= 区域图（union-find） ================= */
+var UF=null;
+function initUF(){
+  UF={p:{},rank:{}};
+}
+function ufId(tile,ri){return tile.x+','+tile.y+':'+ri}
+function ufAdd(id){
+  if(UF.p[id]===undefined){UF.p[id]=id;UF.rank[id]=0}
+}
+function ufFind(a){
+  while(UF.p[a]!==a){UF.p[a]=UF.p[UF.p[a]];a=UF.p[a]}
+  return a;
+}
+function ufUnion(a,b){
+  ufAdd(a);ufAdd(b);
+  var ra=ufFind(a),rb=ufFind(b);
+  if(ra===rb)return;
+  if(UF.rank[ra]<UF.rank[rb]){UF.p[ra]=rb}
+  else if(UF.rank[ra]>UF.rank[rb]){UF.p[rb]=ra}
+  else{UF.p[rb]=ra;UF.rank[ra]++}
+}
+/* 放置后建立区域连接：同瓦片内部相邻 regs 合并 + 与邻瓦片匹配边合并 */
+function connectRegions(tile,x,y){
+  /* 同瓦片：城市/道路通过 dirs 相连的合并（同一 reg 已含多 dirs），
+     这里只需处理：草地 reg 与城市/道路不合并；草地之间通过半边合并（已在一个 reg 内） */
+  for(var d=0;d<4;d++){
+    var nx=x+DIR_DX[d],ny=y+DIR_DY[d];
+    var nb=boardGet(nx,ny);
+    if(!nb)continue;
+    /* 当前瓦片 d 边的 regs */
+    tile.regs.forEach(function(r,ri){
+      if(r.t==='city'&&tile.edges[d]==='C'&&r.dirs.indexOf(d)>=0){
+        nb.regs.forEach(function(nr,nri){
+          if(nr.t==='city'&&nb.edges[EDGE_OPP[d]]==='C'&&nr.dirs.indexOf(EDGE_OPP[d])>=0){
+            ufUnion(ufId(tile,ri),ufId(nb,nri));
+          }
+        });
+      }
+      if(r.t==='road'&&tile.edges[d]==='R'&&r.dirs.indexOf(d)>=0){
+        nb.regs.forEach(function(nr,nri){
+          if(nr.t==='road'&&nb.edges[EDGE_OPP[d]]==='R'&&nr.dirs.indexOf(EDGE_OPP[d])>=0){
+            ufUnion(ufId(tile,ri),ufId(nb,nri));
+          }
+        });
+      }
+      if(r.t==='field'){
+        EDGE_HALVES[d].forEach(function(h){
+          if(r.half.indexOf(h)>=0){
+            var opp=HALF_PAIR[h];
+            nb.regs.forEach(function(nr,nri){
+              if(nr.t==='field'&&nr.half.indexOf(opp)>=0){
+                ufUnion(ufId(tile,ri),ufId(nb,nri));
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+}
+/* 收集一个 region 的所有瓦片/regs */
+function regionMembers(tile,ri){
+  var root=ufFind(ufId(tile,ri));
+  var members=[];
+  for(var k in boardMap){
+    var t=boardMap[k];
+    t.regs.forEach(function(r,i){
+      if(r.t!=='field'&&r.t!=='city'&&r.t!=='road')return;
+      if(ufFind(ufId(t,i))===root)members.push({tile:t,ri:i,reg:r});
+    });
+  }
+  return members;
+}
+/* 道路完成：region 内所有道路开放边都被接续（接续到道路或闭合于城市/草地/修道院/路口） */
+function roadClosed(tile,ri){
+  var members=regionMembers(tile,ri);
+  for(var m=0;m<members.length;m++){
+    var mem=members[m];
+    var reg=mem.reg;
+    for(var i=0;i<reg.dirs.length;i++){
+      var d=reg.dirs[i];
+      var nx=mem.tile.x+DIR_DX[d],ny=mem.tile.y+DIR_DY[d];
+      var nb=boardGet(nx,ny);
+      if(!nb)return false;/* 悬空=未完成 */
+      if(nb.edges[EDGE_OPP[d]]!=='R')continue;/* 邻接非道路=尽头，闭合 */
+    }
+  }
+  return true;
+}
+/* 城市完成：region 内所有城市边都有邻接城市 */
+function cityClosed(tile,ri){
+  var members=regionMembers(tile,ri);
+  for(var m=0;m<members.length;m++){
+    var mem=members[m];
+    var reg=mem.reg;
+    for(var i=0;i<reg.dirs.length;i++){
+      var d=reg.dirs[i];
+      var nx=mem.tile.x+DIR_DX[d],ny=mem.tile.y+DIR_DY[d];
+      var nb=boardGet(nx,ny);
+      if(!nb)return false;
+      if(nb.edges[EDGE_OPP[d]]!=='C')return false;
+    }
+  }
+  return true;
+}
+/* 修道院完成 */
+function monCompleted(x,y){
+  for(var dx=-1;dx<=1;dx++){
+    for(var dy=-1;dy<=1;dy++){
+      if(dx===0&&dy===0)continue;
+      if(!boardGet(x+dx,y+dy))return false;
+    }
+  }
+  return true;
+}
+/* 区域统计 */
+function regionStat(tile,ri){
+  var members=regionMembers(tile,ri);
+  var count=0,shield=0;
+  members.forEach(function(m){
+    count++;
+    if(m.tile.shield&&m.reg.t==='city')shield+=m.tile.shield;
+  });
+  return {count:count,shield:shield,members:members};
+}
+/* 区域上的米宝（争夺结算） */
+function regionMeepleOwners(tile,ri){
+  var members=regionMembers(tile,ri);
+  var owners={};
+  members.forEach(function(m){
+    if(m.reg.meeple!=null)owners[m.reg.meeple]=(owners[m.reg.meeple]||0)+1;
+  });
+  return owners;
+}
+/* 计分：返回 [{player,pts}] */
+function awardRegion(tile,ri,type,pts){
+  var owners=regionMeepleOwners(tile,ri);
+  var list=Object.keys(owners).map(function(k){return {p:+k,c:owners[k]}});
+  var res=[];
+  if(!list.length)return res;
+  var maxC=Math.max.apply(null,list.map(function(o){return o.c}));
+  var top=list.filter(function(o){return o.c===maxC});
+  top.forEach(function(o){res.push({player:o.p,pts:pts})});
+  /* 回收米宝 */
+  var members=regionMembers(tile,ri);
+  members.forEach(function(m){if(m.reg.meeple!=null)m.reg.meeple=null});
+  return res;
+}
+/* 草地：找与草地区域相邻的所有城市 region（跨瓦片） */
+function fieldAdjacentCities(tile,ri){
+  var members=regionMembers(tile,ri);
+  var citySet={};
+  members.forEach(function(m){
+    var t=m.tile;
+    t.regs.forEach(function(r,ri2){
+      if(r.t==='city')citySet[ufFind(ufId(t,ri2))]=true;
+    });
+  });
+  /* 每个城市 region 返回一个代表成员 */
+  var res=[];
+  var roots=Object.keys(citySet);
+  for(var k in boardMap){
+    var t=boardMap[k];
+    for(var i=0;i<t.regs.length;i++){
+      var r=t.regs[i];
+      if(r.t!=='city')continue;
+      var root=ufFind(ufId(t,i));
+      if(roots.indexOf(root)>=0&&res.indexOf(root)<0){
+        res.push(root);
+        citySet[root]={tile:t,ri:i};
+      }
+    }
+  }
+  var out=[];
+  roots.forEach(function(root){if(citySet[root]&&citySet[root].tile)out.push(citySet[root])});
+  return out;
+}
+/* ================= 游戏控制 ================= */
+var G=null;
+var players=[],curPlayer=0,curTile=null,meepleMode=false,tilePlaced=false;
+var boardMap={};
+var phase='menu';
+var totalTiles=0,deck=[];
+var finished={};/* 已完成的区域（用于草地计分） */
+var scoreLog=[];/* 终局明细 */
+/* 构建牌堆 */
+function buildDeck(mode){
+  var list=[];
+  TYPES.forEach(function(T){
+    var c=mode==='2'?Math.max(1,Math.round(T.count/2)):mode==='1'?Math.max(1,Math.round(T.count/3)):T.count;
+    for(var i=0;i<c;i++)list.push(T.id);
+  });
+  /* 起始瓦片固定第一张 */
+  var startIdx=list.indexOf('start');
+  list.splice(startIdx,1);
+  deck=list.sort(function(){return Math.random()-0.5});
+  /* 起始瓦片 */
+  var start=makeTile('start',0);
+  start.x=0;start.y=0;
+  boardMap['0,0']=start;
+  totalTiles=deck.length+1;
+  return deck.length;
+}
+function newGame(opts){
+  opts=opts||{mode:'2',players:[{name:'我',ai:false},{name:'AI',ai:true}]};
+  players=opts.players;
+  players.forEach(function(p,i){p.score=0;p.idx=i;p.meeples=7;p.color=PLAYER_COLORS[i%PLAYER_COLORS.length]});
+  boardMap={};
+  buildDeck(opts.mode);
+  curPlayer=0;phase='draw';
+  finished={};
+  scoreLog=[];
+  renderPlayers();
+  nextTurn();
+}
+function nextTurn(){
+  if(!deck.length){
+    endGame();
+    return;
+  }
+  /* 避免无限重抽 */
+  var redraws=0;
+  while(redraws<deck.length){
+    var testTile=makeTile(deck[deck.length-1],0);
+    if(findPlacements(testTile).length){
+      break;
+    }
+    /* 无处可放：弃牌重抽 */
+    deck.pop();
+    redraws++;
+    if(!deck.length){
+      endGame();
+      return;
+    }
+  }
+  curTile=makeTile(deck.pop(),0);
+  tilePlaced=false;meepleMode=false;
+  phase='place';
+  var pl=players[curPlayer];
+  hint((pl.ai?'AI ':'')+pl.name+' 的回合：旋转或放置瓦片');
+  renderCurTile();
+  render();
+  if(pl.ai){
+    setTimeout(function(){aiTurn(pl)},500);
+  }
+}
+function placeTile(x,y){
+  if(!validPlacement(curTile,x,y)){
+    toast('此处无法放置：地形不匹配');
+    return;
+  }
+  boardMap[x+','+y]=curTile;curTile.x=x;curTile.y=y;
+  tilePlaced=true;
+  connectAll(curTile);
+  phase='score';
+  scoreCompleted(curTile);
+  render();
+  renderCurTile();
+  /* 进入米宝放置阶段（仅真人玩家） */
+  var pl=players[curPlayer];
+  if(!pl.ai&&pl.meeples>0&&hasOpenRegions(curTile)){
+    meepleMode=true;
+    $id('actionBar').style.display='flex';
+    hint('点击瓦片上的圆点放置米宝，或点「跳过」');
+    renderMeepleHotspots();
+  }else if(!pl.ai){
+    meepleMode=false;
+    afterScore();
+  }else{
+    /* AI：由 aiTurn 决定 */
+    meepleMode=false;
+  }
+}
+/* 瓦片是否有可放置米宝的区域 */
+function hasOpenRegions(tile){
+  var any=false;
+  tile.regs.forEach(function(r,ri){
+    if(regHasMeepleAnywhere(tile,ri))return;
+    any=true;
+  });
+  return any;
+}
+function regHasMeepleAnywhere(tile,ri){
+  var members=regionMembers(tile,ri);
+  for(var i=0;i<members.length;i++)if(members[i].reg.meeple!=null)return true;
+  return false;
+}
+/* 画米宝热点（画布上的圆点标记） */
+function renderMeepleHotspots(){
+  var t=curTile;
+  if(!t)return;
+  var p=tileScreenPos(t.x,t.y);
+  var cell=view.cell*view.zoom;
+  t.regs.forEach(function(r,ri){
+    if(regHasMeepleAnywhere(t,ri))return;
+    var hot=hotOfReg(t,ri);
+    ctx.save();
+    ctx.strokeStyle='rgba(255,255,255,.95)';
+    ctx.fillStyle='rgba(201,162,39,.85)';
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.arc(p.sx+hot[0]*cell/100,p.sy+hot[1]*cell/100,12,0,7);
+    ctx.fill();ctx.stroke();
+    ctx.restore();
+  });
+}
+function hotOfReg(tile,ri){
+  var base=tileHot(tile,ri);
+  return base;
+}
+
+function connectAll(tile){
+  initUF();
+  /* 所有瓦片加入 UF */
+  for(var k in boardMap){
+    var t=boardMap[k];
+    t.regs.forEach(function(r,i){ufAdd(ufId(t,i))});
+  }
+  /* 相邻连接 */
+  for(var kk in boardMap){
+    var t2=boardMap[kk];
+    for(var d=0;d<4;d++){
+      var nx=t2.x+DIR_DX[d],ny=t2.y+DIR_DY[d];
+      var nb=boardMap[nx+','+ny];
+      if(!nb)continue;
+      if(t2.edges[d]!==nb.edges[EDGE_OPP[d]])continue;
+      /* 城市 */
+      if(t2.edges[d]==='C'){
+        var a=t2.regs.filter(function(r){return r.t==='city'&&r.dirs.indexOf(d)>=0});
+        var b=nb.regs.filter(function(r){return r.t==='city'&&r.dirs.indexOf(EDGE_OPP[d])>=0});
+        a.forEach(function(ra){b.forEach(function(rb){ufUnion(ufId(t2,t2.regs.indexOf(ra)),ufId(nb,nb.regs.indexOf(rb)))})});
+      }
+      /* 道路 */
+      if(t2.edges[d]==='R'){
+        var ar=t2.regs.filter(function(r){return r.t==='road'&&r.dirs.indexOf(d)>=0});
+        var br=nb.regs.filter(function(r){return r.t==='road'&&r.dirs.indexOf(EDGE_OPP[d])>=0});
+        ar.forEach(function(ra){br.forEach(function(rb){ufUnion(ufId(t2,t2.regs.indexOf(ra)),ufId(nb,nb.regs.indexOf(rb)))})});
+      }
+      /* 草地 */
+      if(t2.edges[d]==='F'){
+        EDGE_HALVES[d].forEach(function(h){
+          if(!t2.regs.some(function(r){return r.t==='field'&&r.half.indexOf(h)>=0}))return;
+          var opp=HALF_PAIR[h];
+          if(!nb.regs.some(function(r){return r.t==='field'&&r.half.indexOf(opp)>=0}))return;
+          var fa=t2.regs.filter(function(r){return r.t==='field'&&r.half.indexOf(h)>=0});
+          var fb=nb.regs.filter(function(r){return r.t==='field'&&r.half.indexOf(opp)>=0});
+          fa.forEach(function(ra){fb.forEach(function(rb){ufUnion(ufId(t2,t2.regs.indexOf(ra)),ufId(nb,nb.regs.indexOf(rb)))})});
+        });
+      }
+    }
+  }
+}
+/* 计分已完成的区域（放置后） */
+function scoreCompleted(tile){
+  var scored=[];
+  var gains=[];
+  tile.regs.forEach(function(r,ri){
+    var root=ufFind(ufId(tile,ri));
+    if(finished[root])return;
+    var isCity=r.t==='city'&&cityClosed(tile,ri);
+    var isRoad=r.t==='road'&&roadClosed(tile,ri);
+    var isMon=r.t==='mon'&&monCompleted(tile.x,tile.y);
+    if(isCity||isRoad||isMon){
+      finished[root]=true;
+      var st=regionStat(tile,ri);
+      var pts;
+      if(isCity)pts=st.count*2+st.shield*2;
+      else if(isRoad)pts=st.count;
+      else pts=9;
+      scored.push(root);
+      var aw=awardRegion(tile,ri,null,pts);
+      aw.forEach(function(g){gains.push(g)});
+    }
+  });
+  /* 修道院单独：mon reg 不在 members 里，regionStat 无法统计，需单独处理 */
+  applyGains(gains);
+  if(scored.length&&gains.length){
+    /* 显示计分动画由调用方处理 */
+  }
+  /* 回收完成的修道院米宝 */
+  if(tile.mon&&monCompleted(tile.x,tile.y)){
+    var mreg=tile.regs.filter(function(r){return r.t==='mon'})[0];
+    if(mreg&&mreg.meeple!=null){mreg.meeple=null;}
+  }
+}
+/* 应用得分 */
+function applyGains(gains){
+  var byPlayer={};
+  gains.forEach(function(g){
+    players[g.player].score+=g.pts;
+    byPlayer[g.player]=(byPlayer[g.player]||0)+g.pts;
+  });
+  Object.keys(byPlayer).forEach(function(p){
+    var pts=byPlayer[p];
+    scoreLog.push({player:+p,pts:pts,label:'完成区域'});
+  });
+}
+function hint(msg){
+  var h=$id('hint');
+  h.textContent=msg;
+  h.classList.remove('hide');
+}
+function toast(msg){
+  var h=$id('hint');
+  h.textContent=msg;
+  h.classList.add('show');
+  h.classList.remove('hide');
+  clearTimeout(h._t);
+  h._t=setTimeout(function(){h.classList.add('hide')},2000);
+}
+function renderPlayers(){
+  var box=$id('players');
+  box.innerHTML='';
+  players.forEach(function(p,i){
+    var d=document.createElement('div');
+    d.className='p-chip'+(i===curPlayer?' active':'');
+    d.innerHTML='<span class="pdot" style="background:'+p.color+'"></span>'
+      +'<span class="pname">'+esc(p.name)+'</span>'
+      +'<span class="pscore">'+p.score+'</span>';
+    box.appendChild(d);
+  });
+}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function afterScore(){
+  /* 回合同步 */
+  meepleMode=false;
+  curPlayer=(curPlayer+1)%players.length;
+  renderPlayers();
+  nextTurn();
+}
+/* 放置米宝 */
+function tryPlaceMeeple(tile,ri){
+  if(!UF||!UF.p||Object.keys(UF.p).length===0)connectAll(tile);
+  var reg=tile.regs[ri];
+  if(reg.meeple!=null){toast('该区域已有米宝');return false}
+  var root=ufFind(ufId(tile,ri));
+  /* 检查整个相连区域是否有其他米宝 */
+  var members=regionMembers(tile,ri);
+  var has=false;
+  members.forEach(function(m){if(m.reg.meeple!=null)has=true});
+  if(has){toast('该相连地形已被米宝占据');return false}
+  var pl=players[curPlayer];
+  if(pl.meeples<=0){toast('没有可用米宝');return false}
+  reg.meeple=pl.idx;
+  pl.meeples--;
+  renderPlayers();
+  /* 放置后可能立即完成 → 计分并回收（米宝已使用，不返还） */
+  scoreCompleted(tile);
+  meepleMode=false;
+  $id('actionBar').style.display='none';
+  render();
+  afterScore();
+}
+/* 终局计分 */
+function endGame(){
+  phase='over';
+  /* 未完成区域 + 草地 */
+  var detail=[];
+  var seen={};
+  var gains=[];
+  /* 道路/城市/修道院未完成 */
+  for(var k in boardMap){
+    var t=boardMap[k];
+    t.regs.forEach(function(r,ri){
+      var root=ufFind(ufId(t,ri));
+      if(seen[root])return;
+      if(r.t!=='city'&&r.t!=='road'&&r.t!=='mon')return;
+      seen[root]=true;
+      var isCity=r.t==='city';
+      var isRoad=r.t==='road';
+      var closed=isCity?cityClosed(t,ri):isRoad?roadClosed(t,ri):false;
+      var aw=[];
+      if(isCity&&!closed){
+        var st=regionStat(t,ri);
+        aw=awardRegion(t,ri,null,st.count+st.shield);
+        detail.push({label:'未完成城市',pts:st.count+st.shield});
+      }else if(isRoad&&!closed){
+        var st2=regionStat(t,ri);
+        aw=awardRegion(t,ri,null,st2.count);
+        detail.push({label:'未完成道路',pts:st2.count});
+      }
+      aw.forEach(function(g){
+        gains.push(g);
+        players[g.player].score+=g.pts;
+      });
+    });
+    /* 修道院未完成 */
+    if(t.mon&&!monCompleted(t.x,t.y)){
+      var mreg=t.regs.filter(function(r){return r.t==='mon'})[0];
+      if(mreg){
+        var cnt=1;
+        for(var dx=-1;dx<=1;dx++)for(var dy=-1;dy<=1;dy++){
+          if(dx===0&&dy===0)continue;
+          if(boardMap[(t.x+dx)+','+(t.y+dy)])cnt++;
+        }
+        if(mreg.meeple!=null){
+          players[mreg.meeple].score+=cnt;
+          gains.push({player:mreg.meeple,pts:cnt});
+        }
+        detail.push({label:'未完成修道院',pts:cnt});
+        mreg.meeple=null;
+      }
+    }
+  }
+  /* 草地计分 */
+  var fieldSeen={};
+  for(var kk in boardMap){
+    var tt=boardMap[kk];
+    tt.regs.forEach(function(r,ri){
+      if(r.t!=='field')return;
+      var root=ufFind(ufId(tt,ri));
+      if(fieldSeen[root])return;
+      fieldSeen[root]=true;
+      var cities=fieldAdjacentCities(tt,ri);
+      /* 只计完成的城市（终局时直接判闭合） */
+      var done=cities.filter(function(c){
+        return cityClosed(c.tile,c.ri);
+      });
+      if(!done.length)return;
+      var pts=done.length*3;
+      var aw=awardRegion(tt,ri,null,pts);
+      aw.forEach(function(g){
+        players[g.player].score+=g.pts;
+        gains.push(g);
+      });
+      detail.push({label:'草地('+done.length+' 城)',pts:pts});
+    });
+  }
+  renderPlayers();
+  showResult(detail);
+}
+function showResult(detail){
+  var sorted=players.slice().sort(function(a,b){return b.score-a.score});
+  var max=Math.max.apply(null,players.map(function(p){return p.score}))||1;
+  var rows='';
+  sorted.forEach(function(p,i){
+    rows+='<div class="r-row'+(i===0?' win':'')+'"><span class="pdot" style="background:'+p.color+'"></span>'
+      +'<span class="nm">'+esc(p.name)+(i===0?' 🏆':'')+'</span>'
+      +'<span class="sc">'+p.score+'</span></div>'
+      +'<div class="r-bar"><i style="width:'+(p.score/max*100)+'%;background:'+p.color+'"></i></div>';
+  });
+  $id('rRows').innerHTML=rows;
+  $id('rTitle').textContent='🏆 '+sorted[0].name+' 获胜！';
+  var det='<table><tr><th>项目</th><th>得分</th></tr>'+detail.map(function(d){
+    return '<tr><td>'+esc(d.label)+'</td><td>+'+d.pts+'</td></tr>';
+  }).join('')+'</table>';
+  $id('finalDetail').innerHTML=det;
+  $id('result').classList.add('show');
+  hint('游戏结束');
+}
+/* ================= 渲染 ================= */
+var view={ox:0,oy:0,zoom:1,cell:110};
+function resizeCanvas(){
+  var st=$id('stage');
+  cv.width=st.clientWidth*devicePixelRatio;
+  cv.height=st.clientHeight*devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  render();
+}
+function boardCenter(){
+  /* 计算棋盘包围盒中心 */
+  var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  for(var k in boardMap){
+    var p=k.split(','),x=+p[0],y=+p[1];
+    if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+  }
+  if(minX===1e9)return {x:0,y:0};
+  var cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+  return {x:cx,y:cy};
+}
+function fitView(){
+  var c=boardCenter();
+  view.ox=c.x;view.oy=c.y;
+  view.zoom=1;
+  render();
+}
+function tileScreenPos(x,y){
+  return {
+    sx:(x-view.ox)*view.cell*view.zoom+stage.clientWidth/2,
+    sy:(y-view.oy)*view.cell*view.zoom+stage.clientHeight/2
+  };
+}
+function screenToTile(sx,sy){
+  var tx=Math.floor((sx-stage.clientWidth/2)/(view.cell*view.zoom)+view.ox);
+  var ty=Math.floor((sy-stage.clientHeight/2)/(view.cell*view.zoom)+view.oy);
+  return {x:tx,y:ty};
+}
+function render(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  var w=stage.clientWidth,h=stage.clientHeight;
+  var cell=view.cell*view.zoom;
+  /* 画背景格 */
+  var c=screenToTile(0,0),c2=screenToTile(w,h);
+  ctx.fillStyle='rgba(255,255,255,.03)';
+  ctx.strokeStyle='rgba(255,255,255,.05)';
+  for(var x=c.x;x<=c2.x;x++){
+    for(var y=c.y;y<=c2.y;y++){
+      var p=tileScreenPos(x,y);
+      ctx.fillRect(p.sx,p.sy,cell,cell);
+      ctx.strokeRect(p.sx,p.sy,cell,cell);
+    }
+  }
+  /* 画瓦片 */
+  for(var k in boardMap){
+    var t=boardMap[k];
+    var p=tileScreenPos(t.x,t.y);
+    drawTile(ctx,t,p.sx,p.sy,cell,{});
+  }
+  /* 放置预览 */
+  if(phase==='place'&&curTile&&!tilePlaced&&view.mouse){
+    var m=view.mouse;
+    var tc=screenToTile(m.x,m.y);
+    var ok=validPlacement(curTile,tc.x,tc.y);
+    var pp=tileScreenPos(tc.x,tc.y);
+    ctx.save();
+    ctx.globalAlpha=0.7;
+    drawTile(ctx,curTile,pp.sx,pp.sy,cell,{glow:true,glowColor:ok?'#7ddb7d':'#ff7777'});
+    ctx.restore();
+  }
+  /* 米宝热点 */
+  if(meepleMode&&curTile&&tilePlaced){
+    var tp=tileScreenPos(curTile.x,curTile.y);
+    curTile.regs.forEach(function(r,ri){
+      if(regHasMeepleAnywhere(curTile,ri))return;
+      var h=hotOfReg(curTile,ri);
+      ctx.save();
+      ctx.strokeStyle='rgba(255,255,255,.95)';
+      ctx.fillStyle='rgba(201,162,39,.85)';
+      ctx.lineWidth=3;
+      ctx.beginPath();
+      ctx.arc(tp.sx+h[0]*cell/100,tp.sy+h[1]*cell/100,11,0,7);
+      ctx.fill();ctx.stroke();
+      ctx.restore();
+    });
+  }
+}
+/* 渲染当前瓦片预览 */
+function renderCurTile(){
+  var cc=$cur();
+  var g=cc.getContext('2d');
+  g.clearRect(0,0,216,216);
+  g.setTransform(2,0,0,2,0,0);
+  drawTile(g,curTile,0,0,108,{});
+  /* 放置提示 */
+  $id('btnRotate').style.display=tilePlaced?'none':'';
+}
+/* ================= 交互 ================= */
+var dragging=false,lastX=0,lastY=0,pinchDist=0,pinchZoom=1;
+function onDown(e){
+  var pt=eventPos(e);
+  lastX=pt.x;lastY=pt.y;
+  dragging=true;
+  view.mouse={x:pt.x,y:pt.y};
+  if(e.touches&&e.touches.length>=2){
+    pinchDist=touchDist(e);
+    pinchZoom=view.zoom;
+    dragging=false;
+  }
+  render();
+}
+function onMove(e){
+  var pt=eventPos(e);
+  if(e.touches&&e.touches.length>=2){
+    var d=touchDist(e);
+    if(pinchDist>0){
+      view.zoom=Math.max(0.3,Math.min(3,pinchZoom*d/pinchDist));
+    }
+    view.mouse=null;
+    render();
+    return;
+  }
+  if(dragging){
+    view.ox-=(pt.x-lastX)/(view.cell*view.zoom);
+    view.oy-=(pt.y-lastY)/(view.cell*view.zoom);
+    lastX=pt.x;lastY=pt.y;
+  }
+  view.mouse={x:pt.x,y:pt.y};
+  render();
+}
+function touchDist(e){
+  var t=e.touches;
+  if(t.length<2)return 0;
+  var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
+}
+function onUp(e){
+  var pt=eventPos(e);
+  var moved=Math.abs(pt.x-lastX)+Math.abs(pt.y-lastY);
+  dragging=false;
+  view.mouse=null;
+  if(moved<8){
+    if(phase==='place'&&curTile&&!tilePlaced&&!players[curPlayer].ai){
+      var tc=screenToTile(pt.x,pt.y);
+      if(validPlacement(curTile,tc.x,tc.y)){
+        placeTile(tc.x,tc.y);
+      }
+    }else if(meepleMode&&curTile&&!players[curPlayer].ai){
+      /* 点击瓦片热点放米宝 */
+      var tt=screenToTile(pt.x,pt.y);
+      if(tt.x===curTile.x&&tt.y===curTile.y){
+        var cell=view.cell*view.zoom;
+        var p=tileScreenPos(curTile.x,curTile.y);
+        var lx=(pt.x-p.sx)/cell*100,ly=(pt.y-p.sy)/cell*100;
+        var best=-1,bestD=1e9;
+        curTile.regs.forEach(function(r,ri){
+          if(regHasMeepleAnywhere(curTile,ri))return;
+          var h=hotOfReg(curTile,ri);
+          var d=Math.hypot(lx-h[0],ly-h[1]);
+          if(d<bestD&&d<24){bestD=d;best=ri}
+        });
+        if(best>=0)tryPlaceMeeple(curTile,best);
+      }
+    }
+  }
+  render();
+}
+function eventPos(e){
+  var r=cv.getBoundingClientRect();
+  var cx=0,cy=0;
+  if(e.touches&&e.touches.length){cx=e.touches[0].clientX;cy=e.touches[0].clientY}
+  else if(e.changedTouches&&e.changedTouches.length){cx=e.changedTouches[0].clientX;cy=e.changedTouches[0].clientY}
+  else{cx=e.clientX;cy=e.clientY}
+  return {x:cx-r.left,y:cy-r.top};
+}
+function onWheel(e){
+  e.preventDefault();
+  var factor=e.deltaY>0?0.9:1.1;
+  view.zoom=Math.max(0.3,Math.min(3,view.zoom*factor));
+  render();
+}
+function bindBoard(){
+  cv.addEventListener('mousedown',onDown);
+  cv.addEventListener('mousemove',onMove);
+  window.addEventListener('mouseup',onUp);
+  cv.addEventListener('touchstart',function(e){e.preventDefault();onDown(e)},{passive:false});
+  cv.addEventListener('touchmove',function(e){e.preventDefault();onMove(e)},{passive:false});
+  cv.addEventListener('touchend',function(e){e.preventDefault();onUp(e)},{passive:false});
+  cv.addEventListener('wheel',onWheel,{passive:false});
+  window.addEventListener('resize',resizeCanvas);
+}
+/* ================= AI ================= */
+function aiTurn(pl){
+  var best=null;
+  var rot;
+  /* 尝试所有旋转 */
+  for(var r=0;r<4;r++){
+    curTile.rot=r;
+    rebuildEdges();
+    var spots=findPlacements(curTile);
+    spots.forEach(function(sp){
+      var score=evalPlacement(sp[0],sp[1]);
+      if(!best||score>best.score){
+        best={x:sp[0],y:sp[1],rot:r,score:score};
+      }
+    });
+  }
+  if(!best){
+    /* 无处可放：跳过 */
+    toast('AI 无处可放');
+    endTurnSkip();
+    return;
+  }
+  curTile.rot=best.rot;
+  rebuildEdges();
+  /* 是否放米宝 */
+  var doMeeple=false;
+  if(pl.meeples>0){
+    var aiLv=+($id('optAi')&&$id('optAi').value||2);
+    if(aiLv===1){
+      doMeeple=Math.random()<0.4;
+    }else{
+      var pot=evalMeeplePotential(best.x,best.y);
+      if(aiLv===3)doMeeple=pot>6&&Math.random()<0.8;
+      else doMeeple=pot>9&&Math.random()<0.65;
+    }
+  }
+  placeTile(best.x,best.y);
+  if(doMeeple){
+    /* 放在最佳区域 */
+    var bestR=null,bestS=-1;
+    curTile.regs.forEach(function(r,ri){
+      if(r.meeple!=null)return;
+      var s=meepleRegionScore(ri);
+      if(s>bestS){bestS=s;bestR=ri}
+    });
+    if(bestR!==null){
+      tryPlaceMeeple(curTile,bestR);
+      return;
+    }
+  }
+  afterScore();
+}
+function rebuildEdges(){
+  var T=TYPES.filter(function(x){return x.id===curTile.id})[0];
+  curTile.edges=[0,1,2,3].map(function(i){return T.edges[(i+4-curTile.rot)%4]});
+  curTile.regs=T.regs.map(function(r){
+    var dirs=r.dirs?r.dirs.map(function(d){return (d+4-curTile.rot)%4}):[];
+    return {t:r.t,dirs:dirs,half:r.half?r.half.map(function(h){return rotateHalf(h,curTile.rot)}):[],gid:null,meeple:null};
+  });
+}
+/* 放置评估：临时放置模拟，检测立即完成得分 */
+function evalPlacement(x,y){
+  var tile=curTile;
+  var s=0;
+  /* 邻接奖励 */
+  for(var d=0;d<4;d++){
+    var nx=x+DIR_DX[d],ny=y+DIR_DY[d];
+    var nb=boardMap[nx+','+ny];
+    if(!nb)continue;
+    if(tile.edges[d]==='C')s+=3;
+    if(tile.edges[d]==='R')s+=1;
+  }
+  /* 临时放置并检测完成 */
+  boardMap[x+','+y]=tile;
+  tile.x=x;tile.y=y;
+  connectAll(tile);
+  tile.regs.forEach(function(r,ri){
+    if(r.t==='city'&&cityClosed(tile,ri)){
+      var st=regionStat(tile,ri);
+      s+=st.count*2+st.shield*2+6;/* 立即完成加分 */
+    }
+    if(r.t==='road'&&roadClosed(tile,ri)){
+      var st2=regionStat(tile,ri);
+      s+=st2.count+3;
+    }
+    if(r.t==='mon'&&monCompleted(x,y))s+=9;
+  });
+  var cityRegs=tile.regs.filter(function(r){return r.t==='city'});
+  s+=cityRegs.length*5;
+  if(tile.shield)s+=3;
+  /* 移除临时瓦片 */
+  delete boardMap[x+','+y];
+  return s;
+}
+function evalMeeplePotential(x,y){
+  var tile=curTile;
+  var total=0;
+  tile.regs.forEach(function(r){
+    if(r.t==='city')total+=6;
+    else if(r.t==='road')total+=2;
+    else if(r.t==='mon')total+=6;
+  });
+  return total;
+}
+function meepleRegionScore(ri){
+  var r=curTile.regs[ri];
+  if(r.t==='city')return 7;
+  if(r.t==='mon')return 7;
+  if(r.t==='road')return 2;
+  return 1;
+}
+function endTurnSkip(){
+  tilePlaced=true;
+  curPlayer=(curPlayer+1)%players.length;
+  renderPlayers();
+  nextTurn();
+}
+/* ================= 设置面板 ================= */
+var setupPlayers=[
+  {name:'我',ai:false},
+  {name:'AI 对手',ai:true}
+];
+var setupMode='2';
+function renderSetup(){
+  var box=$id('playerSets');
+  box.innerHTML='';
+  setupPlayers.forEach(function(p,i){
+    var d=document.createElement('div');
+    d.className='player-set';
+    d.innerHTML='<div class="ps-head"><span class="pdot" style="background:'+PLAYER_COLORS[i%PLAYER_COLORS.length]+'"></span>'
+      +'<input type="text" value="'+esc(p.name)+'" data-i="'+i+'">'
+      +'<select data-i="'+i+'"><option value="0"'+(p.ai?'':' selected')+'>人</option><option value="1"'+(p.ai?' selected':'')+'>AI</option></select>'
+      +(setupPlayers.length>2?'<button class="ps-del" data-i="'+i+'">✕</button>':'');
+    box.appendChild(d);
+  });
+}
+function bindSetup(){
+  $id('playerSets').addEventListener('input',function(e){
+    if(e.target.getAttribute('data-i')===null)return;
+    var i=+e.target.getAttribute('data-i');
+    if(e.target.tagName==='INPUT')setupPlayers[i].name=e.target.value;
+    else setupPlayers[i].ai=e.target.value==='1';
+  });
+  $id('playerSets').addEventListener('click',function(e){
+    if(e.target.classList.contains('ps-del')){
+      var i=+e.target.getAttribute('data-i');
+      setupPlayers.splice(i,1);
+      renderSetup();
+    }
+  });
+  document.querySelectorAll('#setup .pick').forEach(function(el){
+    el.addEventListener('click',function(){
+      document.querySelectorAll('#setup .pick').forEach(function(x){x.classList.remove('on')});
+      el.classList.add('on');
+      setupMode=el.getAttribute('data-mode');
+    });
+  });
+  $id('btnAddPlayer').addEventListener('click',function(){
+    if(setupPlayers.length>=5){toast('最多 5 名玩家');return}
+    setupPlayers.push({name:'玩家'+setupPlayers.length,ai:false});
+    renderSetup();
+  });
+  $id('btnStart').addEventListener('click',function(){
+    var players=setupPlayers.map(function(p,i){
+      return {name:p.name||('玩家'+(i+1)),ai:p.ai,color:PLAYER_COLORS[i%PLAYER_COLORS.length],score:0,meeples:7,idx:i};
+    });
+    if(players.length<2){toast('至少需要 2 名玩家');return}
+    var theme=+($id('optTheme').value||0);
+    setTheme(theme);
+    $id('setupMask').classList.add('hide');
+    $id('result').classList.remove('show');
+    newGame({mode:setupMode,players:players,aiLv:+$id('optAi').value});
+    fitView();
+  });
+}
+/* ================= 顶部按钮 ================= */
+function bindTop(){
+  $id('btnMenu').addEventListener('click',function(){
+    $id('setupMask').classList.remove('hide');
+  });
+  $id('btnRules').addEventListener('click',function(){
+    var box=$id('rulesBox');
+    box.style.display=box.style.display==='none'?'block':'none';
+  });
+  $id('btnAgain').addEventListener('click',function(){
+    $id('result').classList.remove('show');
+    $id('setupMask').classList.remove('hide');
+    renderSetup();
+  });
+  $id('btnRotate').addEventListener('click',function(){
+    if(!curTile)return;
+    curTile.rot=(curTile.rot+1)%4;
+    rebuildEdges();
+    renderCurTile();
+    render();
+  });
+  $id('btnPass').addEventListener('click',function(){
+    if(meepleMode){
+      meepleMode=false;
+      $id('actionBar').style.display='none';
+      afterScore();
+    }
+  });
+  $id('btnMeeple').addEventListener('click',function(){
+    if(meepleMode){
+      /* 若玩家还有可用区域，跳转到热点；否则跳过 */
+      if(hasOpenRegions(curTile)){
+        hint('点击瓦片上的圆点放置米宝');
+      }else{
+        meepleMode=false;
+        $id('actionBar').style.display='none';
+        afterScore();
+      }
+    }
+  });
+  /* 当前瓦片点击旋转 */
+  $cur().addEventListener('click',function(){
+    if(!curTile)return;
+    curTile.rot=(curTile.rot+1)%4;
+    rebuildEdges();
+    renderCurTile();
+    render();
+  });
+}
+/* ================= 初始化 ================= */
+function init(){
+  buildGrassPat();
+  bindBoard();
+  bindSetup();
+  bindTop();
+  resizeCanvas();
+  window.addEventListener('resize',function(){
+    /* 防抖 */
+    clearTimeout(window._rz);
+    window._rz=setTimeout(resizeCanvas,100);
+  });
+  renderSetup();
+}
+init();
+</script>
+</body>
+</html>
