@@ -64,7 +64,7 @@ body{
   border:1px solid rgba(255,255,255,.12);min-width:140px;
 }
 #curLabel{color:#d8c9a5;font-size:11.5px;letter-spacing:1px;text-align:center;line-height:1.4}
-#curTile{width:120px;height:120px;border-radius:8px;cursor:pointer;touch-action:none;
+#curTile{width:150px;height:150px;border-radius:8px;cursor:pointer;touch-action:none;
   box-shadow:0 0 0 3px rgba(255,255,255,.25);transition:box-shadow .15s}
 #curTile.rot{cursor:pointer}
 #curTile:hover{box-shadow:0 0 0 3px var(--gold)}
@@ -217,8 +217,8 @@ body{
   #topbar .sub{display:none}
   .p-chip{padding:4px 8px;font-size:11.5px}
   .p-chip .pname{max-width:44px}
-  #curWrap{left:8px;bottom:8px;min-width:112px;padding:8px;border-radius:14px}
-  #curTile{width:96px;height:96px}
+  #curWrap{left:8px;bottom:8px;min-width:130px;padding:8px;border-radius:14px}
+  #curTile{width:112px;height:112px}
   #curLabel{font-size:10.5px}
   #curBtns button{padding:7px 0;font-size:12px}
   #actionBar{bottom:auto;top:56px;right:8px;padding:6px;flex-direction:column}
@@ -232,7 +232,7 @@ body{
 }
 @media (min-width:900px){
   #curWrap{left:16px;bottom:16px}
-  #curTile{width:128px;height:128px}
+  #curTile{width:165px;height:165px}
 }
 </style>
 </head>
@@ -250,7 +250,7 @@ body{
     <div id="hint" class="hide"></div>
     <div id="curWrap">
       <div id="curLabel">当前瓦片 · 点击旋转</div>
-      <canvas id="curTile" width="240" height="240"></canvas>
+      <canvas id="curTile" width="300" height="300"></canvas>
       <div id="curBtns">
         <button id="btnRotate">⟳ 旋转</button>
       </div>
@@ -455,34 +455,18 @@ var PLAYER_COLORS=['#d84339','#2f6fb0','#4c8a3d','#e0a01e','#8b5fb5'];
 function $id(i){return document.getElementById(i)}
 function $board(){return document.getElementById('board')}
 function $cur(){return document.getElementById('curTile')}
-/* ================= 主题 ================= */
+/* ================= 主题（高对比极简配色，清晰优先） ================= */
 var THEMES=[
- {name:'经典田园',grass:'#8fbf6e',grass2:'#9ccb7e',road:'#a6794e',roadLine:'#8a5f38',cityFill:'#e0905f',cityWall:'#9a5a3a',cityRoof:'#a04a30',monWall:'#f0e6d2',monRoof:'#c0392b',ink:'#3d2e1e',fieldDot:'rgba(70,110,50,.25)',border:'rgba(70,60,40,.45)'},
- {name:'暮色城堡',grass:'#7fae66',grass2:'#8dbd74',road:'#a0744e',roadLine:'#825a3a',cityFill:'#d0865e',cityWall:'#8a5240',cityRoof:'#903f2e',monWall:'#e8ded0',monRoof:'#a83227',ink:'#2e2418',fieldDot:'rgba(60,95,45,.28)',border:'rgba(60,50,35,.5)'},
- {name:'雪原冬境',grass:'#cfe3c8',grass2:'#dcecd6',road:'#9a948a',roadLine:'#7a746a',cityFill:'#d9a080',cityWall:'#96704f',cityRoof:'#a85040',monWall:'#f2eee8',monRoof:'#b04430',ink:'#3a3630',fieldDot:'rgba(90,130,100,.3)',border:'rgba(90,90,80,.45)'}
+ {name:'经典田园',grass:'#7cb554',grass2:'#8cc465',road:'#8a5a2b',roadLine:'#5f3d1c',cityFill:'#c0392b',cityWall:'#7a2318',cityRoof:'#a93226',monWall:'#f5f0e6',monRoof:'#c0392b',ink:'#3d2e1e',fieldDot:'rgba(60,120,40,.35)',border:'rgba(40,30,20,.8)'},
+ {name:'暮色城堡',grass:'#6fae55',grass2:'#7fbf63',road:'#8a5a2b',roadLine:'#5f3d1c',cityFill:'#b8452e',cityWall:'#6e2417',cityRoof:'#a13a26',monWall:'#efe8dc',monRoof:'#b8452e',ink:'#2e2418',fieldDot:'rgba(50,105,35,.38)',border:'rgba(35,28,18,.85)'},
+ {name:'雪原冬境',grass:'#9dcf8a',grass2:'#aede9a',road:'#8a7a5e',roadLine:'#5f5240',cityFill:'#c8503a',cityWall:'#7a2e1e',cityRoof:'#aa422c',monWall:'#faf6ee',monRoof:'#c8503a',ink:'#3a3630',fieldDot:'rgba(80,140,60,.3)',border:'rgba(70,70,60,.75)'}
 ];
 var TH=THEMES[0];
 function setTheme(i){
   TH=THEMES[i]||THEMES[0];
-  buildGrassPat();
-}
-/* 草地纹理（预生成） */
-var grassPat=null;
-function buildGrassPat(){
-  grassPat=document.createElement('canvas');grassPat.width=60;grassPat.height=60;
-  var g=grassPat.getContext('2d');
-  g.fillStyle=TH.grass;g.fillRect(0,0,60,60);
-  for(var i=0;i<34;i++){
-    var x=Math.random()*60,y=Math.random()*60;
-    g.fillStyle=TH.fieldDot;
-    g.beginPath();g.arc(x,y,1.2,0,7);g.fill();
-  }
-  g.fillStyle='rgba(255,255,255,.05)';
-  g.fillRect(0,30,60,2);
 }
 function setTheme(i){
   TH=THEMES[i]||THEMES[0];
-  buildGrassPat();
 }
 /* 在 ctx 上绘制一个瓦片（局部 0..100 缩放到 sz）
    注意：tile.regs 的 dirs/half 已是旋转后方向，直接映射固定坐标绘制，
@@ -497,39 +481,44 @@ function drawTile(ctx,tile,x,y,sz,opts){
   ctx.fillStyle=TH.grass;
   ctx.fillRect(0,0,100,100);
   ctx.fillStyle=TH.grass2;
-  ctx.fillRect(0,0,100,28);ctx.fillRect(0,72,100,28);
+  ctx.fillRect(0,0,100,22);ctx.fillRect(0,50,100,22);ctx.fillRect(0,100,100,22);
+  ctx.fillStyle='rgba(40,90,25,.14)';
+  ctx.fillRect(0,22,100,6);ctx.fillRect(0,72,100,6);
   /* 草地纹理点 */
   ctx.fillStyle=TH.fieldDot;
   for(var ti=0;ti<26;ti++){
     var gx=((ti*37)%90)+5,gy=((ti*53)%90)+5;
     ctx.beginPath();ctx.arc(gx,gy,1.6,0,7);ctx.fill();
   }
-  /* 道路 */
+  /* 道路（粗+黑描边） */
   var roadSegs=tile.regs.filter(function(r){return r.t==='road'});
   ctx.lineCap='round';ctx.lineJoin='round';
   roadSegs.forEach(function(r){
     var d=r.dirs;
-    ctx.strokeStyle=TH.roadLine;ctx.lineWidth=24;
-    ctx.beginPath();
+    var pts=[];
     if(d.length===1){
-      var e=EDGE_CENTER[d[0]];
-      ctx.moveTo(50,50);ctx.lineTo(e[0],e[1]);
+      pts.push([50,50]);pts.push(EDGE_CENTER[d[0]]);
     }else if(d.length===2){
       var a=EDGE_CENTER[d[0]],b=EDGE_CENTER[d[1]];
-      if((d[0]%2)===(d[1]%2)){ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1])}
-      else{ctx.moveTo(a[0],a[1]);ctx.lineTo(50,50);ctx.lineTo(b[0],b[1])}
+      if((d[0]%2)===(d[1]%2)){pts.push(a);pts.push(b)}
+      else{pts.push(a);pts.push([50,50]);pts.push(b)}
     }else{
-      ctx.moveTo(EDGE_CENTER[d[0]][0],EDGE_CENTER[d[0]][1]);
-      for(var i=1;i<d.length;i++)ctx.lineTo(EDGE_CENTER[d[i]][0],EDGE_CENTER[d[i]][1]);
+      pts.push(EDGE_CENTER[d[0]]);
+      for(var i=1;i<d.length;i++)pts.push(EDGE_CENTER[d[i]]);
     }
+    ctx.strokeStyle='#3a2a18';ctx.lineWidth=27;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0],pts[0][1]);
+    for(var pi=1;pi<pts.length;pi++)ctx.lineTo(pts[pi][0],pts[pi][1]);
     ctx.stroke();
-    ctx.strokeStyle=TH.road;ctx.lineWidth=13;
+    ctx.strokeStyle=TH.road;ctx.lineWidth=17;
     ctx.stroke();
   });
   /* 道路交叉圆点 */
   var rd2=tile.regs.filter(function(r){return r.t==='road'&&r.dirs.length>=2}).length;
   if(rd2){
-    ctx.fillStyle=TH.road;ctx.beginPath();ctx.arc(50,50,10,0,7);ctx.fill();
+    ctx.fillStyle='#3a2a18';ctx.beginPath();ctx.arc(50,50,13,0,7);ctx.fill();
+    ctx.fillStyle=TH.road;ctx.beginPath();ctx.arc(50,50,9,0,7);ctx.fill();
   }
   /* 城市（圆拱块+城墙，按旋转后 dirs 绘制） */
   var cityRegs=tile.regs.filter(function(r){return r.t==='city'});
@@ -557,12 +546,12 @@ function drawTile(ctx,tile,x,y,sz,opts){
       drawMeeple(ctx,hb[0],hb[1],r.meeple,r.t);
     }
   });
-  /* 瓦片边框（清晰分隔） */
-  ctx.strokeStyle=opts.borderColor||TH.border;
-  ctx.lineWidth=3;
-  ctx.strokeRect(1.5,1.5,97,97);
+  /* 瓦片边框（粗黑，清晰分隔） */
+  ctx.strokeStyle=TH.border;
+  ctx.lineWidth=4;
+  ctx.strokeRect(2,2,96,96);
   if(opts.glow){
-    ctx.strokeStyle=opts.glowColor||'#fff';ctx.lineWidth=4;
+    ctx.strokeStyle=opts.glowColor||'#fff';ctx.lineWidth=5;
     ctx.strokeRect(2,2,96,96);
   }
   ctx.restore();
@@ -572,13 +561,12 @@ var EDGE_END={0:[[14,9],[86,9]],1:[[91,14],[91,86]],2:[[14,91],[86,91]],3:[[9,14
 var CITY_IN={0:[50,46],1:[54,50],2:[50,54],3:[46,50]};
 function drawCityShape(ctx,dirs){
   ctx.save();
-  /* 圆拱城市块：每边一个拱形（城墙线 + 弧线向中心） */
+  /* 城市块：拱形填充 + 粗黑描边（高对比） */
   dirs.forEach(function(d){
     var p1=EDGE_END[d][0],p2=EDGE_END[d][1],tip=CITY_IN[d];
     var mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2;
-    /* 拱形控制点：从边中点向中心偏移，并向外鼓 */
     var cx=mx+(50-mx)*0.55,cy=my+(50-my)*0.55;
-    var ox=(my-50)*0.22,oy=(50-mx)*0.22;/* 垂直方向鼓出 */
+    var ox=(my-50)*0.22,oy=(50-mx)*0.22;
     ctx.beginPath();
     ctx.moveTo(p1[0],p1[1]);
     ctx.quadraticCurveTo(cx+ox,cy+oy,tip[0],tip[1]);
@@ -586,29 +574,9 @@ function drawCityShape(ctx,dirs){
     ctx.closePath();
     ctx.fillStyle=TH.cityFill;
     ctx.fill();
-    ctx.strokeStyle=TH.cityRoof;
+    ctx.strokeStyle='#3a1c12';
     ctx.lineWidth=3;
     ctx.stroke();
-  });
-  /* 城墙线（城市边） */
-  ctx.strokeStyle=TH.cityWall;
-  ctx.lineWidth=8;
-  ctx.beginPath();
-  dirs.forEach(function(d){
-    var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
-    ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);
-  });
-  ctx.stroke();
-  /* 城墙垛口 */
-  ctx.fillStyle=TH.cityWall;
-  dirs.forEach(function(d){
-    var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
-    var dx=(p2[0]-p1[0])/4,dy=(p2[1]-p1[1])/4;
-    var ndx=(p2[1]-p1[1])/4,ndy=-(p2[0]-p1[0])/4;/* 垂直 */
-    for(var i=0;i<4;i++){
-      var bx=p1[0]+dx*i,by=p1[1]+dy*i;
-      ctx.fillRect(bx-ndx*1.5,by-ndy*1.5,Math.max(3,Math.abs(dx)*0.7),Math.max(3,Math.abs(ndx)*0.7));
-    }
   });
   /* 填充相邻拱之间的中心空隙（双城角/三城/全城） */
   if(dirs.length>=2){
@@ -619,49 +587,80 @@ function drawCityShape(ctx,dirs){
       else ctx.lineTo(tip[0],tip[1]);
     });
     if(dirs.length===2){
-      /* 对边城市（如 coc）两点不成面积，跳过 */
       if((dirs[0]%2)!==(dirs[1]%2))ctx.closePath();
     }else{
       ctx.closePath();
     }
     ctx.fillStyle=TH.cityFill;
     ctx.fill();
-    ctx.strokeStyle=TH.cityRoof;
+    ctx.strokeStyle='#3a1c12';
     ctx.lineWidth=3;
     ctx.stroke();
   }
+  /* 城墙线（城市边，粗黑） */
+  ctx.strokeStyle=TH.cityWall;
+  ctx.lineWidth=9;
+  ctx.beginPath();
+  dirs.forEach(function(d){
+    var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
+    ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);
+  });
+  ctx.stroke();
+  ctx.strokeStyle='#fff';
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  dirs.forEach(function(d){
+    var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
+    ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);
+  });
+  ctx.stroke();
   ctx.restore();
 }
 function drawMonastery(ctx){
   ctx.save();
-  /* 围墙 */
-  ctx.fillStyle='rgba(0,0,0,.12)';
-  ctx.fillRect(33,33,34,34);
-  /* 教堂主体 */
-  ctx.fillStyle=TH.monWall;
-  ctx.fillRect(39,34,22,30);
-  /* 尖顶 */
+  /* 底座（白+黑描边） */
+  ctx.fillStyle='#fff';
+  ctx.strokeStyle='#3a2a18';
+  ctx.lineWidth=3;
+  ctx.fillRect(36,34,28,30);
+  ctx.strokeRect(36,34,28,30);
+  /* 尖顶（红） */
   ctx.fillStyle=TH.monRoof;
-  ctx.beginPath();ctx.moveTo(36,35);ctx.lineTo(50,20);ctx.lineTo(64,35);ctx.closePath();ctx.fill();
-  /* 白色十字 */
-  ctx.strokeStyle='#fff';ctx.lineWidth=3.5;
-  ctx.beginPath();ctx.moveTo(50,17);ctx.lineTo(50,27);ctx.moveTo(45.5,21);ctx.lineTo(54.5,21);ctx.stroke();
-  /* 门（深色拱门） */
-  ctx.fillStyle='#6b4a33';
+  ctx.beginPath();ctx.moveTo(33,35);ctx.lineTo(50,18);ctx.lineTo(67,35);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#3a2a18';
+  ctx.lineWidth=3;
+  ctx.stroke();
+  /* 白色十字（画在红顶上） */
+  ctx.strokeStyle='#fff';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(50,15);ctx.lineTo(50,27);ctx.moveTo(45,20);ctx.lineTo(55,20);ctx.stroke();
+  /* 门（黑拱门） */
+  ctx.fillStyle='#3a2a18';
   ctx.beginPath();ctx.moveTo(45,64);ctx.lineTo(45,57);ctx.arc(50,57,5,Math.PI,0);ctx.lineTo(55,64);ctx.closePath();ctx.fill();
-  /* 窗户 */
-  ctx.fillStyle='#6b4a33';
-  ctx.fillRect(41,40,6,8);ctx.fillRect(53,40,6,8);
   ctx.restore();
 }
 function drawMeeple(ctx,x,y,color,type){
   ctx.save();
   ctx.translate(x,y);
+  /* 阴影 */
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath();ctx.ellipse(0,14,10,4,0,0,7);ctx.fill();
+  /* 白色描边圆头 */
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(0,-11,11,0,7);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.22)';
+  ctx.beginPath();ctx.arc(0,-11,11,0,Math.PI);ctx.fill();
+  /* 米宝颜色头 */
   ctx.fillStyle=color;
-  ctx.beginPath();ctx.arc(0,-9,7,0,7);ctx.fill();
-  ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(5,0);ctx.lineTo(5,10);ctx.lineTo(-5,10);ctx.closePath();ctx.fill();
-  ctx.fillStyle='rgba(0,0,0,.25)';
-  ctx.beginPath();ctx.arc(0,-9,7,0,Math.PI);ctx.fill();
+  ctx.beginPath();ctx.arc(0,-10,8.5,0,7);ctx.fill();
+  /* 白色描边身体 */
+  ctx.fillStyle='#fff';
+  ctx.fillRect(-8,-1,16,16);
+  /* 米宝颜色身体 */
+  ctx.fillStyle=color;
+  ctx.fillRect(-6.5,0.5,13,12.5);
+  /* 眼睛 */
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-3.2,-11,1.9,0,7);ctx.arc(3.2,-11,1.9,0,7);ctx.fill();
   ctx.restore();
 }
 /* ================= 棋盘与放置 ================= */
@@ -1257,7 +1256,7 @@ function showResult(detail){
   hint('游戏结束');
 }
 /* ================= 渲染 ================= */
-var view={ox:0,oy:0,zoom:1,cell:110};
+var view={ox:0,oy:0,zoom:1,cell:135};
 function resizeCanvas(){
   var st=$id('stage');
   cv.width=st.clientWidth*devicePixelRatio;
@@ -1288,8 +1287,8 @@ function fitView(){
   if(minX===1e9){view.zoom=1;render();return}
   var w=stage.clientWidth,h=stage.clientHeight;
   var tw=(maxX-minX+1)*view.cell,th=(maxY-minY+1)*view.cell;
-  view.zoom=Math.max(0.35,Math.min(1.1,Math.min(w/tw,h/th)));
-  view.zoom=Math.max(0.3,Math.min(2,view.zoom));
+  view.zoom=Math.max(0.5,Math.min(1.4,Math.min(w/tw,h/th)));
+  view.zoom=Math.max(0.4,Math.min(2.5,view.zoom));
   render();
 }
 function tileScreenPos(x,y){
@@ -1352,11 +1351,11 @@ function render(){
       if(regHasMeepleAnywhere(curTile,ri))return;
       var h=hotOfReg(curTile,ri);
       ctx.save();
-      ctx.strokeStyle='rgba(255,255,255,.95)';
-      ctx.fillStyle='rgba(201,162,39,.85)';
+      ctx.strokeStyle='#fff';
+      ctx.fillStyle='#ffb53a';
       ctx.lineWidth=3;
       ctx.beginPath();
-      ctx.arc(tp.sx+h[0]*cell/100,tp.sy+h[1]*cell/100,11,0,7);
+      ctx.arc(tp.sx+h[0]*cell/100,tp.sy+h[1]*cell/100,14,0,7);
       ctx.fill();ctx.stroke();
       ctx.restore();
     });
@@ -1389,9 +1388,9 @@ function tileDesc(tile){
 function renderCurTile(){
   var cc=$cur();
   var g=cc.getContext('2d');
-  g.clearRect(0,0,240,240);
+  g.clearRect(0,0,300,300);
   g.setTransform(2,0,0,2,0,0);
-  drawTile(g,curTile,0,0,120,{});
+  drawTile(g,curTile,0,0,150,{});
   /* 放置提示 */
   $id('btnRotate').style.display=tilePlaced?'none':'';
   var pl=players[curPlayer];
@@ -1760,7 +1759,6 @@ function bindTop(){
 }
 /* ================= 初始化 ================= */
 function init(){
-  buildGrassPat();
   bindBoard();
   bindSetup();
   bindTop();
