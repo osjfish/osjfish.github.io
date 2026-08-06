@@ -48,6 +48,7 @@ body{
 .pmees{display:flex;gap:2px;align-items:center}
 .pmee{width:8px;height:8px;border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,.35)}
 .pmee.off{background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.15)}
+.pmeeNum{font-size:11px;font-weight:700;color:#f2c56a;white-space:nowrap}
 .icon-btn{
   width:34px;height:34px;flex:none;border-radius:9px;border:none;cursor:pointer;
   background:rgba(255,255,255,.1);color:#f2e8d5;font-size:16px;
@@ -86,10 +87,10 @@ body{
 /* 提示条 */
 #hint{
   position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:25;
-  background:var(--panel);color:#f2e8d5;padding:8px 20px;border-radius:24px;
-  font-size:13.5px;letter-spacing:1px;box-shadow:0 4px 16px rgba(0,0,0,.4);
+  background:var(--panel);color:#f2e8d5;padding:8px 18px;border-radius:20px;
+  font-size:13.5px;letter-spacing:.5px;box-shadow:0 4px 16px rgba(0,0,0,.4);
   backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12);
-  text-align:center;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-align:center;max-width:92vw;white-space:normal;line-height:1.5;
   transition:opacity .3s,transform .3s;
 }
 #hint.hide{opacity:0;transform:translateX(-50%) translateY(-10px);pointer-events:none}
@@ -259,7 +260,6 @@ body{
 <body>
 <div id="app">
   <div id="topbar">
-    <div class="logo">卡</div>
     <h1>卡卡颂</h1>
     <span class="sub">· 米宝与疆域</span>
     <div class="players" id="players"></div>
@@ -1198,17 +1198,26 @@ function toast(msg){
 function renderPlayers(){
   var box=$id('players');
   box.innerHTML='';
+  var compact=window.innerWidth<=768;
   players.forEach(function(p,i){
     var d=document.createElement('div');
     d.className='p-chip'+(i===curPlayer?' active':'');
-    var dots='';
-    for(var m=0;m<7;m++){
-      dots+='<i class="pmee'+(m<p.meeples?'':' off')+'" style="'+(m<p.meeples?'background:'+p.color:'')+'"></i>';
+    if(compact){
+      /* 移动端紧凑：色点+名+分+米宝数字 */
+      d.innerHTML='<span class="pdot" style="background:'+p.color+'"></span>'
+        +'<span class="pname">'+esc(p.name)+'</span>'
+        +'<span class="pscore">'+p.score+'</span>'
+        +'<span class="pmeeNum"'+(p.meeples>0?'':' style="opacity:.35"')+' title="剩余米宝">×'+p.meeples+'</span>';
+    }else{
+      var dots='';
+      for(var m=0;m<7;m++){
+        dots+='<i class="pmee'+(m<p.meeples?'':' off')+'" style="'+(m<p.meeples?'background:'+p.color:'')+'"></i>';
+      }
+      d.innerHTML='<span class="pdot" style="background:'+p.color+'"></span>'
+        +'<span class="pname">'+esc(p.name)+'</span>'
+        +'<span class="pscore">'+p.score+'</span>'
+        +'<span class="pmees" title="剩余米宝">'+dots+'</span>';
     }
-    d.innerHTML='<span class="pdot" style="background:'+p.color+'"></span>'
-      +'<span class="pname">'+esc(p.name)+'</span>'
-      +'<span class="pscore">'+p.score+'</span>'
-      +'<span class="pmees" title="剩余米宝">'+dots+'</span>';
     d.onclick=function(){showScoreDetail(i)};
     d.title='点击查看积分明细';
     box.appendChild(d);
@@ -1459,7 +1468,9 @@ function render(){
   /* 米宝热点（带地形文字，随缩放比例） */
   if(meepleMode&&curTile&&tilePlaced){
     var tp=tileScreenPos(curTile.x,curTile.y);
-    var hr=Math.max(9,Math.min(19,cell*0.135));
+    var nOpen=0;
+    curTile.regs.forEach(function(r,ri){if(!regHasMeepleAnywhere(curTile,ri))nOpen++});
+    var hr=Math.max(8,Math.min(17,cell*(nOpen>=4?0.095:0.12)));
     var HOT_NAME={city:'城',road:'路',mon:'寺',field:'田'};
     /* 瓦片金色外框高亮 */
     ctx.strokeStyle='#ffb53a';
@@ -1479,9 +1490,9 @@ function render(){
       ctx.fill();ctx.stroke();
       /* 地形文字 */
       var nm=HOT_NAME[r.t];
-      if(nm&&hr>=9){
+      if(nm){
         ctx.fillStyle='#5a3d00';
-        ctx.font='bold '+Math.round(hr*1.15)+'px sans-serif';
+        ctx.font='bold '+Math.max(9,Math.round(hr*1.1))+'px sans-serif';
         ctx.textAlign='center';
         ctx.textBaseline='middle';
         ctx.fillText(nm,px,py+1);
@@ -1536,7 +1547,7 @@ function renderCurTile(){
   $id('curLabel').textContent=label;
 }
 /* ================= 交互 ================= */
-var dragging=false,lastX=0,lastY=0,pinchDist=0,pinchZoom=1;
+var dragging=false,lastX=0,lastY=0,downX=0,downY=0,pinchDist=0,pinchZoom=1;
 var renderPending=false;
 function requestRender(){
   if(renderPending)return;
@@ -1549,6 +1560,7 @@ function requestRender(){
 function onDown(e){
   var pt=eventPos(e);
   lastX=pt.x;lastY=pt.y;
+  downX=pt.x;downY=pt.y;
   dragging=true;
   view.mouse={x:pt.x,y:pt.y};
   if(e.touches&&e.touches.length>=2){
@@ -1585,7 +1597,7 @@ function touchDist(e){
 }
 function onUp(e){
   var pt=eventPos(e);
-  var moved=Math.abs(pt.x-lastX)+Math.abs(pt.y-lastY);
+  var moved=Math.abs(pt.x-downX)+Math.abs(pt.y-downY);
   dragging=false;
   view.mouse=null;
   if(moved<8){
