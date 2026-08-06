@@ -955,12 +955,13 @@ var totalTiles=0,deck=[];
 var finished={};/* 已完成的区域（用于草地计分） */
 var scoreLog=[];/* 积分明细 */
 /* ===== 全局设置（计分选项/音效） ===== */
-var SETTINGS={field:true,shield:true,unfinished:true,sound:true};
+var SETTINGS={field:true,shield:true,unfinished:true,sound:true,aiLv:2};
 function loadSettings(){
   try{
     var s=JSON.parse(localStorage.getItem('carcassonne_settings')||'null');
     if(s&&typeof s==='object'){
       ['field','shield','unfinished','sound'].forEach(function(k){if(typeof s[k]==='boolean')SETTINGS[k]=s[k]});
+      if(typeof s.aiLv==='number')SETTINGS.aiLv=s.aiLv;
     }
   }catch(e){}
 }
@@ -1379,6 +1380,7 @@ function tryPlaceMeeple(tile,ri){
 /* 终局计分 */
 function endGame(){
   phase='over';
+  updateDeckCount();
   /* 未完成区域 + 草地 */
   var detail=[];
   var seen={};
@@ -1956,12 +1958,14 @@ function renderSetup(){
     box.appendChild(d);
   });
   renderLegend();
-  /* 同步计分选项 */
+  /* 同步计分选项 + AI 难度 */
   var f=$id('optField'),sh=$id('optShield'),uf=$id('optUnfin'),sd=$id('optSound');
   if(f)f.checked=SETTINGS.field;
   if(sh)sh.checked=SETTINGS.shield;
   if(uf)uf.checked=SETTINGS.unfinished;
   if(sd)sd.checked=SETTINGS.sound;
+  var ai=$id('optAi');
+  if(ai)ai.value=String(SETTINGS.aiLv);
 }
 /* 图例：设置面板里的地形示例 */
 var LEGEND_TILES=[['ff','旷野（农夫放这里）'],['rr','道路（强盗放这里）'],['cf','城市（骑士放这里）'],['ffm','修道院（修士放这里）']];
@@ -2021,6 +2025,7 @@ function bindSetup(){
     SETTINGS.shield=$id('optShield').checked;
     SETTINGS.unfinished=$id('optUnfin').checked;
     SETTINGS.sound=$id('optSound').checked;
+    SETTINGS.aiLv=parseInt($id('optAi').value,10)||2;
     saveSettings();
     $id('setupMask').classList.add('hide');
     $id('result').classList.remove('show');
@@ -2032,6 +2037,7 @@ function bindSetup(){
 function bindTop(){
   $id('btnMenu').addEventListener('click',function(){
     $id('setupMask').classList.remove('hide');
+    renderSetup();/* 同步玩家列表/计分选项/AI难度显示 */
   });
   $id('btnRules').addEventListener('click',function(){
     var box=$id('rulesBox');
