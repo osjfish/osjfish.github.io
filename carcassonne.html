@@ -406,9 +406,16 @@ var TYPES=[
        {t:'field',half:['N1','E0'],hot:[72,28]},
        {t:'field',half:['N0','E1','S0','S1','W0','W1'],hot:[32,64]}]},
 {id:'t',edges:['F','R','R','R'],count:4,desc:'三岔',
- regs:[{t:'road',dirs:[1,2,3]},{t:'field',half:['N0','N1']},{t:'field',half:['S0','W1']},{t:'field',half:['S1','E1']}]},
+ regs:[{t:'road',dirs:[1,2,3]},
+       {t:'field',half:['N0','N1'],hot:[50,22]},
+       {t:'field',half:['S0','W1'],hot:[27,73]},
+       {t:'field',half:['S1','E1'],hot:[73,73]}]},
 {id:'x',edges:['R','R','R','R'],count:1,desc:'十字',
- regs:[{t:'road',dirs:[0,1,2,3]},{t:'field',half:['N0','W0']},{t:'field',half:['N1','E0']},{t:'field',half:['E1','S1']},{t:'field',half:['S0','W1']}]}
+ regs:[{t:'road',dirs:[0,1,2,3]},
+       {t:'field',half:['N0','W0'],hot:[25,25]},
+       {t:'field',half:['N1','E0'],hot:[75,25]},
+       {t:'field',half:['E1','S1'],hot:[75,75]},
+       {t:'field',half:['S0','W1'],hot:[25,75]}]}
 ];
 /* 边配对: dir 0=N 1=E 2=S 3=W; 对面= (dir+2)%4
    半边配对: N0↔S1(上方瓦片的N0 对着下方瓦片的 S1 的对应位置) 实际:
@@ -423,9 +430,9 @@ var DIR_DX=[0,1,0,-1],DIR_DY=[-1,0,1,0];
 var EDGE_HALVES={0:['N0','N1'],1:['E0','E1'],2:['S0','S1'],3:['W0','W1']};
 var HALF_EDGE={N0:0,N1:0,E0:1,E1:1,S0:2,S1:2,W0:3,W1:3};
 var HALF_ROT=[{N0:'N0',N1:'N1',E0:'E0',E1:'E1',S0:'S0',S1:'S1',W0:'W0',W1:'W1'},
-{N0:'E0',N1:'E1',E0:'S0',E1:'S1',S0:'W0',S1:'W1',W0:'N1',W1:'N0'},
+{N0:'E0',N1:'E1',E0:'S1',E1:'S0',S0:'W0',S1:'W1',W0:'N1',W1:'N0'},
 {N0:'S1',N1:'S0',E0:'W1',E1:'W0',S0:'N1',S1:'N0',W0:'E1',W1:'E0'},
-{N0:'W0',N1:'W1',E0:'N0',E1:'N1',S0:'E0',S1:'E1',W0:'S0',W1:'S1'}];
+{N0:'W1',N1:'W0',E0:'N0',E1:'N1',S0:'E1',S1:'E0',W0:'S0',W1:'S1'}];
 function rotateHalf(h,rot){
   rot=((rot%4)+4)%4;
   return HALF_ROT[rot][h]||h;
@@ -486,8 +493,8 @@ function tileHot(tile,ri){
     var ax=0,ay=0;
     for(var i=0;i<xs.length;i++){ax+=xs[i];ay+=ys[i]}
     ax/=xs.length;ay/=ys.length;
-    /* 修道院瓦片的草地热点：避开修道院方块（草地在中心时偏移到旁侧） */
-    if(tile.mon&&Math.abs(ax-50)<18&&Math.abs(ay-50)<18){
+    /* 修道院瓦片的草地热点：仅当草地中心真正落在修道院方块内才偏移到旁侧 */
+    if(tile.mon&&Math.abs(ax-50)<12&&Math.abs(ay-50)<12){
       return [33,33];
     }
     return [Math.round(ax+(50-ax)*0.28),Math.round(ay+(50-ay)*0.28)];
