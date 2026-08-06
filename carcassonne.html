@@ -372,9 +372,13 @@ var TYPES=[
 {id:'cfs',edges:['C','F','F','F'],count:1,desc:'小城·盾',s:1,
  regs:[{t:'city',dirs:[0]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0]}]},
 {id:'cfr',edges:['C','F','R','F'],count:6,desc:'城与路',
- regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0],hot:[20,55]}]},
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},
+       {t:'field',half:['W0','W1','S0'],adj:[0],hot:[20,55]},
+       {t:'field',half:['E0','E1','S1'],adj:[0],hot:[80,55]}]},
 {id:'cfrs',edges:['C','F','R','F'],count:1,desc:'城与路·盾',s:1,
- regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0],hot:[20,55]}]},
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},
+       {t:'field',half:['W0','W1','S0'],adj:[0],hot:[20,55]},
+       {t:'field',half:['E0','E1','S1'],adj:[0],hot:[80,55]}]},
 {id:'crf',edges:['C','R','F','F'],count:3,desc:'城·侧路',
  regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0]}]},
 {id:'crrf',edges:['C','R','R','F'],count:2,desc:'城·双路',s:1,
@@ -476,7 +480,10 @@ function tileHot(tile,ri){
     if(dirs.length===1){
       var d=dirs[0];
       var e=EDGE_CENTER[d];
-      return [Math.round((e[0]+50)/2),Math.round((e[1]+50)/2)];
+      /* 对面是城市时路延伸到城墙，热点取延伸后路段中点 */
+      var opp=(d+2)%4;
+      var end=(tile.edges[opp]==='C')?CITY_IN[opp]:[50,50];
+      return [Math.round((e[0]+end[0])/2),Math.round((e[1]+end[1])/2)];
     }
     /* 贯通路/弯路/三岔/十字：热点在中心（路段都经过中心） */
     return [50,50];
@@ -548,7 +555,14 @@ function drawTile(ctx,tile,x,y,sz,opts){
     var d=r.dirs;
     var pts=[];
     if(d.length===1){
-      pts.push([50,50]);pts.push(EDGE_CENTER[d[0]]);
+      /* 单边路：若对面边是城市，路延伸到城墙（把田完全隔开） */
+      var e=EDGE_CENTER[d[0]];
+      var opp=(d[0]+2)%4;
+      if(tile.edges[opp]==='C'){
+        pts.push(CITY_IN[opp]);pts.push(e);
+      }else{
+        pts.push([50,50]);pts.push(e);
+      }
     }else if(d.length===2){
       var a=EDGE_CENTER[d[0]],b=EDGE_CENTER[d[1]];
       if((d[0]%2)===(d[1]%2)){pts.push(a);pts.push(b)}
