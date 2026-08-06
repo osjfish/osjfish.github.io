@@ -402,7 +402,9 @@ var TYPES=[
 {id:'rr',edges:['R','F','R','F'],count:8,desc:'直路',
  regs:[{t:'road',dirs:[0,2]},{t:'field',half:['N0','W0','W1','S0']},{t:'field',half:['N1','E0','E1','S1']}]},
 {id:'rrc',edges:['R','R','F','F'],count:10,desc:'弯路',
- regs:[{t:'road',dirs:[0,1]},{t:'field',half:['N1','E0']},{t:'field',half:['N0','E1','S0','S1','W0','W1']}]},
+ regs:[{t:'road',dirs:[0,1]},
+       {t:'field',half:['N1','E0'],hot:[72,28]},
+       {t:'field',half:['N0','E1','S0','S1','W0','W1'],hot:[32,64]}]},
 {id:'t',edges:['F','R','R','R'],count:4,desc:'三岔',
  regs:[{t:'road',dirs:[1,2,3]},{t:'field',half:['N0','N1']},{t:'field',half:['S0','W1']},{t:'field',half:['S1','E1']}]},
 {id:'x',edges:['R','R','R','R'],count:1,desc:'十字',
@@ -447,6 +449,13 @@ function tileHot(tile,ri){
   var t=T.regs[ri].t;
   var dirs=tile.regs[ri].dirs;
   var half=tile.regs[ri].half;
+  /* 手工指定热点（绕中心随瓦片旋转） */
+  if(T.regs[ri].hot){
+    var hx=T.regs[ri].hot[0],hy=T.regs[ri].hot[1];
+    var rx=hx-50,ry=hy-50;
+    for(var rr=0;rr<tile.rot;rr++){var nx=-ry,ny=rx;rx=nx;ry=ny}
+    return [Math.round(rx+50),Math.round(ry+50)];
+  }
   if(t==='city'){
     /* 全城：中心；否则取第一个城市拱的几何中心（边中点与拱尖的中点） */
     if(dirs.length>=4)return [50,50];
