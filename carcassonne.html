@@ -455,7 +455,13 @@ function tileHot(tile,ri){
     return [Math.round((e[0]+tip[0])/2),Math.round((e[1]+tip[1])/2)];
   }
   if(t==='road'){
-    /* 所有道路段都经过瓦片中心（单边路/直路/弯路/三岔/十字） */
+    /* 单边路（通向修道院/城内的短路）：热点在路段中点，避免与中心修道院重叠 */
+    if(dirs.length===1){
+      var d=dirs[0];
+      var e=EDGE_CENTER[d];
+      return [Math.round((e[0]+50)/2),Math.round((e[1]+50)/2)];
+    }
+    /* 贯通路/弯路/三岔/十字：热点在中心（路段都经过中心） */
     return [50,50];
   }
   if(t==='mon')return [50,50];
