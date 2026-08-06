@@ -734,14 +734,17 @@ function boardGet(x,y){return boardMap[key(x,y)]||null}
 function boardSet(x,y,t){boardMap[key(x,y)]=t;t.x=x;t.y=y}
 function validPlacement(tile,x,y){
   if(boardGet(x,y))return false;
+  /* 必须至少与一块已有瓦片相邻（禁止孤岛放置） */
+  var hasNeighbor=false;
   for(var d=0;d<4;d++){
     var nx=x+DIR_DX[d],ny=y+DIR_DY[d];
     var nb=boardGet(nx,ny);
     if(!nb)continue;
+    hasNeighbor=true;
     var myEdge=tile.edges[d],nbEdge=nb.edges[EDGE_OPP[d]];
     if(myEdge!==nbEdge)return false;
   }
-  return true;
+  return hasNeighbor;
 }
 function findPlacements(tile){
   var res=[];
