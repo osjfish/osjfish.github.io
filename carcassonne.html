@@ -968,6 +968,89 @@ function loadSettings(){
 function saveSettings(){
   try{localStorage.setItem('carcassonne_settings',JSON.stringify(SETTINGS))}catch(e){}
 }
+/* ===== 对局进度存档（刷新恢复） ===== */
+var SAVE_KEY='carcassonne_save';
+function saveGame(){
+  try{
+    var board={};
+    for(var k in boardMap){
+      var t=boardMap[k];
+      var meeple={};
+      t.regs.forEach(function(r,i){if(r.meeple!=null)meeple[i]=r.meeple});
+      board[k]={id:t.id,rot:t.rot,meeple:meeple};
+    }
+    var save={
+      v:1,
+      board:board,
+      deck:deck,
+      players:players.map(function(p){return {name:p.name,ai:p.ai,score:p.score,meeples:p.meeples}}),
+      curPlayer:curPlayer,
+      curTile:curTile?{id:curTile.id,rot:curTile.rot}:null,
+      tilePlaced:tilePlaced,
+      meepleMode:meepleMode,
+      finished:Object.keys(finished),
+      scoreLog:scoreLog
+    };
+    localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+  }catch(e){}
+}
+function clearSave(){
+  try{localStorage.removeItem(SAVE_KEY)}catch(e){}
+}
+function loadGame(){
+  try{
+    var raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return false;
+    var s=JSON.parse(raw);
+    if(!s||!s.board)return false;
+    boardMap={};
+    for(var k in s.board){
+      var b=s.board[k];
+      var t=makeTile(b.id,b.rot);
+      var xy=k.split(',');
+      t.x=+xy[0];t.y=+xy[1];
+      t.regs.forEach(function(r,i){
+        if(b.meeple&&b.meeple[i]!=null)r.meeple=b.meeple[i];
+      });
+      boardMap[k]=t;
+    }
+    deck=s.deck||[];
+    players=(s.players||[]).map(function(p,i){
+      return {name:p.name,ai:p.ai,score:p.score||0,meeples:p.meeples!=null?p.meeples:7,color:PLAYER_COLORS[i%PLAYER_COLORS.length],idx:i};
+    });
+    curPlayer=s.curPlayer||0;
+    curTile=s.curTile?makeTile(s.curTile.id,s.curTile.rot):null;
+    tilePlaced=!!s.tilePlaced;
+    meepleMode=!!s.meepleMode;
+    finished={};
+    (s.finished||[]).forEach(function(k){finished[k]=true});
+    scoreLog=s.scoreLog||[];
+    var firstTile=boardMap[Object.keys(boardMap)[0]];
+    if(firstTile)connectAll(firstTile);
+    return true;
+  }catch(e){return false}
+}
+function resumeGame(){
+  if(!loadGame())return false;
+  $id('setupMask').classList.add('hide');
+  $id('result').classList.remove('show');
+  phase='place';
+  renderPlayers();
+  updateDeckCount();
+  renderCurTile();
+  fitView();
+  var pl=players[curPlayer];
+  if(meepleMode){
+    $id('actionBar').style.display='flex';
+    hint('点击瓦片上的「城/路/寺/田」圆点放米宝，或点「跳过」');
+  }else if(curTile&&!tilePlaced&&pl&&pl.ai){
+    hint('AI '+pl.name+' 思考中…');
+    setTimeout(function(){aiTurn(pl)},400);
+  }else if(curTile&&!tilePlaced&&pl){
+    hint(pl.name+' 的回合：绿色框是合法位置，点击放置');
+  }
+  return true;
+}
 /* ===== 音效（WebAudio 合成） ===== */
 var audioCtx=null;
 function sfx(type){
@@ -1033,6 +1116,7 @@ function buildDeck(mode){
   return deck.length;
 }
 function newGame(opts){
+  clearSave();/* 新对局清除旧存档 */
   opts=opts||{mode:'2',players:[{name:'我',ai:false},{name:'AI',ai:true}]};
   players=opts.players;
   players.forEach(function(p,i){p.score=0;p.idx=i;p.meeples=7;p.color=PLAYER_COLORS[i%PLAYER_COLORS.length]});
@@ -1043,6 +1127,7 @@ function newGame(opts){
   scoreLog=[];
   renderPlayers();
   nextTurn();
+  saveGame();
 }
 function updateDeckCount(){
   var el=$id('deckCount');
@@ -1120,6 +1205,7 @@ function placeTile(x,y){
     /* AI：由 aiTurn 决定放米宝或直接结算 */
     meepleMode=false;
   }
+  saveGame();/* 放置后保存进度（含米宝模式状态） */
 }
 /* 统一结算：计分已完成区域 + 结束回合 */
 function finishTurn(){
@@ -1127,6 +1213,7 @@ function finishTurn(){
   $id('actionBar').style.display='none';
   scoreCompleted(curTile);
   afterScore();
+  saveGame();/* 回合结束后保存进度 */
 }
 /* 瓦片是否有可放置米宝的区域 */
 function hasOpenRegions(tile){
@@ -1381,6 +1468,7 @@ function tryPlaceMeeple(tile,ri){
 function endGame(){
   phase='over';
   updateDeckCount();
+  clearSave();/* 对局结束清除存档 */
   /* 未完成区域 + 草地 */
   var detail=[];
   var seen={};
@@ -1938,6 +2026,7 @@ function endTurnSkip(){
   curPlayer=(curPlayer+1)%players.length;
   renderPlayers();
   nextTurn();
+  saveGame();
 }
 /* ================= 设置面板 ================= */
 var setupPlayers=[
@@ -2094,6 +2183,9 @@ function init(){
     window._rz=setTimeout(resizeCanvas,100);
   });
   renderSetup();
+  if(!resumeGame()){
+    /* 无存档：显示设置面板（默认） */
+  }
 }
 init();
 </script>
