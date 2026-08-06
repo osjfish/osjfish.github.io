@@ -767,20 +767,6 @@ function anyPlacement(id){
   }
   return false;
 }
-/* 所有旋转的合法位置并集（放置绿框显示用） */
-function allPlacements(tile){
-  var set={};
-  for(var r=0;r<4;r++){
-    var t=makeTile(tile.id,r);
-    findPlacements(t).forEach(function(sp){set[sp[0]+','+sp[1]]=true});
-  }
-  var out=[];
-  for(var k in set){
-    var p=k.split(',');
-    out.push([+p[0],+p[1]]);
-  }
-  return out;
-}
 /* ================= 区域图（union-find） ================= */
 var UF=null;
 function initUF(){
@@ -973,6 +959,7 @@ var phase='menu';
 var totalTiles=0,deck=[];
 var finished={};/* 已完成的区域（用于草地计分） */
 var scoreLog=[];/* 积分明细 */
+var lastTile=null;/* 最近放置的格块（金色框标注） */
 /* ===== 全局设置（计分选项/音效） ===== */
 var SETTINGS={field:true,shield:true,unfinished:true,sound:true,aiLv:2};
 function loadSettings(){
@@ -1144,6 +1131,7 @@ function newGame(opts){
   boardMap={};
   buildDeck(opts.mode);
   curPlayer=0;phase='draw';
+  lastTile=null;
   finished={};
   scoreLog=[];
   renderPlayers();
@@ -1181,6 +1169,8 @@ function nextTurn(){
   if(!pl.ai){
     if(totalTiles-deck.length<=1){
       hint('你的瓦片在左下角：点它旋转，点棋盘绿色位置放置');
+    }else if(!findPlacements(curTile).length){
+      hint('当前方向没有位置，点击瓦片旋转后再放置');
     }else{
       hint(pl.name+' 的回合：绿色框是合法位置，点击放置');
     }
@@ -1200,6 +1190,7 @@ function placeTile(x,y){
   }
   boardMap[x+','+y]=curTile;curTile.x=x;curTile.y=y;
   tilePlaced=true;
+  lastTile={x:x,y:y};/* 记录最近放置 */
   sfx('place');
   /* 瓦片超出视野则自动居中 */
   var pp=tileScreenPos(x,y);
@@ -1657,15 +1648,22 @@ function render(){
     var p=tileScreenPos(t.x,t.y);
     drawTile(ctx,t,p.sx,p.sy,cell,{});
   }
-  /* 合法位置高亮（放置阶段：所有旋转的可行位置） */
+  /* 合法位置高亮（跟随当前旋转） */
   if(phase==='place'&&curTile&&!tilePlaced){
-    var spots=allPlacements(curTile);
+    var spots=findPlacements(curTile);
     spots.forEach(function(sp){
       var pp=tileScreenPos(sp[0],sp[1]);
-      ctx.strokeStyle='rgba(130,220,130,.55)';
+      ctx.strokeStyle='rgba(130,220,130,.6)';
       ctx.lineWidth=3;
       ctx.strokeRect(pp.sx+3,pp.sy+3,cell-6,cell-6);
     });
+  }
+  /* 最近放置的格块（对手刚放）金色框 */
+  if(lastTile){
+    var lp=tileScreenPos(lastTile.x,lastTile.y);
+    ctx.strokeStyle='#ffb53a';
+    ctx.lineWidth=Math.max(2.5,cell*0.03);
+    ctx.strokeRect(lp.sx+3,lp.sy+3,cell-6,cell-6);
   }
   /* 放置预览 */
   if(phase==='place'&&curTile&&!tilePlaced&&view.mouse){
