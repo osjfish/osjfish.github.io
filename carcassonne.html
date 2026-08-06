@@ -68,6 +68,7 @@ body{
   border:1px solid rgba(255,255,255,.12);min-width:140px;
 }
 #curLabel{color:#d8c9a5;font-size:11.5px;letter-spacing:1px;text-align:center;line-height:1.4}
+#deckCount{color:#f2c56a;font-size:11px;letter-spacing:1px;text-align:center;font-weight:700}
 #curTile{width:150px;height:150px;border-radius:8px;cursor:pointer;touch-action:none;
   box-shadow:0 0 0 3px rgba(255,255,255,.25);transition:box-shadow .15s}
 #curTile.rot{cursor:pointer}
@@ -269,6 +270,7 @@ body{
     <canvas id="board"></canvas>
     <div id="hint" class="hide"></div>
     <div id="curWrap">
+      <div id="deckCount">剩余 0 张</div>
       <div id="curLabel">当前瓦片 · 点击旋转</div>
       <canvas id="curTile" width="300" height="300"></canvas>
       <div id="curBtns">
@@ -1041,6 +1043,10 @@ function newGame(opts){
   renderPlayers();
   nextTurn();
 }
+function updateDeckCount(){
+  var el=$id('deckCount');
+  if(el)el.textContent='剩余 '+deck.length+' 张';
+}
 function nextTurn(){
   if(!deck.length){
     endGame();
@@ -1062,6 +1068,7 @@ function nextTurn(){
     }
   }
   curTile=makeTile(deck.pop(),0);
+  updateDeckCount();
   tilePlaced=false;meepleMode=false;
   phase='place';
   var pl=players[curPlayer];
@@ -1264,7 +1271,10 @@ function scoreCompleted(tile){
   }
   /* 应用得分 */
   applyGains(gains);
-  if(gains.length)sfx('score');
+  if(gains.length){
+    sfx('score');
+    renderPlayers();/* 得分后立即刷新玩家面板 */
+  }
 }
 /* 应用得分 */
 function applyGains(gains){
