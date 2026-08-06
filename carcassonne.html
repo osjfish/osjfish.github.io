@@ -213,6 +213,23 @@ body{
 #finalDetail table{width:100%;border-collapse:collapse}
 #finalDetail td,#finalDetail th{padding:3px 6px;border-bottom:1px solid #eadfc4;font-size:12px}
 #finalDetail th{color:#8a6a18;text-align:left}
+/* 积分明细浮层 */
+#scoreDetail{
+  position:absolute;inset:0;z-index:55;display:none;align-items:center;justify-content:center;
+  background:rgba(20,16,10,.55);backdrop-filter:blur(4px);padding:20px;
+}
+#scoreDetail.show{display:flex}
+#scoreDetailCard{
+  background:linear-gradient(180deg,#f7efdc,#efe3c8);border-radius:20px;
+  max-width:420px;width:100%;padding:20px 22px;
+  box-shadow:0 10px 40px rgba(0,0,0,.5);border:1px solid #d8c39a;
+  max-height:80vh;overflow-y:auto;
+}
+#scoreDetailCard h3{font-size:17px;color:#5a4630;letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+#scoreDetailCard table{width:100%;border-collapse:collapse;font-size:13px}
+#scoreDetailCard td,#scoreDetailCard th{padding:6px 8px;border-bottom:1px solid #e2d5b6;text-align:left}
+#scoreDetailCard th{color:#8a6a18;font-weight:600}
+#scoreDetailCard .sd-total{font-weight:800;font-size:15px;text-align:right;padding-top:10px}
 /* ===== 移动端 ===== */
 @media (max-width:640px){
   #topbar{height:48px;padding:0 8px;gap:8px}
@@ -266,9 +283,17 @@ body{
       <div id="resultCard">
         <h2 id="rTitle">游戏结束</h2>
         <div class="rsub" id="rSub"></div>
-    <div id="rRows"></div>
-    <div id="finalDetail"></div>
-    <button id="btnAgain">再来一局</button>
+        <div id="rRows"></div>
+        <div id="finalDetail"></div>
+        <button id="btnAgain">再来一局</button>
+      </div>
+    </div>
+    <div id="scoreDetail">
+      <div id="scoreDetailCard">
+        <h3 id="sdTitle">积分明细</h3>
+        <table><thead><tr><th>项目</th><th>得分</th></tr></thead><tbody id="sdRows"></tbody></table>
+        <div class="sd-total" id="sdTotal"></div>
+        <button class="btn" style="width:100%;margin-top:12px" onclick="closeScoreDetail()">关闭</button>
       </div>
     </div>
   </div>
@@ -295,6 +320,13 @@ body{
       <div class="opt-row">
         <div class="opt"><label>AI 难度</label><select id="optAi"><option value="1">简单（随机）</option><option value="2" selected>普通（贪心）</option><option value="3">困难（评估）</option></select></div>
         <div class="opt"><label>主题</label><select id="optTheme"><option value="0" selected>经典田园</option><option value="1">暮色城堡</option><option value="2">雪原冬境</option></select></div>
+      </div>
+      <div class="sec-t" style="margin-top:14px">计分选项</div>
+      <div class="opt-row">
+        <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optField" checked style="width:auto"> 草地终局计分</label></div>
+        <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optShield" checked style="width:auto"> 城市盾牌分</label></div>
+        <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optUnfin" checked style="width:auto"> 未完成区域半价分</label></div>
+        <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optSound" checked style="width:auto"> 音效</label></div>
       </div>
     </div>
     <button id="btnStart">开 始 游 戏</button>
@@ -878,7 +910,66 @@ var boardMap={};
 var phase='menu';
 var totalTiles=0,deck=[];
 var finished={};/* 已完成的区域（用于草地计分） */
-var scoreLog=[];/* 终局明细 */
+var scoreLog=[];/* 积分明细 */
+/* ===== 全局设置（计分选项/音效） ===== */
+var SETTINGS={field:true,shield:true,unfinished:true,sound:true};
+function loadSettings(){
+  try{
+    var s=JSON.parse(localStorage.getItem('carcassonne_settings')||'null');
+    if(s&&typeof s==='object'){
+      ['field','shield','unfinished','sound'].forEach(function(k){if(typeof s[k]==='boolean')SETTINGS[k]=s[k]});
+    }
+  }catch(e){}
+}
+function saveSettings(){
+  try{localStorage.setItem('carcassonne_settings',JSON.stringify(SETTINGS))}catch(e){}
+}
+/* ===== 音效（WebAudio 合成） ===== */
+var audioCtx=null;
+function sfx(type){
+  if(!SETTINGS.sound)return;
+  try{
+    if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    var t0=audioCtx.currentTime;
+    function tone(freq,start,dur,vol){
+      var osc=audioCtx.createOscillator();
+      var gain=audioCtx.createGain();
+      osc.type='sine';
+      osc.connect(gain);gain.connect(audioCtx.destination);
+      osc.frequency.setValueAtTime(freq,t0+start);
+      gain.gain.setValueAtTime(vol,t0+start);
+      gain.gain.exponentialRampToValueAtTime(0.001,t0+start+dur);
+      osc.start(t0+start);
+      osc.stop(t0+start+dur+0.02);
+    }
+    if(type==='place')tone(440,0,0.08,0.12);
+    else if(type==='rotate')tone(330,0,0.05,0.08);
+    else if(type==='meeple')tone(660,0,0.1,0.12);
+    else if(type==='score'){tone(523,0,0.12,0.18);tone(784,0.1,0.18,0.16);tone(1046,0.2,0.22,0.14)}
+    else if(type==='end'){tone(523,0,0.15,0.18);tone(659,0.15,0.15,0.18);tone(784,0.3,0.3,0.2)}
+  }catch(e){}
+}
+/* ===== 加分浮动提示 ===== */
+function showScorePop(x,y,text,color){
+  try{
+    var el=document.createElement('div');
+    el.className='score-pop';
+    el.textContent=text;
+    if(color)el.style.color=color;
+    var p=tileScreenPos(x,y);
+    el.style.left=Math.round(p.sx)+'px';
+    el.style.top=Math.round(p.sy-16)+'px';
+    $id('stage').appendChild(el);
+    setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},1500);
+  }catch(e){}
+}
+function popGains(gains,x,y){
+  gains.forEach(function(g,gi){
+    var pl=players[g.player];
+    var off=(gi-gains.length/2)*26;
+    showScorePop(x,y+gi*0.3,'+'+g.pts,(pl?pl.color:'#ffe9a0'));
+  });
+}
 /* 构建牌堆 */
 function buildDeck(mode){
   var list=[];
@@ -955,6 +1046,7 @@ function placeTile(x,y){
   }
   boardMap[x+','+y]=curTile;curTile.x=x;curTile.y=y;
   tilePlaced=true;
+  sfx('place');
   /* 瓦片超出视野则自动居中 */
   var pp=tileScreenPos(x,y);
   if(pp.sx<0||pp.sy<0||pp.sx>stage.clientWidth||pp.sy>stage.clientHeight){
@@ -1072,20 +1164,26 @@ function scoreCompleted(tile){
     if(isCity||isRoad||isMon){
       finished[root]=true;
       var st=regionStat(tile,ri);
-      var pts;
-      if(isCity)pts=st.count*2+st.shield*2;
-      else if(isRoad)pts=st.count;
-      else pts=9;
+      var pts,label;
+      if(isCity){
+        pts=st.count*2+(SETTINGS.shield?st.shield*2:0);
+        label='完成城市 '+st.count+' 片'+(st.shield&&SETTINGS.shield?'+盾 '+st.shield:'');
+      }
+      else if(isRoad){pts=st.count;label='完成道路 '+st.count+' 片'}
+      else {pts=9;label='修道院完成'}
       scored.push(root);
       var aw=awardRegion(tile,ri,null,pts);
       aw.forEach(function(g){gains.push(g)});
+      /* 得分浮动提示 + 明细 */
+      aw.forEach(function(g){
+        popGains([g],tile.x,tile.y);
+        scoreLog.push({player:g.player,pts:g.pts,label:label});
+      });
     }
   });
-  /* 修道院单独：mon reg 不在 members 里，regionStat 无法统计，需单独处理 */
+  /* 应用得分 */
   applyGains(gains);
-  if(scored.length&&gains.length){
-    /* 显示计分动画由调用方处理 */
-  }
+  if(gains.length)sfx('score');
   /* 回收完成的修道院米宝 */
   if(tile.mon&&monCompleted(tile.x,tile.y)){
     var mreg=tile.regs.filter(function(r){return r.t==='mon'})[0];
@@ -1100,8 +1198,7 @@ function applyGains(gains){
     byPlayer[g.player]=(byPlayer[g.player]||0)+g.pts;
   });
   Object.keys(byPlayer).forEach(function(p){
-    var pts=byPlayer[p];
-    scoreLog.push({player:+p,pts:pts,label:'完成区域'});
+    /* scoreLog 已在 scoreCompleted 记录，此处仅加分 */
   });
 }
 function hint(msg){
@@ -1131,8 +1228,29 @@ function renderPlayers(){
       +'<span class="pname">'+esc(p.name)+'</span>'
       +'<span class="pscore">'+p.score+'</span>'
       +'<span class="pmees" title="剩余米宝">'+dots+'</span>';
+    d.onclick=function(){showScoreDetail(i)};
+    d.title='点击查看积分明细';
     box.appendChild(d);
   });
+}
+/* 积分明细浮层 */
+function showScoreDetail(pi){
+  var pl=players[pi];
+  if(!pl)return;
+  var rows=scoreLog.filter(function(s){return s.player===pi});
+  var total=pl.score;
+  $id('sdTitle').innerHTML='<span class="pdot" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:'+pl.color+';border:2px solid rgba(0,0,0,.15)"></span>'+esc(pl.name)+' 的积分明细';
+  var html='';
+  if(!rows.length)html='<tr><td colspan="2" style="text-align:center;color:var(--ink2);padding:16px">暂无得分记录</td></tr>';
+  rows.forEach(function(s){
+    html+='<tr><td>'+esc(s.label)+'</td><td style="font-weight:700;color:#8a6a18">+'+s.pts+'</td></tr>';
+  });
+  $id('sdRows').innerHTML=html;
+  $id('sdTotal').textContent='总计：'+total+' 分';
+  $id('scoreDetail').classList.add('show');
+}
+function closeScoreDetail(){
+  $id('scoreDetail').classList.remove('show');
 }
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function afterScore(){
@@ -1158,6 +1276,7 @@ function tryPlaceMeeple(tile,ri){
   reg.meeple=pl.idx;
   pl.meeples--;
   renderPlayers();
+  sfx('meeple');
   /* 放置后可能立即完成 → 计分并回收（米宝已使用，不返还） */
   scoreCompleted(tile);
   meepleMode=false;
@@ -1183,19 +1302,20 @@ function endGame(){
       var isCity=r.t==='city';
       var isRoad=r.t==='road';
       var closed=isCity?cityClosed(t,ri):isRoad?roadClosed(t,ri):false;
+      if(!SETTINGS.unfinished)return;/* 关闭未完成区域计分 */
       var aw=[];
       if(isCity&&!closed){
         var st=regionStat(t,ri);
-        aw=awardRegion(t,ri,null,st.count+st.shield);
-        detail.push({label:'未完成城市',pts:st.count+st.shield});
+        aw=awardRegion(t,ri,null,st.count+(SETTINGS.shield?st.shield:0));
+        detail.push({label:'未完成城市 '+st.count+' 片',pts:st.count+(SETTINGS.shield?st.shield:0)});
       }else if(isRoad&&!closed){
         var st2=regionStat(t,ri);
         aw=awardRegion(t,ri,null,st2.count);
-        detail.push({label:'未完成道路',pts:st2.count});
+        detail.push({label:'未完成道路 '+st2.count+' 片',pts:st2.count});
       }
       aw.forEach(function(g){
         gains.push(g);
-        players[g.player].score+=g.pts;
+        scoreLog.push({player:g.player,pts:g.pts,label:detail[detail.length-1]?detail[detail.length-1].label:'终局计分'});
       });
     });
     /* 修道院未完成 */
@@ -1208,39 +1328,43 @@ function endGame(){
           if(boardMap[(t.x+dx)+','+(t.y+dy)])cnt++;
         }
         if(mreg.meeple!=null){
-          players[mreg.meeple].score+=cnt;
           gains.push({player:mreg.meeple,pts:cnt});
+          scoreLog.push({player:mreg.meeple,pts:cnt,label:'未完成修道院'});
         }
         detail.push({label:'未完成修道院',pts:cnt});
         mreg.meeple=null;
       }
     }
   }
-  /* 草地计分 */
-  var fieldSeen={};
-  for(var kk in boardMap){
-    var tt=boardMap[kk];
-    tt.regs.forEach(function(r,ri){
-      if(r.t!=='field')return;
-      var root=ufFind(ufId(tt,ri));
-      if(fieldSeen[root])return;
-      fieldSeen[root]=true;
-      var cities=fieldAdjacentCities(tt,ri);
-      /* 只计完成的城市（终局时直接判闭合） */
-      var done=cities.filter(function(c){
-        return cityClosed(c.tile,c.ri);
+  /* 草地计分（可开关） */
+  if(SETTINGS.field){
+    var fieldSeen={};
+    for(var kk in boardMap){
+      var tt=boardMap[kk];
+      tt.regs.forEach(function(r,ri){
+        if(r.t!=='field')return;
+        var root=ufFind(ufId(tt,ri));
+        if(fieldSeen[root])return;
+        fieldSeen[root]=true;
+        var cities=fieldAdjacentCities(tt,ri);
+        /* 只计完成的城市（终局时直接判闭合） */
+        var done=cities.filter(function(c){
+          return cityClosed(c.tile,c.ri);
+        });
+        if(!done.length)return;
+        var pts=done.length*3;
+        var aw=awardRegion(tt,ri,null,pts);
+        aw.forEach(function(g){
+          gains.push(g);
+          scoreLog.push({player:g.player,pts:g.pts,label:'草地 '+done.length+' 城'});
+        });
+        detail.push({label:'草地('+done.length+' 城)',pts:pts});
       });
-      if(!done.length)return;
-      var pts=done.length*3;
-      var aw=awardRegion(tt,ri,null,pts);
-      aw.forEach(function(g){
-        players[g.player].score+=g.pts;
-        gains.push(g);
-      });
-      detail.push({label:'草地('+done.length+' 城)',pts:pts});
-    });
+    }
   }
+  applyGains(gains);
   renderPlayers();
+  if(gains.length)sfx('end');
   showResult(detail);
 }
 function showResult(detail){
@@ -1653,6 +1777,12 @@ function renderSetup(){
     box.appendChild(d);
   });
   renderLegend();
+  /* 同步计分选项 */
+  var f=$id('optField'),sh=$id('optShield'),uf=$id('optUnfin'),sd=$id('optSound');
+  if(f)f.checked=SETTINGS.field;
+  if(sh)sh.checked=SETTINGS.shield;
+  if(uf)uf.checked=SETTINGS.unfinished;
+  if(sd)sd.checked=SETTINGS.sound;
 }
 /* 图例：设置面板里的地形示例 */
 var LEGEND_TILES=[['ff','旷野（农夫放这里）'],['rr','道路（强盗放这里）'],['cf','城市（骑士放这里）'],['ffm','修道院（修士放这里）']];
@@ -1710,6 +1840,11 @@ function bindSetup(){
     if(players.length<2){toast('至少需要 2 名玩家');return}
     var theme=+($id('optTheme').value||0);
     setTheme(theme);
+    SETTINGS.field=$id('optField').checked;
+    SETTINGS.shield=$id('optShield').checked;
+    SETTINGS.unfinished=$id('optUnfin').checked;
+    SETTINGS.sound=$id('optSound').checked;
+    saveSettings();
     $id('setupMask').classList.add('hide');
     $id('result').classList.remove('show');
     newGame({mode:setupMode,players:players,aiLv:+$id('optAi').value});
@@ -1736,6 +1871,7 @@ function bindTop(){
     rebuildEdges();
     renderCurTile();
     render();
+    sfx('rotate');
   });
   $id('btnPass').addEventListener('click',function(){
     if(meepleMode){
@@ -1763,10 +1899,12 @@ function bindTop(){
     rebuildEdges();
     renderCurTile();
     render();
+    sfx('rotate');
   });
 }
 /* ================= 初始化 ================= */
 function init(){
+  loadSettings();
   bindBoard();
   bindSetup();
   bindTop();
