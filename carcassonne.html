@@ -264,6 +264,7 @@ body{
     <h1>卡卡颂</h1>
     <span class="sub">· 米宝与疆域</span>
     <div class="players" id="players"></div>
+    <button class="icon-btn" id="btnRestart" title="重新开始">⟳</button>
     <button class="icon-btn" id="btnMenu" title="菜单">☰</button>
   </div>
   <div id="stage">
@@ -307,9 +308,9 @@ body{
     <div class="sec">
       <div class="sec-t">游戏模式</div>
       <div class="pick-row">
-        <div class="pick on" data-mode="2"><div class="pi">快速对战</div><div class="pd">36 张瓦片</div></div>
-        <div class="pick" data-mode="3"><div class="pi">标准模式</div><div class="pd">72 张瓦片</div></div>
-        <div class="pick" data-mode="1"><div class="pi">教学演示</div><div class="pd">24 张瓦片</div></div>
+        <div class="pick" data-mode="1"><div class="pi">体验模式</div><div class="pd">24 张瓦片</div></div>
+        <div class="pick" data-mode="2"><div class="pi">快速对战</div><div class="pd">36 张瓦片</div></div>
+        <div class="pick on" data-mode="3"><div class="pi">标准模式</div><div class="pd">72 张瓦片</div></div>
       </div>
     </div>
     <div class="sec">
@@ -318,11 +319,7 @@ body{
       <button id="btnAddPlayer">＋ 添加玩家</button>
     </div>
     <div class="sec">
-      <div class="sec-t">选项</div>
-      <div class="opt-row">
-        <div class="opt"><label>AI 难度</label><select id="optAi"><option value="1">新手（贪心）</option><option value="2" selected>进阶（策略）</option><option value="3">大师（专家）</option></select></div>
-      </div>
-      <div class="sec-t" style="margin-top:14px">计分选项</div>
+      <div class="sec-t">计分选项</div>
       <div class="opt-row">
         <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optField" checked style="width:auto"> 草地终局计分</label></div>
         <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optShield" checked style="width:auto"> 城市盾牌分</label></div>
@@ -1002,16 +999,17 @@ function saveGame(){
       board[k]={id:t.id,rot:t.rot,meeple:meeple};
     }
     var save={
-      v:1,
+      v:2,
       board:board,
       deck:deck,
-      players:players.map(function(p){return {name:p.name,ai:p.ai,score:p.score,meeples:p.meeples}}),
+      players:players.map(function(p){return {name:p.name,ai:p.ai,aiLv:p.aiLv,score:p.score,meeples:p.meeples}}),
       curPlayer:curPlayer,
       curTile:curTile?{id:curTile.id,rot:curTile.rot}:null,
       tilePlaced:tilePlaced,
       meepleMode:meepleMode,
       finished:Object.keys(finished),
-      scoreLog:scoreLog
+      scoreLog:scoreLog,
+      config:gameConfig||null
     };
     localStorage.setItem(SAVE_KEY,JSON.stringify(save));
   }catch(e){}
@@ -1038,7 +1036,7 @@ function loadGame(){
     }
     deck=s.deck||[];
     players=(s.players||[]).map(function(p,i){
-      return {name:p.name,ai:p.ai,score:p.score||0,meeples:p.meeples!=null?p.meeples:7,color:PLAYER_COLORS[i%PLAYER_COLORS.length],idx:i};
+      return {name:p.name,ai:p.ai||p.aiLv>0,aiLv:p.aiLv!=null?p.aiLv:(p.ai?2:0),score:p.score||0,meeples:p.meeples!=null?p.meeples:7,color:PLAYER_COLORS[i%PLAYER_COLORS.length],idx:i};
     });
     curPlayer=s.curPlayer||0;
     curTile=s.curTile?makeTile(s.curTile.id,s.curTile.rot):null;
@@ -1047,6 +1045,7 @@ function loadGame(){
     finished={};
     (s.finished||[]).forEach(function(k){finished[k]=true});
     scoreLog=s.scoreLog||[];
+    if(s.config)gameConfig=s.config;
     var firstTile=boardMap[Object.keys(boardMap)[0]];
     if(firstTile)connectAll(firstTile);
     return true;
@@ -1880,7 +1879,7 @@ function rebuildEdges(){
   });
 }
 function aiTurn(pl){
-  var lv=+(($id('optAi')&&$id('optAi').value)||2);
+  var lv=pl.aiLv||2;/* 每位玩家自己的 AI 难度 */
   var best=null;
   /* 尝试所有旋转与位置 */
   for(var r=0;r<4;r++){
@@ -2051,10 +2050,11 @@ function endTurnSkip(){
 }
 /* ================= 设置面板 ================= */
 var setupPlayers=[
-  {name:'我',ai:false},
-  {name:'AI 对手',ai:true}
+  {name:'我',lv:0},
+  {name:'AI 对手',lv:2}
 ];
-var setupMode='2';
+var setupMode='3';
+var gameConfig=null;/* 当前对局配置（用于重新开始） */
 function renderSetup(){
   var box=$id('playerSets');
   box.innerHTML='';
@@ -2063,19 +2063,22 @@ function renderSetup(){
     d.className='player-set';
     d.innerHTML='<div class="ps-head"><span class="pdot" style="background:'+PLAYER_COLORS[i%PLAYER_COLORS.length]+'"></span>'
       +'<input type="text" value="'+esc(p.name)+'" data-i="'+i+'">'
-      +'<select data-i="'+i+'"><option value="0"'+(p.ai?'':' selected')+'>人</option><option value="1"'+(p.ai?' selected':'')+'>AI</option></select>'
+      +'<select data-i="'+i+'">'
+      +'<option value="0"'+(p.lv===0?' selected':'')+'>手动操作</option>'
+      +'<option value="1"'+(p.lv===1?' selected':'')+'>新手AI</option>'
+      +'<option value="2"'+(p.lv===2?' selected':'')+'>进阶AI</option>'
+      +'<option value="3"'+(p.lv===3?' selected':'')+'>大师AI</option>'
+      +'</select>'
       +(setupPlayers.length>2?'<button class="ps-del" data-i="'+i+'">✕</button>':'');
     box.appendChild(d);
   });
   renderLegend();
-  /* 同步计分选项 + AI 难度 */
+  /* 同步计分选项 */
   var f=$id('optField'),sh=$id('optShield'),uf=$id('optUnfin'),sd=$id('optSound');
   if(f)f.checked=SETTINGS.field;
   if(sh)sh.checked=SETTINGS.shield;
   if(uf)uf.checked=SETTINGS.unfinished;
   if(sd)sd.checked=SETTINGS.sound;
-  var ai=$id('optAi');
-  if(ai)ai.value=String(SETTINGS.aiLv);
 }
 /* 图例：设置面板里的地形示例 */
 var LEGEND_TILES=[['ff','旷野（农夫放这里）'],['rr','道路（强盗放这里）'],['cf','城市（骑士放这里）'],['ffm','修道院（修士放这里）']];
@@ -2105,7 +2108,7 @@ function bindSetup(){
     if(e.target.getAttribute('data-i')===null)return;
     var i=+e.target.getAttribute('data-i');
     if(e.target.tagName==='INPUT')setupPlayers[i].name=e.target.value;
-    else setupPlayers[i].ai=e.target.value==='1';
+    else setupPlayers[i].lv=+e.target.value;
   });
   $id('playerSets').addEventListener('click',function(e){
     if(e.target.classList.contains('ps-del')){
@@ -2123,31 +2126,46 @@ function bindSetup(){
   });
   $id('btnAddPlayer').addEventListener('click',function(){
     if(setupPlayers.length>=5){toast('最多 5 名玩家');return}
-    setupPlayers.push({name:'玩家'+setupPlayers.length,ai:false});
+    setupPlayers.push({name:'玩家'+setupPlayers.length,lv:0});
     renderSetup();
   });
   $id('btnStart').addEventListener('click',function(){
     var players=setupPlayers.map(function(p,i){
-      return {name:p.name||('玩家'+(i+1)),ai:p.ai,color:PLAYER_COLORS[i%PLAYER_COLORS.length],score:0,meeples:7,idx:i};
+      return {name:p.name||('玩家'+(i+1)),ai:p.lv>0,aiLv:p.lv,color:PLAYER_COLORS[i%PLAYER_COLORS.length],score:0,meeples:7,idx:i};
     });
     if(players.length<2){toast('至少需要 2 名玩家');return}
     SETTINGS.field=$id('optField').checked;
     SETTINGS.shield=$id('optShield').checked;
     SETTINGS.unfinished=$id('optUnfin').checked;
     SETTINGS.sound=$id('optSound').checked;
-    SETTINGS.aiLv=parseInt($id('optAi').value,10)||2;
     saveSettings();
     $id('setupMask').classList.add('hide');
     $id('result').classList.remove('show');
-    newGame({mode:setupMode,players:players,aiLv:+$id('optAi').value});
+    gameConfig={mode:setupMode,players:setupPlayers.map(function(p){return {name:p.name,lv:p.lv}})};
+    newGame({mode:setupMode,players:players});
     fitView();
   });
 }
 /* ================= 顶部按钮 ================= */
 function bindTop(){
+  $id('btnRestart').addEventListener('click',function(){
+    if(!gameConfig)return;
+    if(!confirm('重新开始当前对局？进度将丢失。')){
+      return;
+    }
+    clearSave();
+    var players=gameConfig.players.map(function(p,i){
+      return {name:p.name,lv:p.lv!=null?p.lv:(p.ai?2:0),ai:(p.lv!=null?p.lv:p.ai?2:0)>0,aiLv:p.lv!=null?p.lv:(p.ai?2:0),color:PLAYER_COLORS[i%PLAYER_COLORS.length],score:0,meeples:7,idx:i};
+    });
+    $id('setupMask').classList.add('hide');
+    $id('result').classList.remove('show');
+    newGame({mode:gameConfig.mode||'2',players:players});
+    fitView();
+    toast('已重新开始');
+  });
   $id('btnMenu').addEventListener('click',function(){
     $id('setupMask').classList.remove('hide');
-    renderSetup();/* 同步玩家列表/计分选项/AI难度显示 */
+    renderSetup();/* 同步玩家列表/计分选项显示 */
   });
   $id('btnRules').addEventListener('click',function(){
     var box=$id('rulesBox');
