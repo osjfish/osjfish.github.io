@@ -855,9 +855,14 @@ function awardRegion(tile,ri,type,pts){
   var maxC=Math.max.apply(null,list.map(function(o){return o.c}));
   var top=list.filter(function(o){return o.c===maxC});
   top.forEach(function(o){res.push({player:o.p,pts:pts})});
-  /* 回收米宝 */
+  /* 归还米宝：所有该区域的米宝回到各玩家供应区 */
   var members=regionMembers(tile,ri);
-  members.forEach(function(m){if(m.reg.meeple!=null)m.reg.meeple=null});
+  members.forEach(function(m){
+    if(m.reg.meeple!=null){
+      players[m.reg.meeple].meeples++;
+      m.reg.meeple=null;
+    }
+  });
   return res;
 }
 /* 草地：找与草地区域相邻的所有城市 region（按瓦片几何相邻关系 adj，跨瓦片合并） */
@@ -1122,42 +1127,55 @@ function connectAll(tile){
 }
 /* 计分已完成的区域（放置后） */
 function scoreCompleted(tile){
-  var scored=[];
   var gains=[];
+  /* 城市/道路完成结算 */
   tile.regs.forEach(function(r,ri){
-    var root=ufFind(ufId(tile,ri));
-    if(finished[root])return;
-    var isCity=r.t==='city'&&cityClosed(tile,ri);
-    var isRoad=r.t==='road'&&roadClosed(tile,ri);
-    var isMon=r.t==='mon'&&monCompleted(tile.x,tile.y);
-    if(isCity||isRoad||isMon){
+    if(r.t==='city'||r.t==='road'){
+      var root=ufFind(ufId(tile,ri));
+      if(finished[root])return;
+      var isCity=r.t==='city'&&cityClosed(tile,ri);
+      var isRoad=r.t==='road'&&roadClosed(tile,ri);
+      if(!isCity&&!isRoad)return;
       finished[root]=true;
       var st=regionStat(tile,ri);
       var pts,label;
       if(isCity){
         pts=st.count*2+(SETTINGS.shield?st.shield*2:0);
         label='完成城市 '+st.count+' 片'+(st.shield&&SETTINGS.shield?'+盾 '+st.shield:'');
+      }else{
+        pts=st.count;label='完成道路 '+st.count+' 片';
       }
-      else if(isRoad){pts=st.count;label='完成道路 '+st.count+' 片'}
-      else {pts=9;label='修道院完成'}
-      scored.push(root);
       var aw=awardRegion(tile,ri,null,pts);
-      aw.forEach(function(g){gains.push(g)});
-      /* 得分浮动提示 + 明细 */
       aw.forEach(function(g){
+        gains.push(g);
         popGains([g],tile.x,tile.y);
         scoreLog.push({player:g.player,pts:g.pts,label:label});
       });
     }
   });
+  /* 修道院完成结算：本瓦片 + 周围 3×3 内被补全的修道院 */
+  for(var dx=-1;dx<=1;dx++){
+    for(var dy=-1;dy<=1;dy++){
+      var nx=tile.x+dx,ny=tile.y+dy;
+      var nt=boardGet(nx,ny);
+      if(!nt||!nt.mon)continue;
+      var mkey='mon'+nx+','+ny;
+      if(finished[mkey])continue;
+      if(!monCompleted(nx,ny))continue;
+      finished[mkey]=true;
+      var mreg=nt.regs.filter(function(r){return r.t==='mon'})[0];
+      if(mreg&&mreg.meeple!=null){
+        gains.push({player:mreg.meeple,pts:9});
+        popGains([{player:mreg.meeple,pts:9}],nt.x,nt.y);
+        scoreLog.push({player:mreg.meeple,pts:9,label:'修道院完成'});
+        players[mreg.meeple].meeples++;/* 归还米宝 */
+        mreg.meeple=null;
+      }
+    }
+  }
   /* 应用得分 */
   applyGains(gains);
   if(gains.length)sfx('score');
-  /* 回收完成的修道院米宝 */
-  if(tile.mon&&monCompleted(tile.x,tile.y)){
-    var mreg=tile.regs.filter(function(r){return r.t==='mon'})[0];
-    if(mreg&&mreg.meeple!=null){mreg.meeple=null;}
-  }
 }
 /* 应用得分 */
 function applyGains(gains){
@@ -1308,6 +1326,7 @@ function endGame(){
         if(mreg.meeple!=null){
           gains.push({player:mreg.meeple,pts:cnt});
           scoreLog.push({player:mreg.meeple,pts:cnt,label:'未完成修道院'});
+          players[mreg.meeple].meeples++;
         }
         detail.push({label:'未完成修道院',pts:cnt});
         mreg.meeple=null;
