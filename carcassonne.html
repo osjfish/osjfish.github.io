@@ -319,7 +319,6 @@ body{
       <div class="sec-t">选项</div>
       <div class="opt-row">
         <div class="opt"><label>AI 难度</label><select id="optAi"><option value="1">简单（随机）</option><option value="2" selected>普通（贪心）</option><option value="3">困难（评估）</option></select></div>
-        <div class="opt"><label>主题</label><select id="optTheme"><option value="0" selected>经典田园</option><option value="1">暮色城堡</option><option value="2">雪原冬境</option></select></div>
       </div>
       <div class="sec-t" style="margin-top:14px">计分选项</div>
       <div class="opt-row">
@@ -355,7 +354,7 @@ body{
 */
 var TYPES=[
 {id:'start',edges:['C','R','F','R'],count:1,desc:'起始',
- regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'road',dirs:[3]},{t:'field',half:['S0','S1']},{t:'field',half:['E0','E1']},{t:'field',half:['W0','W1']}]},
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'road',dirs:[3]},{t:'field',half:['S0','S1'],adj:[0]},{t:'field',half:['E0','E1'],adj:[0]},{t:'field',half:['W0','W1'],adj:[0]}]},
 {id:'ff',edges:['F','F','F','F'],count:2,desc:'旷野',
  regs:[{t:'field',half:['N0','N1','E0','E1','S0','S1','W0','W1']}]},
 {id:'ffm',edges:['F','F','F','F'],count:4,desc:'修道院',m:1,
@@ -368,34 +367,34 @@ var TYPES=[
  regs:[{t:'mon',dirs:[]},{t:'road',dirs:[0]},{t:'road',dirs:[2]},
        {t:'field',half:['N0','W0','W1','S0']},{t:'field',half:['N1','E0','E1','S1']}]},
 {id:'cf',edges:['C','F','F','F'],count:8,desc:'小城',
- regs:[{t:'city',dirs:[0]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+ regs:[{t:'city',dirs:[0]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0]}]},
 {id:'cfs',edges:['C','F','F','F'],count:1,desc:'小城·盾',s:1,
- regs:[{t:'city',dirs:[0]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+ regs:[{t:'city',dirs:[0]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0]}]},
 {id:'cfr',edges:['C','F','R','F'],count:6,desc:'城与路',
- regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0]}]},
 {id:'cfrs',edges:['C','F','R','F'],count:1,desc:'城与路·盾',s:1,
- regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[2]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0]}]},
 {id:'crf',edges:['C','R','F','F'],count:3,desc:'城·侧路',
- regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'field',half:['E0','E1','S0','S1','W0','W1']}]},
+ regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'field',half:['E0','E1','S0','S1','W0','W1'],adj:[0]}]},
 {id:'crrf',edges:['C','R','R','F'],count:2,desc:'城·双路',s:1,
  regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'road',dirs:[2]},
-       {t:'field',half:['E0','W0']},{t:'field',half:['E1','S0','S1','W1']}]},
+       {t:'field',half:['E0','W0'],adj:[0]},{t:'field',half:['E1','S0','S1','W1']}]},
 {id:'crrfs',edges:['C','R','R','F'],count:1,desc:'城·双路盾',s:1,
  regs:[{t:'city',dirs:[0]},{t:'road',dirs:[1]},{t:'road',dirs:[2]},
-       {t:'field',half:['E0','W0']},{t:'field',half:['E1','S0','S1','W1']}]},
+       {t:'field',half:['E0','W0'],adj:[0]},{t:'field',half:['E1','S0','S1','W1']}]},
 {id:'cc',edges:['C','C','F','F'],count:4,desc:'双城角',
- regs:[{t:'city',dirs:[0,1]},{t:'field',half:['S0','S1','W0','W1']}]},
+ regs:[{t:'city',dirs:[0,1]},{t:'field',half:['S0','S1','W0','W1'],adj:[0]}]},
 {id:'ccs',edges:['C','C','F','F'],count:1,desc:'双城角·盾',s:1,
- regs:[{t:'city',dirs:[0,1]},{t:'field',half:['S0','S1','W0','W1']}]},
+ regs:[{t:'city',dirs:[0,1]},{t:'field',half:['S0','S1','W0','W1'],adj:[0]}]},
 {id:'coc',edges:['C','F','C','F'],count:4,desc:'双城对',
- regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'field',half:['E0','E1','W0','W1']}]},
+ regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'field',half:['E0','E1','W0','W1'],adj:[0,1]}]},
 {id:'cocs',edges:['C','F','C','F'],count:1,desc:'双城对·盾',s:1,
- regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'field',half:['E0','E1','W0','W1']}]},
-{id:'crc',edges:['C','R','C','F'],count:2,desc:'城·路·城',
- regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'road',dirs:[1]},
-       {t:'field',half:['E0','W0']},{t:'field',half:['E1','W1']}]},
+ regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'field',half:['E0','E1','W0','W1'],adj:[0,1]}]},
+{id:'crc',edges:['C','R','C','R'],count:2,desc:'城·路·城',
+ regs:[{t:'city',dirs:[0]},{t:'city',dirs:[2]},{t:'road',dirs:[1,3]},
+       {t:'field',half:['E0','W0'],adj:[0]},{t:'field',half:['E1','W1'],adj:[1]}]},
 {id:'ccc',edges:['C','C','C','F'],count:1,desc:'三城',s:1,
- regs:[{t:'city',dirs:[0,1,2]},{t:'field',half:['W0','W1']}]},
+ regs:[{t:'city',dirs:[0,1,2]},{t:'field',half:['W0','W1'],adj:[0]}]},
 {id:'cccc',edges:['C','C','C','C'],count:2,desc:'全城',
  regs:[{t:'city',dirs:[0,1,2,3]}]},
 {id:'ccccs',edges:['C','C','C','C'],count:1,desc:'全城·盾',s:1,
@@ -692,6 +691,13 @@ function drawMeeple(ctx,x,y,color,type){
   /* 米宝颜色身体 */
   ctx.fillStyle=color;
   ctx.fillRect(-5.5,0.5,11,11);
+  /* 玩家编号（身体上白字） */
+  var num=(type!=null?type:0)+1;
+  ctx.fillStyle='#fff';
+  ctx.font='bold 9px sans-serif';
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(String(num),0,6.5);
   /* 眼睛 */
   ctx.fillStyle='#fff';
   ctx.beginPath();ctx.arc(-2.8,-10,1.7,0,7);ctx.arc(2.8,-10,1.7,0,7);ctx.fill();
@@ -874,33 +880,35 @@ function awardRegion(tile,ri,type,pts){
   members.forEach(function(m){if(m.reg.meeple!=null)m.reg.meeple=null});
   return res;
 }
-/* 草地：找与草地区域相邻的所有城市 region（跨瓦片） */
+/* 草地：找与草地区域相邻的所有城市 region（按瓦片几何相邻关系 adj，跨瓦片合并） */
 function fieldAdjacentCities(tile,ri){
   var members=regionMembers(tile,ri);
-  var citySet={};
+  var cityRoots=[];
   members.forEach(function(m){
     var t=m.tile;
-    t.regs.forEach(function(r,ri2){
-      if(r.t==='city')citySet[ufFind(ufId(t,ri2))]=true;
+    var T=TYPES.filter(function(x){return x.id===t.id})[0];
+    var adjIdx=(T.regs[m.ri]&&T.regs[m.ri].adj)||[];
+    adjIdx.forEach(function(ci){
+      if(ci<t.regs.length){
+        var root=ufFind(ufId(t,ci));
+        if(cityRoots.indexOf(root)<0)cityRoots.push(root);
+      }
     });
   });
   /* 每个城市 region 返回一个代表成员 */
-  var res=[];
-  var roots=Object.keys(citySet);
+  var out=[];
   for(var k in boardMap){
     var t=boardMap[k];
     for(var i=0;i<t.regs.length;i++){
       var r=t.regs[i];
       if(r.t!=='city')continue;
       var root=ufFind(ufId(t,i));
-      if(roots.indexOf(root)>=0&&res.indexOf(root)<0){
-        res.push(root);
-        citySet[root]={tile:t,ri:i};
+      if(cityRoots.indexOf(root)>=0){
+        out.push({tile:t,ri:i});
+        cityRoots[cityRoots.indexOf(root)]=null;/* 已取 */
       }
     }
   }
-  var out=[];
-  roots.forEach(function(root){if(citySet[root]&&citySet[root].tile)out.push(citySet[root])});
   return out;
 }
 /* ================= 游戏控制 ================= */
@@ -1851,8 +1859,6 @@ function bindSetup(){
       return {name:p.name||('玩家'+(i+1)),ai:p.ai,color:PLAYER_COLORS[i%PLAYER_COLORS.length],score:0,meeples:7,idx:i};
     });
     if(players.length<2){toast('至少需要 2 名玩家');return}
-    var theme=+($id('optTheme').value||0);
-    setTheme(theme);
     SETTINGS.field=$id('optField').checked;
     SETTINGS.shield=$id('optShield').checked;
     SETTINGS.unfinished=$id('optUnfin').checked;
