@@ -762,6 +762,28 @@ function findPlacements(tile){
   }
   return res;
 }
+/* 瓦片是否在某个旋转下可放置（重抽判定用） */
+function anyPlacement(id){
+  for(var r=0;r<4;r++){
+    var t=makeTile(id,r);
+    if(findPlacements(t).length)return true;
+  }
+  return false;
+}
+/* 所有旋转的合法位置并集（放置绿框显示用） */
+function allPlacements(tile){
+  var set={};
+  for(var r=0;r<4;r++){
+    var t=makeTile(tile.id,r);
+    findPlacements(t).forEach(function(sp){set[sp[0]+','+sp[1]]=true});
+  }
+  var out=[];
+  for(var k in set){
+    var p=k.split(',');
+    out.push([+p[0],+p[1]]);
+  }
+  return out;
+}
 /* ================= 区域图（union-find） ================= */
 var UF=null;
 function initUF(){
@@ -1138,11 +1160,10 @@ function nextTurn(){
     endGame();
     return;
   }
-  /* 避免无限重抽 */
+  /* 避免无限重抽：只弃掉所有旋转都无法放置的牌 */
   var redraws=0;
   while(redraws<deck.length){
-    var testTile=makeTile(deck[deck.length-1],0);
-    if(findPlacements(testTile).length){
+    if(anyPlacement(deck[deck.length-1])){
       break;
     }
     /* 无处可放：弃牌重抽 */
@@ -1637,9 +1658,9 @@ function render(){
     var p=tileScreenPos(t.x,t.y);
     drawTile(ctx,t,p.sx,p.sy,cell,{});
   }
-  /* 合法位置高亮（放置阶段） */
+  /* 合法位置高亮（放置阶段：所有旋转的可行位置） */
   if(phase==='place'&&curTile&&!tilePlaced){
-    var spots=findPlacements(curTile);
+    var spots=allPlacements(curTile);
     spots.forEach(function(sp){
       var pp=tileScreenPos(sp[0],sp[1]);
       ctx.strokeStyle='rgba(130,220,130,.55)';
