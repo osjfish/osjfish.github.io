@@ -1062,8 +1062,8 @@ function placeTile(x,y){
   if(!pl.ai&&pl.meeples>0&&hasOpenRegions(curTile)){
     meepleMode=true;
     $id('actionBar').style.display='flex';
-    hint('点击瓦片上的圆点放置米宝，或点「跳过」');
-    renderMeepleHotspots();
+    hint('点击瓦片上的「城/路/寺/田」圆点放米宝，或点「跳过」');
+    render();
   }else if(!pl.ai){
     meepleMode=false;
     afterScore();
@@ -1085,25 +1085,6 @@ function regHasMeepleAnywhere(tile,ri){
   var members=regionMembers(tile,ri);
   for(var i=0;i<members.length;i++)if(members[i].reg.meeple!=null)return true;
   return false;
-}
-/* 画米宝热点（画布上的圆点标记） */
-function renderMeepleHotspots(){
-  var t=curTile;
-  if(!t)return;
-  var p=tileScreenPos(t.x,t.y);
-  var cell=view.cell*view.zoom;
-  t.regs.forEach(function(r,ri){
-    if(regHasMeepleAnywhere(t,ri))return;
-    var hot=hotOfReg(t,ri);
-    ctx.save();
-    ctx.strokeStyle='rgba(255,255,255,.95)';
-    ctx.fillStyle='rgba(201,162,39,.85)';
-    ctx.lineWidth=3;
-    ctx.beginPath();
-    ctx.arc(p.sx+hot[0]*cell/100,p.sy+hot[1]*cell/100,12,0,7);
-    ctx.fill();ctx.stroke();
-    ctx.restore();
-  });
 }
 function hotOfReg(tile,ri){
   var base=tileHot(tile,ri);
@@ -1475,20 +1456,36 @@ function render(){
     drawTile(ctx,curTile,pp.sx,pp.sy,cell,{glow:true,glowColor:ok?'#5fd65f':'#ff7777'});
     ctx.restore();
   }
-  /* 米宝热点 */
+  /* 米宝热点（带地形文字，随缩放比例） */
   if(meepleMode&&curTile&&tilePlaced){
     var tp=tileScreenPos(curTile.x,curTile.y);
-    var hr=Math.max(7,Math.min(15,cell*0.11));
+    var hr=Math.max(9,Math.min(19,cell*0.135));
+    var HOT_NAME={city:'城',road:'路',mon:'寺',field:'田'};
+    /* 瓦片金色外框高亮 */
+    ctx.strokeStyle='#ffb53a';
+    ctx.lineWidth=Math.max(2,cell*0.025);
+    ctx.strokeRect(tp.sx+2,tp.sy+2,cell-4,cell-4);
     curTile.regs.forEach(function(r,ri){
       if(regHasMeepleAnywhere(curTile,ri))return;
       var h=hotOfReg(curTile,ri);
+      var px=tp.sx+h[0]*cell/100,py=tp.sy+h[1]*cell/100;
       ctx.save();
+      /* 外圈白色 + 填充橙色 */
       ctx.strokeStyle='#fff';
       ctx.fillStyle='#ffb53a';
-      ctx.lineWidth=Math.max(1.5,hr*0.2);
+      ctx.lineWidth=Math.max(2,hr*0.22);
       ctx.beginPath();
-      ctx.arc(tp.sx+h[0]*cell/100,tp.sy+h[1]*cell/100,hr,0,7);
+      ctx.arc(px,py,hr,0,7);
       ctx.fill();ctx.stroke();
+      /* 地形文字 */
+      var nm=HOT_NAME[r.t];
+      if(nm&&hr>=9){
+        ctx.fillStyle='#5a3d00';
+        ctx.font='bold '+Math.round(hr*1.15)+'px sans-serif';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(nm,px,py+1);
+      }
       ctx.restore();
     });
   }
@@ -1528,7 +1525,7 @@ function renderCurTile(){
   var pl=players[curPlayer];
   var label;
   if(tilePlaced){
-    label=meepleMode?'点击瓦片圆点放米宝':'已放置';
+    label=meepleMode?'点击「城/路/寺/田」圆点放米宝':'已放置';
   }else if(pl&&pl.ai){
     label='AI 思考中…';
   }else if(pl){
@@ -1598,20 +1595,24 @@ function onUp(e){
         placeTile(tc.x,tc.y);
       }
     }else if(meepleMode&&curTile&&!players[curPlayer].ai){
-      /* 点击瓦片热点放米宝 */
+      /* 点击瓦片内任意位置：自动吸附最近的可放热点 */
       var tt=screenToTile(pt.x,pt.y);
       if(tt.x===curTile.x&&tt.y===curTile.y){
-        var cell=view.cell*view.zoom;
+        var cell2=view.cell*view.zoom;
         var p=tileScreenPos(curTile.x,curTile.y);
-        var lx=(pt.x-p.sx)/cell*100,ly=(pt.y-p.sy)/cell*100;
+        var lx=(pt.x-p.sx)/cell2*100,ly=(pt.y-p.sy)/cell2*100;
         var best=-1,bestD=1e9;
         curTile.regs.forEach(function(r,ri){
           if(regHasMeepleAnywhere(curTile,ri))return;
           var h=hotOfReg(curTile,ri);
-          var d=Math.hypot(lx-h[0],ly-h[1]);
-          if(d<bestD&&d<24){bestD=d;best=ri}
+          var d=Math.sqrt((lx-h[0])*(lx-h[0])+(ly-h[1])*(ly-h[1]));
+          if(d<bestD){bestD=d;best=ri}
         });
-        if(best>=0)tryPlaceMeeple(curTile,best);
+        if(best>=0&&bestD<55){
+          tryPlaceMeeple(curTile,best);
+        }else if(best>=0){
+          toast('点击标有「城/路/寺/田」的圆点放置米宝');
+        }
       }
     }
   }
@@ -1884,7 +1885,7 @@ function bindTop(){
     if(meepleMode){
       /* 若玩家还有可用区域，跳转到热点；否则跳过 */
       if(hasOpenRegions(curTile)){
-        hint('点击瓦片上的圆点放置米宝');
+        hint('点击瓦片上的「城/路/寺/田」圆点放米宝');
       }else{
         meepleMode=false;
         $id('actionBar').style.display='none';
