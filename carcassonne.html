@@ -318,7 +318,7 @@ body{
     <div class="sec">
       <div class="sec-t">选项</div>
       <div class="opt-row">
-        <div class="opt"><label>AI 难度</label><select id="optAi"><option value="1">简单（随机）</option><option value="2" selected>普通（贪心）</option><option value="3">困难（评估）</option></select></div>
+        <div class="opt"><label>AI 难度</label><select id="optAi"><option value="1">新手（贪心）</option><option value="2" selected>进阶（策略）</option><option value="3">大师（专家）</option></select></div>
       </div>
       <div class="sec-t" style="margin-top:14px">计分选项</div>
       <div class="opt-row">
@@ -1744,17 +1744,32 @@ function bindBoard(){
   cv.addEventListener('wheel',onWheel,{passive:false});
   window.addEventListener('resize',resizeCanvas);
 }
-/* ================= AI ================= */
+/* ================= AI =================
+   三级难度：
+   新手(1)：贪心——启发式放置 + 高价值区域才放米宝
+   进阶(2)：策略——+区域潜力评估（大城市/快完成的修道院）
+   大师(3)：专家——+争夺机会评估（抢对手区域）、米宝管理（保留米宝等大区域）
+*/
+function rebuildEdges(){
+  var T=TYPES.filter(function(x){return x.id===curTile.id})[0];
+  curTile.edges=[0,1,2,3].map(function(i){return T.edges[(i+4-curTile.rot)%4]});
+  curTile.regs=T.regs.map(function(r){
+    var dirs=r.dirs?r.dirs.map(function(d){return (d+curTile.rot)%4}):[];
+    return {t:r.t,dirs:dirs,half:r.half?r.half.map(function(h){return rotateHalf(h,curTile.rot)}):[],gid:null,meeple:null};
+  });
+}
 function aiTurn(pl){
+  var lv=+(($id('optAi')&&$id('optAi').value)||2);
   var best=null;
-  var rot;
-  /* 尝试所有旋转 */
+  /* 尝试所有旋转与位置 */
   for(var r=0;r<4;r++){
     curTile.rot=r;
     rebuildEdges();
     var spots=findPlacements(curTile);
     spots.forEach(function(sp){
       var score=evalPlacement(sp[0],sp[1]);
+      if(lv>=2)score+=evalPotential(sp[0],sp[1]);
+      if(lv>=3)score+=evalFight(sp[0],sp[1]);
       if(!best||score>best.score){
         best={x:sp[0],y:sp[1],rot:r,score:score};
       }
@@ -1768,42 +1783,32 @@ function aiTurn(pl){
   }
   curTile.rot=best.rot;
   rebuildEdges();
-  /* 是否放米宝 */
-  var doMeeple=false;
-  if(pl.meeples>0){
-    var aiLv=+($id('optAi')&&$id('optAi').value||2);
-    if(aiLv===1){
-      doMeeple=Math.random()<0.4;
-    }else{
-      var pot=evalMeeplePotential(best.x,best.y);
-      if(aiLv===3)doMeeple=pot>6&&Math.random()<0.8;
-      else doMeeple=pot>9&&Math.random()<0.65;
-    }
-  }
   placeTile(best.x,best.y);
-  if(doMeeple){
-    /* 放在最佳区域（AI 米宝参与统一计分） */
-    var bestR=null,bestS=-1;
-    curTile.regs.forEach(function(r,ri){
-      if(r.meeple!=null)return;
-      if(regHasMeepleAnywhere(curTile,ri))return;
-      var s=meepleRegionScore(ri);
-      if(s>bestS){bestS=s;bestR=ri}
-    });
-    if(bestR!==null){
-      tryPlaceMeeple(curTile,bestR);
-      return;
+  /* 放置后决定是否放米宝（评估真实放好的区域） */
+  if(pl.meeples>0){
+    var mv=bestMeepleValue(pl,lv>=3);
+    var doMeeple=false;
+    if(lv===1)doMeeple=mv>9;
+    else if(lv===2)doMeeple=mv>8;
+    else{
+      /* 大师：大区域必放；米宝富余时也放中等区域；米宝紧张时只等大区域 */
+      doMeeple=mv>7||(pl.meeples>=4&&mv>5);
+    }
+    if(doMeeple){
+      var bestR=null,bestS=-1;
+      curTile.regs.forEach(function(r,ri){
+        if(r.meeple!=null)return;
+        if(regHasMeepleAnywhere(curTile,ri))return;
+        var s=regionValue(ri,lv>=3);
+        if(s>bestS){bestS=s;bestR=ri}
+      });
+      if(bestR!==null){
+        tryPlaceMeeple(curTile,bestR);
+        return;
+      }
     }
   }
   finishTurn();
-}
-function rebuildEdges(){
-  var T=TYPES.filter(function(x){return x.id===curTile.id})[0];
-  curTile.edges=[0,1,2,3].map(function(i){return T.edges[(i+4-curTile.rot)%4]});
-  curTile.regs=T.regs.map(function(r){
-    var dirs=r.dirs?r.dirs.map(function(d){return (d+curTile.rot)%4}):[];
-    return {t:r.t,dirs:dirs,half:r.half?r.half.map(function(h){return rotateHalf(h,curTile.rot)}):[],gid:null,meeple:null};
-  });
 }
 /* 放置评估：临时放置模拟，检测立即完成得分 */
 function evalPlacement(x,y){
@@ -1839,22 +1844,82 @@ function evalPlacement(x,y){
   delete boardMap[x+','+y];
   return s;
 }
-function evalMeeplePotential(x,y){
-  var tile=curTile;
-  var total=0;
-  tile.regs.forEach(function(r){
-    if(r.t==='city')total+=6;
-    else if(r.t==='road')total+=2;
-    else if(r.t==='mon')total+=6;
+/* 区域潜力评估（进阶+）：大城市的增长空间、快完成的修道院 */
+function evalPotential(x,y){
+  var s=0;
+  boardMap[x+','+y]=curTile;
+  curTile.x=x;curTile.y=y;
+  connectAll(curTile);
+  curTile.regs.forEach(function(r,ri){
+    if(r.t==='city'){
+      var st=regionStat(curTile,ri);
+      if(st.count>=3)s+=st.count*1.5;/* 已成规模的城市值得继续 */
+    }else if(r.t==='mon'){
+      var cnt=1;
+      for(var dx=-1;dx<=1;dx++)for(var dy=-1;dy<=1;dy++){
+        if(dx===0&&dy===0)continue;
+        if(boardGet(x+dx,y+dy))cnt++;
+      }
+      if(cnt>=6)s+=(9-cnt)*1.2;/* 接近完成的修道院 */
+    }
   });
-  return total;
+  delete boardMap[x+','+y];
+  return s;
 }
-function meepleRegionScore(ri){
+/* 争夺机会评估（大师+）：放置后能与对手区域相连抢分 */
+function evalFight(x,y){
+  var s=0;
+  boardMap[x+','+y]=curTile;
+  curTile.x=x;curTile.y=y;
+  connectAll(curTile);
+  curTile.regs.forEach(function(r,ri){
+    if(r.t!=='city'&&r.t!=='road')return;
+    var members=regionMembers(curTile,ri);
+    var opp=0;
+    members.forEach(function(m){
+      if(m.reg.meeple!=null&&m.reg.meeple!==curPlayer)opp++;
+    });
+    if(opp>0){
+      var st=regionStat(curTile,ri);
+      var pts=r.t==='city'?st.count*2+(SETTINGS.shield?st.shield*2:0):st.count;
+      s+=pts*0.5;
+    }
+  });
+  delete boardMap[x+','+y];
+  return s;
+}
+/* 米宝放置价值评估 */
+function bestMeepleValue(pl,deep){
+  var bestV=-1;
+  curTile.regs.forEach(function(r,ri){
+    if(r.meeple!=null)return;
+    if(regHasMeepleAnywhere(curTile,ri))return;
+    var v=regionValue(ri,deep);
+    if(v>bestV)bestV=v;
+  });
+  return bestV;
+}
+function regionValue(ri,deep){
   var r=curTile.regs[ri];
-  if(r.t==='city')return 7;
-  if(r.t==='mon')return 7;
-  if(r.t==='road')return 2;
-  return 1;
+  if(r.t==='city'){
+    var st=regionStat(curTile,ri);
+    var v=st.count*2+(SETTINGS.shield?st.shield*2:0)+8;
+    if(deep){
+      /* 大师：对手米宝在区域里时，放米宝可争夺 */
+      var opp=0;
+      st.members.forEach(function(m){
+        if(m.reg.meeple!=null&&m.reg.meeple!==curPlayer)opp++;
+      });
+      if(opp>0)v+=st.count*2;
+    }
+    return v;
+  }
+  if(r.t==='mon')return 9;
+  if(r.t==='road'){
+    var st2=regionStat(curTile,ri);
+    return st2.count+3;
+  }
+  return 4;
 }
 function endTurnSkip(){
   tilePlaced=true;
