@@ -459,7 +459,7 @@ function tileHot(tile,ri){
     return [50,50];
   }
   if(t==='mon')return [50,50];
-  /* field: 半边平均后向中心偏移，避免贴边 */
+  /* field: 半边平均后向中心内缩 28%（草地条带的真实中心位置），避免与道路热点重叠 */
   var xs=[],ys=[];
   half.forEach(function(h){
     if(h==='N0'){xs.push(22);ys.push(8)}if(h==='N1'){xs.push(78);ys.push(8)}
@@ -471,7 +471,11 @@ function tileHot(tile,ri){
     var ax=0,ay=0;
     for(var i=0;i<xs.length;i++){ax+=xs[i];ay+=ys[i]}
     ax/=xs.length;ay/=ys.length;
-    return [Math.round(ax+(50-ax)*0.45),Math.round(ay+(50-ay)*0.45)];
+    /* 修道院瓦片的草地热点：避开修道院方块（草地在中心时偏移到旁侧） */
+    if(tile.mon&&Math.abs(ax-50)<18&&Math.abs(ay-50)<18){
+      return [33,33];
+    }
+    return [Math.round(ax+(50-ax)*0.28),Math.round(ay+(50-ay)*0.28)];
   }
   return [50,50];
 }
@@ -1083,6 +1087,40 @@ function hotOfReg(tile,ri){
   var base=tileHot(tile,ri);
   return base;
 }
+/* 可放置热点列表（自动错开重叠热点，绘制与点击共用） */
+function openHotSpots(){
+  var list=[];
+  curTile.regs.forEach(function(r,ri){
+    if(regHasMeepleAnywhere(curTile,ri))return;
+    var h=tileHot(curTile,ri);
+    list.push({ri:ri,reg:r,h:[h[0],h[1]]});
+  });
+  /* 两两推开：间距 <18 的沿连线方向错开（迭代三次处理链式重叠） */
+  for(var pass=0;pass<3;pass++){
+    for(var a=0;a<list.length;a++){
+      for(var b=a+1;b<list.length;b++){
+        var dx=list[b].h[0]-list[a].h[0],dy=list[b].h[1]-list[a].h[1];
+        var d=Math.sqrt(dx*dx+dy*dy);
+        if(d<18){
+          if(d>0.1){
+            var push=(18-d)/2;
+            var ux=dx/d,uy=dy/d;
+            list[a].h[0]-=ux*push;list[a].h[1]-=uy*push;
+            list[b].h[0]+=ux*push;list[b].h[1]+=uy*push;
+          }else{
+            list[b].h[0]+=18;
+          }
+        }
+      }
+    }
+  }
+  /* 夹回瓦片内 */
+  list.forEach(function(s){
+    s.h[0]=Math.max(8,Math.min(92,s.h[0]));
+    s.h[1]=Math.max(8,Math.min(92,s.h[1]));
+  });
+  return list;
+}
 
 function connectAll(tile){
   initUF();
@@ -1475,18 +1513,16 @@ function render(){
   /* 米宝热点（带地形文字，随缩放比例） */
   if(meepleMode&&curTile&&tilePlaced){
     var tp=tileScreenPos(curTile.x,curTile.y);
-    var nOpen=0;
-    curTile.regs.forEach(function(r,ri){if(!regHasMeepleAnywhere(curTile,ri))nOpen++});
-    var hr=Math.max(8,Math.min(17,cell*(nOpen>=4?0.095:0.12)));
+    var spots=openHotSpots();
+    var nOpen=spots.length;
+    var hr=Math.max(7,Math.min(13,cell*(nOpen>=4?0.075:0.09)));
     var HOT_NAME={city:'城',road:'路',mon:'寺',field:'田'};
     /* 瓦片金色外框高亮 */
     ctx.strokeStyle='#ffb53a';
     ctx.lineWidth=Math.max(2,cell*0.025);
     ctx.strokeRect(tp.sx+2,tp.sy+2,cell-4,cell-4);
-    curTile.regs.forEach(function(r,ri){
-      if(regHasMeepleAnywhere(curTile,ri))return;
-      var h=hotOfReg(curTile,ri);
-      var px=tp.sx+h[0]*cell/100,py=tp.sy+h[1]*cell/100;
+    spots.forEach(function(s){
+      var px=tp.sx+s.h[0]*cell/100,py=tp.sy+s.h[1]*cell/100;
       ctx.save();
       /* 外圈白色 + 填充橙色 */
       ctx.strokeStyle='#fff';
@@ -1496,7 +1532,7 @@ function render(){
       ctx.arc(px,py,hr,0,7);
       ctx.fill();ctx.stroke();
       /* 地形文字 */
-      var nm=HOT_NAME[r.t];
+      var nm=HOT_NAME[s.reg.t];
       if(nm){
         ctx.fillStyle='#5a3d00';
         ctx.font='bold '+Math.max(9,Math.round(hr*1.1))+'px sans-serif';
@@ -1614,18 +1650,17 @@ function onUp(e){
         placeTile(tc.x,tc.y);
       }
     }else if(meepleMode&&curTile&&!players[curPlayer].ai){
-      /* 点击瓦片内任意位置：自动吸附最近的可放热点 */
+      /* 点击瓦片内任意位置：自动吸附最近的可放热点（与显示位置一致） */
       var tt=screenToTile(pt.x,pt.y);
       if(tt.x===curTile.x&&tt.y===curTile.y){
         var cell2=view.cell*view.zoom;
         var p=tileScreenPos(curTile.x,curTile.y);
         var lx=(pt.x-p.sx)/cell2*100,ly=(pt.y-p.sy)/cell2*100;
+        var spots=openHotSpots();
         var best=-1,bestD=1e9;
-        curTile.regs.forEach(function(r,ri){
-          if(regHasMeepleAnywhere(curTile,ri))return;
-          var h=hotOfReg(curTile,ri);
-          var d=Math.sqrt((lx-h[0])*(lx-h[0])+(ly-h[1])*(ly-h[1]));
-          if(d<bestD){bestD=d;best=ri}
+        spots.forEach(function(s){
+          var d=Math.sqrt((lx-s.h[0])*(lx-s.h[0])+(ly-s.h[1])*(ly-s.h[1]));
+          if(d<bestD){bestD=d;best=s.ri}
         });
         if(best>=0&&bestD<55){
           tryPlaceMeeple(curTile,best);
