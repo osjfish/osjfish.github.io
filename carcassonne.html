@@ -45,6 +45,9 @@ body{
 .p-chip .pdot{width:12px;height:12px;border-radius:50%;flex:none;border:2px solid rgba(255,255,255,.5)}
 .p-chip .pscore{font-weight:800;font-size:13px}
 .p-chip .pname{max-width:64px;overflow:hidden;text-overflow:ellipsis}
+.pmees{display:flex;gap:2px;align-items:center}
+.pmee{width:8px;height:8px;border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,.35)}
+.pmee.off{background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.15)}
 .icon-btn{
   width:34px;height:34px;flex:none;border-radius:9px;border:none;cursor:pointer;
   background:rgba(255,255,255,.1);color:#f2e8d5;font-size:16px;
@@ -414,26 +417,18 @@ function tileHot(tile,ri){
   var dirs=tile.regs[ri].dirs;
   var half=tile.regs[ri].half;
   if(t==='city'){
-    var cx=50,cy=50;
-    dirs.forEach(function(d){
-      if(d===0)cy=16;if(d===1)cx=84;if(d===2)cy=84;if(d===3)cx=16;
-    });
-    return [cx,cy];
+    /* 全城：中心；否则取第一个城市拱的几何中心（边中点与拱尖的中点） */
+    if(dirs.length>=4)return [50,50];
+    var d0=dirs[0];
+    var e=EDGE_CENTER[d0],tip=CITY_IN[d0];
+    return [Math.round((e[0]+tip[0])/2),Math.round((e[1]+tip[1])/2)];
   }
   if(t==='road'){
-    if(dirs.length===1){var d=dirs[0];return d===0?[50,50]:d===1?[50,50]:d===2?[50,50]:[50,50]}
-    if(dirs.length===2){
-      var a=dirs[0],b=dirs[1];
-      if((a===0&&b===2)||(a===2&&b===0))return [50,50];
-      if((a===0&&b===1)||(a===1&&b===0))return [70,30];
-      if((a===1&&b===2)||(a===2&&b===1))return [70,70];
-      if((a===2&&b===3)||(a===3&&b===2))return [30,70];
-      if((a===3&&b===0)||(a===0&&b===3))return [30,30];
-    }
+    /* 所有道路段都经过瓦片中心（单边路/直路/弯路/三岔/十字） */
     return [50,50];
   }
   if(t==='mon')return [50,50];
-  /* field: 用半边求重心近似 */
+  /* field: 半边平均后向中心偏移，避免贴边 */
   var xs=[],ys=[];
   half.forEach(function(h){
     if(h==='N0'){xs.push(22);ys.push(8)}if(h==='N1'){xs.push(78);ys.push(8)}
@@ -444,7 +439,8 @@ function tileHot(tile,ri){
   if(xs.length){
     var ax=0,ay=0;
     for(var i=0;i<xs.length;i++){ax+=xs[i];ay+=ys[i]}
-    return [Math.round(ax/xs.length),Math.round(ay/ys.length)];
+    ax/=xs.length;ay/=ys.length;
+    return [Math.round(ax+(50-ax)*0.45),Math.round(ay+(50-ay)*0.45)];
   }
   return [50,50];
 }
@@ -455,11 +451,11 @@ var PLAYER_COLORS=['#d84339','#2f6fb0','#4c8a3d','#e0a01e','#8b5fb5'];
 function $id(i){return document.getElementById(i)}
 function $board(){return document.getElementById('board')}
 function $cur(){return document.getElementById('curTile')}
-/* ================= 主题（高对比极简配色，清晰优先） ================= */
+/* ================= 主题（低饱和高级配色 + 细线条，清晰优先） ================= */
 var THEMES=[
- {name:'经典田园',grass:'#7cb554',grass2:'#8cc465',road:'#8a5a2b',roadLine:'#5f3d1c',cityFill:'#c0392b',cityWall:'#7a2318',cityRoof:'#a93226',monWall:'#f5f0e6',monRoof:'#c0392b',ink:'#3d2e1e',fieldDot:'rgba(60,120,40,.35)',border:'rgba(40,30,20,.8)'},
- {name:'暮色城堡',grass:'#6fae55',grass2:'#7fbf63',road:'#8a5a2b',roadLine:'#5f3d1c',cityFill:'#b8452e',cityWall:'#6e2417',cityRoof:'#a13a26',monWall:'#efe8dc',monRoof:'#b8452e',ink:'#2e2418',fieldDot:'rgba(50,105,35,.38)',border:'rgba(35,28,18,.85)'},
- {name:'雪原冬境',grass:'#9dcf8a',grass2:'#aede9a',road:'#8a7a5e',roadLine:'#5f5240',cityFill:'#c8503a',cityWall:'#7a2e1e',cityRoof:'#aa422c',monWall:'#faf6ee',monRoof:'#c8503a',ink:'#3a3630',fieldDot:'rgba(80,140,60,.3)',border:'rgba(70,70,60,.75)'}
+ {name:'经典田园',grass:'#a8c68a',grass2:'#b3d096',road:'#b59168',roadLine:'#7a5f42',cityFill:'#c87e6b',cityWall:'#8a4a3a',cityRoof:'#a96652',monWall:'#f2ecdf',monRoof:'#c06a52',ink:'#3d2e1e',fieldDot:'rgba(90,130,60,.3)',border:'rgba(80,70,58,.55)'},
+ {name:'暮色城堡',grass:'#9ab884',grass2:'#a6c48e',road:'#a98a68',roadLine:'#6f5540',cityFill:'#b9766a',cityWall:'#7c4238',cityRoof:'#9a5f52',monWall:'#e8e2d4',monRoof:'#ad5f50',ink:'#2e2418',fieldDot:'rgba(80,115,55,.32)',border:'rgba(70,60,50,.6)'},
+ {name:'雪原冬境',grass:'#c2d8b4',grass2:'#cde2c0',road:'#a89a86',roadLine:'#6f6454',cityFill:'#c4846e',cityWall:'#85503e',cityRoof:'#a86c58',monWall:'#f6f2ea',monRoof:'#b96a54',ink:'#3a3630',fieldDot:'rgba(110,150,85,.28)',border:'rgba(95,90,80,.5)'}
 ];
 var TH=THEMES[0];
 function setTheme(i){
@@ -481,14 +477,11 @@ function drawTile(ctx,tile,x,y,sz,opts){
   ctx.fillStyle=TH.grass;
   ctx.fillRect(0,0,100,100);
   ctx.fillStyle=TH.grass2;
-  ctx.fillRect(0,0,100,22);ctx.fillRect(0,50,100,22);ctx.fillRect(0,100,100,22);
-  ctx.fillStyle='rgba(40,90,25,.14)';
-  ctx.fillRect(0,22,100,6);ctx.fillRect(0,72,100,6);
-  /* 草地纹理点 */
+  ctx.fillRect(0,0,100,20);ctx.fillRect(0,50,100,20);ctx.fillRect(0,80,100,20);
   ctx.fillStyle=TH.fieldDot;
-  for(var ti=0;ti<26;ti++){
-    var gx=((ti*37)%90)+5,gy=((ti*53)%90)+5;
-    ctx.beginPath();ctx.arc(gx,gy,1.6,0,7);ctx.fill();
+  for(var ti=0;ti<18;ti++){
+    var gx=((ti*37)%88)+6,gy=((ti*53)%88)+6;
+    ctx.beginPath();ctx.arc(gx,gy,1.4,0,7);ctx.fill();
   }
   /* 道路（粗+黑描边） */
   var roadSegs=tile.regs.filter(function(r){return r.t==='road'});
@@ -503,22 +496,31 @@ function drawTile(ctx,tile,x,y,sz,opts){
       if((d[0]%2)===(d[1]%2)){pts.push(a);pts.push(b)}
       else{pts.push(a);pts.push([50,50]);pts.push(b)}
     }else{
-      pts.push(EDGE_CENTER[d[0]]);
-      for(var i=1;i<d.length;i++)pts.push(EDGE_CENTER[d[i]]);
+      /* 三岔/十字：从中心向每条边辐射 */
+      ctx.strokeStyle='#3a2a18';ctx.lineWidth=22;
+      ctx.beginPath();
+      for(var i=0;i<d.length;i++){
+        ctx.moveTo(50,50);
+        ctx.lineTo(EDGE_CENTER[d[i]][0],EDGE_CENTER[d[i]][1]);
+      }
+      ctx.stroke();
+      ctx.strokeStyle=TH.road;ctx.lineWidth=15;
+      ctx.stroke();
+      return;
     }
-    ctx.strokeStyle='#3a2a18';ctx.lineWidth=27;
+    ctx.strokeStyle='#3a2a18';ctx.lineWidth=22;
     ctx.beginPath();
     ctx.moveTo(pts[0][0],pts[0][1]);
     for(var pi=1;pi<pts.length;pi++)ctx.lineTo(pts[pi][0],pts[pi][1]);
     ctx.stroke();
-    ctx.strokeStyle=TH.road;ctx.lineWidth=17;
+    ctx.strokeStyle=TH.road;ctx.lineWidth=15;
     ctx.stroke();
   });
   /* 道路交叉圆点 */
   var rd2=tile.regs.filter(function(r){return r.t==='road'&&r.dirs.length>=2}).length;
   if(rd2){
-    ctx.fillStyle='#3a2a18';ctx.beginPath();ctx.arc(50,50,13,0,7);ctx.fill();
-    ctx.fillStyle=TH.road;ctx.beginPath();ctx.arc(50,50,9,0,7);ctx.fill();
+    ctx.fillStyle='#3a2a18';ctx.beginPath();ctx.arc(50,50,11,0,7);ctx.fill();
+    ctx.fillStyle=TH.road;ctx.beginPath();ctx.arc(50,50,7.5,0,7);ctx.fill();
   }
   /* 城市（圆拱块+城墙，按旋转后 dirs 绘制） */
   var cityRegs=tile.regs.filter(function(r){return r.t==='city'});
@@ -546,12 +548,12 @@ function drawTile(ctx,tile,x,y,sz,opts){
       drawMeeple(ctx,hb[0],hb[1],r.meeple,r.t);
     }
   });
-  /* 瓦片边框（粗黑，清晰分隔） */
+  /* 瓦片边框（细线分隔） */
   ctx.strokeStyle=TH.border;
-  ctx.lineWidth=4;
-  ctx.strokeRect(2,2,96,96);
+  ctx.lineWidth=2.5;
+  ctx.strokeRect(1.5,1.5,97,97);
   if(opts.glow){
-    ctx.strokeStyle=opts.glowColor||'#fff';ctx.lineWidth=5;
+    ctx.strokeStyle=opts.glowColor||'#fff';ctx.lineWidth=4;
     ctx.strokeRect(2,2,96,96);
   }
   ctx.restore();
@@ -575,7 +577,7 @@ function drawCityShape(ctx,dirs){
     ctx.fillStyle=TH.cityFill;
     ctx.fill();
     ctx.strokeStyle='#3a1c12';
-    ctx.lineWidth=3;
+    ctx.lineWidth=2;
     ctx.stroke();
   });
   /* 填充相邻拱之间的中心空隙（双城角/三城/全城） */
@@ -594,20 +596,20 @@ function drawCityShape(ctx,dirs){
     ctx.fillStyle=TH.cityFill;
     ctx.fill();
     ctx.strokeStyle='#3a1c12';
-    ctx.lineWidth=3;
+    ctx.lineWidth=2;
     ctx.stroke();
   }
-  /* 城墙线（城市边，粗黑） */
+  /* 城墙线（城市边） */
   ctx.strokeStyle=TH.cityWall;
-  ctx.lineWidth=9;
+  ctx.lineWidth=6.5;
   ctx.beginPath();
   dirs.forEach(function(d){
     var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
     ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);
   });
   ctx.stroke();
-  ctx.strokeStyle='#fff';
-  ctx.lineWidth=3;
+  ctx.strokeStyle='rgba(255,244,230,.75)';
+  ctx.lineWidth=2;
   ctx.beginPath();
   dirs.forEach(function(d){
     var p1=EDGE_END[d][0],p2=EDGE_END[d][1];
@@ -618,49 +620,49 @@ function drawCityShape(ctx,dirs){
 }
 function drawMonastery(ctx){
   ctx.save();
-  /* 底座（白+黑描边） */
-  ctx.fillStyle='#fff';
-  ctx.strokeStyle='#3a2a18';
-  ctx.lineWidth=3;
-  ctx.fillRect(36,34,28,30);
-  ctx.strokeRect(36,34,28,30);
-  /* 尖顶（红） */
+  /* 底座（米白+细描边） */
+  ctx.fillStyle=TH.monWall;
+  ctx.strokeStyle='#6a5740';
+  ctx.lineWidth=2;
+  ctx.fillRect(37,35,26,28);
+  ctx.strokeRect(37,35,26,28);
+  /* 尖顶（暖红） */
   ctx.fillStyle=TH.monRoof;
-  ctx.beginPath();ctx.moveTo(33,35);ctx.lineTo(50,18);ctx.lineTo(67,35);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='#3a2a18';
-  ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(34,36);ctx.lineTo(50,20);ctx.lineTo(66,36);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#6a5740';
+  ctx.lineWidth=2;
   ctx.stroke();
-  /* 白色十字（画在红顶上） */
-  ctx.strokeStyle='#fff';ctx.lineWidth=4;
-  ctx.beginPath();ctx.moveTo(50,15);ctx.lineTo(50,27);ctx.moveTo(45,20);ctx.lineTo(55,20);ctx.stroke();
-  /* 门（黑拱门） */
-  ctx.fillStyle='#3a2a18';
-  ctx.beginPath();ctx.moveTo(45,64);ctx.lineTo(45,57);ctx.arc(50,57,5,Math.PI,0);ctx.lineTo(55,64);ctx.closePath();ctx.fill();
+  /* 白色十字 */
+  ctx.strokeStyle='#fff';ctx.lineWidth=3.5;
+  ctx.beginPath();ctx.moveTo(50,17);ctx.lineTo(50,28);ctx.moveTo(45.5,21);ctx.lineTo(54.5,21);ctx.stroke();
+  /* 门（深色拱门） */
+  ctx.fillStyle='#6a5740';
+  ctx.beginPath();ctx.moveTo(45.5,63);ctx.lineTo(45.5,56.5);ctx.arc(50,56.5,4.5,Math.PI,0);ctx.lineTo(54.5,63);ctx.closePath();ctx.fill();
   ctx.restore();
 }
 function drawMeeple(ctx,x,y,color,type){
   ctx.save();
   ctx.translate(x,y);
-  /* 阴影 */
-  ctx.fillStyle='rgba(0,0,0,.3)';
-  ctx.beginPath();ctx.ellipse(0,14,10,4,0,0,7);ctx.fill();
+  /* 柔和阴影 */
+  ctx.fillStyle='rgba(60,40,20,.25)';
+  ctx.beginPath();ctx.ellipse(0,14,9,3.5,0,0,7);ctx.fill();
   /* 白色描边圆头 */
   ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.arc(0,-11,11,0,7);ctx.fill();
-  ctx.fillStyle='rgba(0,0,0,.22)';
-  ctx.beginPath();ctx.arc(0,-11,11,0,Math.PI);ctx.fill();
+  ctx.beginPath();ctx.arc(0,-10,9.5,0,7);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.16)';
+  ctx.beginPath();ctx.arc(0,-10,9.5,0,Math.PI);ctx.fill();
   /* 米宝颜色头 */
   ctx.fillStyle=color;
-  ctx.beginPath();ctx.arc(0,-10,8.5,0,7);ctx.fill();
+  ctx.beginPath();ctx.arc(0,-9.5,7.5,0,7);ctx.fill();
   /* 白色描边身体 */
   ctx.fillStyle='#fff';
-  ctx.fillRect(-8,-1,16,16);
+  ctx.fillRect(-7,-1,14,14);
   /* 米宝颜色身体 */
   ctx.fillStyle=color;
-  ctx.fillRect(-6.5,0.5,13,12.5);
+  ctx.fillRect(-5.5,0.5,11,11);
   /* 眼睛 */
   ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.arc(-3.2,-11,1.9,0,7);ctx.arc(3.2,-11,1.9,0,7);ctx.fill();
+  ctx.beginPath();ctx.arc(-2.8,-10,1.7,0,7);ctx.arc(2.8,-10,1.7,0,7);ctx.fill();
   ctx.restore();
 }
 /* ================= 棋盘与放置 ================= */
@@ -1121,9 +1123,14 @@ function renderPlayers(){
   players.forEach(function(p,i){
     var d=document.createElement('div');
     d.className='p-chip'+(i===curPlayer?' active':'');
+    var dots='';
+    for(var m=0;m<7;m++){
+      dots+='<i class="pmee'+(m<p.meeples?'':' off')+'" style="'+(m<p.meeples?'background:'+p.color:'')+'"></i>';
+    }
     d.innerHTML='<span class="pdot" style="background:'+p.color+'"></span>'
       +'<span class="pname">'+esc(p.name)+'</span>'
-      +'<span class="pscore">'+p.score+'</span>';
+      +'<span class="pscore">'+p.score+'</span>'
+      +'<span class="pmees" title="剩余米宝">'+dots+'</span>';
     box.appendChild(d);
   });
 }
@@ -1353,9 +1360,9 @@ function render(){
       ctx.save();
       ctx.strokeStyle='#fff';
       ctx.fillStyle='#ffb53a';
-      ctx.lineWidth=3;
+      ctx.lineWidth=2.5;
       ctx.beginPath();
-      ctx.arc(tp.sx+h[0]*cell/100,tp.sy+h[1]*cell/100,14,0,7);
+      ctx.arc(tp.sx+h[0]*cell/100,tp.sy+h[1]*cell/100,13,0,7);
       ctx.fill();ctx.stroke();
       ctx.restore();
     });
