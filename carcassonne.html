@@ -1313,6 +1313,25 @@ function tryPlaceMeeple(tile,ri){
   sfx('meeple');
   /* 放置后可能立即完成 → 计分并回收（米宝已使用，不返还） */
   scoreCompleted(tile);
+  /* 官方特殊规则：放米宝到"刚完成的地形"→ 立即计分 → 米宝收回供应区 */
+  var root=ufFind(ufId(tile,ri));
+  var justDone=false;
+  if(finished[root])justDone=true;
+  if(reg.t==='mon'&&finished['mon'+tile.x+','+tile.y])justDone=true;
+  if(justDone&&reg.meeple!=null){
+    var st=regionStat(tile,ri);
+    var pts;
+    if(reg.t==='city')pts=st.count*2+(SETTINGS.shield?st.shield*2:0);
+    else if(reg.t==='road')pts=st.count;
+    else pts=9;
+    players[pl.idx].score+=pts;
+    scoreLog.push({player:pl.idx,pts:pts,label:reg.t==='city'?'完成城市(立即)':reg.t==='road'?'完成道路(立即)':'修道院(立即)'});
+    popGains([{player:pl.idx,pts:pts}],tile.x,tile.y);
+    pl.meeples++;/* 米宝收回供应区 */
+    reg.meeple=null;
+    sfx('score');
+    renderPlayers();
+  }
   meepleMode=false;
   $id('actionBar').style.display='none';
   render();
