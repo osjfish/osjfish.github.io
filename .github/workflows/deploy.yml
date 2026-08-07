@@ -10,22 +10,15 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       
-    - name: Test SSH connection
-      uses: appleboy/ssh-action@v1
+    - name: Deploy via rsync
+      uses: appleboy/rsync-action@master
       with:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: echo "SSH connection OK"
-        
-    - name: Deploy via SCP
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.REMOTE_HOST }}
-        username: ${{ secrets.REMOTE_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "./*"
+        source: "./"
         target: ${{ secrets.DEPLOY_PATH }}
-        strip_components: 0
+        delete: true
+        args: -avz --exclude='.git' --exclude='.firecrawl' --exclude='node_modules' --exclude='.github'
