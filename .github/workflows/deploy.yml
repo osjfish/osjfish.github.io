@@ -9,16 +9,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Sync site via git
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Pack site
+      run: |
+        tar czf site.tar.gz --exclude='.git' --exclude='.github' --exclude='.firecrawl' .
+
+    - name: Upload tarball
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: site.tar.gz
+        target: /tmp
+        strip_components: 0
+
+    - name: Replace site files
       uses: appleboy/ssh-action@v1
       with:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          git config --global --add safe.directory "${{ secrets.DEPLOY_PATH }}"
+          set -e
           cd "${{ secrets.DEPLOY_PATH }}"
-          git fetch origin main
-          git reset --hard origin/main
-          git clean -fd
-          echo "Deploy OK: $(git log --oneline -1)"
+          [ -f index.html ] || { echo "target check failed"; exit 1; }
+          find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          tar -xzf /tmp/site.tar.gz
+          rm -f /tmp/site.tar.gz
+          echo "Deploy OK"
