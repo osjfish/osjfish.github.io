@@ -216,6 +216,16 @@ textarea.biji{min-height:170px}
 
 <main>
   <section id="view-workspace" class="view">
+    <div class="card cur-card">
+      <div class="step-label"><span class="no">课</span>当前课例<span class="flow" id="curMode">新课例</span></div>
+      <div class="left-sec">
+        <input type="text" id="recTitle" placeholder="课例标题（可留空，保存时自动取教案首行）">
+        <button class="btn" id="btnNewRecord">＋ 新课例</button>
+        <button class="btn primary" id="btnSaveRecord">保存课例</button>
+        <span class="hint" id="recStatus"></span>
+      </div>
+    </div>
+
     <div class="card">
       <div class="step-label"><span class="no">一</span>上传 / 录入教案</div>
       <div class="left-sec">
@@ -229,8 +239,6 @@ textarea.biji{min-height:170px}
     <div class="card">
       <div class="step-label"><span class="no">二</span>听课笔记</div>
       <div class="left-sec">
-        <button class="btn" id="btnSaveRecord">保存到记录库</button>
-        <span class="hint" id="recStatus"></span>
         <span class="counter" id="biCount">0 字</span>
       </div>
       <textarea id="biji" class="biji" placeholder="记录这节课的教学过程、师生对话、亮点与问题、你的即时思考……"></textarea>
@@ -273,14 +281,13 @@ textarea.biji{min-height:170px}
 
   <section id="view-records" class="view" hidden>
     <div class="records-head">
-      <input type="text" id="recTitle" placeholder="新课例标题（保存后回到工作台填写）">
-      <button class="btn primary" id="btnNewRecord">新建记录</button>
+      <span class="hint" style="margin:0">点「打开」载入课例进行编辑，或回到工作台点「＋ 新课例」新建。</span>
       <span class="spacer"></span>
       <button class="btn" id="btnExportJson">导出数据(JSON)</button>
       <button class="btn" id="btnImportJson">导入记录</button>
       <input type="file" id="fileJson" accept=".json" hidden>
     </div>
-    <div id="recList" class="empty">暂无听课记录。回到「工作台」填写教案与笔记后点「保存到记录库」。</div>
+    <div id="recList" class="empty">暂无听课记录。回到「工作台」填写教案与笔记后点「保存课例」。</div>
   </section>
 
   <section id="view-settings" class="view" hidden>
@@ -345,7 +352,7 @@ var DEF_TPL={
   anli:'你是一位教育研究者，擅长基于真实课例做深度案例分析。请基于下面的【教案】与【听课笔记】，选择 1-2 个最具研讨价值的真实教学片段（如某个提问、某次活动、某段师生对话、某次突发状况的处理），撰写一份《教学案例分析》。\n\n结构如下：\n一、案例背景（课题、课型、学段、核心任务）\n二、案例描述（客观还原所选片段，含师生细节与关键语言）\n三、案例分析（运用教育学 / 心理学 / 学科教学理论——如建构主义、最近发展区、情境教学、教学评一体化、学习共同体等——剖析该片段的得与失）\n四、案例启示（迁移到常态课堂的 3-5 条建议）\n\n要求：描述与分析比例约 3:7；理论引用准确自然，不堆砌术语；务必紧扣本课细节，避免泛泛而谈。\n\n【教案】\n{教案}\n\n【听课笔记】\n{听课笔记}',
   lunwen:'你是一位教研写作专家，擅长把课例转化为可发表的论文。请基于下面的【教案】与【听课笔记】，撰写一篇可直接投稿的《教学论文》初稿（2500-4000 字）。\n\n结构：\n标题（自拟，紧扣本课最突出的教学问题或特色）\n摘要（150 字左右）+ 关键词（3-5 个）\n一、引言（问题提出：从听课观察中提炼的真问题）\n二、理论依据（简明选取 1-2 个核心理论，结合本课）\n三、课例实施与实证（本课的实践过程 + 成效证据，引用听课笔记中的细节）\n四、研究结论与建议（分条，有推广价值）\n五、参考文献（3-5 条，规范著录）\n\n要求：论证有真实课例支撑；文字质朴严谨；避免空话、口号与学术八股。\n\n【教案】\n{教案}\n\n【听课笔记】\n{听课笔记}'
 };
-var S={providers:[],tpl:{},records:[],curId:null,aiId:null,shots:{pingke:'',anli:'',lunwen:''},busy:false,ctrl:null};
+var S={providers:[],tpl:{},records:[],curId:null,aiId:null,shots:{pingke:'',anli:'',lunwen:''},busy:false,ctrl:null,dirty:false};
 var K={'pingke':'评课要点','anli':'案例分析','lunwen':'教学论文'};
 var $=function(id){return document.getElementById(id)};
 
@@ -363,9 +370,20 @@ function loadState(){
   S.records=LS.get('records',[]);
   S.curId=LS.get('curId',null);
   S.aiId=LS.get('aiId',null);
-  var d=LS.get('draft',null);
-  if(d){$('jiaoan').value=d.jiaoan||'';$('biji').value=d.biji||''}
   S.shots={pingke:'',anli:'',lunwen:''};
+  var cur=null;
+  for(var i=0;i<S.records.length;i++){if(S.records[i].id===S.curId){cur=S.records[i];break}}
+  if(cur){
+    $('jiaoan').value=cur.jiaoan||'';
+    $('biji').value=cur.biji||'';
+    $('recTitle').value=cur.title||'';
+    S.shots=cur.shots||{pingke:'',anli:'',lunwen:''};
+    $('recStatus').textContent='当前记录：'+(cur.title||'');
+  }else{
+    S.curId=null;
+    var d=LS.get('draft',null);
+    if(d){$('jiaoan').value=d.jiaoan||'';$('biji').value=d.biji||''}
+  }
 }
 function cleanStored(list){
   var isBuiltin={};
@@ -407,7 +425,21 @@ function saveProviders(){
 }
 function saveTpl(){LS.set('tpl',S.tpl)}
 function saveRecords(){LS.set('records',S.records)}
-function saveDraft(){LS.set('draft',{jiaoan:$('jiaoan').value,biji:$('biji').value})}
+function updateMode(){
+  var el=$('curMode');
+  var rec=null;
+  for(var i=0;i<S.records.length;i++){if(S.records[i].id===S.curId){rec=S.records[i];break}}
+  if(rec){
+    el.textContent=(S.dirty?'未保存修改 · ':'')+'编辑中：'+(rec.title||'未命名课例');
+  }else{
+    el.textContent=S.dirty?'未保存内容 · 新课例':'新课例';
+  }
+}
+function markDirty(){
+  S.dirty=true;
+  updateMode();
+}
+function saveDraft(){if(!S.curId)LS.set('draft',{jiaoan:$('jiaoan').value,biji:$('biji').value})}
 function curProvider(){
   for(var i=0;i<S.providers.length;i++){if(S.providers[i].id===S.aiId)return S.providers[i]}
   return S.providers[0];
@@ -661,6 +693,7 @@ function finishShot(k,text){
   S.shots[k]=text;
   syncShotsToRecord();
   saveRecords();
+  if(!S.curId)markDirty();
   renderShots();
   $('genMeta').textContent='已生成 · '+count(text)+' 字 · '+K[k]+' · '+curProviderName();
   toast('「'+K[k]+'」生成完成');
@@ -834,29 +867,40 @@ function saveRecord(){
     S.records.unshift(rec);
   }else{
     rec.jiaoan=jiaoan;rec.biji=biji;rec.modified=now;
+    var t=$('recTitle').value.trim();
+    if(t)rec.title=t;
   }
   rec.shots=JSON.parse(JSON.stringify(S.shots));
   S.curId=rec.id;
+  S.dirty=false;
   LS.set('curId',S.curId);
   saveRecords();
+  updateMode();
   $('recStatus').textContent='已保存：'+rec.title+'（'+rec.modified+'）';
   toast('已保存到记录库');
 }
 function newRecord(){
+  if(S.dirty&&!confirm('当前课例有未保存的修改，确定放弃并新建？'))return;
   S.curId=null;
+  S.dirty=false;
   LS.set('curId',null);
   $('jiaoan').value='';
   $('biji').value='';
   $('recTitle').value='';
   $('recStatus').textContent='';
+  localStorage.removeItem('kece_draft');
   S.shots={pingke:'',anli:'',lunwen:''};
   document.querySelectorAll('.out-pane').forEach(function(p){p.innerHTML='<div class="empty">尚未生成</div>'});
   renderShots();
   $('genMeta').textContent='尚未生成';
-  toast('已新建空白记录');
+  updateMode();
+  switchView('workspace');
+  toast('已新建空白课例');
 }
 function loadRecord(rec){
+  if(S.dirty&&!confirm('当前工作台有未保存的修改，打开「'+rec.title+'」将丢失这些修改，确定继续？'))return;
   S.curId=rec.id;
+  S.dirty=false;
   LS.set('curId',S.curId);
   $('jiaoan').value=rec.jiaoan||'';
   $('biji').value=rec.biji||'';
@@ -873,6 +917,7 @@ function loadRecord(rec){
   }else{
     $('genMeta').textContent='尚未生成';
   }
+  updateMode();
   switchView('workspace');
 }
 function renderRecords(){
@@ -915,9 +960,10 @@ function renderRecords(){
       e.stopPropagation();
       if(!confirm('删除「'+(rec.title||'未命名')+'」？'))return;
       S.records=S.records.filter(function(x){return x!==rec});
-      if(S.curId===rec.id){S.curId=null;LS.set('curId',null)}
+      if(S.curId===rec.id){S.curId=null;S.dirty=false;LS.set('curId',null)}
       saveRecords();
       renderRecords();
+      updateMode();
       toast('已删除');
     });
     div.addEventListener('click',function(){loadRecord(rec)});
@@ -1031,8 +1077,9 @@ function bindAll(){
     toast('已切换通道：'+curProviderName());
   });
   $('btnTestTop').addEventListener('click',testCurrent);
-  $('jiaoan').addEventListener('input',function(){$('jiaCount').textContent=count(this.value)+' 字';saveDraft()});
-  $('biji').addEventListener('input',function(){$('biCount').textContent=count(this.value)+' 字';saveDraft()});
+  $('jiaoan').addEventListener('input',function(){$('jiaCount').textContent=count(this.value)+' 字';saveDraft();markDirty()});
+  $('biji').addEventListener('input',function(){$('biCount').textContent=count(this.value)+' 字';saveDraft();markDirty()});
+  $('recTitle').addEventListener('input',function(){markDirty()});
   $('btnImportJiaoan').addEventListener('click',function(){$('fileJiaoan').click()});
   $('fileJiaoan').addEventListener('change',function(){
     var f=this.files[0];
@@ -1041,6 +1088,7 @@ function bindAll(){
       $('jiaoan').value=text;
       $('jiaCount').textContent=count(text)+' 字';
       saveDraft();
+      markDirty();
       toast('教案已导入：'+f.name);
     });
     this.value='';
@@ -1136,6 +1184,10 @@ bindAll();
 $('jiaCount').textContent=count($('jiaoan').value)+' 字';
 $('biCount').textContent=count($('biji').value)+' 字';
 setShot('pingke');
+updateMode();
+if(S.curId&&S.shots.pingke)openShotPane('pingke',S.shots.pingke);
+if(S.curId&&S.shots.anli)openShotPane('anli',S.shots.anli);
+if(S.curId&&S.shots.lunwen)openShotPane('lunwen',S.shots.lunwen);
 </script>
 </body>
 </html>
