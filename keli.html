@@ -382,7 +382,11 @@ function loadState(){
   }else{
     S.curId=null;
     var d=LS.get('draft',null);
-    if(d){$('jiaoan').value=d.jiaoan||'';$('biji').value=d.biji||''}
+    if(d){
+      $('jiaoan').value=d.jiaoan||'';
+      $('biji').value=d.biji||'';
+      $('recTitle').value=d.title||'';
+    }
   }
 }
 function cleanStored(list){
@@ -439,7 +443,7 @@ function markDirty(){
   S.dirty=true;
   updateMode();
 }
-function saveDraft(){if(!S.curId)LS.set('draft',{jiaoan:$('jiaoan').value,biji:$('biji').value})}
+function saveDraft(){if(!S.curId)LS.set('draft',{jiaoan:$('jiaoan').value,biji:$('biji').value,title:$('recTitle').value})}
 function curProvider(){
   for(var i=0;i<S.providers.length;i++){if(S.providers[i].id===S.aiId)return S.providers[i]}
   return S.providers[0];
@@ -1079,7 +1083,7 @@ function bindAll(){
   $('btnTestTop').addEventListener('click',testCurrent);
   $('jiaoan').addEventListener('input',function(){$('jiaCount').textContent=count(this.value)+' 字';saveDraft();markDirty()});
   $('biji').addEventListener('input',function(){$('biCount').textContent=count(this.value)+' 字';saveDraft();markDirty()});
-  $('recTitle').addEventListener('input',function(){markDirty()});
+  $('recTitle').addEventListener('input',function(){saveDraft();markDirty()});
   $('btnImportJiaoan').addEventListener('click',function(){$('fileJiaoan').click()});
   $('fileJiaoan').addEventListener('change',function(){
     var f=this.files[0];
