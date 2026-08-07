@@ -7,28 +7,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-      
-    - name: Upload files
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.REMOTE_HOST }}
-        username: ${{ secrets.REMOTE_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "./*"
-        target: /tmp/site_deploy
-        strip_components: 0
-        
-    - name: Sync & cleanup
+    - name: Sync site via git
       uses: appleboy/ssh-action@v1
       with:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          which rsync >/dev/null 2>&1 || sudo apt-get install -y rsync
-          rsync -avz --delete /tmp/site_deploy/ "${{ secrets.DEPLOY_PATH }}"/
-          rm -rf /tmp/site_deploy
+          git config --global --add safe.directory "${{ secrets.DEPLOY_PATH }}"
+          cd "${{ secrets.DEPLOY_PATH }}"
+          git fetch origin main
+          git reset --hard origin/main
+          git clean -fd
+          echo "Deploy OK: $(git log --oneline -1)"
