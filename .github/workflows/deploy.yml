@@ -12,13 +12,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v5
       
-    - name: Deploy via rsync
-      uses: appleboy/rsync-action@master
+    - name: Upload files
+      uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "./"
-        target: ${{ secrets.DEPLOY_PATH }}
-        delete: true
-        args: -avz --exclude='.git' --exclude='.firecrawl' --exclude='node_modules' --exclude='.github'
+        source: "./*"
+        target: /tmp/site_deploy
+        strip_components: 0
+        
+    - name: Sync & cleanup
+      uses: appleboy/ssh-action@v1
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          which rsync >/dev/null 2>&1 || sudo apt-get install -y rsync
+          rsync -avz --delete /tmp/site_deploy/ "${{ secrets.DEPLOY_PATH }}"/
+          rm -rf /tmp/site_deploy
