@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人物对话</title>
+    <title>智能体工作台</title>
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 React/ReactDOM/Babel -->
@@ -82,6 +82,112 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // ============ 提供商配置（最新模型与路径，2026-08） ============
+        const PROVIDERS = {
+            deepseek: {
+                label: 'DeepSeek',
+                baseUrl: 'https://api.deepseek.com',
+                models: ['deepseek-v4-pro', 'deepseek-v4-flash'],
+                note: '申请 Key：platform.deepseek.com'
+            },
+            doubao: {
+                label: '豆包 (火山方舟)',
+                baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+                models: [
+                    'doubao-seed-2-1-pro-260628',
+                    'doubao-seed-2-1-turbo-260628',
+                    'doubao-seed-2-0-pro-260215',
+                    'doubao-seed-2-0-lite-260215',
+                    'doubao-seed-2-0-mini-260215',
+                    'doubao-1.5-pro-32k-250115'
+                ],
+                note: '申请 Key：console.volcengine.com/ark（Model ID 以方舟控制台为准）'
+            },
+            qwen: {
+                label: '千问 (阿里云百炼)',
+                baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+                models: ['qwen3.8-max', 'qwen3.7-plus', 'qwen3.7-flash', 'qwen-plus'],
+                note: '申请 Key：bailian.console.aliyun.com'
+            },
+            xiaomi: {
+                label: '小米 MiMo',
+                baseUrl: 'https://api.xiaomimimo.com/v1',
+                models: ['mimo-v2.5-pro', 'mimo-v2.5'],
+                note: '申请 Key：platform.xiaomimimo.com（MiMo-V2 系列已于 2026.6.30 下线）'
+            },
+            glm: {
+                label: 'GLM (智谱)',
+                baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+                models: ['glm-5.2', 'glm-5.1', 'glm-5', 'glm-4.7'],
+                note: '申请 Key：bigmodel.cn'
+            },
+            kimi: {
+                label: 'Kimi (月之暗面)',
+                baseUrl: 'https://api.moonshot.cn/v1',
+                models: ['kimi-k3', 'kimi-k2.7-code', 'kimi-k2.6'],
+                note: '申请 Key：platform.kimi.com（kimi-k2.6 等思考模型勿设 temperature）'
+            },
+            minimax: {
+                label: 'MiniMax',
+                baseUrl: 'https://api.minimax.io/v1',
+                models: [
+                    'MiniMax-M3',
+                    'MiniMax-M2.7',
+                    'MiniMax-M2.7-highspeed',
+                    'MiniMax-M2.5',
+                    'MiniMax-M2.5-highspeed'
+                ],
+                note: '申请 Key：platform.minimax.io（国内账号请将 Base URL 改为 api.minimaxi.com）'
+            },
+            ollama: {
+                label: 'Ollama (本地)',
+                baseUrl: 'http://localhost:11434/v1',
+                models: ['qwen3:32b', 'qwen3:14b', 'qwen2.5:14b', 'deepseek-r1:32b', 'llama3.3:70b', 'gemma3:27b'],
+                note: '本地运行 ollama serve 后无需 API Key'
+            },
+            custom: {
+                label: '自定义 (OpenAI 兼容)',
+                baseUrl: '',
+                models: [],
+                note: '任意兼容 OpenAI 格式的服务，填写 Base URL 与模型名'
+            }
+        };
+
+        const DEFAULT_PROVIDERS = Object.fromEntries(
+            Object.entries(PROVIDERS).map(([k, v]) => [k, { apiKey: '', baseUrl: v.baseUrl }])
+        );
+
+        const STORAGE_KEY = 'agent_chat_state_v1';
+        const LEGACY_KEY = 'deepseek_chat_state_standalone';
+
+        function loadInitialState() {
+            // 迁移旧版"人物对话"数据
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) return JSON.parse(saved);
+                const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
+                if (legacy && Array.isArray(legacy.characters)) {
+                    return {
+                        providers: {
+                            ...DEFAULT_PROVIDERS,
+                            deepseek: { ...DEFAULT_PROVIDERS.deepseek, apiKey: legacy.apiKey || '' }
+                        },
+                        agents: legacy.characters.map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            provider: 'deepseek',
+                            model: legacy.model || 'deepseek-v4-flash',
+                            systemPrompt: c.traits || '',
+                            temperature: null
+                        })),
+                        activeAgentId: legacy.activeCharacterId,
+                        chats: legacy.chats || {}
+                    };
+                }
+            } catch (e) {}
+            return { providers: DEFAULT_PROVIDERS, agents: [], activeAgentId: null, chats: {} };
+        }
+
         // 简易图标组件封装
         const Icon = ({ name, size = 18, className = "" }) => {
             const iconRef = useRef(null);
@@ -116,82 +222,64 @@
         };
 
         function App() {
-            // 初始化状态
-            const [state, setState] = useState(() => {
-                const saved = localStorage.getItem('deepseek_chat_state_standalone');
-                return saved ? JSON.parse(saved) : {
-                    apiKey: '',
-                    model: 'deepseek-v4-flash',
-                    characters: [],
-                    activeCharacterId: null,
-                    chats: {}
-                };
-            });
-
+            const [state, setState] = useState(loadInitialState);
             const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-            const [editingCharacter, setEditingCharacter] = useState(undefined); // undefined: closed, null: new, obj: edit
-            const [notice, setNotice] = useState(null); // { message, type }
+            const [editingAgent, setEditingAgent] = useState(undefined); // undefined: closed, null: new, obj: edit
+            const [notice, setNotice] = useState(null);
 
-            const showNotice = (message, type = 'info') => {
-                setNotice({ message, type });
-            };
+            const showNotice = (message, type = 'info') => setNotice({ message, type });
 
-            // 持久化存储
             useEffect(() => {
-                localStorage.setItem('deepseek_chat_state_standalone', JSON.stringify(state));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             }, [state]);
 
-            const updateState = (updates) => {
-                setState(prev => ({ ...prev, ...updates }));
-            };
+            const updateState = (updates) => setState(prev => ({ ...prev, ...updates }));
 
-            const activeCharacter = state.characters.find(c => c.id === state.activeCharacterId) || null;
+            const activeAgent = state.agents.find(a => a.id === state.activeAgentId) || null;
 
             return (
                 <div className="flex h-screen w-full bg-gf-bg overflow-hidden relative">
-                    {/* 通知 */}
                     {notice && <Toast message={notice.message} type={notice.type} onClose={() => setNotice(null)} />}
 
-                    {/* 侧边栏叠加层 (移动端) */}
                     {isSidebarOpen && (
                         <div className="md:hidden fixed inset-0 bg-black/20 z-40 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
                     )}
 
-                    <Sidebar 
-                        state={state} 
-                        updateState={updateState} 
-                        isOpen={isSidebarOpen} 
+                    <Sidebar
+                        state={state}
+                        updateState={updateState}
+                        isOpen={isSidebarOpen}
                         onOpenSettings={() => setIsSettingsOpen(true)}
-                        onOpenCharacterEditor={() => setEditingCharacter(null)}
+                        onOpenAgentEditor={() => setEditingAgent(null)}
                         showNotice={showNotice}
                     />
 
-                    <ChatArea 
+                    <ChatArea
                         state={state}
-                        activeCharacter={activeCharacter}
+                        activeAgent={activeAgent}
                         updateState={updateState}
                         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-                        onEditCharacter={(char) => setEditingCharacter(char)}
+                        onEditAgent={(agent) => setEditingAgent(agent)}
                         isSidebarOpen={isSidebarOpen}
                         showNotice={showNotice}
                     />
 
                     {isSettingsOpen && (
-                        <SettingsModal 
-                            state={state} 
-                            updateState={updateState} 
-                            onClose={() => setIsSettingsOpen(false)} 
+                        <SettingsModal
+                            state={state}
+                            updateState={updateState}
+                            onClose={() => setIsSettingsOpen(false)}
                             showNotice={showNotice}
                         />
                     )}
 
-                    {editingCharacter !== undefined && (
-                        <CharacterModal 
-                            state={state} 
-                            updateState={updateState} 
-                            editingCharacter={editingCharacter}
-                            onClose={() => setEditingCharacter(undefined)}
+                    {editingAgent !== undefined && (
+                        <AgentModal
+                            state={state}
+                            updateState={updateState}
+                            editingAgent={editingAgent}
+                            onClose={() => setEditingAgent(undefined)}
                             showNotice={showNotice}
                         />
                     )}
@@ -199,12 +287,12 @@
             );
         }
 
-        function Sidebar({ state, updateState, isOpen, onOpenSettings, onOpenCharacterEditor, showNotice }) {
+        function Sidebar({ state, updateState, isOpen, onOpenSettings, onOpenAgentEditor, showNotice }) {
             const handleExport = () => {
                 const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = '对话备份.json';
+                a.download = '智能体备份.json';
                 a.click();
                 showNotice('备份已下载');
             };
@@ -216,6 +304,7 @@
                 reader.onload = (event) => {
                     try {
                         const parsed = JSON.parse(event.target.result);
+                        if (!parsed.agents || !parsed.providers) throw new Error('bad format');
                         updateState(parsed);
                         showNotice('数据导入成功');
                     } catch (err) {
@@ -227,37 +316,50 @@
 
             return (
                 <div className={`bg-gf-sidebar border-r border-gf-border flex flex-col h-screen shrink-0 absolute md:relative z-50 transition-all duration-300 ${
-                    isOpen 
-                    ? 'translate-x-0 w-[280px] opacity-100' 
+                    isOpen
+                    ? 'translate-x-0 w-[280px] opacity-100'
                     : '-translate-x-full w-[280px] md:w-0 md:translate-x-0 md:opacity-0 md:border-none pointer-events-none invisible md:visible'
                 }`}>
                     <div className="h-[80px] pt-3 px-5 flex items-center justify-between border-b border-gf-border shrink-0">
                         <h1 className="text-lg font-bold text-gf-text flex items-center gap-2">
-                            <Icon name="message-square" className="text-gf-accent" />
-                            <span>人物对话</span>
+                            <Icon name="sparkles" className="text-gf-accent" />
+                            <span>智能体</span>
                         </h1>
-                        <button onClick={onOpenCharacterEditor} className="p-2 hover:bg-gf-border/50 rounded-lg transition-colors">
+                        <button onClick={onOpenAgentEditor} title="新建智能体" className="p-2 hover:bg-gf-border/50 rounded-lg transition-colors">
                             <Icon name="user-plus" />
                         </button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-                        {state.characters.map(char => (
-                            <button
-                                key={char.id}
-                                onClick={() => updateState({ activeCharacterId: char.id })}
-                                className={`w-full text-left p-3 rounded-xl transition-all border ${
-                                    state.activeCharacterId === char.id 
-                                    ? 'bg-white border-gf-border shadow-sm font-bold' 
-                                    : 'border-transparent hover:bg-white/40'
-                                }`}
-                            >
-                                <div className="text-sm truncate text-gf-text">{char.name}</div>
-                                <div className="text-xs text-gf-muted truncate mt-1 opacity-70">
-                                    {char.traits ? char.traits.substring(0, 15) : '暂无设定'}
-                                </div>
-                            </button>
-                        ))}
+                        {state.agents.length === 0 && (
+                            <div className="text-xs text-gf-muted text-center py-8 leading-relaxed">
+                                还没有智能体<br/>点击右上角按钮创建一个
+                            </div>
+                        )}
+                        {state.agents.map(agent => {
+                            const meta = PROVIDERS[agent.provider];
+                            const missingKey = agent.provider !== 'ollama' && agent.provider !== 'custom' &&
+                                !state.providers[agent.provider]?.apiKey;
+                            return (
+                                <button
+                                    key={agent.id}
+                                    onClick={() => updateState({ activeAgentId: agent.id })}
+                                    className={`w-full text-left p-3 rounded-xl transition-all border ${
+                                        state.activeAgentId === agent.id
+                                        ? 'bg-white border-gf-border shadow-sm font-bold'
+                                        : 'border-transparent hover:bg-white/40'
+                                    }`}
+                                >
+                                    <div className="text-sm truncate text-gf-text">{agent.name}</div>
+                                    <div className="text-xs text-gf-muted truncate mt-1 opacity-70 flex items-center gap-1">
+                                        {meta ? meta.label : agent.provider}
+                                        <span>·</span>
+                                        {agent.model || '未设置模型'}
+                                        {missingKey && <span className="text-gf-accent">· 未配置 Key</span>}
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <div className="p-4 border-t border-gf-border space-y-2">
@@ -278,49 +380,65 @@
             );
         }
 
-        function ChatArea({ state, activeCharacter, updateState, onToggleSidebar, onEditCharacter, isSidebarOpen, showNotice }) {
+        function ChatArea({ state, activeAgent, updateState, onToggleSidebar, onEditAgent, isSidebarOpen, showNotice }) {
             const [input, setInput] = useState('');
             const [isTyping, setIsTyping] = useState(false);
             const messagesEndRef = useRef(null);
-            const messages = activeCharacter ? (state.chats[activeCharacter.id] || []) : [];
+            const messages = activeAgent ? (state.chats[activeAgent.id] || []) : [];
 
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             }, [messages, isTyping]);
 
             const handleSend = async () => {
-                if (!input.trim() || !activeCharacter || isTyping) return;
-                if (!state.apiKey) {
-                    showNotice('请先设置 DeepSeek API Key', 'error');
-                    return;
+                if (!input.trim() || !activeAgent || isTyping) return;
+
+                const prov = state.providers[activeAgent.provider];
+                if (activeAgent.provider === 'ollama') {
+                    // 无需 Key
+                } else if (activeAgent.provider === 'custom') {
+                    if (!prov?.baseUrl) return showNotice('请先在 API 设置中填写自定义服务的 Base URL', 'error');
+                    if (!activeAgent.model) return showNotice('请为该智能体设置模型名称', 'error');
+                } else {
+                    if (!prov?.apiKey) return showNotice(`请先在 API 设置中配置「${PROVIDERS[activeAgent.provider]?.label || activeAgent.provider}」的 API Key`, 'error');
+                    if (!activeAgent.model) return showNotice('请为该智能体设置模型', 'error');
                 }
 
                 const userMsg = { id: Date.now().toString(), role: 'user', content: input.trim(), timestamp: Date.now() };
                 const newMessages = [...messages, userMsg];
-                
+
                 setInput('');
-                const updatedChats = { ...state.chats, [activeCharacter.id]: newMessages };
+                const updatedChats = { ...state.chats, [activeAgent.id]: newMessages };
                 updateState({ chats: updatedChats });
                 setIsTyping(true);
 
                 try {
-                    const response = await fetch('https://api.deepseek.com/chat/completions', {
+                    const baseUrl = (prov?.baseUrl || '').replace(/\/+$/, '');
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (prov?.apiKey) headers['Authorization'] = `Bearer ${prov.apiKey}`;
+
+                    const body = {
+                        model: activeAgent.model,
+                        messages: [
+                            ...(activeAgent.systemPrompt ? [{ role: 'system', content: activeAgent.systemPrompt }] : []),
+                            ...newMessages.map(m => ({ role: m.role, content: m.content }))
+                        ],
+                        stream: true
+                    };
+                    if (activeAgent.temperature != null && activeAgent.provider !== 'kimi') {
+                        body.temperature = activeAgent.temperature;
+                    }
+
+                    const response = await fetch(`${baseUrl}/chat/completions`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${state.apiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: state.model || 'deepseek-v4-flash',
-                            messages: [
-                                { role: 'system', content: `你正在扮演角色：${activeCharacter.name}。性格设定：${activeCharacter.traits}。请完全以该角色身份回答，不要解释，不要出戏。` },
-                                ...newMessages.map(m => ({ role: m.role, content: m.content }))
-                            ],
-                            stream: true
-                        })
+                        headers,
+                        body: JSON.stringify(body)
                     });
 
-                    if (!response.ok) throw new Error('API 请求失败');
+                    if (!response.ok) {
+                        const errText = await response.text().catch(() => '');
+                        throw new Error(`HTTP ${response.status}${errText ? '：' + errText.slice(0, 200) : ''}`);
+                    }
 
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
@@ -342,7 +460,7 @@
                                         updateState({
                                             chats: {
                                                 ...updatedChats,
-                                                [activeCharacter.id]: [
+                                                [activeAgent.id]: [
                                                     ...newMessages,
                                                     { id: aiMsgId, role: 'assistant', content: assistantContent, timestamp: Date.now() }
                                                 ]
@@ -354,44 +472,57 @@
                         }
                     }
                 } catch (err) {
-                    showNotice('对话失败，请检查 API Key', 'error');
+                    showNotice('请求失败：' + (err.message || '请检查网络与配置'), 'error');
                 } finally {
                     setIsTyping(false);
                 }
             };
 
-            if (!activeCharacter) {
+            if (!activeAgent) {
                 return (
                     <div className="flex-1 flex flex-col items-center justify-center bg-gf-bg text-gf-muted p-6">
                         <button onClick={onToggleSidebar} className="absolute top-8 left-8 p-3 bg-white border border-gf-border shadow-sm hover:bg-gf-border/20 rounded-full z-40 transition-all">
                            <Icon name={isSidebarOpen ? "panel-left-close" : "panel-left-open"} />
                         </button>
-                        <p>请在左侧选择或创建一个人物开始对话</p>
+                        <p>请在左侧选择或创建一个智能体开始对话</p>
                     </div>
                 );
             }
 
+            const meta = PROVIDERS[activeAgent.provider];
+
             return (
                 <div className="flex-1 flex flex-col h-screen bg-white relative">
                     <header className="h-[80px] pt-3 px-6 border-b border-gf-border flex items-center justify-between shrink-0 bg-gf-bg z-30">
-                        <div className="flex items-center gap-3">
-                            <button onClick={onToggleSidebar} className="p-2.5 text-gf-muted hover:text-gf-text rounded-lg hover:bg-gf-border/30 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button onClick={onToggleSidebar} className="p-2.5 text-gf-muted hover:text-gf-text rounded-lg hover:bg-gf-border/30 transition-colors shrink-0">
                                 <Icon name={isSidebarOpen ? "panel-left-close" : "panel-left-open"} />
                             </button>
-                            <h2 className="text-xl font-serif font-bold text-gf-text truncate ml-1">与「{activeCharacter.name}」对话</h2>
+                            <div className="min-w-0">
+                                <h2 className="text-xl font-serif font-bold text-gf-text truncate ml-1">{activeAgent.name}</h2>
+                                <div className="text-xs text-gf-muted truncate ml-1 mt-0.5 flex items-center gap-1.5">
+                                    <span className="px-1.5 py-0.5 bg-gf-border/50 rounded">{meta ? meta.label : activeAgent.provider}</span>
+                                    <span className="truncate">{activeAgent.model || '未设置模型'}</span>
+                                </div>
+                            </div>
                         </div>
-                        <button onClick={() => onEditCharacter(activeCharacter)} className="px-3 py-1.5 border border-gf-border rounded-lg text-sm hover:bg-white flex items-center gap-1.5 shadow-sm">
-                            <Icon name="edit" size={14} /> 人物设定
+                        <button onClick={() => onEditAgent(activeAgent)} className="px-3 py-1.5 border border-gf-border rounded-lg text-sm hover:bg-white flex items-center gap-1.5 shadow-sm shrink-0">
+                            <Icon name="edit" size={14} /> 智能体设定
                         </button>
                     </header>
 
                     <main className="flex-1 overflow-y-auto bg-gf-bg px-4 md:px-12 py-8">
                         <div className="max-w-3xl mx-auto space-y-6">
+                            {activeAgent.systemPrompt && (
+                                <div className="text-xs text-gf-muted bg-gf-sidebar border border-gf-border rounded-xl px-4 py-2.5 leading-relaxed">
+                                    <span className="font-bold">固定提示词：</span>{activeAgent.systemPrompt}
+                                </div>
+                            )}
                             {messages.map(msg => (
                                 <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`px-5 py-3 max-w-[85%] text-[15px] leading-relaxed shadow-sm rounded-2xl ${
-                                        msg.role === 'user' 
-                                        ? 'bg-gf-bubble-user text-white rounded-br-sm' 
+                                        msg.role === 'user'
+                                        ? 'bg-gf-bubble-user text-white rounded-br-sm'
                                         : 'bg-white border border-gf-border text-gf-text rounded-bl-sm'
                                     }`}>
                                         {msg.content}
@@ -411,7 +542,7 @@
 
                     <footer className="p-4 border-t border-gf-border bg-gf-sidebar">
                         <div className="max-w-3xl mx-auto relative flex items-end gap-2 bg-white border border-gf-border rounded-2xl p-2 shadow-sm focus-within:ring-1 focus-within:ring-gf-accent/30 transition-all">
-                            <textarea 
+                            <textarea
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => {
@@ -433,85 +564,222 @@
         }
 
         function SettingsModal({ state, updateState, onClose, showNotice }) {
-            const [key, setKey] = useState(state.apiKey);
+            const [providers, setProviders] = useState(() => JSON.parse(JSON.stringify(state.providers)));
+
+            const updateProv = (key, field, value) => {
+                setProviders(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+            };
+
             return (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-                    <div className="bg-gf-bg rounded-2xl w-full max-w-md p-6 border border-gf-border shadow-2xl">
-                        <h3 className="text-xl font-bold mb-4">DeepSeek API 设置</h3>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">API Key</label>
-                                <input 
-                                    type="password" 
-                                    value={key} 
-                                    onChange={(e) => setKey(e.target.value)}
-                                    placeholder="sk-..."
-                                    className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent"
-                                />
-                                <p className="text-[10px] text-gf-muted mt-2">密钥仅在您的浏览器本地存储，不会上传到任何服务器。</p>
-                            </div>
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button onClick={onClose} className="px-4 py-2 text-gf-text hover:bg-gf-border/40 rounded-lg">取消</button>
-                                <button onClick={() => { updateState({ apiKey: key }); showNotice('API Key 已保存'); onClose(); }} className="px-6 py-2 bg-gf-accent text-white rounded-lg">保存设置</button>
-                            </div>
+                    <div className="bg-gf-bg rounded-2xl w-full max-w-2xl overflow-hidden border border-gf-border shadow-2xl flex flex-col max-h-[90vh]">
+                        <header className="px-6 py-4 border-b border-gf-border flex justify-between items-center shrink-0">
+                            <h3 className="text-xl font-bold">API 设置</h3>
+                            <button onClick={onClose} className="p-2 hover:bg-gf-border/40 rounded-full"><Icon name="x" /></button>
+                        </header>
+                        <div className="p-6 space-y-6 overflow-y-auto">
+                            <p className="text-xs text-gf-muted -mt-2">
+                                API Key 仅保存在浏览器本地。每个智能体在前端选择提供商与模型，此处统一配置各服务的密钥与地址。
+                            </p>
+                            {Object.entries(PROVIDERS).map(([key, meta]) => {
+                                const p = providers[key] || { apiKey: '', baseUrl: meta.baseUrl };
+                                const isCustom = key === 'custom' || key === 'ollama';
+                                return (
+                                    <div key={key} className="border border-gf-border rounded-xl p-4 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="font-bold text-sm flex items-center gap-2">
+                                                <Icon name={key === 'custom' ? 'wrench' : 'key'} size={15} className="text-gf-accent" />
+                                                {meta.label}
+                                            </h4>
+                                            {isCustom && (
+                                                <span className="text-[10px] px-2 py-0.5 bg-gf-border/40 rounded-full text-gf-muted">可编辑地址</span>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs text-gf-muted mb-1">API Key {key === 'ollama' ? '(可留空)' : ''}</label>
+                                                <input
+                                                    type="password"
+                                                    value={p.apiKey || ''}
+                                                    onChange={e => updateProv(key, 'apiKey', e.target.value)}
+                                                    placeholder={key === 'ollama' ? '无需填写' : 'sk-...'}
+                                                    className="w-full px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-gf-muted mb-1">Base URL {isCustom ? '' : '(可修改)'}</label>
+                                                <input
+                                                    type="text"
+                                                    value={p.baseUrl || ''}
+                                                    onChange={e => updateProv(key, 'baseUrl', e.target.value)}
+                                                    placeholder="https://..."
+                                                    className="w-full px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent"
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-gf-muted">{meta.note}</p>
+                                    </div>
+                                );
+                            })}
                         </div>
+                        <footer className="px-6 py-4 border-t border-gf-border flex justify-end gap-3 shrink-0">
+                            <button onClick={onClose} className="px-4 py-2 text-gf-text hover:bg-gf-border/40 rounded-lg">取消</button>
+                            <button
+                                onClick={() => {
+                                    updateState({ providers });
+                                    showNotice('API 设置已保存');
+                                    onClose();
+                                }}
+                                className="px-6 py-2 bg-gf-accent text-white rounded-lg"
+                            >
+                                保存设置
+                            </button>
+                        </footer>
                     </div>
                 </div>
             );
         }
 
-        function CharacterModal({ state, updateState, editingCharacter, onClose, showNotice }) {
-            const [name, setName] = useState(editingCharacter?.name || '');
-            const [traits, setTraits] = useState(editingCharacter?.traits || '');
+        function AgentModal({ state, updateState, editingAgent, onClose, showNotice }) {
+            const [name, setName] = useState(editingAgent?.name || '');
+            const [provider, setProvider] = useState(editingAgent?.provider || 'deepseek');
+            const [model, setModel] = useState(editingAgent?.model || '');
+            const [systemPrompt, setSystemPrompt] = useState(editingAgent?.systemPrompt || '');
+            const [temperature, setTemperature] = useState(editingAgent?.temperature != null ? String(editingAgent.temperature) : '');
             const [showConfirm, setShowConfirm] = useState(false);
 
+            const meta = PROVIDERS[provider];
+            const isFreeModel = provider === 'ollama' || provider === 'custom';
+
             const handleSave = () => {
-                if (!name.trim()) return showNotice('请输入角色名称', 'error');
-                if (editingCharacter) {
-                    const newList = state.characters.map(c => c.id === editingCharacter.id ? { ...c, name, traits } : c);
-                    updateState({ characters: newList });
-                    showNotice('角色资料已更新');
+                if (!name.trim()) return showNotice('请输入智能体名称', 'error');
+                if (!isFreeModel && !meta.models.includes(model)) return showNotice('请选择模型', 'error');
+                if (isFreeModel && !model.trim()) return showNotice('请输入模型名称', 'error');
+
+                const data = {
+                    name: name.trim(),
+                    provider,
+                    model: model.trim(),
+                    systemPrompt,
+                    temperature: temperature === '' ? null : parseFloat(temperature)
+                };
+
+                if (editingAgent) {
+                    const newList = state.agents.map(a => a.id === editingAgent.id ? { ...a, ...data } : a);
+                    updateState({ agents: newList });
+                    showNotice('智能体已更新');
                 } else {
                     const id = Date.now().toString();
-                    updateState({ 
-                        characters: [...state.characters, { id, name, traits }],
-                        activeCharacterId: id
+                    updateState({
+                        agents: [...state.agents, { id, ...data }],
+                        activeAgentId: id
                     });
-                    showNotice('新角色已创建');
+                    showNotice('新智能体已创建');
                 }
                 onClose();
             };
 
             const handleDelete = () => {
-                const newList = state.characters.filter(c => c.id !== editingCharacter.id);
-                updateState({ 
-                    characters: newList,
-                    activeCharacterId: state.activeCharacterId === editingCharacter.id ? (newList[0]?.id || null) : state.activeCharacterId
+                const newList = state.agents.filter(a => a.id !== editingAgent.id);
+                updateState({
+                    agents: newList,
+                    activeAgentId: state.activeAgentId === editingAgent.id ? (newList[0]?.id || null) : state.activeAgentId
                 });
-                showNotice('角色已删除');
+                showNotice('智能体已删除');
                 onClose();
             };
 
             return (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
                     <div className="bg-gf-bg rounded-2xl w-full max-w-lg overflow-hidden border border-gf-border shadow-2xl flex flex-col max-h-[90vh]">
-                        <header className="px-6 py-4 border-b border-gf-border flex justify-between items-center">
-                            <h2 className="text-xl font-bold">{editingCharacter ? '修改角色' : '创建新角色'}</h2>
+                        <header className="px-6 py-4 border-b border-gf-border flex justify-between items-center shrink-0">
+                            <h2 className="text-xl font-bold">{editingAgent ? '修改智能体' : '创建智能体'}</h2>
                             <button onClick={onClose} className="p-2 hover:bg-gf-border/40 rounded-full"><Icon name="x" /></button>
                         </header>
                         <div className="p-6 space-y-5 overflow-y-auto">
                             <div>
-                                <label className="block font-medium mb-1 text-sm">角色名称</label>
-                                <input value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent" placeholder="给人物起个名字..." />
+                                <label className="block font-medium mb-1 text-sm">智能体名称</label>
+                                <input
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent"
+                                    placeholder="给智能体起个名字，如：代码审查助手..."
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block font-medium mb-1 text-sm">接入 API</label>
+                                    <select
+                                        value={provider}
+                                        onChange={e => { setProvider(e.target.value); setModel(''); }}
+                                        className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent bg-white"
+                                    >
+                                        {Object.entries(PROVIDERS).map(([k, v]) => (
+                                            <option key={k} value={k}>{v.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block font-medium mb-1 text-sm">模型</label>
+                                    {isFreeModel ? (
+                                        <>
+                                            <input
+                                                value={model}
+                                                onChange={e => setModel(e.target.value)}
+                                                list={provider === 'ollama' ? 'ollama-models' : undefined}
+                                                className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent"
+                                                placeholder={provider === 'ollama' ? '如 qwen3:32b' : '模型名称（需与 Base URL 服务匹配）'}
+                                            />
+                                            {provider === 'ollama' && (
+                                                <datalist id="ollama-models">
+                                                    {PROVIDERS.ollama.models.map(m => <option key={m} value={m} />)}
+                                                </datalist>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <select
+                                            value={model}
+                                            onChange={e => setModel(e.target.value)}
+                                            className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent bg-white"
+                                        >
+                                            <option value="">请选择模型...</option>
+                                            {meta.models.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    )}
+                                </div>
                             </div>
                             <div>
-                                <label className="block font-medium mb-1 text-sm">核心特质与背景设定</label>
-                                <textarea value={traits} onChange={e => setTraits(e.target.value)} className="w-full h-48 px-4 py-2 border border-gf-border rounded-xl resize-none outline-none focus:border-gf-accent" placeholder="例如：性格沉稳、知识博深、说话喜欢引经据典..." />
+                                <label className="block font-medium mb-1 text-sm">
+                                    固定提示词（系统指令）
+                                    <span className="text-xs text-gf-muted font-normal ml-2">每次对话都会附加给模型</span>
+                                </label>
+                                <textarea
+                                    value={systemPrompt}
+                                    onChange={e => setSystemPrompt(e.target.value)}
+                                    className="w-full h-40 px-4 py-2 border border-gf-border rounded-xl resize-none outline-none focus:border-gf-accent"
+                                    placeholder="例如：你是一位资深全栈工程师，擅长代码审查与性能优化。回答要求简洁、给出具体代码示例。"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-medium mb-1 text-sm">
+                                    温度 (Temperature)
+                                    <span className="text-xs text-gf-muted font-normal ml-2">留空使用 API 默认值（Kimi 思考模型不支持设置）</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="2"
+                                    step="0.1"
+                                    value={temperature}
+                                    onChange={e => setTemperature(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent"
+                                    placeholder="0.7"
+                                />
                             </div>
                         </div>
-                        <footer className="px-6 py-4 border-t border-gf-border bg-white/30 flex justify-between items-center">
-                            {editingCharacter ? (
-                                <button onClick={() => setShowConfirm(true)} className="text-gf-accent hover:underline text-xs">删除该角色</button>
+                        <footer className="px-6 py-4 border-t border-gf-border bg-white/30 flex justify-between items-center shrink-0">
+                            {editingAgent ? (
+                                <button onClick={() => setShowConfirm(true)} className="text-gf-accent hover:underline text-xs">删除该智能体</button>
                             ) : <div></div>}
                             <div className="flex gap-2">
                                 <button onClick={onClose} className="px-4 py-2 text-sm">取消</button>
@@ -523,7 +791,7 @@
                                 <div className="w-16 h-16 bg-gf-accent/10 text-gf-accent rounded-full flex items-center justify-center mb-4">
                                     <Icon name="trash-2" size={32} />
                                 </div>
-                                <h3 className="text-lg font-bold mb-2">确认删除此角色？</h3>
+                                <h3 className="text-lg font-bold mb-2">确认删除此智能体？</h3>
                                 <p className="text-sm text-gf-muted mb-8 leading-relaxed px-10">此操作不可恢复，「{name}」的所有对话记录也将被永久删除。</p>
                                 <div className="flex gap-4">
                                     <button onClick={() => setShowConfirm(false)} className="px-8 py-2 border border-gf-border rounded-lg hover:bg-white transition-colors">我不删了</button>
