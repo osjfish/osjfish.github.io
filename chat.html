@@ -4,1082 +4,1345 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>智能体工作台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root {
-            --gf-bg: #fdfaf5;
-            --gf-sidebar: #f5efe2;
-            --gf-border: #e8ded0;
-            --gf-text: #1a1614;
-            --gf-muted: #6b6359;
-            --gf-accent: #c04851;
-            --gf-accent-hover: #9c353d;
-            --gf-bubble-user: #c04851;
-            --gf-bubble-ai: #ffffff;
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{
+            margin:0;background:#0b0e14;color:#e7ecf3;overflow:hidden;
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+            -webkit-font-smoothing:antialiased;
         }
+        :root{
+            --bg:#0b0e14;--panel:#131722;--panel2:#1a2030;--hover:#1f2738;
+            --border:#242c3d;--border2:#31405c;
+            --text:#e7ecf3;--muted:#8fa0b5;
+            --accent:#22d3ee;--accent2:#6366f1;
+            --grad:linear-gradient(135deg,#22d3ee,#6366f1);
+            --danger:#f87171;--radius:14px;
+        }
+        button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
+        input,textarea,select{font:inherit;color:var(--text);background:#0d1220;border:1px solid var(--border);border-radius:10px;padding:9px 12px;outline:none;width:100%}
+        input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+        textarea{resize:none}
+        ::placeholder{color:#5b6b82}
+        ::-webkit-scrollbar{width:8px;height:8px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:#2c3648;border-radius:8px}
+        ::-webkit-scrollbar-thumb:hover{background:#3a4a64}
+        .app{display:flex;height:100vh;width:100vw;background:var(--bg)}
+        .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:40}
 
-        body {
-            font-family: -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-            background-color: var(--gf-bg);
-            color: var(--gf-text);
-            margin: 0;
-            overflow: hidden;
-        }
+        .icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px;border-radius:10px;color:var(--muted);transition:background .15s,color .15s}
+        .icon-btn:hover{background:var(--hover);color:var(--text)}
+        .icon-btn.active{background:var(--hover);color:var(--accent)}
+        .icon-btn.on{background:linear-gradient(135deg,rgba(34,211,238,.2),rgba(99,102,241,.2));color:var(--accent)}
 
-        .font-serif {
-            font-family: Georgia, "Songti SC", "SimSun", serif;
-        }
+        .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;color:var(--muted);border:1px solid var(--border);transition:all .15s}
+        .btn:hover{color:var(--text);border-color:var(--border2);background:var(--hover)}
+        .btn-primary{background:var(--grad);color:#fff;border:none;font-weight:600}
+        .btn-primary:hover{filter:brightness(1.15);color:#fff}
+        .btn-primary:disabled{opacity:.4;cursor:not-allowed;filter:none}
+        .btn-danger-text{color:var(--danger)}
 
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        .side{width:264px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .25s ease;visibility:hidden}
+        .side.open{transform:translateX(0);visibility:visible}
+        .side-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+        .side-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;letter-spacing:.3px}
+        .side-title .grad-dot{width:9px;height:9px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(34,211,238,.8)}
+        .side-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+        .agent-item{width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid transparent;transition:all .15s;cursor:pointer}
+        .agent-item:hover{background:var(--hover)}
+        .agent-item.active{background:var(--panel2);border-color:var(--border2)}
+        .agent-item .name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .agent-item .meta{font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .agent-item .meta .warn{color:var(--danger)}
+        .side-foot{padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+        .side-foot .row{display:flex;gap:8px}
+        .side-foot .row .btn{flex:1}
+        .empty-hint{font-size:12px;color:var(--muted);text-align:center;padding:36px 12px;line-height:1.9}
+
+        .main{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh;background:var(--bg)}
+        .chat-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0}
+        .chat-head .left{display:flex;align-items:center;gap:10px;min-width:0}
+        .chat-head .titles{min-width:0}
+        .chat-head .titles h2{margin:0;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .chat-head .titles .sub{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden}
+        .pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10.5px;background:rgba(34,211,238,.12);color:#7dd3fc;border:1px solid rgba(34,211,238,.25);white-space:nowrap}
+        .chat-head .right{display:flex;align-items:center;gap:4px;flex-shrink:0}
+        .chat-head .right .btn .lbl{display:none}
+        .chat-body{flex:1;overflow-y:auto;padding:20px 14px 30px}
+        .msgs{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+        .banner{font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.7}
+        .banner b{color:var(--accent)}
+        .msg-row{display:flex;width:100%;scroll-margin-top:90px}
+        .msg-row.user{justify-content:flex-end}
+        .msg-row.ai{justify-content:flex-start}
+        .msg-row .ck{display:flex;align-items:center;padding:0 6px;flex-shrink:0}
+        .msg-row.user .ck{order:-1}
+        .msg-row .ck input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+        .bubble{position:relative;padding:11px 14px;border-radius:16px;font-size:14px;line-height:1.75;max-width:86%;word-break:break-word;white-space:pre-wrap}
+        .msg-row.user .bubble{background:var(--grad);color:#fff;border-bottom-right-radius:5px}
+        .msg-row.ai .bubble{background:var(--panel);border:1px solid var(--border);border-bottom-left-radius:5px}
+        .copy-btn{position:absolute;top:-11px;right:10px;opacity:0;transition:opacity .15s;padding:5px 7px;border-radius:8px;background:var(--panel2);border:1px solid var(--border2);color:var(--muted)}
+        .msg-row.ai:hover .copy-btn{opacity:1}
+        .copy-btn:hover{color:var(--accent)}
+        .thinking{margin-bottom:10px;font-size:12px;background:rgba(13,18,32,.6);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+        .thinking summary{cursor:pointer;padding:8px 12px;color:var(--muted);display:flex;align-items:center;gap:7px;user-select:none;list-style:none}
+        .thinking summary::-webkit-details-marker{display:none}
+        .thinking summary .t{color:var(--accent)}
+        .thinking .body{margin:0 10px 10px;padding:10px;border-top:1px solid var(--border);color:var(--muted);max-height:260px;overflow-y:auto;white-space:pre-wrap;line-height:1.7}
+        .typing{color:var(--muted);font-size:13px;font-style:italic;padding:10px 14px;background:var(--panel);border:1px solid var(--border);border-radius:16px;border-bottom-left-radius:5px;display:inline-block}
+
+        .select-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--panel);border-top:1px solid var(--border);flex-shrink:0}
+        .select-bar .count{font-size:13px;color:var(--muted)}
+        .select-bar .acts{display:flex;gap:8px}
+        .select-bar .acts .btn{padding:7px 12px}
+
+        .input-bar{padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--panel);flex-shrink:0}
+        .input-wrap{max-width:820px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;background:#0d1220;border:1px solid var(--border);border-radius:16px;padding:8px;transition:border-color .15s,box-shadow .15s}
+        .input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,211,238,.12)}
+        .input-wrap textarea{flex:1;border:none;background:transparent;padding:6px;max-height:160px;min-height:42px;font-size:14px;line-height:1.6}
+        .input-wrap textarea:focus{border:none}
+        .send-btn{width:40px;height:40px;flex-shrink:0;border-radius:12px;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;transition:filter .15s}
+        .send-btn:hover{filter:brightness(1.15)}
+        .send-btn:disabled{opacity:.35;cursor:not-allowed;filter:none}
+
+        .toc{width:240px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:fixed;right:0;top:0;z-index:50;transform:translateX(100%);transition:transform .25s ease;visibility:hidden}
+        .toc.open{transform:translateX(0);visibility:visible}
+        .toc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+        .toc-head h3{margin:0;font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+        .toc-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:4px}
+        .toc-item{width:100%;text-align:left;padding:9px 10px;border-radius:10px;cursor:pointer;transition:background .12s;border:1px solid transparent}
+        .toc-item:hover{background:var(--hover);border-color:var(--border)}
+        .toc-item .t1{font-size:10.5px;color:var(--muted);margin-bottom:3px}
+        .toc-item .t2{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+        .modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(4,7,12,.6);backdrop-filter:blur(3px)}
+        .modal-card{width:100%;max-width:640px;max-height:92vh;background:var(--panel);border:1px solid var(--border2);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.55);display:flex;flex-direction:column;overflow:hidden;animation:pop .18s ease}
+        @keyframes pop{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+        .modal-card.sm{max-width:520px}
+        .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+        .modal-head h3{margin:0;font-size:16px;font-weight:700}
+        .modal-body{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+        .modal-foot{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);gap:10px}
+        .modal-foot .acts{display:flex;gap:10px;margin-left:auto}
+        .field .fl{display:flex;align-items:baseline;gap:6px;margin-bottom:7px;font-size:13px;font-weight:600}
+        .field .fl .hint{font-size:11px;color:var(--muted);font-weight:400}
+        .grid2{display:grid;grid-template-columns:1fr;gap:14px}
+        .provider-card{border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--panel2);display:flex;flex-direction:column;gap:12px}
+        .provider-card .ph{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+        .provider-card .ph .note{margin-left:auto;font-size:10px;font-weight:400;color:var(--muted)}
+        .model-row{display:flex;flex-direction:column;gap:6px;background:#0d1220;border:1px solid var(--border);border-radius:10px;padding:8px;position:relative}
+        .model-row .mrow{display:flex;gap:6px;align-items:center}
+        .model-row .mrow input{flex:1;min-width:0}
+        .model-row .mrow .icon-btn{flex-shrink:0;padding:6px}
+        .model-row .adv{margin-top:4px}
+        .model-row .adv summary{font-size:10.5px;color:var(--muted);cursor:pointer;user-select:none}
+        .add-model-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:1px dashed var(--border2);color:var(--muted);font-size:12px;transition:all .15s}
+        .add-model-btn:hover{color:var(--accent);border-color:var(--accent)}
+        .hint-note{font-size:10.5px;color:var(--muted);line-height:1.7}
+        .hint-top{font-size:12px;color:var(--muted);line-height:1.8}
+
+        .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:300;display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;font-size:13px;color:#fff;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:drop .2s ease;max-width:88vw}
+        .toast.err{background:rgba(248,113,113,.95)}
+        .toast.ok{background:rgba(20,26,40,.95);border:1px solid var(--border2)}
+        .toast .tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        @keyframes drop{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%)}}
+        .empty-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:14px}
+        .empty-main .menu-btn{position:absolute;top:16px;left:16px;padding:10px;background:var(--panel);border:1px solid var(--border);border-radius:999px}
+        .empty-main p{font-size:13px;margin:0}
+        .confirm-box{background:var(--panel);border:1px solid var(--border2);border-radius:18px;max-width:380px;width:100%;padding:26px 24px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.55);animation:pop .18s ease}
+        .confirm-box .ic{width:52px;height:52px;margin:0 auto 14px;border-radius:50%;background:rgba(248,113,113,.12);color:var(--danger);display:flex;align-items:center;justify-content:center}
+        .confirm-box h4{margin:0 0 8px;font-size:16px}
+        .confirm-box p{font-size:12.5px;color:var(--muted);line-height:1.8;margin:0 0 20px}
+        .confirm-box .acts{display:flex;justify-content:center;gap:10px}
+
+        @media (min-width:768px){
+            .side{position:static;transform:none;visibility:visible}
+            .chat-head .right .btn .lbl{display:inline}
+            .msgs{padding:0 8px}
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        @media (min-width:1280px){
+            .toc{position:static;transform:none;visibility:visible}
+            .toc .toc-close{display:none}
         }
-        ::-webkit-scrollbar-thumb {
-            background: #c5c1b1;
-            border-radius: 10px;
+        @media (max-width:767px){
+            .grid2{grid-template-columns:1fr}
+            .bubble{max-width:92%}
+            .modal{padding:8px}
+            .modal-card{max-height:96vh}
+            .modal-head{padding:13px 16px}
+            .modal-body{padding:14px 16px}
+            .modal-foot{padding:12px 16px}
+            .chat-body{padding:16px 10px 24px}
         }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        gf: {
-                            bg: '#fdfaf5',
-                            sidebar: '#f5efe2',
-                            border: '#e8ded0',
-                            text: '#1a1614',
-                            muted: '#6b6359',
-                            accent: '#c04851',
-                            'accent-hover': '#9c353d',
-                            'bubble-user': '#c04851',
-                            'bubble-ai': '#ffffff',
-                            'red': '#c04851',
-                            'red-hover': '#9c353d',
-                            'red-bg': '#fcefee',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 <body>
     <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-
-        // ============ 提供商配置（路径与说明，2026-08） ============
-        // models 不在此处预置（DeepSeek 除外），由用户在 API 设置中自行填写
-        const PROVIDERS = {
-            deepseek: {
-                label: 'DeepSeek',
-                baseUrl: 'https://api.deepseek.com',
-                defaultModels: ['deepseek-v4-pro', 'deepseek-v4-flash'],
-                note: '申请 Key：platform.deepseek.com'
-            },
-            doubao: {
-                label: '豆包 (火山方舟)',
-                baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-                defaultModels: [],
-                note: '模型栏填写「推理接入点 ID（ep-xxxx）」，或在方舟开通的模型 ID（如 doubao-seed-2-1-pro-260628）。Key 在 console.volcengine.com/ark 申请'
-            },
-            qwen: {
-                label: '千问 (阿里云百炼)',
-                baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-                defaultModels: [],
-                note: '模型栏填写百炼模型名（如 qwen3.8-max）。Key 在 bailian.console.aliyun.com 申请'
-            },
-            xiaomi: {
-                label: '小米 MiMo',
-                baseUrl: 'https://api.xiaomimimo.com/v1',
-                defaultModels: [],
-                note: '模型栏填写模型 ID（如 mimo-v2.5-pro，V2 系列已下线）。Key 在 platform.xiaomimimo.com 申请'
-            },
-            glm: {
-                label: 'GLM (智谱)',
-                baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-                defaultModels: [],
-                note: '模型栏填写模型名（如 glm-5.2）。Key 在 bigmodel.cn 申请'
-            },
-            kimi: {
-                label: 'Kimi (月之暗面)',
-                baseUrl: 'https://api.moonshot.cn/v1',
-                defaultModels: [],
-                note: '模型栏填写模型名（如 kimi-k3）。Key 在 platform.kimi.com 申请'
-            },
-            minimax: {
-                label: 'MiniMax',
-                baseUrl: 'https://api.minimax.io/v1',
-                defaultModels: [],
-                note: '模型栏填写模型名（如 MiniMax-M3）。国内账号请将 Base URL 改为 api.minimaxi.com'
-            },
-            ollama: {
-                label: 'Ollama (本地)',
-                baseUrl: 'http://localhost:11434/v1',
-                defaultModels: [],
-                note: '模型栏填写本地模型标签（如 qwen3:32b），本地运行 ollama serve 后无需 API Key'
-            },
-            custom: {
-                label: '自定义 (OpenAI 兼容)',
-                baseUrl: '',
-                defaultModels: [],
-                note: '任意兼容 OpenAI 格式的服务，填写 Base URL 与模型名'
-            }
-        };
-
-        const DEFAULT_PROVIDERS = {};
-        for (const [k, v] of Object.entries(PROVIDERS)) {
-            DEFAULT_PROVIDERS[k] = {
-                apiKey: '',
-                baseUrl: v.baseUrl,
-                models: (v.defaultModels || []).map(name => ({ name, params: '' }))
-            };
-        }
-
-        const STORAGE_KEY = 'agent_chat_state_v2';
-        const OLD_KEY = 'agent_chat_state_v1';
-        const LEGACY_KEY = 'deepseek_chat_state_standalone';
-
-        function normalizeModels(arr, fallback) {
-            if (!Array.isArray(arr) || !arr.length) {
-                return (fallback || []).map(name => ({ name, params: '' }));
-            }
-            return arr.map(m => {
-                if (typeof m === 'string') return { name: m, params: '' };
-                return { name: (m && m.name) || '', params: (m && m.params) || '' };
-            }).filter(m => m.name);
-        }
-
-        function normalizeState(s) {
-            const providers = {};
-            for (const k of Object.keys(PROVIDERS)) {
-                const p = (s && s.providers && s.providers[k]) || {};
-                providers[k] = {
-                    apiKey: p.apiKey || '',
-                    baseUrl: p.baseUrl || PROVIDERS[k].baseUrl,
-                    models: normalizeModels(p.models, PROVIDERS[k].defaultModels)
-                };
-            }
-            return {
-                providers,
-                agents: Array.isArray(s && s.agents) ? s.agents : [],
-                activeAgentId: (s && s.activeAgentId) || null,
-                chats: (s && s.chats) || {}
-            };
-        }
-
-        function loadInitialState() {
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script>
+const {
+  useState,
+  useEffect,
+  useRef
+} = React;
+const PROVIDERS = {
+  deepseek: {
+    label: 'DeepSeek',
+    baseUrl: 'https://api.deepseek.com',
+    defaultModels: [{
+      label: 'flash',
+      id: 'deepseek-v4-flash',
+      params: ''
+    }, {
+      label: 'pro',
+      id: 'deepseek-v4-pro',
+      params: ''
+    }],
+    note: '申请 Key：platform.deepseek.com'
+  },
+  doubao: {
+    label: '豆包 (火山方舟)',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    defaultModels: [],
+    note: '模型 ID 填「推理接入点 ID（ep-xxxx）」或开通的模型 ID（如 doubao-seed-2-1-pro-260628）。Key 在 console.volcengine.com/ark 申请'
+  },
+  qwen: {
+    label: '千问 (阿里云百炼)',
+    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    defaultModels: [],
+    note: '模型 ID 填百炼模型名（如 qwen3.8-max）。Key 在 bailian.console.aliyun.com 申请'
+  },
+  xiaomi: {
+    label: '小米 MiMo',
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    defaultModels: [],
+    note: '模型 ID 填 mimo-v2.5-pro 等（V2 系列已下线）。Key 在 platform.xiaomimimo.com 申请'
+  },
+  glm: {
+    label: 'GLM (智谱)',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    defaultModels: [],
+    note: '模型 ID 填 glm-5.2 等。Key 在 bigmodel.cn 申请'
+  },
+  kimi: {
+    label: 'Kimi (月之暗面)',
+    baseUrl: 'https://api.moonshot.cn/v1',
+    defaultModels: [],
+    note: '模型 ID 填 kimi-k3 等。Key 在 platform.kimi.com 申请'
+  },
+  minimax: {
+    label: 'MiniMax',
+    baseUrl: 'https://api.minimax.io/v1',
+    defaultModels: [],
+    note: '模型 ID 填 MiniMax-M3 等。国内账号请将 Base URL 改为 api.minimaxi.com'
+  },
+  ollama: {
+    label: 'Ollama (本地)',
+    baseUrl: 'http://localhost:11434/v1',
+    defaultModels: [],
+    note: '模型 ID 填本地模型标签（如 qwen3:32b），本地运行 ollama serve 后无需 API Key'
+  },
+  custom: {
+    label: '自定义 (OpenAI 兼容)',
+    baseUrl: '',
+    defaultModels: [],
+    note: '任意兼容 OpenAI 格式的服务，填写 Base URL 与模型 ID'
+  }
+};
+const DEFAULT_PROVIDERS = {};
+for (const [k, v] of Object.entries(PROVIDERS)) {
+  DEFAULT_PROVIDERS[k] = {
+    apiKey: '',
+    baseUrl: v.baseUrl,
+    models: (v.defaultModels || []).map(m => ({
+      ...m
+    }))
+  };
+}
+const STORAGE_KEY = 'agent_chat_state_v2';
+const OLD_KEY = 'agent_chat_state_v1';
+const LEGACY_KEY = 'deepseek_chat_state_standalone';
+function normalizeModels(arr, fallback) {
+  const norm = m => {
+    if (typeof m === 'string') return {
+      label: m,
+      id: m,
+      params: ''
+    };
+    const label = m && (m.label || m.name) || '';
+    const id = m && (m.id || m.label || m.name) || '';
+    return {
+      label,
+      id,
+      params: m && m.params || ''
+    };
+  };
+  if (!Array.isArray(arr) || !arr.length) return (fallback || []).map(norm).filter(m => m.id);
+  return arr.map(norm).filter(m => m.id && m.label);
+}
+function normalizeState(s) {
+  const providers = {};
+  for (const k of Object.keys(PROVIDERS)) {
+    const p = s && s.providers && s.providers[k] || {};
+    providers[k] = {
+      apiKey: p.apiKey || '',
+      baseUrl: p.baseUrl || PROVIDERS[k].baseUrl,
+      models: normalizeModels(p.models, PROVIDERS[k].defaultModels)
+    };
+  }
+  return {
+    providers,
+    agents: Array.isArray(s && s.agents) ? s.agents : [],
+    activeAgentId: s && s.activeAgentId || null,
+    chats: s && s.chats || {}
+  };
+}
+function loadInitialState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return normalizeState(JSON.parse(saved));
+    const old = localStorage.getItem(OLD_KEY);
+    if (old) return normalizeState(JSON.parse(old));
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
+    if (legacy && Array.isArray(legacy.characters)) {
+      return normalizeState({
+        providers: {
+          deepseek: {
+            apiKey: legacy.apiKey || ''
+          }
+        },
+        agents: legacy.characters.map(c => ({
+          id: c.id,
+          name: c.name,
+          provider: 'deepseek',
+          model: legacy.model || 'deepseek-v4-flash',
+          systemPrompt: c.traits || '',
+          temperature: null
+        })),
+        activeAgentId: legacy.activeCharacterId,
+        chats: legacy.chats || {}
+      });
+    }
+  } catch (e) {}
+  return normalizeState(null);
+}
+async function copyText(text, showNotice) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showNotice('已复制到剪贴板');
+  } catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      showNotice('已复制到剪贴板');
+    } catch (err) {
+      showNotice('复制失败', 'error');
+    }
+  }
+}
+const ICONS = {
+  sparkles: '<path d="M9.94 15.5a2 2 0 0 0-1.44-1.44l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94a2 2 0 0 0 1.44-1.44l1.58-6.13a.5.5 0 0 1 .96 0l1.58 6.13a2 2 0 0 0 1.44 1.44l6.13 1.58a.5.5 0 0 1 0 .96l-6.13 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/><path d="M20 3v4M22 5h-4"/>',
+  userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  sliders: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3"/><path d="M14 2v4M8 10v4M16 18v4"/>',
+  eraser: '<path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7M5 11l9 9"/>',
+  listChecks: '<path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/>',
+  listTree: '<path d="M21 12h-8M21 6H8M21 18h-8"/><path d="M8 6h-2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+  key: '<path d="m21 2-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  alertTriangle: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/>',
+  alertCircle: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  panelLeftClose: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M16 15l-3-3 3-3"/>',
+  panelLeftOpen: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M14 9l3 3-3 3"/>',
+  trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>',
+  chevronDown: '<path d="m6 9 6 6 6-6"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>'
+};
+const Icon = ({
+  name,
+  size = 18,
+  className = '',
+  sw = 2
+}) => React.createElement("svg", {
+  width: size,
+  height: size,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: sw,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  className: className,
+  dangerouslySetInnerHTML: {
+    __html: ICONS[name] || ''
+  }
+});
+const Toast = ({
+  message,
+  type,
+  onClose
+}) => {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3200);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  return React.createElement("div", {
+    className: `toast ${type === 'error' ? 'err' : 'ok'}`
+  }, React.createElement(Icon, {
+    name: type === 'error' ? 'alertCircle' : 'check',
+    size: 15
+  }), React.createElement("span", {
+    className: "tt"
+  }, message));
+};
+function App() {
+  const [state, setState] = useState(loadInitialState);
+  const [isSideOpen, setIsSideOpen] = useState(window.innerWidth > 768);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState(undefined);
+  const [notice, setNotice] = useState(null);
+  const showNotice = (message, type = 'info') => setNotice({
+    message,
+    type
+  });
+  const saveTimer = useRef(null);
+  useEffect(() => {
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }, 400);
+    return () => clearTimeout(saveTimer.current);
+  }, [state]);
+  const updateState = updates => setState(prev => ({
+    ...prev,
+    ...updates
+  }));
+  const activeAgent = state.agents.find(a => a.id === state.activeAgentId) || null;
+  return React.createElement("div", {
+    className: "app"
+  }, notice && React.createElement(Toast, {
+    message: notice.message,
+    type: notice.type,
+    onClose: () => setNotice(null)
+  }), isSideOpen && React.createElement("div", {
+    className: "backdrop",
+    onClick: () => setIsSideOpen(false)
+  }), React.createElement(Sidebar, {
+    state: state,
+    updateState: updateState,
+    isOpen: isSideOpen,
+    onOpenSettings: () => setIsSettingsOpen(true),
+    onOpenAgentEditor: () => setEditingAgent(null),
+    showNotice: showNotice
+  }), React.createElement(ChatArea, {
+    state: state,
+    activeAgent: activeAgent,
+    updateState: updateState,
+    onToggleSidebar: () => setIsSideOpen(!isSideOpen),
+    onEditAgent: agent => setEditingAgent(agent),
+    showNotice: showNotice
+  }), isSettingsOpen && React.createElement(SettingsModal, {
+    state: state,
+    updateState: updateState,
+    onClose: () => setIsSettingsOpen(false),
+    showNotice: showNotice
+  }), editingAgent !== undefined && React.createElement(AgentModal, {
+    state: state,
+    updateState: updateState,
+    editingAgent: editingAgent,
+    onClose: () => setEditingAgent(undefined),
+    showNotice: showNotice
+  }));
+}
+function Sidebar({
+  state,
+  updateState,
+  isOpen,
+  onOpenSettings,
+  onOpenAgentEditor,
+  showNotice
+}) {
+  const [confirmReset, setConfirmReset] = useState(false);
+  const handleExport = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], {
+      type: 'application/json'
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '智能体备份.json';
+    a.click();
+    showNotice('备份已下载');
+  };
+  const handleImport = e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        if (!parsed.agents || !parsed.providers) throw new Error('bad');
+        updateState(normalizeState(parsed));
+        showNotice('数据导入成功');
+      } catch (err) {
+        showNotice('解析失败，文件格式错误', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+  return React.createElement(React.Fragment, null, React.createElement("aside", {
+    className: `side ${isOpen ? 'open' : ''}`
+  }, React.createElement("div", {
+    className: "side-head"
+  }, React.createElement("div", {
+    className: "side-title"
+  }, React.createElement("span", {
+    className: "grad-dot"
+  }), React.createElement("span", null, "智能体工作台")), React.createElement("button", {
+    className: "icon-btn",
+    onClick: onOpenAgentEditor,
+    title: "新建智能体"
+  }, React.createElement(Icon, {
+    name: "userPlus",
+    size: 18
+  }))), React.createElement("div", {
+    className: "side-list"
+  }, state.agents.length === 0 && React.createElement("div", {
+    className: "empty-hint"
+  }, "还没有智能体", React.createElement("br", null), "点击右上角 + 创建一个"), state.agents.map(agent => {
+    const meta = PROVIDERS[agent.provider];
+    const prov = state.providers[agent.provider];
+    const missingKey = agent.provider !== 'ollama' && agent.provider !== 'custom' && !prov?.apiKey;
+    const modelNames = (prov?.models || []).map(m => m.id);
+    const missingModel = !modelNames.includes(agent.model);
+    const label = (prov?.models || []).find(m => m.id === agent.model)?.label || agent.model;
+    return React.createElement("button", {
+      key: agent.id,
+      className: `agent-item ${state.activeAgentId === agent.id ? 'active' : ''}`,
+      onClick: () => updateState({
+        activeAgentId: agent.id
+      })
+    }, React.createElement("div", {
+      className: "name"
+    }, agent.name), React.createElement("div", {
+      className: "meta"
+    }, meta ? meta.label : agent.provider, " · ", label, missingKey && React.createElement("span", {
+      className: "warn"
+    }, " · 未配置 Key"), missingModel && !missingKey && React.createElement("span", {
+      className: "warn"
+    }, " · 模型缺失")));
+  })), React.createElement("div", {
+    className: "side-foot"
+  }, React.createElement("div", {
+    className: "row"
+  }, React.createElement("button", {
+    className: "btn",
+    onClick: () => document.getElementById('import-input').click()
+  }, React.createElement(Icon, {
+    name: "upload",
+    size: 14
+  }), " 导入"), React.createElement("button", {
+    className: "btn",
+    onClick: handleExport
+  }, React.createElement(Icon, {
+    name: "download",
+    size: 14
+  }), " 导出")), React.createElement("input", {
+    id: "import-input",
+    type: "file",
+    className: "hidden",
+    style: {
+      display: 'none'
+    },
+    accept: ".json",
+    onChange: handleImport
+  }), React.createElement("button", {
+    className: "btn",
+    onClick: onOpenSettings
+  }, React.createElement(Icon, {
+    name: "sliders",
+    size: 14
+  }), " API 设置"), React.createElement("button", {
+    className: "btn",
+    onClick: () => setConfirmReset(true)
+  }, React.createElement(Icon, {
+    name: "eraser",
+    size: 14
+  }), " 初始化数据"))), confirmReset && React.createElement("div", {
+    className: "modal",
+    onClick: () => setConfirmReset(false)
+  }, React.createElement("div", {
+    className: "confirm-box",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "ic"
+  }, React.createElement(Icon, {
+    name: "alertTriangle",
+    size: 26
+  })), React.createElement("h4", null, "确认初始化？"), React.createElement("p", null, "将删除全部智能体、对话记录与 API 设置，且不可恢复。"), React.createElement("div", {
+    className: "acts"
+  }, React.createElement("button", {
+    className: "btn",
+    onClick: () => setConfirmReset(false)
+  }, "取消"), React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: () => {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(OLD_KEY);
+      location.reload();
+    }
+  }, "确认初始化")))));
+}
+function ChatArea({
+  state,
+  activeAgent,
+  updateState,
+  onToggleSidebar,
+  onEditAgent,
+  showNotice
+}) {
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [isTocOpen, setIsTocOpen] = useState(window.innerWidth >= 1280);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const messagesEndRef = useRef(null);
+  const messages = activeAgent ? state.chats[activeAgent.id] || [] : [];
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth'
+    });
+  }, [messages, isTyping]);
+  const scrollToMsg = id => {
+    document.getElementById('msg-' + id)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  };
+  const handleSend = async () => {
+    if (!input.trim() || !activeAgent || isTyping) return;
+    const prov = state.providers[activeAgent.provider];
+    const modelList = prov && prov.models || [];
+    if (activeAgent.provider === 'ollama') {} else if (activeAgent.provider === 'custom') {
+      if (!prov?.baseUrl) return showNotice('请先在 API 设置中填写自定义服务的 Base URL', 'error');
+    } else {
+      if (!prov?.apiKey) return showNotice(`请先在 API 设置中配置「${PROVIDERS[activeAgent.provider]?.label || activeAgent.provider}」的 API Key`, 'error');
+    }
+    if (!modelList.length) return showNotice('请先在 API 设置中为该 API 配置模型', 'error');
+    const modelEntry = modelList.find(m => m.id === activeAgent.model) || modelList[0];
+    const model = modelEntry.id;
+    let extraParams = {};
+    if (modelEntry.params && modelEntry.params.trim()) {
+      try {
+        extraParams = JSON.parse(modelEntry.params);
+      } catch (e) {
+        return showNotice(`模型「${modelEntry.label}」的请求参数 JSON 格式错误，请到 API 设置中修正`, 'error');
+      }
+    }
+    const userMsg = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input.trim(),
+      timestamp: Date.now()
+    };
+    const newMessages = [...messages, userMsg];
+    setInput('');
+    const updatedChats = {
+      ...state.chats,
+      [activeAgent.id]: newMessages
+    };
+    updateState({
+      chats: updatedChats
+    });
+    setIsTyping(true);
+    try {
+      const baseUrl = (prov?.baseUrl || '').replace(/\/+$/, '');
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (prov?.apiKey) headers['Authorization'] = `Bearer ${prov.apiKey}`;
+      const body = {
+        model,
+        messages: [...(activeAgent.systemPrompt ? [{
+          role: 'system',
+          content: activeAgent.systemPrompt
+        }] : []), ...newMessages.map(m => ({
+          role: m.role,
+          content: m.content
+        }))],
+        stream: true,
+        max_tokens: 65536,
+        ...extraParams
+      };
+      if (activeAgent.temperature != null && activeAgent.provider !== 'kimi') {
+        body.temperature = activeAgent.temperature;
+      }
+      if (activeAgent.provider === 'minimax') {
+        body.reasoning_split = true;
+      }
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`HTTP ${response.status}${errText ? '：' + errText.slice(0, 200) : ''}`);
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = '';
+      let assistantReasoning = '';
+      const aiMsgId = (Date.now() + 1).toString();
+      while (true) {
+        const {
+          done,
+          value
+        } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
             try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) return normalizeState(JSON.parse(saved));
-                const old = localStorage.getItem(OLD_KEY);
-                if (old) return normalizeState(JSON.parse(old));
-                const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
-                if (legacy && Array.isArray(legacy.characters)) {
-                    return normalizeState({
-                        providers: { deepseek: { apiKey: legacy.apiKey || '' } },
-                        agents: legacy.characters.map(c => ({
-                            id: c.id,
-                            name: c.name,
-                            provider: 'deepseek',
-                            model: legacy.model || 'deepseek-v4-flash',
-                            systemPrompt: c.traits || '',
-                            temperature: null
-                        })),
-                        activeAgentId: legacy.activeCharacterId,
-                        chats: legacy.chats || {}
-                    });
-                }
-            } catch (e) {}
-            return normalizeState(null);
-        }
-
-        async function copyText(text, showNotice) {
-            try {
-                await navigator.clipboard.writeText(text);
-                showNotice('已复制到剪贴板');
-            } catch (e) {
-                try {
-                    const ta = document.createElement('textarea');
-                    ta.value = text;
-                    ta.style.position = 'fixed';
-                    ta.style.opacity = '0';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand('copy');
-                    ta.remove();
-                    showNotice('已复制到剪贴板');
-                } catch (err) {
-                    showNotice('复制失败', 'error');
-                }
-            }
-        }
-
-        const Icon = ({ name, size = 18, className = "" }) => {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons({
-                        attrs: { 'stroke-width': 2, 'width': size, 'height': size }
-                    });
-                }
-            }, [name, size]);
-            return <i data-lucide={name} className={className}></i>;
-        };
-
-        const Toast = ({ message, type, onClose }) => {
-            useEffect(() => {
-                const timer = setTimeout(onClose, 3000);
-                return () => clearTimeout(timer);
-            }, [onClose]);
-            return (
-                <div className={`fixed top-4 sm:top-10 left-1/2 -translate-x-1/2 z-[200] px-4 sm:px-6 py-3 rounded-full text-white text-xs sm:text-sm shadow-2xl flex items-center gap-3 ${type === 'error' ? 'bg-gf-accent' : 'bg-gf-text'}`}>
-                    <Icon name={type === 'error' ? 'alert-circle' : 'info'} size={16} />
-                    <span className="max-w-[80vw] truncate">{message}</span>
-                </div>
-            );
-        };
-
-        function App() {
-            const [state, setState] = useState(loadInitialState);
-            const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
-            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-            const [editingAgent, setEditingAgent] = useState(undefined);
-            const [notice, setNotice] = useState(null);
-
-            const showNotice = (message, type = 'info') => setNotice({ message, type });
-
-            useEffect(() => {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            }, [state]);
-
-            const updateState = (updates) => setState(prev => ({ ...prev, ...updates }));
-
-            const activeAgent = state.agents.find(a => a.id === state.activeAgentId) || null;
-
-            return (
-                <div className="flex h-screen w-full bg-gf-bg overflow-hidden relative">
-                    {notice && <Toast message={notice.message} type={notice.type} onClose={() => setNotice(null)} />}
-
-                    {isSidebarOpen && (
-                        <div className="md:hidden fixed inset-0 bg-black/20 z-40 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
-                    )}
-
-                    <Sidebar
-                        state={state}
-                        updateState={updateState}
-                        isOpen={isSidebarOpen}
-                        onOpenSettings={() => setIsSettingsOpen(true)}
-                        onOpenAgentEditor={() => setEditingAgent(null)}
-                        showNotice={showNotice}
-                    />
-
-                    <ChatArea
-                        state={state}
-                        activeAgent={activeAgent}
-                        updateState={updateState}
-                        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-                        onEditAgent={(agent) => setEditingAgent(agent)}
-                        isSidebarOpen={isSidebarOpen}
-                        showNotice={showNotice}
-                    />
-
-                    {isSettingsOpen && (
-                        <SettingsModal
-                            state={state}
-                            updateState={updateState}
-                            onClose={() => setIsSettingsOpen(false)}
-                            showNotice={showNotice}
-                        />
-                    )}
-
-                    {editingAgent !== undefined && (
-                        <AgentModal
-                            state={state}
-                            updateState={updateState}
-                            editingAgent={editingAgent}
-                            onClose={() => setEditingAgent(undefined)}
-                            showNotice={showNotice}
-                        />
-                    )}
-                </div>
-            );
-        }
-
-        function Sidebar({ state, updateState, isOpen, onOpenSettings, onOpenAgentEditor, showNotice }) {
-            const [confirmReset, setConfirmReset] = useState(false);
-
-            const handleExport = () => {
-                const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = '智能体备份.json';
-                a.click();
-                showNotice('备份已下载');
-            };
-
-            const handleImport = (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const parsed = JSON.parse(event.target.result);
-                        if (!parsed.agents || !parsed.providers) throw new Error('bad format');
-                        updateState(normalizeState(parsed));
-                        showNotice('数据导入成功');
-                    } catch (err) {
-                        showNotice('解析失败，文件格式错误', 'error');
-                    }
-                };
-                reader.readAsText(file);
-            };
-
-            return (
-                <div className={`bg-gf-sidebar border-r border-gf-border flex flex-col h-screen shrink-0 absolute md:relative z-50 transition-all duration-300 ${
-                    isOpen
-                    ? 'translate-x-0 w-[280px] opacity-100'
-                    : '-translate-x-full w-[280px] md:w-0 md:translate-x-0 md:opacity-0 md:border-none pointer-events-none invisible md:visible'
-                }`}>
-                    <div className="h-[72px] md:h-[80px] pt-2 md:pt-3 px-4 md:px-5 flex items-center justify-between border-b border-gf-border shrink-0">
-                        <h1 className="text-base md:text-lg font-bold text-gf-text flex items-center gap-2">
-                            <Icon name="sparkles" className="text-gf-accent" />
-                            <span>智能体</span>
-                        </h1>
-                        <button onClick={onOpenAgentEditor} title="新建智能体" className="p-2 hover:bg-gf-border/50 rounded-lg transition-colors">
-                            <Icon name="user-plus" />
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-                        {state.agents.length === 0 && (
-                            <div className="text-xs text-gf-muted text-center py-8 leading-relaxed">
-                                还没有智能体<br />点击右上角按钮创建一个
-                            </div>
-                        )}
-                        {state.agents.map(agent => {
-                            const meta = PROVIDERS[agent.provider];
-                            const prov = state.providers[agent.provider];
-                            const missingKey = agent.provider !== 'ollama' && agent.provider !== 'custom' && !prov?.apiKey;
-                            const modelNames = (prov?.models || []).map(m => m.name);
-                            const missingModel = !modelNames.includes(agent.model);
-                            return (
-                                <button
-                                    key={agent.id}
-                                    onClick={() => updateState({ activeAgentId: agent.id })}
-                                    className={`w-full text-left p-3 rounded-xl transition-all border ${
-                                        state.activeAgentId === agent.id
-                                        ? 'bg-white border-gf-border shadow-sm font-bold'
-                                        : 'border-transparent hover:bg-white/40'
-                                    }`}
-                                >
-                                    <div className="text-sm truncate text-gf-text">{agent.name}</div>
-                                    <div className="text-xs text-gf-muted truncate mt-1 opacity-70 flex items-center gap-1 flex-wrap">
-                                        {meta ? meta.label : agent.provider}
-                                        <span>·</span>
-                                        {agent.model || '未设置模型'}
-                                        {missingKey && <span className="text-gf-accent">· 未配置 Key</span>}
-                                        {missingModel && !missingKey && <span className="text-gf-accent">· 模型未配置</span>}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <div className="p-3 md:p-4 border-t border-gf-border space-y-2">
-                        <div className="flex gap-2">
-                            <button onClick={() => document.getElementById('import-input').click()} className="flex-1 flex justify-center items-center gap-1 py-2 bg-gf-bg border border-gf-border rounded-lg text-sm hover:bg-white">
-                                <Icon name="upload" size={14} /> 导入
-                            </button>
-                            <button onClick={handleExport} className="flex-1 flex justify-center items-center gap-1 py-2 bg-gf-bg border border-gf-border rounded-lg text-sm hover:bg-white">
-                                <Icon name="download" size={14} /> 导出
-                            </button>
-                        </div>
-                        <input id="import-input" type="file" className="hidden" accept=".json" onChange={handleImport} />
-                        <button onClick={onOpenSettings} className="w-full py-2 flex justify-center items-center gap-2 text-gf-muted hover:text-gf-text text-sm">
-                            <Icon name="settings" size={14} /> API 设置
-                        </button>
-                        <button onClick={() => setConfirmReset(true)} className="w-full py-2 flex justify-center items-center gap-2 text-gf-muted hover:text-gf-accent text-sm">
-                            <Icon name="eraser" size={14} /> 初始化数据
-                        </button>
-                    </div>
-
-                    {confirmReset && (
-                        <div className="absolute inset-0 z-[150] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-gf-bg rounded-2xl max-w-sm w-full p-6 text-center border border-gf-border shadow-2xl">
-                                <div className="w-14 h-14 mx-auto bg-gf-accent/10 text-gf-accent rounded-full flex items-center justify-center mb-3">
-                                    <Icon name="alert-triangle" size={28} />
-                                </div>
-                                <h3 className="text-lg font-bold mb-2">确认初始化？</h3>
-                                <p className="text-sm text-gf-muted leading-relaxed mb-6">
-                                    将删除全部智能体、对话记录与 API 设置，且不可恢复。
-                                </p>
-                                <div className="flex gap-3 justify-center">
-                                    <button onClick={() => setConfirmReset(false)} className="px-6 py-2 border border-gf-border rounded-lg hover:bg-white">取消</button>
-                                    <button
-                                        onClick={() => {
-                                            localStorage.removeItem(STORAGE_KEY);
-                                            localStorage.removeItem(OLD_KEY);
-                                            location.reload();
-                                        }}
-                                        className="px-6 py-2 bg-gf-accent text-white rounded-lg shadow-md"
-                                    >
-                                        确认初始化
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        function ChatArea({ state, activeAgent, updateState, onToggleSidebar, onEditAgent, isSidebarOpen, showNotice }) {
-            const [input, setInput] = useState('');
-            const [isTyping, setIsTyping] = useState(false);
-            const [isTocOpen, setIsTocOpen] = useState(window.innerWidth > 1200);
-            const [selectMode, setSelectMode] = useState(false);
-            const [selected, setSelected] = useState(new Set());
-            const messagesEndRef = useRef(null);
-            const messages = activeAgent ? (state.chats[activeAgent.id] || []) : [];
-
-            useEffect(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }, [messages, isTyping]);
-
-            const scrollToMsg = (id) => {
-                document.getElementById('msg-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            };
-
-            const handleSend = async () => {
-                if (!input.trim() || !activeAgent || isTyping) return;
-
-                const prov = state.providers[activeAgent.provider];
-                const modelList = (prov && prov.models) || [];
-                if (activeAgent.provider === 'ollama') {
-                    // 无需 Key
-                } else if (activeAgent.provider === 'custom') {
-                    if (!prov?.baseUrl) return showNotice('请先在 API 设置中填写自定义服务的 Base URL', 'error');
-                } else {
-                    if (!prov?.apiKey) return showNotice(`请先在 API 设置中配置「${PROVIDERS[activeAgent.provider]?.label || activeAgent.provider}」的 API Key`, 'error');
-                }
-                if (!modelList.length) return showNotice('请先在 API 设置中为该 API 配置模型', 'error');
-                const modelEntry = modelList.find(m => m.name === activeAgent.model) || modelList[0];
-                const model = modelEntry.name;
-                let extraParams = {};
-                if (modelEntry.params && modelEntry.params.trim()) {
-                    try {
-                        extraParams = JSON.parse(modelEntry.params);
-                    } catch (e) {
-                        return showNotice(`模型「${model}」的参数 JSON 格式错误，请到 API 设置中修正`, 'error');
-                    }
-                }
-
-                const userMsg = { id: Date.now().toString(), role: 'user', content: input.trim(), timestamp: Date.now() };
-                const newMessages = [...messages, userMsg];
-
-                setInput('');
-                const updatedChats = { ...state.chats, [activeAgent.id]: newMessages };
-                updateState({ chats: updatedChats });
-                setIsTyping(true);
-
-                try {
-                    const baseUrl = (prov?.baseUrl || '').replace(/\/+$/, '');
-                    const headers = { 'Content-Type': 'application/json' };
-                    if (prov?.apiKey) headers['Authorization'] = `Bearer ${prov.apiKey}`;
-
-                    const body = {
-                        model,
-                        messages: [
-                            ...(activeAgent.systemPrompt ? [{ role: 'system', content: activeAgent.systemPrompt }] : []),
-                            ...newMessages.map(m => ({ role: m.role, content: m.content }))
-                        ],
-                        stream: true,
-                        max_tokens: 65536,
-                        ...extraParams
-                    };
-                    if (activeAgent.temperature != null && activeAgent.provider !== 'kimi') {
-                        body.temperature = activeAgent.temperature;
-                    }
-                    if (activeAgent.provider === 'minimax') {
-                        body.reasoning_split = true;
-                    }
-
-                    const response = await fetch(`${baseUrl}/chat/completions`, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify(body)
-                    });
-
-                    if (!response.ok) {
-                        const errText = await response.text().catch(() => '');
-                        throw new Error(`HTTP ${response.status}${errText ? '：' + errText.slice(0, 200) : ''}`);
-                    }
-
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-                    let assistantContent = '';
-                    let assistantReasoning = '';
-                    const aiMsgId = (Date.now() + 1).toString();
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
-                        for (const line of lines) {
-                            if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
-                                try {
-                                    const data = JSON.parse(line.slice(6));
-                                    const delta = data.choices?.[0]?.delta || {};
-                                    const text = delta.content;
-                                    let reason = delta.reasoning_content || delta.reasoning;
-                                    if (!reason && Array.isArray(delta.reasoning_details)) {
-                                        reason = delta.reasoning_details.map(x => x?.content || '').join('');
-                                    }
-                                    if (reason) assistantReasoning += reason;
-                                    if (text || reason) {
-                                        updateState({
-                                            chats: {
-                                                ...updatedChats,
-                                                [activeAgent.id]: [
-                                                    ...newMessages,
-                                                    {
-                                                        id: aiMsgId,
-                                                        role: 'assistant',
-                                                        content: assistantContent,
-                                                        reasoning: assistantReasoning || undefined,
-                                                        timestamp: Date.now()
-                                                    }
-                                                ]
-                                            }
-                                        });
-                                    }
-                                } catch (e) {}
-                            }
-                        }
-                    }
-                } catch (err) {
-                    showNotice('请求失败：' + (err.message || '请检查网络与配置'), 'error');
-                } finally {
-                    setIsTyping(false);
-                }
-            };
-
-            const toggleSelect = (id) => {
-                setSelected(prev => {
-                    const next = new Set(prev);
-                    if (next.has(id)) next.delete(id);
-                    else next.add(id);
-                    return next;
-                });
-            };
-
-            const copySelected = () => {
-                const items = messages.filter(m => selected.has(m.id));
-                if (!items.length) return showNotice('请先勾选消息', 'error');
-                const txt = items.map(m => `【${m.role === 'user' ? '用户' : 'AI'}】\n${m.content}`).join('\n\n----\n\n');
-                copyText(txt, showNotice);
-            };
-
-            if (!activeAgent) {
-                return (
-                    <div className="flex-1 flex flex-col items-center justify-center bg-gf-bg text-gf-muted p-6">
-                        <button onClick={onToggleSidebar} className="absolute top-6 left-6 p-3 bg-white border border-gf-border shadow-sm hover:bg-gf-border/20 rounded-full z-40 transition-all">
-                           <Icon name={isSidebarOpen ? "panel-left-close" : "panel-left-open"} />
-                        </button>
-                        <p className="text-center">请在左侧选择或创建一个智能体开始对话</p>
-                    </div>
-                );
-            }
-
-            const meta = PROVIDERS[activeAgent.provider];
-            const tocItems = messages.filter(m => m.role === 'user');
-
-            return (
-                <div className="flex-1 flex flex-col h-screen bg-white relative min-w-0">
-                    {/* 目录面板（移动端覆盖层） */}
-                    {isTocOpen && (
-                        <div className="md:hidden fixed inset-0 bg-black/25 z-40" onClick={() => setIsTocOpen(false)} />
-                    )}
-                    <aside className={`fixed md:static right-0 top-0 h-full w-64 z-50 bg-gf-sidebar border-l border-gf-border overflow-y-auto transition-transform duration-300 shrink-0 ${
-                        isTocOpen ? 'translate-x-0' : 'translate-x-full md:hidden'
-                    }`}>
-                        <div className="h-[72px] md:h-[80px] px-4 flex items-center justify-between border-b border-gf-border sticky top-0 bg-gf-sidebar">
-                            <h3 className="text-sm font-bold flex items-center gap-2">
-                                <Icon name="list-tree" size={15} className="text-gf-accent" />
-                                对话目录
-                            </h3>
-                            <button onClick={() => setIsTocOpen(false)} className="p-2 hover:bg-gf-border/40 rounded-lg md:hidden">
-                                <Icon name="x" size={15} />
-                            </button>
-                        </div>
-                        <div className="p-2 space-y-1">
-                            {tocItems.length === 0 && (
-                                <div className="text-xs text-gf-muted text-center py-8">暂无对话</div>
-                            )}
-                            {tocItems.map((m, i) => (
-                                <button
-                                    key={m.id}
-                                    onClick={() => { scrollToMsg(m.id); if (window.innerWidth < 768) setIsTocOpen(false); }}
-                                    className="w-full text-left p-2.5 rounded-lg hover:bg-white/70 border border-transparent hover:border-gf-border transition-colors"
-                                >
-                                    <div className="text-xs text-gf-muted mb-0.5">
-                                        {i + 1} · {new Date(m.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                    <div className="text-xs text-gf-text truncate">
-                                        {m.content.length > 28 ? m.content.slice(0, 28) + '…' : m.content || '(空)'}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </aside>
-
-                    <header className="h-[72px] md:h-[80px] pt-2 md:pt-3 px-3 sm:px-6 border-b border-gf-border flex items-center justify-between shrink-0 bg-gf-bg z-30">
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                            <button onClick={onToggleSidebar} className="p-2 text-gf-muted hover:text-gf-text rounded-lg hover:bg-gf-border/30 transition-colors shrink-0">
-                                <Icon name={isSidebarOpen ? "panel-left-close" : "panel-left-open"} />
-                            </button>
-                            <div className="min-w-0">
-                                <h2 className="text-base md:text-xl font-serif font-bold text-gf-text truncate">{activeAgent.name}</h2>
-                                <div className="text-[10px] md:text-xs text-gf-muted truncate mt-0.5 flex items-center gap-1.5">
-                                    <span className="px-1.5 py-0.5 bg-gf-border/50 rounded whitespace-nowrap">{meta ? meta.label : activeAgent.provider}</span>
-                                    <span className="truncate">{activeAgent.model || '未设置模型'}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                            <button
-                                onClick={() => { setSelectMode(!selectMode); setSelected(new Set()); }}
-                                title={selectMode ? '退出多选' : '多选复制'}
-                                className={`p-2 rounded-lg transition-colors ${selectMode ? 'bg-gf-accent text-white' : 'text-gf-muted hover:text-gf-text hover:bg-gf-border/30'}`}
-                            >
-                                <Icon name="list-checks" size={16} />
-                            </button>
-                            <button
-                                onClick={() => setIsTocOpen(!isTocOpen)}
-                                title="对话目录"
-                                className={`p-2 rounded-lg transition-colors ${isTocOpen ? 'bg-gf-border/60 text-gf-text' : 'text-gf-muted hover:text-gf-text hover:bg-gf-border/30'}`}
-                            >
-                                <Icon name="list-tree" size={16} />
-                            </button>
-                            <button onClick={() => onEditAgent(activeAgent)} className="px-2 py-1.5 md:px-3 md:py-1.5 border border-gf-border rounded-lg text-xs md:text-sm hover:bg-white flex items-center gap-1.5 shadow-sm">
-                                <Icon name="edit" size={14} /> <span className="hidden sm:inline">智能体设定</span>
-                            </button>
-                        </div>
-                    </header>
-
-                    <main className="flex-1 overflow-y-auto bg-gf-bg px-3 sm:px-6 md:px-8 lg:px-12 py-6 md:py-8">
-                        <div className="max-w-3xl mx-auto space-y-6">
-                            {activeAgent.systemPrompt && (
-                                <div className="text-xs text-gf-muted bg-gf-sidebar border border-gf-border rounded-xl px-4 py-2.5 leading-relaxed">
-                                    <span className="font-bold">固定提示词：</span>{activeAgent.systemPrompt}
-                                </div>
-                            )}
-                            {messages.map(msg => (
-                                <div key={msg.id} id={`msg-${msg.id}`} className={`flex w-full scroll-mt-24 group ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    {selectMode && (
-                                        <label className={`flex items-center mr-2 shrink-0 ${msg.role === 'user' ? 'order-first' : 'order-last'}`}>
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 accent-gf-accent cursor-pointer"
-                                                checked={selected.has(msg.id)}
-                                                onChange={() => toggleSelect(msg.id)}
-                                            />
-                                        </label>
-                                    )}
-                                    <div className={`px-4 py-3 md:px-5 md:py-3 max-w-[85%] md:max-w-[80%] text-[14px] md:text-[15px] leading-relaxed shadow-sm rounded-2xl relative ${
-                                        msg.role === 'user'
-                                        ? 'bg-gf-bubble-user text-white rounded-br-sm'
-                                        : 'bg-white border border-gf-border text-gf-text rounded-bl-sm'
-                                    }`}>
-                                        {msg.role === 'assistant' && msg.reasoning && (
-                                            <details className="mb-2 text-xs bg-gf-sidebar/70 border border-gf-border rounded-lg px-3 py-2">
-                                                <summary className="cursor-pointer text-gf-muted flex items-center gap-1.5 select-none">
-                                                    <Icon name="brain" size={12} className="text-gf-accent" />
-                                                    思考过程
-                                                </summary>
-                                                <div className="mt-2 pt-2 whitespace-pre-wrap text-gf-muted leading-relaxed max-h-64 overflow-y-auto border-t border-gf-border/70">
-                                                    {msg.reasoning}
-                                                </div>
-                                            </details>
-                                        )}
-                                        <div className="whitespace-pre-wrap break-words">{msg.content}</div>
-                                        {msg.role === 'assistant' && (
-                                            <button
-                                                onClick={() => copyText(msg.content, showNotice)}
-                                                title="一键复制"
-                                                className="absolute -top-2.5 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-gf-sidebar border border-gf-border rounded-lg shadow-sm hover:bg-white text-gf-muted"
-                                            >
-                                                <Icon name="copy" size={12} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                            {isTyping && (
-                                <div className="flex justify-start">
-                                    <div className="px-4 py-2 border border-gf-border bg-white text-gf-muted rounded-2xl rounded-bl-sm text-sm italic">
-                                        正在回复...
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} className="h-4" />
-                        </div>
-                    </main>
-
-                    {selectMode && (
-                        <div className="px-3 py-2.5 bg-white border-t border-gf-border flex items-center justify-between gap-2 shrink-0 z-30">
-                            <span className="text-xs md:text-sm text-gf-muted whitespace-nowrap">已选 {selected.size} 条</span>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => {
-                                        if (selected.size === messages.length) setSelected(new Set());
-                                        else setSelected(new Set(messages.map(m => m.id)));
-                                    }}
-                                    className="px-3 py-1.5 text-xs md:text-sm border border-gf-border rounded-lg hover:bg-gf-border/30"
-                                >
-                                    {selected.size === messages.length ? '取消全选' : '全选'}
-                                </button>
-                                <button
-                                    onClick={copySelected}
-                                    disabled={!selected.size}
-                                    className="px-3 py-1.5 text-xs md:text-sm bg-gf-accent text-white rounded-lg disabled:bg-gf-border flex items-center gap-1"
-                                >
-                                    <Icon name="copy" size={13} /> 复制所选
-                                </button>
-                                <button onClick={() => { setSelectMode(false); setSelected(new Set()); }} className="px-3 py-1.5 text-xs md:text-sm border border-gf-border rounded-lg hover:bg-gf-border/30">
-                                    退出
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <footer className="p-3 md:p-4 border-t border-gf-border bg-gf-sidebar pb-[max(12px,env(safe-area-inset-bottom))] shrink-0">
-                        <div className="max-w-3xl mx-auto relative flex items-end gap-2 bg-white border border-gf-border rounded-2xl p-2 shadow-sm focus-within:ring-1 focus-within:ring-gf-accent/30 transition-all">
-                            <textarea
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSend();
-                                    }
-                                }}
-                                className="flex-1 max-h-40 min-h-[44px] p-2 bg-transparent outline-none resize-none text-sm md:text-[15px]"
-                                placeholder="输入消息..."
-                            />
-                            <button onClick={handleSend} disabled={!input.trim() || isTyping} className="w-10 h-10 flex items-center justify-center bg-gf-accent text-white rounded-xl disabled:bg-gf-border shrink-0">
-                                <Icon name="send" size={16} />
-                            </button>
-                        </div>
-                    </footer>
-                </div>
-            );
-        }
-
-        function SettingsModal({ state, updateState, onClose, showNotice }) {
-            const [providers, setProviders] = useState(() => JSON.parse(JSON.stringify(state.providers)));
-
-            const updateProv = (key, field, value) => {
-                setProviders(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
-            };
-
-            return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm p-2 sm:p-4">
-                    <div className="bg-gf-bg rounded-2xl w-full max-w-2xl overflow-hidden border border-gf-border shadow-2xl flex flex-col max-h-[92vh]">
-                        <header className="px-4 md:px-6 py-3 md:py-4 border-b border-gf-border flex justify-between items-center shrink-0">
-                            <h3 className="text-lg md:text-xl font-bold">API 设置</h3>
-                            <button onClick={onClose} className="p-2 hover:bg-gf-border/40 rounded-full"><Icon name="x" /></button>
-                        </header>
-                        <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
-                            <p className="text-xs text-gf-muted">
-                                API Key 仅保存在浏览器本地。每个服务可维护自己的模型列表：填写「模型名」与可选「模型参数」（JSON，合并进请求体）。智能体创建时从列表中直接选择，默认取第一项。
-                            </p>
-                            {Object.entries(PROVIDERS).map(([key, meta]) => {
-                                const p = providers[key] || { apiKey: '', baseUrl: meta.baseUrl, models: [] };
-                                return (
-                                    <div key={key} className="border border-gf-border rounded-xl p-3 md:p-4 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="font-bold text-sm flex items-center gap-2">
-                                                <Icon name={key === 'custom' ? 'wrench' : 'key'} size={15} className="text-gf-accent" />
-                                                {meta.label}
-                                            </h4>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            <div>
-                                                <label className="block text-xs text-gf-muted mb-1">API Key {key === 'ollama' ? '(可留空)' : ''}</label>
-                                                <input
-                                                    type="password"
-                                                    value={p.apiKey || ''}
-                                                    onChange={e => updateProv(key, 'apiKey', e.target.value)}
-                                                    placeholder={key === 'ollama' ? '无需填写' : 'sk-...'}
-                                                    className="w-full px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs text-gf-muted mb-1">Base URL</label>
-                                                <input
-                                                    type="text"
-                                                    value={p.baseUrl || ''}
-                                                    onChange={e => updateProv(key, 'baseUrl', e.target.value)}
-                                                    placeholder="https://..."
-                                                    className="w-full px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs text-gf-muted mb-1">模型列表（模型名 + 模型参数，参数为可选的 JSON 对象）</label>
-                                                <div className="space-y-2">
-                                                    {(p.models || []).map((m, i) => (
-                                                        <div key={i} className="flex gap-2 items-center">
-                                                            <input
-                                                                type="text"
-                                                                value={m.name || ''}
-                                                                onChange={e => {
-                                                                    const next = [...(p.models || [])];
-                                                                    next[i] = { ...next[i], name: e.target.value };
-                                                                    updateProv(key, 'models', next);
-                                                                }}
-                                                                placeholder="模型名，如 glm-5.2"
-                                                                className="flex-1 min-w-0 px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                value={m.params || ''}
-                                                                onChange={e => {
-                                                                    const next = [...(p.models || [])];
-                                                                    next[i] = { ...next[i], params: e.target.value };
-                                                                    updateProv(key, 'models', next);
-                                                                }}
-                                                                placeholder={'JSON 参数，如 {"thinking":{"type":"enabled"}}'}
-                                                                className="flex-1 min-w-0 px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent font-mono text-xs"
-                                                            />
-                                                            <button
-                                                                onClick={() => updateProv(key, 'models', (p.models || []).filter((_, j) => j !== i))}
-                                                                className="p-2 text-gf-muted hover:text-gf-accent rounded-lg hover:bg-gf-border/30 shrink-0"
-                                                                title="删除该模型"
-                                                            >
-                                                                <Icon name="x" size={14} />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    <button
-                                                        onClick={() => updateProv(key, 'models', [...(p.models || []), { name: '', params: '' }])}
-                                                        className="px-3 py-1.5 text-xs border border-gf-border rounded-lg hover:bg-white flex items-center gap-1 text-gf-muted hover:text-gf-text"
-                                                    >
-                                                        <Icon name="plus" size={13} /> 添加模型
-                                                    </button>
-                                                </div>
-                                                <p className="text-[10px] text-gf-muted mt-1.5">
-                                                    模型参数会合并进请求体，可配置思考模式、reasoning_effort、top_p 等；留空则使用默认值。
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] text-gf-muted">{meta.note}</p>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <footer className="px-4 md:px-6 py-3 md:py-4 border-t border-gf-border flex justify-end gap-3 shrink-0">
-                            <button onClick={onClose} className="px-4 py-2 text-gf-text hover:bg-gf-border/40 rounded-lg">取消</button>
-                            <button
-                                onClick={() => {
-                                    const cleaned = {};
-                                    for (const [k, v] of Object.entries(providers)) {
-                                        cleaned[k] = { ...v, models: (v.models || []).filter(m => m.name && m.name.trim()).map(m => ({ name: m.name.trim(), params: (m.params || '').trim() })) };
-                                    }
-                                    updateState({ providers: cleaned });
-                                    showNotice('API 设置已保存');
-                                    onClose();
-                                }}
-                                className="px-6 py-2 bg-gf-accent text-white rounded-lg"
-                            >
-                                保存设置
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-            );
-        }
-
-        function AgentModal({ state, updateState, editingAgent, onClose, showNotice }) {
-            const [name, setName] = useState(editingAgent?.name || '');
-            const [provider, setProvider] = useState(editingAgent?.provider || 'deepseek');
-            const [model, setModel] = useState(editingAgent?.model || '');
-            const [systemPrompt, setSystemPrompt] = useState(editingAgent?.systemPrompt || '');
-            const [temperature, setTemperature] = useState(editingAgent?.temperature != null ? String(editingAgent.temperature) : '');
-            const [showConfirm, setShowConfirm] = useState(false);
-
-            const meta = PROVIDERS[provider];
-            const modelList = (state.providers[provider]?.models || []).map(m => ({ name: m.name || '', params: m.params || '' }));
-            const effModel = modelList.some(m => m.name === model) ? model : (modelList[0]?.name || '');
-            const isCustom = provider === 'ollama' || provider === 'custom';
-
-            const changeProvider = (p) => {
-                setProvider(p);
-                const list = (state.providers[p]?.models || []);
-                setModel(list.length ? list[0].name : '');
-            };
-
-            const handleSave = () => {
-                if (!name.trim()) return showNotice('请输入智能体名称', 'error');
-                if (isCustom) {
-                    if (!effModel.trim()) return showNotice('请填写模型名称', 'error');
-                } else {
-                    if (!modelList.length) return showNotice('请先在 API 设置中为该 API 配置模型', 'error');
-                    if (!effModel) return showNotice('请选择模型', 'error');
-                }
-
-                const data = {
-                    name: name.trim(),
-                    provider,
-                    model: effModel,
-                    systemPrompt,
-                    temperature: temperature === '' ? null : parseFloat(temperature)
-                };
-
-                if (editingAgent) {
-                    updateState({ agents: state.agents.map(a => a.id === editingAgent.id ? { ...a, ...data } : a) });
-                    showNotice('智能体已更新');
-                } else {
-                    const id = Date.now().toString();
-                    updateState({ agents: [...state.agents, { id, ...data }], activeAgentId: id });
-                    showNotice('新智能体已创建');
-                }
-                onClose();
-            };
-
-            const handleDelete = () => {
-                const newList = state.agents.filter(a => a.id !== editingAgent.id);
+              const data = JSON.parse(line.slice(6));
+              const delta = data.choices?.[0]?.delta || {};
+              const text = delta.content;
+              let reason = delta.reasoning_content || delta.reasoning;
+              if (!reason && Array.isArray(delta.reasoning_details)) {
+                reason = delta.reasoning_details.map(x => x?.content || '').join('');
+              }
+              if (reason) assistantReasoning += reason;
+              if (text || reason) {
                 updateState({
-                    agents: newList,
-                    activeAgentId: state.activeAgentId === editingAgent.id ? (newList[0]?.id || null) : state.activeAgentId
+                  chats: {
+                    ...updatedChats,
+                    [activeAgent.id]: [...newMessages, {
+                      id: aiMsgId,
+                      role: 'assistant',
+                      content: assistantContent,
+                      reasoning: assistantReasoning || undefined,
+                      timestamp: Date.now()
+                    }]
+                  }
                 });
-                showNotice('智能体已删除');
-                onClose();
-            };
-
-            return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm p-2 sm:p-4">
-                    <div className="bg-gf-bg rounded-2xl w-full max-w-lg overflow-hidden border border-gf-border shadow-2xl flex flex-col max-h-[92vh]">
-                        <header className="px-4 md:px-6 py-3 md:py-4 border-b border-gf-border flex justify-between items-center shrink-0">
-                            <h2 className="text-lg md:text-xl font-bold">{editingAgent ? '修改智能体' : '创建智能体'}</h2>
-                            <button onClick={onClose} className="p-2 hover:bg-gf-border/40 rounded-full"><Icon name="x" /></button>
-                        </header>
-                        <div className="p-4 md:p-6 space-y-4 md:space-y-5 overflow-y-auto">
-                            <div>
-                                <label className="block font-medium mb-1 text-sm">智能体名称</label>
-                                <input
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent"
-                                    placeholder="给智能体起个名字，如：代码审查助手..."
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                                <div>
-                                    <label className="block font-medium mb-1 text-sm">接入 API</label>
-                                    <select
-                                        value={provider}
-                                        onChange={e => changeProvider(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent bg-white"
-                                    >
-                                        {Object.entries(PROVIDERS).map(([k, v]) => (
-                                            <option key={k} value={k}>{v.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block font-medium mb-1 text-sm">模型</label>
-                                    {isCustom ? (
-                                        <input
-                                            value={effModel}
-                                            onChange={e => setModel(e.target.value)}
-                                            className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent"
-                                            placeholder={provider === 'ollama' ? '如 qwen3:32b' : '模型名称（需与 Base URL 服务匹配）'}
-                                        />
-                                    ) : modelList.length ? (
-                                        <select
-                                            value={effModel}
-                                            onChange={e => setModel(e.target.value)}
-                                            className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent bg-white"
-                                        >
-                                            {modelList.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
-                                        </select>
-                                    ) : (
-                                        <div className="w-full px-4 py-2 border border-gf-border rounded-xl text-sm text-gf-muted bg-gf-sidebar/50">
-                                            该 API 尚未配置模型，请先到「API 设置」中填写
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block font-medium mb-1 text-sm">
-                                    固定提示词（系统指令）
-                                    <span className="text-xs text-gf-muted font-normal ml-2">每次对话都会附加给模型</span>
-                                </label>
-                                <textarea
-                                    value={systemPrompt}
-                                    onChange={e => setSystemPrompt(e.target.value)}
-                                    className="w-full h-36 md:h-40 px-4 py-2 border border-gf-border rounded-xl resize-none outline-none focus:border-gf-accent"
-                                    placeholder="例如：你是一位资深全栈工程师，擅长代码审查与性能优化。回答要求简洁、给出具体代码示例。"
-                                />
-                            </div>
-                            <div>
-                                <label className="block font-medium mb-1 text-sm">
-                                    温度 (Temperature)
-                                    <span className="text-xs text-gf-muted font-normal ml-2">留空使用 API 默认值（Kimi 思考模型不支持设置）</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="2"
-                                    step="0.1"
-                                    value={temperature}
-                                    onChange={e => setTemperature(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent"
-                                    placeholder="0.7"
-                                />
-                            </div>
-                        </div>
-                        <footer className="px-4 md:px-6 py-3 md:py-4 border-t border-gf-border bg-white/30 flex justify-between items-center shrink-0">
-                            {editingAgent ? (
-                                <button onClick={() => setShowConfirm(true)} className="text-gf-accent hover:underline text-xs">删除该智能体</button>
-                            ) : <div></div>}
-                            <div className="flex gap-2">
-                                <button onClick={onClose} className="px-4 py-2 text-sm">取消</button>
-                                <button onClick={handleSave} className="px-8 py-2 bg-gf-accent text-white rounded-lg shadow-md">保存</button>
-                            </div>
-                        </footer>
-                        {showConfirm && (
-                            <div className="absolute inset-0 bg-gf-bg/95 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                                <div className="w-16 h-16 bg-gf-accent/10 text-gf-accent rounded-full flex items-center justify-center mb-4">
-                                    <Icon name="trash-2" size={32} />
-                                </div>
-                                <h3 className="text-lg font-bold mb-2">确认删除此智能体？</h3>
-                                <p className="text-sm text-gf-muted mb-8 leading-relaxed px-10">此操作不可恢复，「{name}」的所有对话记录也将被永久删除。</p>
-                                <div className="flex gap-4">
-                                    <button onClick={() => setShowConfirm(false)} className="px-8 py-2 border border-gf-border rounded-lg hover:bg-white transition-colors">我不删了</button>
-                                    <button onClick={handleDelete} className="px-8 py-2 bg-gf-accent text-white rounded-lg hover:bg-gf-accent-hover shadow-lg">确认删除</button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
+              }
+            } catch (e) {}
+          }
         }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+      }
+    } catch (err) {
+      showNotice('请求失败：' + (err.message || '请检查网络与配置'), 'error');
+    } finally {
+      setIsTyping(false);
+    }
+  };
+  const toggleSelect = id => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);else next.add(id);
+      return next;
+    });
+  };
+  const copySelected = () => {
+    const items = messages.filter(m => selected.has(m.id));
+    if (!items.length) return showNotice('请先勾选消息', 'error');
+    const txt = items.map(m => `【${m.role === 'user' ? '用户' : 'AI'}】\n${m.content}`).join('\n\n----\n\n');
+    copyText(txt, showNotice);
+  };
+  if (!activeAgent) {
+    return React.createElement("div", {
+      className: "empty-main flex-1"
+    }, React.createElement("button", {
+      className: "icon-btn menu-btn",
+      onClick: onToggleSidebar
+    }, React.createElement(Icon, {
+      name: "panelLeftOpen",
+      size: 18
+    })), React.createElement(Icon, {
+      name: "sparkles",
+      size: 30,
+      className: "opacity-40"
+    }), React.createElement("p", null, "请在左侧选择或创建一个智能体开始对话"));
+  }
+  const meta = PROVIDERS[activeAgent.provider];
+  const tocItems = messages.filter(m => m.role === 'user');
+  const prov = state.providers[activeAgent.provider];
+  const modelLabel = (prov?.models || []).find(m => m.id === activeAgent.model)?.label || activeAgent.model;
+  return React.createElement("div", {
+    className: "main"
+  }, isTocOpen && React.createElement("div", {
+    className: "backdrop",
+    onClick: () => setIsTocOpen(false)
+  }), React.createElement("aside", {
+    className: `toc ${isTocOpen ? 'open' : ''}`
+  }, React.createElement("div", {
+    className: "toc-head"
+  }, React.createElement("h3", null, React.createElement(Icon, {
+    name: "listTree",
+    size: 15,
+    className: "accent",
+    style: {
+      color: 'var(--accent)'
+    }
+  }), " 对话目录"), React.createElement("button", {
+    className: "icon-btn toc-close",
+    onClick: () => setIsTocOpen(false)
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 15
+  }))), React.createElement("div", {
+    className: "toc-list"
+  }, tocItems.length === 0 && React.createElement("div", {
+    className: "empty-hint"
+  }, "暂无对话"), tocItems.map((m, i) => React.createElement("button", {
+    key: m.id,
+    className: "toc-item",
+    onClick: () => {
+      scrollToMsg(m.id);
+      if (window.innerWidth < 1280) setIsTocOpen(false);
+    }
+  }, React.createElement("div", {
+    className: "t1"
+  }, i + 1, " · ", new Date(m.timestamp).toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })), React.createElement("div", {
+    className: "t2"
+  }, m.content.length > 26 ? m.content.slice(0, 26) + '…' : m.content || '(空)'))))), React.createElement("header", {
+    className: "chat-head"
+  }, React.createElement("div", {
+    className: "left"
+  }, React.createElement("button", {
+    className: "icon-btn",
+    onClick: onToggleSidebar,
+    title: "侧边栏"
+  }, React.createElement(Icon, {
+    name: "panelLeftClose",
+    size: 18
+  })), React.createElement("div", {
+    className: "titles"
+  }, React.createElement("h2", null, activeAgent.name), React.createElement("div", {
+    className: "sub"
+  }, React.createElement("span", {
+    className: "pill"
+  }, meta ? meta.label : activeAgent.provider), React.createElement("span", null, modelLabel)))), React.createElement("div", {
+    className: "right"
+  }, React.createElement("button", {
+    className: `icon-btn ${selectMode ? 'on' : ''}`,
+    title: selectMode ? '退出多选' : '多选复制',
+    onClick: () => {
+      setSelectMode(!selectMode);
+      setSelected(new Set());
+    }
+  }, React.createElement(Icon, {
+    name: "listChecks",
+    size: 17
+  })), React.createElement("button", {
+    className: `icon-btn ${isTocOpen ? 'on' : ''}`,
+    title: "对话目录",
+    onClick: () => setIsTocOpen(!isTocOpen)
+  }, React.createElement(Icon, {
+    name: "listTree",
+    size: 17
+  })), React.createElement("button", {
+    className: "btn",
+    onClick: () => onEditAgent(activeAgent)
+  }, React.createElement(Icon, {
+    name: "edit",
+    size: 14
+  }), " ", React.createElement("span", {
+    className: "lbl"
+  }, "智能体设定")))), React.createElement("main", {
+    className: "chat-body"
+  }, React.createElement("div", {
+    className: "msgs"
+  }, activeAgent.systemPrompt && React.createElement("div", {
+    className: "banner"
+  }, React.createElement("b", null, "固定提示词："), activeAgent.systemPrompt), messages.map(msg => React.createElement("div", {
+    key: msg.id,
+    id: `msg-${msg.id}`,
+    className: `msg-row ${msg.role === 'user' ? 'user' : 'ai'}`
+  }, selectMode && React.createElement("span", {
+    className: "ck"
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: selected.has(msg.id),
+    onChange: () => toggleSelect(msg.id)
+  })), React.createElement("div", {
+    className: "bubble"
+  }, msg.role === 'assistant' && msg.reasoning && React.createElement("details", {
+    className: "thinking"
+  }, React.createElement("summary", null, React.createElement(Icon, {
+    name: "zap",
+    size: 13,
+    className: "t"
+  }), React.createElement("span", {
+    className: "t"
+  }, "思考过程"), React.createElement(Icon, {
+    name: "chevronDown",
+    size: 12
+  })), React.createElement("div", {
+    className: "body"
+  }, msg.reasoning)), msg.content, msg.role === 'assistant' && React.createElement("button", {
+    className: "copy-btn",
+    onClick: () => copyText(msg.content, showNotice),
+    title: "一键复制"
+  }, React.createElement(Icon, {
+    name: "copy",
+    size: 12
+  }))))), isTyping && React.createElement("div", {
+    className: "msg-row ai"
+  }, React.createElement("div", {
+    className: "typing"
+  }, "正在回复...")), React.createElement("div", {
+    ref: messagesEndRef,
+    style: {
+      height: 4
+    }
+  }))), selectMode && React.createElement("div", {
+    className: "select-bar"
+  }, React.createElement("span", {
+    className: "count"
+  }, "已选 ", selected.size, " 条"), React.createElement("div", {
+    className: "acts"
+  }, React.createElement("button", {
+    className: "btn",
+    onClick: () => {
+      if (selected.size === messages.length) setSelected(new Set());else setSelected(new Set(messages.map(m => m.id)));
+    }
+  }, selected.size === messages.length ? '取消全选' : '全选'), React.createElement("button", {
+    className: "btn btn-primary",
+    disabled: !selected.size,
+    onClick: copySelected
+  }, React.createElement(Icon, {
+    name: "copy",
+    size: 13
+  }), " 复制所选"), React.createElement("button", {
+    className: "btn",
+    onClick: () => {
+      setSelectMode(false);
+      setSelected(new Set());
+    }
+  }, "退出"))), React.createElement("footer", {
+    className: "input-bar"
+  }, React.createElement("div", {
+    className: "input-wrap"
+  }, React.createElement("textarea", {
+    value: input,
+    onChange: e => setInput(e.target.value),
+    onKeyDown: e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    placeholder: "输入消息...",
+    rows: 1
+  }), React.createElement("button", {
+    className: "send-btn",
+    onClick: handleSend,
+    disabled: !input.trim() || isTyping,
+    title: "发送"
+  }, React.createElement(Icon, {
+    name: "send",
+    size: 16
+  })))));
+}
+function SettingsModal({
+  state,
+  updateState,
+  onClose,
+  showNotice
+}) {
+  const [providers, setProviders] = useState(() => JSON.parse(JSON.stringify(state.providers)));
+  const updateProv = (key, field, value) => {
+    setProviders(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value
+      }
+    }));
+  };
+  const updateModel = (key, idx, field, value) => {
+    setProviders(prev => {
+      const next = [...(prev[key].models || [])];
+      next[idx] = {
+        ...next[idx],
+        [field]: value
+      };
+      return {
+        ...prev,
+        [key]: {
+          ...prev[key],
+          models: next
+        }
+      };
+    });
+  };
+  return React.createElement("div", {
+    className: "modal",
+    onClick: onClose
+  }, React.createElement("div", {
+    className: "modal-card",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "modal-head"
+  }, React.createElement("h3", null, "API 设置"), React.createElement("button", {
+    className: "icon-btn",
+    onClick: onClose
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 17
+  }))), React.createElement("div", {
+    className: "modal-body"
+  }, React.createElement("p", {
+    className: "hint-top"
+  }, "API Key 仅保存在浏览器本地。每个服务维护自己的模型列表：", React.createElement("b", null, "显示名"), "（如 flash）用于前端下拉选择，", React.createElement("b", null, "模型 ID"), "（如 deepseek-v4-flash）为实际请求标识，请求参数为可选的 JSON。"), Object.entries(PROVIDERS).map(([key, meta]) => {
+    const p = providers[key] || {
+      apiKey: '',
+      baseUrl: meta.baseUrl,
+      models: []
+    };
+    return React.createElement("div", {
+      key: key,
+      className: "provider-card"
+    }, React.createElement("div", {
+      className: "ph"
+    }, React.createElement(Icon, {
+      name: key === 'custom' ? 'wrench' : 'key',
+      size: 15,
+      style: {
+        color: 'var(--accent)'
+      }
+    }), meta.label, React.createElement("span", {
+      className: "note"
+    }, meta.note.split('。')[0])), React.createElement("div", null, React.createElement("div", {
+      className: "fl",
+      style: {
+        marginBottom: 5,
+        fontSize: 12
+      }
+    }, "API Key ", key === 'ollama' ? '（可留空）' : ''), React.createElement("input", {
+      type: "password",
+      value: p.apiKey || '',
+      onChange: e => updateProv(key, 'apiKey', e.target.value),
+      placeholder: key === 'ollama' ? '无需填写' : 'sk-...'
+    })), React.createElement("div", null, React.createElement("div", {
+      className: "fl",
+      style: {
+        marginBottom: 5,
+        fontSize: 12
+      }
+    }, "Base URL"), React.createElement("input", {
+      type: "text",
+      value: p.baseUrl || '',
+      onChange: e => updateProv(key, 'baseUrl', e.target.value),
+      placeholder: "https://..."
+    })), React.createElement("div", null, React.createElement("div", {
+      className: "fl",
+      style: {
+        marginBottom: 5,
+        fontSize: 12
+      }
+    }, "模型列表"), React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8
+      }
+    }, (p.models || []).map((m, i) => React.createElement("div", {
+      key: i,
+      className: "model-row"
+    }, React.createElement("div", {
+      className: "mrow"
+    }, React.createElement("input", {
+      type: "text",
+      value: m.label || '',
+      onChange: e => updateModel(key, i, 'label', e.target.value),
+      placeholder: "显示名，如 flash"
+    }), React.createElement("input", {
+      type: "text",
+      value: m.id || '',
+      onChange: e => updateModel(key, i, 'id', e.target.value),
+      placeholder: "模型 ID，如 deepseek-v4-flash"
+    }), React.createElement("button", {
+      className: "icon-btn",
+      onClick: () => updateProv(key, 'models', (p.models || []).filter((_, j) => j !== i)),
+      title: "删除该模型"
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 14
+    }))), React.createElement("details", {
+      className: "adv"
+    }, React.createElement("summary", null, "高级：请求参数（JSON，可选）"), React.createElement("input", {
+      type: "text",
+      value: m.params || '',
+      onChange: e => updateModel(key, i, 'params', e.target.value),
+      placeholder: '如 {"thinking":{"type":"enabled"}}',
+      style: {
+        marginTop: 6,
+        fontSize: 11,
+        fontFamily: 'monospace'
+      }
+    })))), React.createElement("button", {
+      className: "add-model-btn",
+      onClick: () => updateProv(key, 'models', [...(p.models || []), {
+        label: '',
+        id: '',
+        params: ''
+      }])
+    }, React.createElement(Icon, {
+      name: "plus",
+      size: 13
+    }), " 添加模型"))), React.createElement("p", {
+      className: "hint-note"
+    }, meta.note));
+  })), React.createElement("div", {
+    className: "modal-foot"
+  }, React.createElement("button", {
+    className: "btn",
+    onClick: onClose
+  }, "取消"), React.createElement("div", {
+    className: "acts"
+  }, React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: () => {
+      const cleaned = {};
+      for (const [k, v] of Object.entries(providers)) {
+        cleaned[k] = {
+          ...v,
+          models: (v.models || []).filter(m => m.id && m.id.trim()).map(m => ({
+            label: m.label.trim() || m.id.trim(),
+            id: m.id.trim(),
+            params: (m.params || '').trim()
+          }))
+        };
+      }
+      updateState({
+        providers: cleaned
+      });
+      showNotice('API 设置已保存');
+      onClose();
+    }
+  }, "保存设置")))));
+}
+function AgentModal({
+  state,
+  updateState,
+  editingAgent,
+  onClose,
+  showNotice
+}) {
+  const [name, setName] = useState(editingAgent?.name || '');
+  const [provider, setProvider] = useState(editingAgent?.provider || 'deepseek');
+  const [model, setModel] = useState(editingAgent?.model || '');
+  const [systemPrompt, setSystemPrompt] = useState(editingAgent?.systemPrompt || '');
+  const [temperature, setTemperature] = useState(editingAgent?.temperature != null ? String(editingAgent.temperature) : '');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const meta = PROVIDERS[provider];
+  const modelList = state.providers[provider]?.models || [];
+  const effModel = modelList.some(m => m.id === model) ? model : modelList[0]?.id || '';
+  const isCustom = provider === 'ollama' || provider === 'custom';
+  const changeProvider = p => {
+    setProvider(p);
+    const list = state.providers[p]?.models || [];
+    setModel(list.length ? list[0].id : '');
+  };
+  const handleSave = () => {
+    if (!name.trim()) return showNotice('请输入智能体名称', 'error');
+    if (isCustom) {
+      if (!effModel.trim()) return showNotice('请填写模型 ID', 'error');
+    } else {
+      if (!modelList.length) return showNotice('请先在 API 设置中为该 API 配置模型', 'error');
+      if (!effModel) return showNotice('请选择模型', 'error');
+    }
+    const data = {
+      name: name.trim(),
+      provider,
+      model: effModel,
+      systemPrompt,
+      temperature: temperature === '' ? null : parseFloat(temperature)
+    };
+    if (editingAgent) {
+      updateState({
+        agents: state.agents.map(a => a.id === editingAgent.id ? {
+          ...a,
+          ...data
+        } : a)
+      });
+      showNotice('智能体已更新');
+    } else {
+      const id = Date.now().toString();
+      updateState({
+        agents: [...state.agents, {
+          id,
+          ...data
+        }],
+        activeAgentId: id
+      });
+      showNotice('新智能体已创建');
+    }
+    onClose();
+  };
+  const handleDelete = () => {
+    const newList = state.agents.filter(a => a.id !== editingAgent.id);
+    updateState({
+      agents: newList,
+      activeAgentId: state.activeAgentId === editingAgent.id ? newList[0]?.id || null : state.activeAgentId
+    });
+    showNotice('智能体已删除');
+    onClose();
+  };
+  return React.createElement("div", {
+    className: "modal",
+    onClick: onClose
+  }, React.createElement("div", {
+    className: "modal-card sm",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "modal-head"
+  }, React.createElement("h3", null, editingAgent ? '修改智能体' : '创建智能体'), React.createElement("button", {
+    className: "icon-btn",
+    onClick: onClose
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 17
+  }))), React.createElement("div", {
+    className: "modal-body"
+  }, React.createElement("div", {
+    className: "field"
+  }, React.createElement("label", {
+    className: "fl"
+  }, "智能体名称"), React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "给智能体起个名字，如：代码审查助手..."
+  })), React.createElement("div", {
+    className: "grid2"
+  }, React.createElement("div", {
+    className: "field"
+  }, React.createElement("label", {
+    className: "fl"
+  }, "接入 API"), React.createElement("select", {
+    value: provider,
+    onChange: e => changeProvider(e.target.value)
+  }, Object.entries(PROVIDERS).map(([k, v]) => React.createElement("option", {
+    key: k,
+    value: k
+  }, v.label)))), React.createElement("div", {
+    className: "field"
+  }, React.createElement("label", {
+    className: "fl"
+  }, "模型"), isCustom ? React.createElement("input", {
+    value: effModel,
+    onChange: e => setModel(e.target.value),
+    placeholder: provider === 'ollama' ? '如 qwen3:32b' : '模型 ID（需与 Base URL 服务匹配）'
+  }) : modelList.length ? React.createElement("select", {
+    value: effModel,
+    onChange: e => setModel(e.target.value)
+  }, modelList.map(m => React.createElement("option", {
+    key: m.id,
+    value: m.id
+  }, m.label))) : React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: 'var(--muted)',
+      padding: '10px 12px',
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      background: 'var(--panel2)'
+    }
+  }, "该 API 尚未配置模型，请先到「API 设置」中填写"))), React.createElement("div", {
+    className: "field"
+  }, React.createElement("label", {
+    className: "fl"
+  }, "固定提示词（系统指令）", React.createElement("span", {
+    className: "hint"
+  }, "每次对话都会附加给模型")), React.createElement("textarea", {
+    rows: 7,
+    value: systemPrompt,
+    onChange: e => setSystemPrompt(e.target.value),
+    placeholder: "例如：你是一位资深全栈工程师，擅长代码审查与性能优化。回答要求简洁、给出具体代码示例。"
+  })), React.createElement("div", {
+    className: "field"
+  }, React.createElement("label", {
+    className: "fl"
+  }, "温度 (Temperature)", React.createElement("span", {
+    className: "hint"
+  }, "留空使用 API 默认值（Kimi 思考模型不支持设置）")), React.createElement("input", {
+    type: "number",
+    min: "0",
+    max: "2",
+    step: "0.1",
+    value: temperature,
+    onChange: e => setTemperature(e.target.value),
+    placeholder: "0.7"
+  }))), React.createElement("div", {
+    className: "modal-foot"
+  }, editingAgent ? React.createElement("button", {
+    className: "btn btn-danger-text",
+    onClick: () => setShowConfirm(true)
+  }, "删除该智能体") : React.createElement("span", null), React.createElement("div", {
+    className: "acts"
+  }, React.createElement("button", {
+    className: "btn",
+    onClick: onClose
+  }, "取消"), React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: handleSave
+  }, "保存"))), showConfirm && React.createElement("div", {
+    className: "modal",
+    style: {
+      position: 'absolute',
+      inset: 0,
+      background: 'rgba(4,7,12,.75)'
+    },
+    onClick: () => setShowConfirm(false)
+  }, React.createElement("div", {
+    className: "confirm-box",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "ic",
+    style: {
+      background: 'rgba(248,113,113,.12)',
+      color: 'var(--danger)'
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 24
+  })), React.createElement("h4", null, "确认删除此智能体？"), React.createElement("p", null, "此操作不可恢复，「", name, "」的所有对话记录也将被永久删除。"), React.createElement("div", {
+    className: "acts"
+  }, React.createElement("button", {
+    className: "btn",
+    onClick: () => setShowConfirm(false)
+  }, "我不删了"), React.createElement("button", {
+    className: "btn btn-primary",
+    style: {
+      background: 'linear-gradient(135deg,#f87171,#dc2626)'
+    },
+    onClick: handleDelete
+  }, "确认删除"))))));
+}
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App, null));
     </script>
 </body>
 </html>
