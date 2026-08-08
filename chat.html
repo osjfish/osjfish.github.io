@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>智能体工作台</title>
+    <title>智能体</title>
     <style>
         *{box-sizing:border-box}
         html,body{height:100%}
@@ -37,7 +37,7 @@
         .icon-btn.active{background:var(--hover);color:var(--accent)}
         .icon-btn.on{background:linear-gradient(135deg,rgba(34,211,238,.2),rgba(99,102,241,.2));color:var(--accent)}
 
-        .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;color:var(--muted);border:1px solid var(--border);transition:all .15s}
+        .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;color:var(--muted);border:1px solid var(--border);transition:color .15s,border-color .15s,background .15s}
         .btn:hover{color:var(--text);border-color:var(--border2);background:var(--hover)}
         .btn-primary{background:var(--grad);color:#fff;border:none;font-weight:600}
         .btn-primary:hover{filter:brightness(1.15);color:#fff}
@@ -50,7 +50,7 @@
         .side-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;letter-spacing:.3px}
         .side-title .grad-dot{width:9px;height:9px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(34,211,238,.8)}
         .side-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
-        .agent-item{width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid transparent;transition:all .15s;cursor:pointer}
+        .agent-item{width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid transparent;transition:background .15s,border-color .15s;cursor:pointer}
         .agent-item:hover{background:var(--hover)}
         .agent-item.active{background:var(--panel2);border-color:var(--border2)}
         .agent-item .name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -138,7 +138,7 @@
         .model-row .mrow .icon-btn{flex-shrink:0;padding:6px}
         .model-row .adv{margin-top:4px}
         .model-row .adv summary{font-size:10.5px;color:var(--muted);cursor:pointer;user-select:none}
-        .add-model-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:1px dashed var(--border2);color:var(--muted);font-size:12px;transition:all .15s}
+        .add-model-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:1px dashed var(--border2);color:var(--muted);font-size:12px;transition:color .15s,border-color .15s}
         .add-model-btn:hover{color:var(--accent);border-color:var(--accent)}
         .hint-note{font-size:10.5px;color:var(--muted);line-height:1.7}
         .hint-top{font-size:12px;color:var(--muted);line-height:1.8}
@@ -186,7 +186,10 @@
 const {
   useState,
   useEffect,
-  useRef
+  useRef,
+  useMemo,
+  useCallback,
+  memo
 } = React;
 const PROVIDERS = {
   deepseek: {
@@ -394,11 +397,11 @@ const Icon = ({
     __html: ICONS[name] || ''
   }
 });
-const Toast = ({
+const Toast = memo(function Toast({
   message,
   type,
   onClose
-}) => {
+}) {
   useEffect(() => {
     const t = setTimeout(onClose, 3200);
     return () => clearTimeout(t);
@@ -411,17 +414,24 @@ const Toast = ({
   }), React.createElement("span", {
     className: "tt"
   }, message));
-};
+});
 function App() {
   const [state, setState] = useState(loadInitialState);
   const [isSideOpen, setIsSideOpen] = useState(window.innerWidth > 768);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState(undefined);
   const [notice, setNotice] = useState(null);
-  const showNotice = (message, type = 'info') => setNotice({
+  const showNotice = useCallback((message, type = 'info') => setNotice({
     message,
     type
-  });
+  }), []);
+  const prevEditingRef = useRef(editingAgent);
+  useEffect(() => {
+    if (prevEditingRef.current !== undefined && editingAgent === undefined && window.innerWidth < 768) {
+      setIsSideOpen(false);
+    }
+    prevEditingRef.current = editingAgent;
+  }, [editingAgent]);
   const saveTimer = useRef(null);
   useEffect(() => {
     clearTimeout(saveTimer.current);
@@ -430,10 +440,10 @@ function App() {
     }, 400);
     return () => clearTimeout(saveTimer.current);
   }, [state]);
-  const updateState = updates => setState(prev => ({
+  const updateState = useCallback(updates => setState(prev => ({
     ...prev,
     ...updates
-  }));
+  })), []);
   const activeAgent = state.agents.find(a => a.id === state.activeAgentId) || null;
   return React.createElement("div", {
     className: "app"
@@ -471,7 +481,7 @@ function App() {
     showNotice: showNotice
   }));
 }
-function Sidebar({
+const Sidebar = memo(function Sidebar({
   state,
   updateState,
   isOpen,
@@ -514,7 +524,7 @@ function Sidebar({
     className: "side-title"
   }, React.createElement("span", {
     className: "grad-dot"
-  }), React.createElement("span", null, "智能体工作台")), React.createElement("button", {
+  }), React.createElement("span", null, "智能体")), React.createElement("button", {
     className: "icon-btn",
     onClick: onOpenAgentEditor,
     title: "新建智能体"
@@ -608,8 +618,8 @@ function Sidebar({
       location.reload();
     }
   }, "确认初始化")))));
-}
-function ChatArea({
+});
+const ChatArea = memo(function ChatArea({
   state,
   activeAgent,
   updateState,
@@ -964,7 +974,7 @@ function ChatArea({
     name: "send",
     size: 16
   })))));
-}
+});
 function SettingsModal({
   state,
   updateState,
@@ -1144,7 +1154,7 @@ function SettingsModal({
     }
   }, "保存设置")))));
 }
-function AgentModal({
+const AgentModal = memo(function AgentModal({
   state,
   updateState,
   editingAgent,
@@ -1340,7 +1350,7 @@ function AgentModal({
     },
     onClick: handleDelete
   }, "确认删除"))))));
-}
+});
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(App, null));
     </script>

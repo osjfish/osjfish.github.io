@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>智能体工作台</title>
+    <title>智能体</title>
     <style>
         *{box-sizing:border-box}
         html,body{height:100%}
@@ -37,7 +37,7 @@
         .icon-btn.active{background:var(--hover);color:var(--accent)}
         .icon-btn.on{background:linear-gradient(135deg,rgba(34,211,238,.2),rgba(99,102,241,.2));color:var(--accent)}
 
-        .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;color:var(--muted);border:1px solid var(--border);transition:all .15s}
+        .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:13px;color:var(--muted);border:1px solid var(--border);transition:color .15s,border-color .15s,background .15s}
         .btn:hover{color:var(--text);border-color:var(--border2);background:var(--hover)}
         .btn-primary{background:var(--grad);color:#fff;border:none;font-weight:600}
         .btn-primary:hover{filter:brightness(1.15);color:#fff}
@@ -50,7 +50,7 @@
         .side-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;letter-spacing:.3px}
         .side-title .grad-dot{width:9px;height:9px;border-radius:50%;background:var(--grad);box-shadow:0 0 12px rgba(34,211,238,.8)}
         .side-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
-        .agent-item{width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid transparent;transition:all .15s;cursor:pointer}
+        .agent-item{width:100%;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid transparent;transition:background .15s,border-color .15s;cursor:pointer}
         .agent-item:hover{background:var(--hover)}
         .agent-item.active{background:var(--panel2);border-color:var(--border2)}
         .agent-item .name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -138,7 +138,7 @@
         .model-row .mrow .icon-btn{flex-shrink:0;padding:6px}
         .model-row .adv{margin-top:4px}
         .model-row .adv summary{font-size:10.5px;color:var(--muted);cursor:pointer;user-select:none}
-        .add-model-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:1px dashed var(--border2);color:var(--muted);font-size:12px;transition:all .15s}
+        .add-model-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:1px dashed var(--border2);color:var(--muted);font-size:12px;transition:color .15s,border-color .15s}
         .add-model-btn:hover{color:var(--accent);border-color:var(--accent)}
         .hint-note{font-size:10.5px;color:var(--muted);line-height:1.7}
         .hint-top{font-size:12px;color:var(--muted);line-height:1.8}
@@ -183,7 +183,7 @@
     <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo, useCallback, memo } = React;
 
         // ============ 提供商配置（路径与说明，2026-08） ============
         const PROVIDERS = {
@@ -315,7 +315,7 @@
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: ICONS[name] || '' }} />
         );
 
-        const Toast = ({ message, type, onClose }) => {
+        const Toast = memo(function Toast({ message, type, onClose }) {
             useEffect(() => {
                 const t = setTimeout(onClose, 3200);
                 return () => clearTimeout(t);
@@ -326,7 +326,7 @@
                     <span className="tt">{message}</span>
                 </div>
             );
-        };
+        });
 
         function App() {
             const [state, setState] = useState(loadInitialState);
@@ -335,7 +335,16 @@
             const [editingAgent, setEditingAgent] = useState(undefined);
             const [notice, setNotice] = useState(null);
 
-            const showNotice = (message, type = 'info') => setNotice({ message, type });
+            const showNotice = useCallback((message, type = 'info') => setNotice({ message, type }), []);
+
+            // 移动端：弹窗关闭后收起侧边栏，避免遮挡主区域
+            const prevEditingRef = useRef(editingAgent);
+            useEffect(() => {
+                if (prevEditingRef.current !== undefined && editingAgent === undefined && window.innerWidth < 768) {
+                    setIsSideOpen(false);
+                }
+                prevEditingRef.current = editingAgent;
+            }, [editingAgent]);
 
             // 防抖保存：流式输出期间不频繁写 localStorage
             const saveTimer = useRef(null);
@@ -347,7 +356,7 @@
                 return () => clearTimeout(saveTimer.current);
             }, [state]);
 
-            const updateState = (updates) => setState(prev => ({ ...prev, ...updates }));
+            const updateState = useCallback((updates) => setState(prev => ({ ...prev, ...updates })), []);
 
             const activeAgent = state.agents.find(a => a.id === state.activeAgentId) || null;
 
@@ -399,7 +408,7 @@
             );
         }
 
-        function Sidebar({ state, updateState, isOpen, onOpenSettings, onOpenAgentEditor, showNotice }) {
+        const Sidebar = memo(function Sidebar({ state, updateState, isOpen, onOpenSettings, onOpenAgentEditor, showNotice }) {
             const [confirmReset, setConfirmReset] = useState(false);
 
             const handleExport = () => {
@@ -434,7 +443,7 @@
                         <div className="side-head">
                             <div className="side-title">
                                 <span className="grad-dot"></span>
-                                <span>智能体工作台</span>
+                                <span>智能体</span>
                             </div>
                             <button className="icon-btn" onClick={onOpenAgentEditor} title="新建智能体">
                                 <Icon name="userPlus" size={18} />
@@ -515,9 +524,9 @@
                     )}
                 </>
             );
-        }
+        });
 
-        function ChatArea({ state, activeAgent, updateState, onToggleSidebar, onEditAgent, showNotice }) {
+        const ChatArea = memo(function ChatArea({ state, activeAgent, updateState, onToggleSidebar, onEditAgent, showNotice }) {
             const [input, setInput] = useState('');
             const [isTyping, setIsTyping] = useState(false);
             const [isTocOpen, setIsTocOpen] = useState(window.innerWidth >= 1280);
@@ -824,7 +833,7 @@
                     </footer>
                 </div>
             );
-        }
+        });
 
         function SettingsModal({ state, updateState, onClose, showNotice }) {
             const [providers, setProviders] = useState(() => JSON.parse(JSON.stringify(state.providers)));
@@ -956,7 +965,7 @@
             );
         }
 
-        function AgentModal({ state, updateState, editingAgent, onClose, showNotice }) {
+        const AgentModal = memo(function AgentModal({ state, updateState, editingAgent, onClose, showNotice }) {
             const [name, setName] = useState(editingAgent?.name || '');
             const [provider, setProvider] = useState(editingAgent?.provider || 'deepseek');
             const [model, setModel] = useState(editingAgent?.model || '');
@@ -1102,7 +1111,7 @@
                     </div>
                 </div>
             );
-        }
+        });
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
