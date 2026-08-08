@@ -136,16 +136,28 @@
             }
         };
 
-        const DEFAULT_PROVIDERS = Object.fromEntries(
-            Object.entries(PROVIDERS).map(([k, v]) => ({
-                key: k,
-                value: { apiKey: '', baseUrl: v.baseUrl, models: [...v.defaultModels] }
-            }))
-        );
+        const DEFAULT_PROVIDERS = {};
+        for (const [k, v] of Object.entries(PROVIDERS)) {
+            DEFAULT_PROVIDERS[k] = {
+                apiKey: '',
+                baseUrl: v.baseUrl,
+                models: (v.defaultModels || []).map(name => ({ name, params: '' }))
+            };
+        }
 
         const STORAGE_KEY = 'agent_chat_state_v2';
         const OLD_KEY = 'agent_chat_state_v1';
         const LEGACY_KEY = 'deepseek_chat_state_standalone';
+
+        function normalizeModels(arr, fallback) {
+            if (!Array.isArray(arr) || !arr.length) {
+                return (fallback || []).map(name => ({ name, params: '' }));
+            }
+            return arr.map(m => {
+                if (typeof m === 'string') return { name: m, params: '' };
+                return { name: (m && m.name) || '', params: (m && m.params) || '' };
+            }).filter(m => m.name);
+        }
 
         function normalizeState(s) {
             const providers = {};
@@ -154,7 +166,7 @@
                 providers[k] = {
                     apiKey: p.apiKey || '',
                     baseUrl: p.baseUrl || PROVIDERS[k].baseUrl,
-                    models: Array.isArray(p.models) && p.models.length ? p.models : (PROVIDERS[k].defaultModels || [])
+                    models: normalizeModels(p.models, PROVIDERS[k].defaultModels)
                 };
             }
             return {
@@ -358,7 +370,8 @@
                             const meta = PROVIDERS[agent.provider];
                             const prov = state.providers[agent.provider];
                             const missingKey = agent.provider !== 'ollama' && agent.provider !== 'custom' && !prov?.apiKey;
-                            const missingModel = !(prov?.models || []).includes(agent.model);
+                            const modelNames = (prov?.models || []).map(m => m.name);
+                            const missingModel = !modelNames.includes(agent.model);
                             return (
                                 <button
                                     key={agent.id}
@@ -460,7 +473,16 @@
                     if (!prov?.apiKey) return showNotice(`请先在 API 设置中配置「${PROVIDERS[activeAgent.provider]?.label || activeAgent.provider}」的 API Key`, 'error');
                 }
                 if (!modelList.length) return showNotice('请先在 API 设置中为该 API 配置模型', 'error');
-                const model = modelList.includes(activeAgent.model) ? activeAgent.model : modelList[0];
+                const modelEntry = modelList.find(m => m.name === activeAgent.model) || modelList[0];
+                const model = modelEntry.name;
+                let extraParams = {};
+                if (modelEntry.params && modelEntry.params.trim()) {
+                    try {
+                        extraParams = JSON.parse(modelEntry.params);
+                    } catch (e) {
+                        return showNotice(`模型「${model}」的参数 JSON 格式错误，请到 API 设置中修正`, 'error');
+                    }
+                }
 
                 const userMsg = { id: Date.now().toString(), role: 'user', content: input.trim(), timestamp: Date.now() };
                 const newMessages = [...messages, userMsg];
@@ -482,7 +504,8 @@
                             ...newMessages.map(m => ({ role: m.role, content: m.content }))
                         ],
                         stream: true,
-                        max_tokens: 65536
+                        max_tokens: 65536,
+                        ...extraParams
                     };
                     if (activeAgent.temperature != null && activeAgent.provider !== 'kimi') {
                         body.temperature = activeAgent.temperature;
@@ -780,7 +803,7 @@
                         </header>
                         <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
                             <p className="text-xs text-gf-muted">
-                                API Key 仅保存在浏览器本地。每个服务可自定义模型列表（每行一个）；智能体创建时直接选择。模型由您自行填写（DeepSeek 已预置）。
+                                API Key 仅保存在浏览器本地。每个服务可维护自己的模型列表：填写「模型名」与可选「模型参数」（JSON，合并进请求体）。智能体创建时从列表中直接选择，默认取第一项。
                             </p>
                             {Object.entries(PROVIDERS).map(([key, meta]) => {
                                 const p = providers[key] || { apiKey: '', baseUrl: meta.baseUrl, models: [] };
@@ -814,14 +837,51 @@
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs text-gf-muted mb-1">模型列表（每行一个，前端下拉选择时默认取第一个）</label>
-                                                <textarea
-                                                    value={(p.models || []).join('\n')}
-                                                    onChange={e => updateProv(key, 'models', e.target.value.split('\n').map(s => s.trim()).filter(Boolean))}
-                                                    rows={3}
-                                                    placeholder={key === 'deepseek' ? 'deepseek-v4-pro\ndeepseek-v4-flash' : key === 'doubao' ? 'ep-你的接入点ID\n或 doubao-seed-2-1-pro-260628' : '每个模型名一行'}
-                                                    className="w-full px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent resize-y"
-                                                />
+                                                <label className="block text-xs text-gf-muted mb-1">模型列表（模型名 + 模型参数，参数为可选的 JSON 对象）</label>
+                                                <div className="space-y-2">
+                                                    {(p.models || []).map((m, i) => (
+                                                        <div key={i} className="flex gap-2 items-center">
+                                                            <input
+                                                                type="text"
+                                                                value={m.name || ''}
+                                                                onChange={e => {
+                                                                    const next = [...(p.models || [])];
+                                                                    next[i] = { ...next[i], name: e.target.value };
+                                                                    updateProv(key, 'models', next);
+                                                                }}
+                                                                placeholder="模型名，如 glm-5.2"
+                                                                className="flex-1 min-w-0 px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={m.params || ''}
+                                                                onChange={e => {
+                                                                    const next = [...(p.models || [])];
+                                                                    next[i] = { ...next[i], params: e.target.value };
+                                                                    updateProv(key, 'models', next);
+                                                                }}
+                                                                placeholder={'JSON 参数，如 {"thinking":{"type":"enabled"}}'}
+                                                                className="flex-1 min-w-0 px-3 py-2 text-sm border border-gf-border rounded-lg outline-none focus:border-gf-accent font-mono text-xs"
+                                                            />
+                                                            <button
+                                                                onClick={() => updateProv(key, 'models', (p.models || []).filter((_, j) => j !== i))}
+                                                                className="p-2 text-gf-muted hover:text-gf-accent rounded-lg hover:bg-gf-border/30 shrink-0"
+                                                                title="删除该模型"
+                                                            >
+                                                                <Icon name="x" size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    <button
+                                                        onClick={() => updateProv(key, 'models', [...(p.models || []), { name: '', params: '' }])}
+                                                        className="px-3 py-1.5 text-xs border border-gf-border rounded-lg hover:bg-white flex items-center gap-1 text-gf-muted hover:text-gf-text"
+                                                    >
+                                                        <Icon name="plus" size={13} /> 添加模型
+                                                    </button>
+                                                </div>
+                                                <p className="text-[10px] text-gf-muted mt-1.5">
+                                                    模型参数会合并进请求体，可配置思考模式、reasoning_effort、top_p 等；留空则使用默认值。
+                                                </p>
                                             </div>
                                         </div>
                                         <p className="text-[10px] text-gf-muted">{meta.note}</p>
@@ -833,7 +893,11 @@
                             <button onClick={onClose} className="px-4 py-2 text-gf-text hover:bg-gf-border/40 rounded-lg">取消</button>
                             <button
                                 onClick={() => {
-                                    updateState({ providers });
+                                    const cleaned = {};
+                                    for (const [k, v] of Object.entries(providers)) {
+                                        cleaned[k] = { ...v, models: (v.models || []).filter(m => m.name && m.name.trim()).map(m => ({ name: m.name.trim(), params: (m.params || '').trim() })) };
+                                    }
+                                    updateState({ providers: cleaned });
                                     showNotice('API 设置已保存');
                                     onClose();
                                 }}
@@ -856,14 +920,14 @@
             const [showConfirm, setShowConfirm] = useState(false);
 
             const meta = PROVIDERS[provider];
-            const modelList = state.providers[provider]?.models || [];
-            const effModel = modelList.includes(model) ? model : (modelList[0] || '');
+            const modelList = (state.providers[provider]?.models || []).map(m => ({ name: m.name || '', params: m.params || '' }));
+            const effModel = modelList.some(m => m.name === model) ? model : (modelList[0]?.name || '');
             const isCustom = provider === 'ollama' || provider === 'custom';
 
             const changeProvider = (p) => {
                 setProvider(p);
-                const list = state.providers[p]?.models || [];
-                setModel(list[0] || '');
+                const list = (state.providers[p]?.models || []);
+                setModel(list.length ? list[0].name : '');
             };
 
             const handleSave = () => {
@@ -949,7 +1013,7 @@
                                             onChange={e => setModel(e.target.value)}
                                             className="w-full px-4 py-2 border border-gf-border rounded-xl outline-none focus:border-gf-accent bg-white"
                                         >
-                                            {modelList.map(m => <option key={m} value={m}>{m}</option>)}
+                                            {modelList.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                                         </select>
                                     ) : (
                                         <div className="w-full px-4 py-2 border border-gf-border rounded-xl text-sm text-gf-muted bg-gf-sidebar/50">
