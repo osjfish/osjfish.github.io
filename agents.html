@@ -107,7 +107,20 @@ textarea{resize:vertical}
 .input-box:focus-within{border-color:var(--gold)}
 .input-box textarea{border:none;background:none;resize:none;padding:4px 0;max-height:160px;font-size:14.5px;line-height:1.6}
 .input-box textarea:focus{outline:none}
-.input-bar{display:flex;align-items:flex-end;justify-content:flex-end;gap:10px;margin-top:4px}
+.input-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:4px}
+.input-hint{flex:1;min-width:0;font-size:11.5px;color:var(--text2);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-bottom:10px}
+.attach-btn{height:38px;width:38px;border-radius:var(--radius-sm);background:var(--bg);border:1px solid var(--line);color:var(--text2);font-size:19px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
+.attach-btn:hover{border-color:var(--gold);color:var(--seal)}
+.attach-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.attach-item{position:relative;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);padding:4px 6px;font-size:12px;max-width:200px}
+.attach-item img{width:44px;height:44px;object-fit:cover;border-radius:4px}
+.attach-item .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;color:var(--text2)}
+.attach-item .x{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:var(--text2);color:var(--card);font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.msg-files{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.msg-file{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;color:var(--text2);max-width:220px}
+.msg-file img{width:44px;height:44px;object-fit:cover;border-radius:4px}
+.msg-file .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg.user .msg-files{justify-content:flex-end}
 .send-btn{height:38px;min-width:76px;padding:0 18px;border-radius:var(--radius-sm);background:var(--seal);color:#fdf6e8;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s;letter-spacing:2px}
 .send-btn:hover{filter:brightness(1.08)}
 .send-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -232,8 +245,11 @@ textarea{resize:vertical}
     <div class="messages" id="messages"></div>
     <div class="input-wrap">
       <div class="input-box">
+        <div class="attach-list" id="attachList"></div>
         <textarea id="input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
         <div class="input-bar">
+          <button class="attach-btn" id="attachBtn" title="上传图片或文件">＋</button>
+          <div class="input-hint">图片或文本文件会发给 AI，其他文件仅展示给 AI 名称</div>
           <button class="send-btn" id="sendBtn">发送</button>
         </div>
       </div>
@@ -242,6 +258,7 @@ textarea{resize:vertical}
 </div>
 
 <div class="backdrop" id="backdrop"></div>
+<input type="file" id="attachFile" accept="image/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xlsx,.xls,.pptx,.ppt,.log,.js,.py,.html,.css,.xml,.yml,.yaml" multiple style="display:none">
 
 <div class="overlay" id="editOverlay">
   <div class="modal">
@@ -374,7 +391,8 @@ let state={
   search:"",
   editing:null,
   generating:false,
-  abort:null
+  abort:null,
+  pendingFiles:[]
 };
 let stickToBottom=true;
 
@@ -442,7 +460,10 @@ function getConv(id){
   if(!c){c={id,messages:[]};localStorage.setItem("agentwork_conv_"+id,JSON.stringify(c));}
   return c;
 }
-function saveConv(c){localStorage.setItem("agentwork_conv_"+c.id,JSON.stringify(c));}
+function saveConv(c){
+  try{localStorage.setItem("agentwork_conv_"+c.id,JSON.stringify(c));}
+  catch(e){toast("对话保存失败：本地存储空间不足，请减少图片附件",true);}
+}
 function delConv(id){localStorage.removeItem("agentwork_conv_"+id);}
 
 const PROVIDERS={
@@ -459,16 +480,31 @@ function chatUrl(base){
   return b+"/chat/completions";
 }
 
-function buildMessages(agent,history,userText){
+function toApiContent(m){
+  const text=Array.isArray(m.content)?"":String(m.text||m.content||"").slice(0,60000);
+  const parts=[];
+  if(text)parts.push({type:"text",text});
+  for(const f of (m.files||[])){
+    if(f.type==="image"){
+      parts.push({type:"image_url",image_url:{url:f.data}});
+    }else if(f.type==="text"){
+      parts.push({type:"text",text:"\n[用户上传文件："+f.name+"]\n"+String(f.data).slice(0,60000)});
+    }else{
+      parts.push({type:"text",text:"\n[用户上传了文件："+f.name+"，当前模型无法直接读取该文件内容]"});
+    }
+  }
+  return parts.length?parts:text;
+}
+function buildMessages(agent,history,userMsg){
   const msgs=[];
   let sys=agent.persona||"你是一个乐于助人的 AI 助手。";
   sys+="\n\n当前日期："+new Date().toLocaleDateString("zh-CN");
   msgs.push({role:"system",content:sys});
   for(const m of history){
-    if(!m||!m.content)continue;
-    msgs.push({role:m.role,content:String(m.content).slice(0,60000)});
+    if(!m||(!m.content&&!m.files))continue;
+    msgs.push({role:m.role,content:Array.isArray(m.content)?m.content:toApiContent(m)});
   }
-  msgs.push({role:"user",content:userText.slice(0,60000)});
+  msgs.push({role:"user",content:toApiContent(userMsg)});
   return msgs;
 }
 
@@ -563,7 +599,7 @@ function selectAgent(id){
   state.currentId=id;
   save();
   renderAgents();
-  renderChat();
+  renderChat(true);
   closeSidebarMobile();
 }
 function deleteAgent(id){
@@ -575,7 +611,7 @@ function deleteAgent(id){
   if(!state.agents.length)state.agents.push({id:uid(),name:"万能助手",avatar:"智",color:"#3d5a70",persona:"",greeting:"你好，我是你的助手。",questions:[],model:"",createdAt:Date.now()});
   save();
   renderAgents();
-  renderChat();
+  renderChat(true);
 }
 
 function scrollBottomNow(sc){
@@ -584,8 +620,9 @@ function scrollBottomNow(sc){
   sc.scrollTop=sc.scrollHeight;
   sc.style.scrollBehavior="";
 }
-function renderChat(){
+function renderChat(forceBottom){
   const head=$("chatHead"),msgs=$("messages");
+  const prevStick=stickToBottom,prevTop=msgs.scrollTop;
   const a=currentAgent();
   if(!a){head.style.display="none";msgs.innerHTML='';return;}
   head.style.display="flex";
@@ -616,12 +653,28 @@ function renderChat(){
     msgs.appendChild(w);
   }else{
     for(const m of c.messages)appendMsgEl(msgs,m);
-    stickToBottom=true;
-    scrollBottomNow(msgs);
+    if(forceBottom||prevStick){
+      stickToBottom=true;
+      scrollBottomNow(msgs);
+    }else{
+      stickToBottom=false;
+      msgs.scrollTop=Math.min(prevTop,msgs.scrollHeight-msgs.clientHeight);
+    }
   }
   renderScrubber();
 }
 
+function msgText(m){
+  if(!Array.isArray(m.content))return m.content;
+  return m.content.map(p=>p&&p.type==="text"?p.text:"").join("");
+}
+function renderMsgFiles(files){
+  let h='<div class="msg-files">';
+  for(const f of files){
+    h+='<div class="msg-file">'+(f.type==="image"?'<img src="'+f.data+'" alt="">':'')+'<span class="nm">'+esc(f.name)+'</span></div>';
+  }
+  return h+"</div>";
+}
 function appendMsgEl(container,m){
   const div=document.createElement("div");
   div.className="msg "+(m.role==="user"?"user":"ai");
@@ -633,17 +686,18 @@ function appendMsgEl(container,m){
   if(m.reasoning){
     body+='<details class="thinking"><summary>思考过程</summary><div class="think-inner">'+esc(m.reasoning)+'</div></details>';
   }
-  body+=m.streaming?'<div class="bubble ai-bubble"></div>':'<div class="bubble">'+md(m.content)+'</div>';
+  if(m.files&&m.files.length)body+=renderMsgFiles(m.files);
+  body+=m.streaming?'<div class="bubble ai-bubble"></div>':'<div class="bubble">'+md(msgText(m))+'</div>';
   if(m.error)body+='<div style="color:var(--danger);font-size:12.5px;margin-top:4px">错误：'+esc(m.error)+'</div>';
   body+='<div class="msg-time">'+time+'</div>';
   if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button></div>';
   div.innerHTML=avHtml+'<div class="msg-body">'+body+'</div>';
   container.appendChild(div);
-  if(stickToBottom)container.scrollTop=container.scrollHeight;
+  if(stickToBottom)scrollBottomNow(container);
   const act=div.querySelector('[data-act="copy"]');
   if(act){
     act.addEventListener("click",()=>{
-      navigator.clipboard.writeText(m.content||"").then(()=>toast("已复制到剪贴板")).catch(()=>toast("复制失败"));
+      navigator.clipboard.writeText(msgText(m)||"").then(()=>toast("已复制到剪贴板")).catch(()=>toast("复制失败"));
     });
   }
 }
@@ -714,7 +768,17 @@ async function streamChat(base,apiKey,payload,handlers,signal){
   if(!payload.model)throw new Error("模型 ID 未设置");
   const headers={"Content-Type":"application/json","Accept":"text/event-stream"};
   if(apiKey)headers["Authorization"]="Bearer "+apiKey;
-  const res=await fetch(url,{method:"POST",headers,body:JSON.stringify(payload),signal});
+  let res;
+  try{
+    res=await fetch(url,{method:"POST",headers,body:JSON.stringify(payload),signal});
+  }catch(e){
+    if(e.name==="AbortError")throw e;
+    const m=String(e&&e.message||e).toLowerCase();
+    if(/network|failed to fetch|fetch failed|load failed/i.test(m)||!m){
+      throw new Error("网络连接失败（无法访问 "+url+"）。请检查：① 设置中的接口地址与 API Key 是否正确；② 网络是否正常；③ Ollama 本地服务需先启动（ollama serve）；④ 若页面为 https，访问 http 本地接口可能被浏览器拦截，建议改用 DeepSeek/豆包等在线接口");
+    }
+    throw new Error(m);
+  }
   if(!res.ok){
     let msg="HTTP "+res.status;
     try{
@@ -756,12 +820,17 @@ async function sendMessage(text){
   let base=s.baseURL||PROVIDERS[s.provider].base;
   let apiKey=s.apiKey||"";
   const input=$("input");
-  if(!text)return;
-  if(text.length>20000){toast("消息过长（最多 20000 字）",true);return;}
+  const files=state.pendingFiles.slice();
+  if(!text&&!files.length)return;
+  if(text&&text.length>20000){toast("消息过长（最多 20000 字）",true);return;}
+  const totalBytes=files.reduce((n,f)=>n+((f.data&&f.data.length)||0),0);
+  if(totalBytes>2.5*1024*1024){toast("附件总大小超过限制（约 2.5MB）",true);return;}
   const c=getConv(a.id);
-  c.messages.push({role:"user",content:text,ts:Date.now()});
+  c.messages.push({role:"user",content:text,files:files.length?files:undefined,ts:Date.now()});
   saveConv(c);
   input.value="";
+  state.pendingFiles=[];
+  renderAttachList();
   autoResize();
   renderChat();
 
@@ -772,7 +841,7 @@ async function sendMessage(text){
   saveConv(c);
   const aiEl=appendStreamEl(msgsEl);
 
-  const payload=buildPayload(a,text,c.messages.slice(0,-2));
+  const payload=buildPayload(a,{text,files},c.messages.slice(0,-2));
   state.generating=true;
   state.abort=new AbortController();
   setGeneratingUI(true);
@@ -831,6 +900,71 @@ function setGeneratingUI(on){
   btn.innerHTML=on?'停止':'发送';
   btn.className="send-btn"+(on?" stop-btn":"");
 }
+
+const ATTACH_TEXT_EXT={txt:1,md:1,json:1,csv:1,log:1,js:1,py:1,html:1,css:1,xml:1,yml:1,yaml:1,ini:1,ts:1,jsx:1,tsx:1};
+function readFileAsDataUrl(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});}
+function readFileAsText(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f,"utf-8");});}
+function compressImage(dataUrl){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=1024;
+      let w=img.naturalWidth,h=img.naturalHeight;
+      const scale=Math.min(1,MAX/Math.max(w,h));
+      if(scale<1){w=Math.round(w*scale);h=Math.round(h*scale);}
+      const c=document.createElement("canvas");
+      c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      res(c.toDataURL("image/jpeg",0.75));
+    };
+    img.onerror=()=>res(dataUrl);
+    img.src=dataUrl;
+  });
+}
+function renderAttachList(){
+  const box=$("attachList");
+  box.innerHTML="";
+  state.pendingFiles.forEach((f,i)=>{
+    const d=document.createElement("div");
+    d.className="attach-item";
+    d.innerHTML=(f.type==="image"?'<img src="'+f.data+'" alt="">':'')+'<span class="nm">'+esc(f.name)+'</span><span class="x" data-i="'+i+'">×</span>';
+    box.appendChild(d);
+  });
+}
+$("attachBtn").addEventListener("click",()=>$("attachFile").click());
+$("attachFile").addEventListener("change",async e=>{
+  const files=[...e.target.files];
+  e.target.value="";
+  for(const f of files){
+    if(f.size>2*1024*1024){toast(f.name+" 超过 2MB，已跳过",true);continue;}
+    const name=f.name;
+    const ext=name.split(".").pop().toLowerCase();
+    try{
+      if(/^image\//.test(f.type)){
+        const raw=await readFileAsDataUrl(f);
+        const data=await compressImage(raw);
+        if(data.length>1.5*1024*1024){toast(name+" 压缩后仍过大，已跳过",true);continue;}
+        state.pendingFiles.push({name,type:"image",data});
+      }else if(ATTACH_TEXT_EXT[ext]){
+        const data=await readFileAsText(f);
+        state.pendingFiles.push({name,type:"text",data:String(data).slice(0,60000)});
+      }else{
+        const data=await readFileAsDataUrl(f);
+        if(data.length>2*1024*1024){toast(name+" 过大，已跳过",true);continue;}
+        state.pendingFiles.push({name,type:"file",data});
+      }
+    }catch(err){
+      toast("读取失败："+name,true);
+    }
+  }
+  renderAttachList();
+});
+$("attachList").addEventListener("click",e=>{
+  const i=e.target.dataset.i;
+  if(i===undefined)return;
+  state.pendingFiles.splice(Number(i),1);
+  renderAttachList();
+});
 
 function autoResize(){
   const t=$("input");
@@ -1031,7 +1165,7 @@ $("clearBtn").addEventListener("click",()=>{
   if(!a)return;
   if(!confirm("清空与「"+a.name+"」的对话记录？"))return;
   delConv(a.id);
-  renderChat();
+  renderChat(true);
   toast("对话已清空");
 });
 $("searchInput").addEventListener("input",e=>{state.search=e.target.value;renderAgents();});
@@ -1137,7 +1271,7 @@ function applyImport(d){
   }
   updateThemeBtn();
   renderAgents();
-  renderChat();
+  renderChat(true);
 }
 function factoryReset(){
   if(!confirm("确定初始化？将清空所有智能体、对话记录、模型设置与主题偏好，且无法恢复。"))return;
@@ -1239,7 +1373,7 @@ window.addEventListener("resize",()=>{
   updateThemeBtn();
   load();
   renderAgents();
-  renderChat();
+  renderChat(true);
   document.addEventListener("keydown",e=>{
     if(e.key==="Escape"){
       document.querySelectorAll(".overlay.show").forEach(o=>o.classList.remove("show"));
