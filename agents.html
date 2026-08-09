@@ -18,7 +18,7 @@
   --user:#3d5a70; --code-bg:#26231e; --danger:#c96a5e;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+body{font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;height:100dvh;overflow:hidden}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,textarea,select{font-family:inherit;font-size:14px;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);padding:9px 12px;outline:none;width:100%}
 input:focus,textarea:focus,select:focus{border-color:var(--accent)}
@@ -30,8 +30,10 @@ textarea{resize:vertical}
 .header-actions{display:flex;gap:8px}
 .icon-btn{height:32px;padding:0 12px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--bg);border:1px solid var(--line);transition:.15s;color:var(--text2)}
 .icon-btn:hover{border-color:var(--accent);color:var(--accent)}
-.layout{display:flex;height:calc(100vh - 56px)}
+.layout{display:flex;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
 .sidebar{width:264px;min-width:264px;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 12px;gap:12px}
+.backdrop{position:fixed;inset:0;top:56px;background:rgba(30,28,22,.35);z-index:40;display:none}
+.backdrop.show{display:block}
 .sidebar-actions{display:flex;gap:8px}
 .sidebar-actions button{flex:1;height:36px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
 .btn-new{background:var(--seal);color:#fdf6e8}
@@ -54,18 +56,19 @@ textarea{resize:vertical}
 .sidebar-empty{text-align:center;color:var(--text2);font-size:12.5px;padding:24px 8px;line-height:1.8}
 .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
 .chat-head{height:58px;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--card);border-bottom:1px solid var(--line)}
-.chat-head .name{font-size:15.5px;font-weight:700;font-family:var(--serif);letter-spacing:1px}
-.chat-head .sub{font-size:12px;color:var(--text2);margin-top:2px}
+#menuBtn{display:none}
+.chat-head .head-meta{min-width:0}
+.chat-head .name{font-size:15.5px;font-weight:700;font-family:var(--serif);letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-head .sub{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56vw}
 .chat-head .spacer{flex:1}
 .chat-head .mini-btn{height:32px;padding:0 12px;border-radius:var(--radius-sm);font-size:12.5px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;gap:5px;color:var(--text2)}
 .chat-head .mini-btn:hover{border-color:var(--accent);color:var(--accent)}
 .messages{flex:1;overflow-y:auto;padding:24px 20px 10px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth;position:relative}
-.scrubber{position:absolute;top:10px;right:2px;bottom:10px;width:12px;display:none;z-index:5}
+.scrubber{position:absolute;top:10px;right:3px;bottom:10px;width:16px;display:none;z-index:5}
 .scrubber.show{display:block}
-.scrub-tick{position:absolute;left:50%;transform:translate(-50%,-50%);width:7px;height:7px;border-radius:50%;background:var(--card);border:1px solid var(--line);cursor:pointer;transition:background .12s,border-color .12s}
-.scrub-tick:hover{border-color:var(--accent);background:var(--accent)}
-.scrub-tick.active{border-color:var(--accent);background:var(--accent)}
-@media (max-width:760px){.scrubber{display:none!important}}
+.scrub-tick{position:absolute;left:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:var(--accent-soft);border:2px solid var(--accent);cursor:pointer;transition:background .12s,border-color .12s,transform .12s}
+.scrub-tick:hover{border-color:var(--seal);background:var(--seal);transform:translate(-50%,-50%) scale(1.3)}
+.scrub-tick.active{border-color:var(--accent);background:var(--accent);transform:translate(-50%,-50%) scale(1.2)}
 .msg{display:flex;gap:12px;max-width:840px;margin:0 auto;width:100%}
 .msg.user{flex-direction:row-reverse}
 .msg-avatar{width:36px;height:36px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;margin-top:2px;font-family:var(--serif);font-weight:700}
@@ -136,6 +139,15 @@ textarea{resize:vertical}
 .q-row .rm:hover{background:var(--bg);color:var(--danger)}
 .btn-add{height:34px;border-radius:var(--radius-sm);border:1px dashed var(--line);color:var(--accent);font-size:13px;width:100%;display:flex;align-items:center;justify-content:center;gap:5px}
 .btn-add:hover{border-color:var(--accent);background:var(--accent-soft)}
+.model-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.mchip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);border:1px solid var(--line);border-radius:4px;padding:5px 9px;font-size:12.5px;color:var(--text)}
+.mchip .tag{font-size:10.5px;color:var(--seal);font-weight:700}
+.mchip .x{cursor:pointer;color:var(--text2);font-size:14px;line-height:1}
+.mchip .x:hover{color:var(--danger)}
+.model-add{display:flex;gap:8px}
+.model-add input{flex:1;min-width:0}
+.btn-add-mini{flex-shrink:0;height:38px;padding:0 14px;border-radius:var(--radius-sm);background:var(--accent-soft);border:1px solid var(--line);color:var(--accent);font-size:13px;font-weight:600}
+.btn-add-mini:hover{border-color:var(--accent)}
 .btn-primary{background:var(--seal);color:#fdf6e8;height:38px;padding:0 22px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;letter-spacing:2px}
 .btn-primary:hover{filter:brightness(1.08)}
 .btn-ghost{background:var(--bg);border:1px solid var(--line);color:var(--text);height:38px;padding:0 20px;border-radius:var(--radius-sm);font-size:14px}
@@ -152,9 +164,36 @@ textarea{resize:vertical}
 .provider-preset button:hover{filter:brightness(1.1)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:760px){
-  .sidebar{position:absolute;left:0;top:56px;bottom:0;z-index:50;transform:translateX(-100%);transition:.2s}
+  #menuBtn{display:flex}
+  .sidebar{position:absolute;left:0;top:56px;bottom:0;width:min(264px,84vw);z-index:50;transform:translateX(-100%);transition:.2s}
   .sidebar.open{transform:none;box-shadow:0 8px 30px rgba(30,28,22,.25)}
+  .agent-item{padding-right:32px}
+  .agent-item .del{display:flex}
   .msg-body{max-width:88%}
+  .msg-avatar{width:30px;height:30px;font-size:12.5px}
+  .bubble{padding:10px 12px;font-size:14px}
+  .msg{gap:8px}
+  .msg-actions{opacity:1}
+  .messages{padding:14px 12px 10px}
+  .input-wrap{padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
+  .chat-head{padding:0 10px;gap:8px}
+  .chat-head .mini-btn{padding:0 9px;font-size:12px}
+  .chat-head .sub{max-width:44vw}
+  .header{padding:0 12px}
+  .brand{font-size:16px;letter-spacing:2px}
+  .icon-btn{padding:0 10px;font-size:12px}
+  input,textarea,select{font-size:16px}
+  .welcome .hello{font-size:21px}
+  .welcome .hint{font-size:13.5px}
+  .q-chip{font-size:13px;padding:9px 12px}
+  .modal-head{padding:14px 14px 10px}
+  .modal-body{padding:14px 14px 10px}
+  .modal-foot{padding:12px 14px calc(14px + env(safe-area-inset-bottom));flex-wrap:wrap;gap:8px}
+  .modal-foot button{flex:1}
+  .modal-foot .left-group{flex-basis:100%}
+  .scrubber{right:2px}
+  .toast{top:64px;font-size:13px}
+  .row2{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -178,10 +217,11 @@ textarea{resize:vertical}
     <div class="sidebar-empty" id="sidebarEmpty" style="display:none">还没有智能体<br>点击上方按钮创建</div>
   </aside>
 
-  <main class="main">
+  <main class="main" id="main">
     <div class="chat-head" id="chatHead" style="display:none">
+      <button class="mini-btn" id="menuBtn" title="智能体列表">☰</button>
       <div class="agent-avatar" id="headAvatar">智</div>
-      <div>
+      <div class="head-meta">
         <div class="name" id="headName">智能体</div>
         <div class="sub" id="headModel">模型未配置</div>
       </div>
@@ -189,9 +229,7 @@ textarea{resize:vertical}
       <button class="mini-btn" id="editBtn">编辑</button>
       <button class="mini-btn" id="clearBtn">清空对话</button>
     </div>
-    <div class="messages" id="messages">
-      <div class="scrubber" id="scrubber"></div>
-    </div>
+    <div class="messages" id="messages"></div>
     <div class="input-wrap">
       <div class="input-box">
         <textarea id="input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
@@ -202,6 +240,8 @@ textarea{resize:vertical}
     </div>
   </main>
 </div>
+
+<div class="backdrop" id="backdrop"></div>
 
 <div class="overlay" id="editOverlay">
   <div class="modal">
@@ -235,11 +275,17 @@ textarea{resize:vertical}
         <div class="q-list" id="qList"></div>
         <button class="btn-add" id="addQ">添加推荐问题</button>
       </div>
-      <div class="field">
-        <label>模型</label>
-        <input id="agModel" placeholder="留空 = 使用全局默认模型" title="可填写具体的模型 ID，如 deepseek-v4-flash / ep-xxx / qwen2.5:7b" autocomplete="off">
-        <div class="tip">留空时使用右上角「设置」里的全局模型。</div>
+      <div class="row2">
+        <div class="field">
+          <label>AI 服务商</label>
+          <select id="agProvider"></select>
+        </div>
+        <div class="field">
+          <label>模型</label>
+          <select id="agModel"></select>
+        </div>
       </div>
+      <div class="tip">留空 = 跟随全局设置；选择后该智能体将固定使用对应的服务与模型。</div>
     </div>
     <div class="modal-foot">
       <button class="btn-ghost" data-close="editOverlay">取消</button>
@@ -279,8 +325,12 @@ textarea{resize:vertical}
         <div class="provider-preset" id="basePresets"></div>
       </div>
       <div class="field">
-        <label>模型 ID</label>
-        <input id="setModel" placeholder="模型 ID 或接入点 ID" autocomplete="off">
+        <label>模型 ID（可添加多个，第一个为默认）</label>
+        <div class="model-chips" id="modelChips"></div>
+        <div class="model-add">
+          <input id="setModel" placeholder="模型 ID 或接入点 ID，回车添加" autocomplete="off">
+          <button class="btn-add-mini" id="addModel">添加</button>
+        </div>
         <div class="provider-preset" id="modelPresets"></div>
         <div class="tip" id="modelTip"></div>
       </div>
@@ -292,7 +342,7 @@ textarea{resize:vertical}
       </div>
     </div>
     <div class="modal-foot">
-      <div style="display:flex;gap:8px;margin-right:auto">
+      <div class="left-group" style="display:flex;gap:8px;margin-right:auto">
         <button class="btn-ghost" id="exportBtn" title="导出全部智能体、对话与设置（不含 API Key）">导出配置</button>
         <button class="btn-ghost" id="importBtn" title="从配置文件恢复（覆盖当前数据）">导入配置</button>
         <button class="btn-ghost" id="resetBtn" style="color:var(--danger);border-color:var(--danger)" title="清空所有数据并恢复出厂">初始化</button>
@@ -315,7 +365,7 @@ const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const deepcopy=o=>JSON.parse(JSON.stringify(o));
 const COLORS=["#3d5a70","#a03a2e","#6b7f4f","#b98a44","#4a4a4a","#7c5c8c","#2f6d5e","#8a5a3a"];
-function mkProvider(){return {apiKey:"",baseURL:"",model:"",temperature:0.8};}
+function mkProvider(){return {apiKey:"",baseURL:"",model:"",models:[],temperature:0.8};}
 
 let state={
   agents:[],
@@ -333,8 +383,11 @@ function stripEmoji(s){return String(s||"").replace(EMOJI_RE,"").trim();}
 function normalizeSettings(s){
   const out={providers:{},activeProvider:(s&&s.activeProvider)||"deepseek"};
   for(const p of ["deepseek","doubao","ollama","custom"]){
-    out.providers[p]={apiKey:"",baseURL:"",model:"",temperature:0.8};
+    out.providers[p]={apiKey:"",baseURL:"",model:"",models:[],temperature:0.8};
     if(s&&s.providers&&s.providers[p])Object.assign(out.providers[p],s.providers[p]);
+    if(!Array.isArray(out.providers[p].models)){
+      out.providers[p].models=out.providers[p].model?[out.providers[p].model]:[];
+    }
   }
   if(!out.providers[out.activeProvider])out.activeProvider="deepseek";
   return out;
@@ -353,6 +406,7 @@ function load(){
       state.settings.providers[p].baseURL=old.baseURL||"";
       state.settings.providers[p].model=old.model||"";
       state.settings.providers[p].temperature=old.temperature!=null?old.temperature:0.8;
+      state.settings.providers[p].models=old.model?[old.model]:[];
     }
     persistSettings();
   }else{
@@ -510,6 +564,7 @@ function selectAgent(id){
   save();
   renderAgents();
   renderChat();
+  closeSidebarMobile();
 }
 function deleteAgent(id){
   const a=getAgent(id);
@@ -523,6 +578,12 @@ function deleteAgent(id){
   renderChat();
 }
 
+function scrollBottomNow(sc){
+  if(!sc)return;
+  sc.style.scrollBehavior="auto";
+  sc.scrollTop=sc.scrollHeight;
+  sc.style.scrollBehavior="";
+}
 function renderChat(){
   const head=$("chatHead"),msgs=$("messages");
   const a=currentAgent();
@@ -535,7 +596,7 @@ function renderChat(){
   const c=getConv(a.id);
   msgs.innerHTML="";
   const sbEl=document.createElement("div");sbEl.className="scrubber";sbEl.id="scrubber";
-  msgs.appendChild(sbEl);
+  $("main").appendChild(sbEl);
   if(!c.messages.length){
     const w=document.createElement("div");
     w.className="welcome";
@@ -556,7 +617,7 @@ function renderChat(){
   }else{
     for(const m of c.messages)appendMsgEl(msgs,m);
     stickToBottom=true;
-    msgs.scrollTop=msgs.scrollHeight;
+    scrollBottomNow(msgs);
   }
   renderScrubber();
 }
@@ -592,14 +653,15 @@ function renderScrubber(){
   if(!sc||!sb)return;
   sb.innerHTML="";
   const users=sc.querySelectorAll(".msg.user");
-  if(users.length<2){sb.classList.remove("show");return;}
+  if(!users.length){sb.classList.remove("show");return;}
   sb.classList.add("show");
   const h=Math.max(1,sc.scrollHeight);
   users.forEach((el,i)=>{
     const t=document.createElement("div");
     t.className="scrub-tick";
-    const timeEl=el.querySelector(".msg-time");
-    if(timeEl)t.title="跳转到 "+timeEl.textContent;
+    const textEl=el.querySelector(".msg-body .bubble");
+    const q=(textEl?textEl.textContent:"").replace(/\s+/g," ").trim();
+    t.title=q?q.slice(0,24)+(q.length>24?"…":""):"用户消息";
     t.style.top=Math.min(97,Math.max(3,el.offsetTop/h*100))+"%";
     t.addEventListener("click",()=>{
       sc.scrollTop=Math.max(0,el.offsetTop-sc.clientHeight/3);
@@ -710,7 +772,7 @@ async function sendMessage(text){
   saveConv(c);
   const aiEl=appendStreamEl(msgsEl);
 
-  const payload=buildPayload(a,text,c.messages.slice(0,-1));
+  const payload=buildPayload(a,text,c.messages.slice(0,-2));
   state.generating=true;
   state.abort=new AbortController();
   setGeneratingUI(true);
@@ -747,7 +809,7 @@ function appendStreamEl(container){
   const a=currentAgent();
   div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div></div>';
   container.appendChild(div);
-  if(stickToBottom)container.scrollTop=container.scrollHeight;
+  if(stickToBottom)scrollBottomNow(container);
   updateScrubberPositions();
   return div;
 }
@@ -760,10 +822,7 @@ function updateStreamEl(el,msg){
   html+=md(msg.content);
   if(msg.streaming)html+='<span class="typing-cursor"></span>';
   bubble.innerHTML=html;
-  if(stickToBottom){
-    const sc=$("messages");
-    sc.scrollTop=sc.scrollHeight;
-  }
+  if(stickToBottom)scrollBottomNow($("messages"));
   updateScrubberPositions();
 }
 function setGeneratingUI(on){
@@ -779,6 +838,52 @@ function autoResize(){
   t.style.height=Math.min(t.scrollHeight,160)+"px";
 }
 
+function fillAgProvider(sel,a){
+  sel.innerHTML="";
+  const o=document.createElement("option");
+  o.value="";o.textContent="跟随全局设置";
+  sel.appendChild(o);
+  for(const k in PROVIDERS){
+    const op=document.createElement("option");
+    op.value=k;op.textContent=PROVIDERS[k].label;
+    sel.appendChild(op);
+  }
+  if(a&&a.provider&&sel.querySelector('option[value="'+a.provider+'"]'))sel.value=a.provider;
+  else if(a&&a.model)sel.value=state.settings.activeProvider||"deepseek";
+  return sel;
+}
+function fillAgModel(sel,provider,cur){
+  sel.innerHTML="";
+  const empty=document.createElement("option");
+  empty.value="";
+  empty.textContent=provider?"（留空 = 使用该 AI 的默认模型）":"（跟随全局默认）";
+  sel.appendChild(empty);
+  const prov=provider?state.settings.providers[provider]:null;
+  const p=PROVIDERS[provider];
+  const list=prov&&Array.isArray(prov.models)?prov.models.slice():[];
+  const seen=new Set(list);
+  if(p){
+    for(const md of [p.model].concat(p.models)){
+      if(md&&!seen.has(md)){seen.add(md);list.push(md);}
+    }
+  }
+  for(const md of list){
+    const o=document.createElement("option");
+    o.value=md;
+    o.textContent=md+(prov&&prov.models&&prov.models[0]===md?"（默认）":"");
+    sel.appendChild(o);
+  }
+  if(cur&&[...sel.options].some(o=>o.value===cur)){
+    sel.value=cur;
+  }else if(cur){
+    const o=document.createElement("option");
+    o.value=cur;o.textContent=cur+"（自定义）";
+    sel.appendChild(o);
+    sel.value=cur;
+  }
+  return sel;
+}
+
 function openEdit(id){
   const a=id?getAgent(id):null;
   state.editing=a?a.id:null;
@@ -787,7 +892,8 @@ function openEdit(id){
   $("agAvatar").value=a?a.avatar:"智";
   $("agPersona").value=a?a.persona:"";
   $("agGreeting").value=a?a.greeting:"";
-  $("agModel").value=a?a.model||"":"";
+  const ap=fillAgProvider($("agProvider"),a);
+  fillAgModel($("agModel"),ap.value,a?(a.model||""):"");
   $("agAvatarPreview").textContent=a?a.avatar||"智":"智";
   renderColorRow(a?a.color:COLORS[0]);
   renderQList(a?a.questions:[],false);
@@ -838,7 +944,8 @@ function saveAgent(){
   if(!name){toast("请填写智能体名称",true);return;}
   const avatar=$("agAvatar").value.trim()||"智";
   const a=state.editing?getAgent(state.editing):null;
-  const data={name,avatar:avatar.slice(0,2),color:getSelColor(),persona:$("agPersona").value.trim(),greeting:$("agGreeting").value.trim(),questions:collectQ(),model:$("agModel").value.trim()};
+  const provider=$("agProvider").value||"";
+  const data={name,avatar:avatar.slice(0,2),color:getSelColor(),persona:$("agPersona").value.trim(),greeting:$("agGreeting").value.trim(),questions:collectQ(),provider,model:provider?$("agModel").value:""};
   if(a){
     Object.assign(a,data);
   }else{
@@ -876,12 +983,32 @@ function renderProviderChips(p){
   keyPresets.style.display=(p==="deepseek"||p==="doubao")?"flex":"none";
   $("setKey").value=prov.apiKey||"";
   $("setBase").value=prov.baseURL||info.base;
-  $("setModel").value=prov.model||"";
   $("setTemp").value=prov.temperature!=null?prov.temperature:0.8;
+  renderModelChips();
+  $("setModel").value="";
   $("basePresets").innerHTML='<button data-b="'+esc(info.base)+'">'+esc(info.base)+'</button>';
   const mp=$("modelPresets");
   mp.innerHTML=info.models.map(m=>'<button data-m="'+esc(m)+'">'+esc(m)+'</button>').join("");
   $("modelTip").textContent=info.tip||"";
+}
+function renderModelChips(){
+  const prov=currentProviderSettings();
+  const box=$("modelChips");
+  box.innerHTML="";
+  (prov.models||[]).forEach((md,i)=>{
+    const c=document.createElement("span");
+    c.className="mchip";
+    c.innerHTML=(i===0?'<span class="tag">默认</span>':'')+'<span>'+esc(md)+'</span><span class="x" data-i="'+i+'" title="移除">×</span>';
+    box.appendChild(c);
+  });
+}
+function addModelChip(md){
+  md=String(md||"").trim();
+  if(!md)return;
+  const prov=currentProviderSettings();
+  if(!Array.isArray(prov.models))prov.models=[];
+  if(prov.models.indexOf(md)<0)prov.models.push(md);
+  renderModelChips();
 }
 function closeOverlay(id){$(id).classList.remove("show");}
 
@@ -894,7 +1021,7 @@ document.querySelectorAll(".overlay").forEach(o=>{
   });
 });
 $("newAgentBtn").addEventListener("click",()=>{
-  if(window.innerWidth<=760)$("sidebar").classList.remove("open");
+  closeSidebarMobile();
   openEdit(null);
 });
 $("settingsBtn").addEventListener("click",openSettings);
@@ -925,12 +1052,17 @@ $("agAvatar").addEventListener("input",e=>{
   p.textContent=e.target.value.slice(0,2)||"智";
 });
 $("saveAgent").addEventListener("click",saveAgent);
+$("agProvider").addEventListener("change",()=>fillAgModel($("agModel"),$("agProvider").value,""));
 $("saveSettings").addEventListener("click",()=>{
   const prov=currentProviderSettings();
   prov.apiKey=$("setKey").value.trim();
   prov.baseURL=$("setBase").value.trim();
-  prov.model=$("setModel").value.trim();
   prov.temperature=Math.min(2,Math.max(0,Number($("setTemp").value)||0.8));
+  const mv=$("setModel").value.trim();
+  if(mv&&prov.models.indexOf(mv)<0)prov.models.push(mv);
+  prov.models=(prov.models||[]).map(s=>String(s).trim()).filter(Boolean);
+  prov.models=[...new Set(prov.models)];
+  prov.model=prov.models[0]||"";
   state.settings.activeProvider=selProvider;
   persistSettings();
   closeOverlay("settingsOverlay");
@@ -1028,7 +1160,25 @@ $("basePresets").addEventListener("click",e=>{
   if(e.target.dataset.b)$("setBase").value=e.target.dataset.b;
 });
 $("modelPresets").addEventListener("click",e=>{
-  if(e.target.dataset.m)$("setModel").value=e.target.dataset.m;
+  if(e.target.dataset.m)addModelChip(e.target.dataset.m);
+});
+$("modelChips").addEventListener("click",e=>{
+  const i=e.target.dataset.i;
+  if(i===undefined)return;
+  const prov=currentProviderSettings();
+  prov.models.splice(Number(i),1);
+  renderModelChips();
+});
+$("addModel").addEventListener("click",()=>{
+  addModelChip($("setModel").value);
+  $("setModel").value="";
+});
+$("setModel").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    addModelChip($("setModel").value);
+    $("setModel").value="";
+  }
 });
 $("keyPresets").addEventListener("click",e=>{
   if(e.target.dataset.v==="deepseek")toast("DeepSeek Key：platform.deepseek.com 的 API Keys 页面创建");
@@ -1065,11 +1215,22 @@ $("themeBtn").addEventListener("click",()=>{
   updateThemeBtn();
 });
 
+function closeSidebarMobile(){
+  $("sidebar").classList.remove("open");
+  $("backdrop").classList.remove("show");
+}
+function toggleSidebarMobile(){
+  const open=$("sidebar").classList.toggle("open");
+  $("backdrop").classList.toggle("show",open);
+}
+$("menuBtn").addEventListener("click",toggleSidebarMobile);
+$("backdrop").addEventListener("click",closeSidebarMobile);
 let sidebarTimer=null;
 document.querySelector(".brand").addEventListener("click",()=>{
-  if(window.innerWidth<=760){
-    $("sidebar").classList.toggle("open");
-  }
+  if(window.innerWidth<=760)toggleSidebarMobile();
+});
+window.addEventListener("resize",()=>{
+  if(window.innerWidth>760)closeSidebarMobile();
 });
 
 (function init(){
@@ -1080,7 +1241,10 @@ document.querySelector(".brand").addEventListener("click",()=>{
   renderAgents();
   renderChat();
   document.addEventListener("keydown",e=>{
-    if(e.key==="Escape")document.querySelectorAll(".overlay.show").forEach(o=>o.classList.remove("show"));
+    if(e.key==="Escape"){
+      document.querySelectorAll(".overlay.show").forEach(o=>o.classList.remove("show"));
+      closeSidebarMobile();
+    }
   });
 })();
 })();
