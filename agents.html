@@ -827,8 +827,8 @@ async function sendMessage(text){
   const files=state.pendingFiles.slice();
   if(!text&&!files.length)return;
   if(text&&text.length>20000){toast("消息过长（最多 20000 字）",true);return;}
-  const totalBytes=files.reduce((n,f)=>n+((f.type==="video"?0:(f.data&&f.data.length))||0),0);
-  if(totalBytes>2.5*1024*1024){toast("附件总大小超过限制（约 2.5MB）",true);return;}
+  const totalBytes=files.reduce((n,f)=>n+((f.type==="text"&&f.data)?f.data.length:0),0);
+  if(totalBytes>2.5*1024*1024){toast("文本附件总大小超过限制（约 2.5MB）",true);return;}
   const c=getConv(a.id);
   const savedFiles=files.map(f=>f.type==="video"?{name:f.name,type:"video"}:f);
   c.messages.push({role:"user",content:text,files:savedFiles.length?savedFiles:undefined,ts:Date.now()});
@@ -960,12 +960,11 @@ $("attachFile").addEventListener("change",async e=>{
       }
       if(f.size>20*1024*1024){toast(name+" 超过 20MB，已跳过",true);continue;}
     }
-    if(!isVideo&&f.size>2*1024*1024){toast(name+" 超过 2MB，已跳过",true);continue;}
+    if(!isImg&&!isVideo&&f.size>2*1024*1024){toast(name+" 超过 2MB，已跳过",true);continue;}
     try{
       if(isImg){
         const raw=await readFileAsDataUrl(f);
         const data=await compressImage(raw);
-        if(data.length>1.5*1024*1024){toast(name+" 压缩后仍过大，已跳过",true);continue;}
         state.pendingFiles.push({name,type:"image",data});
       }else if(isVideo){
         const data=await readFileAsDataUrl(f);
