@@ -121,6 +121,7 @@ textarea{resize:vertical}
 .msg-file img{width:44px;height:44px;object-fit:cover;border-radius:4px}
 .msg-file .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .msg.user .msg-files{justify-content:flex-end}
+.attach-item .vid,.msg-file .vid{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);border-radius:4px;font-size:14px}
 .send-btn{height:38px;min-width:76px;padding:0 18px;border-radius:var(--radius-sm);background:var(--seal);color:#fdf6e8;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s;letter-spacing:2px}
 .send-btn:hover{filter:brightness(1.08)}
 .send-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -249,7 +250,7 @@ textarea{resize:vertical}
         <textarea id="input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
         <div class="input-bar">
           <button class="attach-btn" id="attachBtn" title="上传图片或文件">＋</button>
-          <div class="input-hint">支持上传图片和文本类文件（txt/md/json/代码等）</div>
+          <div class="input-hint">支持图片、文本文件，视频（需豆包视觉模型或支持视频的接口）</div>
           <button class="send-btn" id="sendBtn">发送</button>
         </div>
       </div>
@@ -258,7 +259,7 @@ textarea{resize:vertical}
 </div>
 
 <div class="backdrop" id="backdrop"></div>
-<input type="file" id="attachFile" accept="image/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xlsx,.xls,.pptx,.ppt,.log,.js,.py,.html,.css,.xml,.yml,.yaml" multiple style="display:none">
+<input type="file" id="attachFile" accept="image/*,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/x-ms-wmv,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xlsx,.xls,.pptx,.ppt,.log,.js,.py,.html,.css,.xml,.yml,.yaml" multiple style="display:none">
 
 <div class="overlay" id="editOverlay">
   <div class="modal">
@@ -487,6 +488,9 @@ function toApiContent(m){
   for(const f of (m.files||[])){
     if(f.type==="image"){
       parts.push({type:"image_url",image_url:{url:f.data}});
+    }else if(f.type==="video"){
+      if(f.data)parts.push({type:"video_url",video_url:{url:f.data}});
+      else parts.push({type:"text",text:"\n[用户曾上传视频："+f.name+"，视频内容已不在本地，无法重新分析]"});
     }else if(f.type==="text"){
       parts.push({type:"text",text:"\n[用户上传文件："+f.name+"]\n"+String(f.data).slice(0,60000)});
     }else{
@@ -671,7 +675,7 @@ function msgText(m){
 function renderMsgFiles(files){
   let h='<div class="msg-files">';
   for(const f of files){
-    h+='<div class="msg-file">'+(f.type==="image"?'<img src="'+f.data+'" alt="">':'')+'<span class="nm">'+esc(f.name)+'</span></div>';
+    h+='<div class="msg-file">'+(f.type==="image"?'<img src="'+f.data+'" alt="">':f.type==="video"?'<span class="vid">▶</span>':'')+'<span class="nm">'+esc(f.name)+'</span></div>';
   }
   return h+"</div>";
 }
@@ -823,10 +827,11 @@ async function sendMessage(text){
   const files=state.pendingFiles.slice();
   if(!text&&!files.length)return;
   if(text&&text.length>20000){toast("消息过长（最多 20000 字）",true);return;}
-  const totalBytes=files.reduce((n,f)=>n+((f.data&&f.data.length)||0),0);
+  const totalBytes=files.reduce((n,f)=>n+((f.type==="video"?0:(f.data&&f.data.length))||0),0);
   if(totalBytes>2.5*1024*1024){toast("附件总大小超过限制（约 2.5MB）",true);return;}
   const c=getConv(a.id);
-  c.messages.push({role:"user",content:text,files:files.length?files:undefined,ts:Date.now()});
+  const savedFiles=files.map(f=>f.type==="video"?{name:f.name,type:"video"}:f);
+  c.messages.push({role:"user",content:text,files:savedFiles.length?savedFiles:undefined,ts:Date.now()});
   saveConv(c);
   input.value="";
   state.pendingFiles=[];
@@ -902,6 +907,8 @@ function setGeneratingUI(on){
 }
 
 const ATTACH_TEXT_EXT={txt:1,md:1,json:1,csv:1,log:1,js:1,py:1,html:1,css:1,xml:1,yml:1,yaml:1,ini:1,ts:1,jsx:1,tsx:1};
+const ATTACH_VIDEO_EXT={mp4:1,mov:1,avi:1,mkv:1,wmv:1};
+const VIDEO_PROVIDERS={doubao:1,custom:1};
 function readFileAsDataUrl(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});}
 function readFileAsText(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f,"utf-8");});}
 function compressImage(dataUrl){
@@ -927,7 +934,7 @@ function renderAttachList(){
   state.pendingFiles.forEach((f,i)=>{
     const d=document.createElement("div");
     d.className="attach-item";
-    d.innerHTML=(f.type==="image"?'<img src="'+f.data+'" alt="">':'')+'<span class="nm">'+esc(f.name)+'</span><span class="x" data-i="'+i+'">×</span>';
+    d.innerHTML=(f.type==="image"?'<img src="'+f.data+'" alt="">':f.type==="video"?'<span class="vid">▶</span>':'')+'<span class="nm">'+esc(f.name)+'</span><span class="x" data-i="'+i+'">×</span>';
     box.appendChild(d);
   });
 }
@@ -938,17 +945,31 @@ $("attachFile").addEventListener("change",async e=>{
   for(const f of files){
     const name=f.name;
     const ext=name.split(".").pop().toLowerCase();
-    if(!/^image\//.test(f.type)&&!ATTACH_TEXT_EXT[ext]){
-      toast("不支持的文件类型："+name+"（仅支持图片和文本类文件）",true);
+    const isImg=/^image\//.test(f.type);
+    const isVideo=/^video\//.test(f.type)||ATTACH_VIDEO_EXT[ext];
+    if(!isImg&&!isVideo&&!ATTACH_TEXT_EXT[ext]){
+      toast("不支持的文件类型："+name+"（仅支持图片、视频和文本类文件）",true);
       continue;
     }
-    if(f.size>2*1024*1024){toast(name+" 超过 2MB，已跳过",true);continue;}
+    if(isVideo){
+      const a=currentAgent();
+      const s=effectiveSettings(a);
+      if(!VIDEO_PROVIDERS[s.provider]){
+        toast("当前 AI 不支持视频（仅豆包视觉模型或支持视频的自定义接口可用）",true);
+        continue;
+      }
+      if(f.size>20*1024*1024){toast(name+" 超过 20MB，已跳过",true);continue;}
+    }
+    if(!isVideo&&f.size>2*1024*1024){toast(name+" 超过 2MB，已跳过",true);continue;}
     try{
-      if(/^image\//.test(f.type)){
+      if(isImg){
         const raw=await readFileAsDataUrl(f);
         const data=await compressImage(raw);
         if(data.length>1.5*1024*1024){toast(name+" 压缩后仍过大，已跳过",true);continue;}
         state.pendingFiles.push({name,type:"image",data});
+      }else if(isVideo){
+        const data=await readFileAsDataUrl(f);
+        state.pendingFiles.push({name,type:"video",data});
       }else{
         const data=await readFileAsText(f);
         state.pendingFiles.push({name,type:"text",data:String(data).slice(0,60000)});
