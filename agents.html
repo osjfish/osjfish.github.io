@@ -827,6 +827,10 @@ async function sendMessage(text){
   const files=state.pendingFiles.slice();
   if(!text&&!files.length)return;
   if(text&&text.length>20000){toast("消息过长（最多 20000 字）",true);return;}
+  if(files.some(f=>f.type==="video")&&!VIDEO_PROVIDERS[s.provider]){
+    toast("当前 AI 不支持视频，请改用豆包视觉模型或支持视频的自定义接口",true);
+    return;
+  }
   const totalBytes=files.reduce((n,f)=>n+((f.type==="text"&&f.data)?f.data.length:0),0);
   if(totalBytes>2.5*1024*1024){toast("文本附件总大小超过限制（约 2.5MB）",true);return;}
   const c=getConv(a.id);
