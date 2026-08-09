@@ -249,7 +249,7 @@ textarea{resize:vertical}
         <textarea id="input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
         <div class="input-bar">
           <button class="attach-btn" id="attachBtn" title="上传图片或文件">＋</button>
-          <div class="input-hint">图片或文本文件会发给 AI，其他文件仅展示给 AI 名称</div>
+          <div class="input-hint">支持上传图片和文本类文件（txt/md/json/代码等）</div>
           <button class="send-btn" id="sendBtn">发送</button>
         </div>
       </div>
@@ -891,10 +891,6 @@ function updateStreamEl(el,msg){
   html+=md(msg.content);
   if(msg.streaming)html+='<span class="typing-cursor"></span>';
   bubble.innerHTML=html;
-  if(msg.streaming){
-    const ti=el.querySelector(".think-inner");
-    if(ti)ti.scrollTop=ti.scrollHeight;
-  }
   if(stickToBottom)scrollBottomNow($("messages"));
   updateScrubberPositions();
 }
@@ -940,22 +936,22 @@ $("attachFile").addEventListener("change",async e=>{
   const files=[...e.target.files];
   e.target.value="";
   for(const f of files){
-    if(f.size>2*1024*1024){toast(f.name+" 超过 2MB，已跳过",true);continue;}
     const name=f.name;
     const ext=name.split(".").pop().toLowerCase();
+    if(!/^image\//.test(f.type)&&!ATTACH_TEXT_EXT[ext]){
+      toast("不支持的文件类型："+name+"（仅支持图片和文本类文件）",true);
+      continue;
+    }
+    if(f.size>2*1024*1024){toast(name+" 超过 2MB，已跳过",true);continue;}
     try{
       if(/^image\//.test(f.type)){
         const raw=await readFileAsDataUrl(f);
         const data=await compressImage(raw);
         if(data.length>1.5*1024*1024){toast(name+" 压缩后仍过大，已跳过",true);continue;}
         state.pendingFiles.push({name,type:"image",data});
-      }else if(ATTACH_TEXT_EXT[ext]){
+      }else{
         const data=await readFileAsText(f);
         state.pendingFiles.push({name,type:"text",data:String(data).slice(0,60000)});
-      }else{
-        const data=await readFileAsDataUrl(f);
-        if(data.length>2*1024*1024){toast(name+" 过大，已跳过",true);continue;}
-        state.pendingFiles.push({name,type:"file",data});
       }
     }catch(err){
       toast("读取失败："+name,true);
