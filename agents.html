@@ -534,6 +534,8 @@ function renderChat(){
   $("headModel").textContent="模型："+(a.model||s.model||"未设置")+" · "+(PROVIDERS[s.provider]?PROVIDERS[s.provider].label:s.provider);
   const c=getConv(a.id);
   msgs.innerHTML="";
+  const sbEl=document.createElement("div");sbEl.className="scrubber";sbEl.id="scrubber";
+  msgs.appendChild(sbEl);
   if(!c.messages.length){
     const w=document.createElement("div");
     w.className="welcome";
@@ -587,6 +589,7 @@ function appendMsgEl(container,m){
 
 function renderScrubber(){
   const sc=$("messages"),sb=$("scrubber");
+  if(!sc||!sb)return;
   sb.innerHTML="";
   const users=sc.querySelectorAll(".msg.user");
   if(users.length<2){sb.classList.remove("show");return;}
@@ -608,8 +611,9 @@ function renderScrubber(){
   markScrubActive();
 }
 function markScrubActive(){
-  const sc=$("messages"),ticks=$("scrubber").children;
-  if(!ticks.length)return;
+  const sc=$("messages"),sb=$("scrubber");
+  if(!sc||!sb)return;
+  const ticks=sb.children;
   const users=sc.querySelectorAll(".msg.user");
   let active=-1;
   for(let i=0;i<users.length;i++){
@@ -618,9 +622,9 @@ function markScrubActive(){
   for(let i=0;i<ticks.length;i++)ticks[i].classList.toggle("active",i===active);
 }
 function updateScrubberPositions(){
-  const sb=$("scrubber");
-  if(!sb.classList.contains("show"))return;
-  const sc=$("messages"),h=Math.max(1,sc.scrollHeight),ticks=sb.children;
+  const sb=$("scrubber"),sc=$("messages");
+  if(!sb||!sc||!sb.classList.contains("show"))return;
+  const h=Math.max(1,sc.scrollHeight),ticks=sb.children;
   sc.querySelectorAll(".msg.user").forEach((el,i)=>{
     if(i<ticks.length)ticks[i].style.top=Math.min(97,Math.max(3,el.offsetTop/h*100))+"%";
   });
