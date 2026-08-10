@@ -1508,6 +1508,12 @@ function loadGame(){
       round=1; resultsByRound={}; market=[]; refreshMarket();
     }
     round=d.round||1; ROT_A=d.ROT_A||[]; ROT_B=d.ROT_B||[];
+    // 统一 myClub 与 aiClubs 中玩家球队的引用：否则新赛季重置（体力/伤病/进球清零）只作用于 aiClubs 拷贝，玩家数据不同步
+    {
+      var _mi3=-1;
+      for(var _i3=0;_i3<aiClubs.length;_i3++){ if(aiClubs[_i3].idx===myClub.idx){ _mi3=_i3; break; } }
+      if(_mi3>=0){ aiClubs[_mi3]=myClub; myClub=aiClubs[_mi3]; }
+    }
     if(d.fixtures) fixtures=d.fixtures;
     leagueTable=d.leagueTable||{A:[],B:[]};
     // 旧档 prevRank/lastRank 缺失时按当前积分初始化（积分榜排名升降箭头）
