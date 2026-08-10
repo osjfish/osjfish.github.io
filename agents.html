@@ -79,7 +79,10 @@ textarea{resize:vertical}
 .bubble{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;font-size:14.5px;line-height:1.75;word-break:break-word}
 .msg.user .bubble{background:var(--user);color:#f2f5f7;border:none;border-bottom-right-radius:3px}
 .msg.ai .bubble{border-bottom-left-radius:3px}
-.bubble pre{background:var(--code-bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;margin:8px 0;font-family:Consolas,"Courier New",monospace}
+.bubble pre{background:var(--code-bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.6;margin:8px 0;font-family:Consolas,"Courier New",monospace;position:relative}
+.bubble pre .code-copy{position:absolute;top:6px;right:8px;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--line);background:var(--card);color:var(--text2);cursor:pointer;opacity:0;transition:.15s}
+.bubble pre:hover .code-copy{opacity:1}
+.bubble pre .code-copy:hover{color:var(--accent);border-color:var(--accent)}
 .bubble code{background:var(--code-bg);border-radius:4px;padding:2px 6px;font-size:13px;font-family:Consolas,"Courier New",monospace}
 .bubble pre code{background:none;padding:0}
 .bubble p{margin:6px 0}
@@ -137,6 +140,7 @@ textarea{resize:vertical}
 .overlay{position:fixed;inset:0;background:rgba(30,28,22,.5);z-index:100;display:none;align-items:center;justify-content:center}
 .overlay.show{display:flex}
 .skill-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto;margin-top:8px}
+.follow-ups{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .skill-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--card)}
 .skill-item .si-main{flex:1;min-width:0}
 .skill-item .si-name{font-size:13px;color:var(--text);font-weight:600}
@@ -264,6 +268,7 @@ textarea{resize:vertical}
       <div class="spacer"></div>
       <button class="mini-btn" id="editBtn">编辑</button>
       <button class="mini-btn" id="clearBtn">清空对话</button>
+      <button class="mini-btn" id="exportBtn" title="导出本对话为 Markdown">导出</button>
     </div>
     <div class="messages" id="messages"></div>
     <div class="input-wrap">
@@ -684,7 +689,13 @@ function buildMessages(agent,history,userMsg){
   }
   sys+="\n\n当前日期："+new Date().toLocaleDateString("zh-CN");
   msgs.push({role:"system",content:sys});
-  for(const m of history){
+  const MAX_HISTORY=40,KEEP_RECENT=20;
+  let hist=history;
+  if(hist.length>MAX_HISTORY){
+    const skipped=hist.length-KEEP_RECENT;
+    hist=[{role:"system",content:"（较早的 "+skipped+" 条对话因过长未发送，如需完整上下文请使用「引用」功能）"}].concat(hist.slice(-KEEP_RECENT));
+  }
+  for(const m of hist){
     if(!m||(!m.content&&!m.files))continue;
     msgs.push({role:m.role,content:Array.isArray(m.content)?m.content:toApiContent(m)});
   }
@@ -875,8 +886,8 @@ function appendMsgEl(container,m){
   body+=m.streaming?'<div class="bubble ai-bubble"></div>':'<div class="bubble">'+md(msgText(m))+'</div>';
   if(m.error)body+='<div style="color:var(--danger);font-size:12.5px;margin-top:4px">错误：'+esc(m.error)+'</div>';
   body+='<div class="msg-time">'+time+'</div>';
-  if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button></div>';
-  else body+='<div class="msg-actions"><button data-act="quote">引用</button></div>';
+  if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button><button data-act="regen">重生成</button><button data-act="followup">追问</button></div>';
+  else body+='<div class="msg-actions"><button data-act="edit">编辑</button><button data-act="quote">引用</button></div>';
   div.innerHTML=avHtml+'<div class="msg-body">'+body+'</div>';
   container.appendChild(div);
   if(stickToBottom)scrollBottomNow(container);
@@ -890,6 +901,13 @@ function appendMsgEl(container,m){
   if(tb)tb.addEventListener("click",()=>speakText(plainText(msgText(m)),tb));
   const qb=div.querySelector('[data-act="quote"]');
   if(qb)qb.addEventListener("click",()=>setQuote(m));
+  const rb=div.querySelector('[data-act="regen"]');
+  if(rb)rb.addEventListener("click",()=>regenerateMessage(m));
+  const eb=div.querySelector('[data-act="edit"]');
+  if(eb)eb.addEventListener("click",()=>editUserMessage(m));
+  const fb=div.querySelector('[data-act="followup"]');
+  if(fb)fb.addEventListener("click",()=>suggestFollowUps(m,fb));
+  enhanceCodeBlocks(div);
 }
 function setQuote(m){
   const t=msgText(m)||"";
@@ -903,6 +921,134 @@ function setQuote(m){
 function clearQuote(){
   state.refQuote=null;
   $("quoteBar").style.display="none";
+}
+function enhanceCodeBlocks(el){
+  if(!el)return;
+  el.querySelectorAll("pre").forEach(p=>{
+    if(p.querySelector(".code-copy"))return;
+    const btn=document.createElement("button");
+    btn.className="code-copy";
+    btn.textContent="复制";
+    btn.addEventListener("click",()=>{
+      const code=p.querySelector("code");
+      navigator.clipboard.writeText(code?code.innerText:p.innerText)
+        .then(()=>{btn.textContent="已复制";setTimeout(()=>btn.textContent="复制",1500);})
+        .catch(()=>toast("复制失败",true));
+    });
+    p.appendChild(btn);
+  });
+}
+function regenerateMessage(m){
+  const a=currentAgent();
+  if(!a||state.generating){toast("请先等待当前回复完成",true);return;}
+  const c=getConv(a.id);
+  const i=c.messages.indexOf(m);
+  if(i<0)return;
+  let ui=-1;
+  for(let j=i-1;j>=0;j--){
+    if(c.messages[j].role==="user"){ui=j;break;}
+  }
+  if(ui<0){toast("没有找到对应的提问",true);return;}
+  const u=c.messages[ui];
+  const origFiles=u.files||[];
+  if(origFiles.some(f=>f.type==="video"))toast("原消息的视频内容已不保留，将不带视频重新生成");
+  const files=origFiles.map(f=>({name:f.name,type:f.type,data:f.data})).filter(f=>f.data);
+  if(origFiles.length&&!files.length){toast("原消息的附件已不保留，无法重新生成",true);return;}
+  c.messages.splice(i);
+  saveConv(c);
+  renderChat(true);
+  runRequest(c.messages.slice(0,ui),msgText(u)||"",files);
+}
+async function suggestFollowUps(m,btn){
+  const a=currentAgent();
+  const s=effectiveSettings(a);
+  if(!a)return;
+  if(state.generating){toast("请先等待当前回复完成",true);return;}
+  if(!s.baseURL&&!PROVIDERS[s.provider]){openSettings();return;}
+  if(!btn)return;
+  btn.disabled=true;
+  btn.textContent="生成中…";
+  const c=getConv(a.id);
+  const i=c.messages.indexOf(m);
+  const recent=c.messages.slice(Math.max(0,i-5),i).filter(x=>x.content);
+  const base=s.baseURL||PROVIDERS[s.provider].base;
+  const apiKey=s.apiKey||"";
+  try{
+    const body={model:s.model||PROVIDERS[s.provider].model||"",messages:[
+      {role:"system",content:"你是对话助手。根据用户的对话内容生成 3 个简短、自然的追问建议，每行一个，不要编号、不要引号、不要解释。"},
+      ...recent.map(x=>({role:x.role,content:msgText(x)})),
+      {role:"user",content:"基于以上对话，给我 3 个建议追问。"}
+    ],stream:false,temperature:0.7};
+    const r=await fetch(chatUrl(base),{method:"POST",headers:{"Content-Type":"application/json",...(apiKey?{Authorization:"Bearer "+apiKey}:{})},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const j=await r.json();
+    const text=(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"";
+    const lines=text.split("\n").map(x=>x.replace(/^[\s\d.、\-*]+/,"").trim()).filter(Boolean).slice(0,3);
+    if(!lines.length)throw new Error("没有生成结果");
+    const bodyEl=btn.closest(".msg-body");
+    const box=document.createElement("div");
+    box.className="follow-ups";
+    lines.forEach(q=>{
+      const b=document.createElement("button");
+      b.className="q-chip";
+      b.textContent=q;
+      b.addEventListener("click",()=>sendMessage(q));
+      box.appendChild(b);
+    });
+    bodyEl.appendChild(box);
+    btn.remove();
+  }catch(err){
+    toast("追问生成失败："+(err.message||String(err)),true,5000);
+    btn.disabled=false;
+    btn.textContent="追问";
+  }
+}
+function exportChat(){
+  const a=currentAgent();
+  if(!a)return;
+  const c=getConv(a.id);
+  if(!c.messages.length){toast("对话为空",true);return;}
+  let md="# 与「"+a.name+"」的对话\n\n";
+  md+="导出时间："+new Date().toLocaleString("zh-CN")+"\n\n---\n\n";
+  for(const m of c.messages){
+    const who=m.role==="user"?"**我**":"**"+a.name+"**";
+    md+="## "+who+"\n\n";
+    if(m.reasoning)md+="（思考过程）\n"+m.reasoning+"\n\n";
+    md+=(msgText(m)||"(空)")+"\n";
+    if(m.files&&m.files.length){
+      md+="\n附件："+m.files.map(f=>"["+f.name+"]").join(" ")+"\n";
+    }
+    if(m.error)md+="\n[错误："+m.error+"]\n";
+    md+="\n---\n\n";
+  }
+  const blob=new Blob([md],{type:"text/markdown;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const el=document.createElement("a");
+  el.href=url;
+  el.download="对话-"+a.name+"-"+new Date().toISOString().slice(0,10)+".md";
+  document.body.appendChild(el);
+  el.click();
+  el.remove();
+  URL.revokeObjectURL(url);
+  toast("已导出对话（Markdown）");
+}
+$("exportBtn").addEventListener("click",exportChat);
+function editUserMessage(m){
+  const a=currentAgent();
+  if(!a||state.generating){toast("请先等待当前回复完成",true);return;}
+  const c=getConv(a.id);
+  const i=c.messages.indexOf(m);
+  if(i<0)return;
+  if(!confirm("将删除该消息及其之后的所有回复，把内容放回输入框，确定？"))return;
+  c.messages.splice(i);
+  saveConv(c);
+  state.refQuote=null;
+  $("quoteBar").style.display="none";
+  const t=msgText(m)||"";
+  $("input").value=t;
+  autoResize();
+  renderChat(true);
+  $("input").focus();
 }
 $("quoteX").addEventListener("click",clearQuote);
 
@@ -1021,8 +1167,6 @@ async function sendMessage(text){
   const s=effectiveSettings(a);
   if(!a||state.generating)return;
   if(!s.baseURL&&!PROVIDERS[s.provider]){openSettings();return;}
-  let base=s.baseURL||PROVIDERS[s.provider].base;
-  let apiKey=s.apiKey||"";
   const input=$("input");
   const files=state.pendingFiles.slice();
   if(!text&&!files.length)return;
@@ -1049,15 +1193,22 @@ async function sendMessage(text){
   autoResize();
   renderChat(true);
 
-  const container=$("messages");
-  const msgsEl=container;
+  await runRequest(c.messages.slice(0,-1),sendText,files);
+}
+async function runRequest(historyMsgs,text,files){
+  const a=currentAgent();
+  const s=effectiveSettings(a);
+  if(!s.baseURL&&!PROVIDERS[s.provider]){openSettings();return;}
+  let base=s.baseURL||PROVIDERS[s.provider].base;
+  let apiKey=s.apiKey||"";
+  const c=getConv(a.id);
   const aiMsg={role:"assistant",content:"",reasoning:"",streaming:true,ts:Date.now()};
   c.messages.push(aiMsg);
   saveConv(c);
-  const aiEl=appendStreamEl(msgsEl);
+  const aiEl=appendStreamEl($("messages"));
   aiEl._aiMsg=aiMsg;
 
-  const payload=buildPayload(a,{text:sendText,files},c.messages.slice(0,-2));
+  const payload=buildPayload(a,{text,files},historyMsgs);
   state.generating=true;
   state.abort=new AbortController();
   setGeneratingUI(true);
@@ -1088,6 +1239,7 @@ async function sendMessage(text){
   state.generating=false;
   state.abort=null;
   setGeneratingUI(false);
+  return aiMsg;
 }
 
 function appendStreamEl(container){
@@ -1109,6 +1261,11 @@ function appendStreamEl(container){
     if(!m||!m.content){toast("该消息没有可引用的内容",true);return;}
     setQuote(m);
   });
+  div.querySelector('[data-act="followup"]').addEventListener("click",()=>{
+    const m=div._aiMsg;
+    if(!m)return;
+    suggestFollowUps(m,div.querySelector('[data-act="followup"]'));
+  });
   updateScrubberPositions();
   return div;
 }
@@ -1125,6 +1282,7 @@ function updateStreamEl(el,msg){
   bubble.innerHTML=html;
   const ti=bubble.querySelector(".think-inner");
   if(msg.streaming&&ti&&nearBottom)ti.scrollTop=ti.scrollHeight;
+  if(!msg.streaming)enhanceCodeBlocks(bubble);
   if(stickToBottom)scrollBottomNow($("messages"));
   updateScrubberPositions();
 }
@@ -1211,9 +1369,7 @@ function renderAttachList(){
   });
 }
 $("attachBtn").addEventListener("click",()=>$("attachFile").click());
-$("attachFile").addEventListener("change",async e=>{
-  const files=[...e.target.files];
-  e.target.value="";
+async function handleAttachFiles(files){
   for(const f of files){
     const name=f.name;
     const ext=name.split(".").pop().toLowerCase();
@@ -1250,6 +1406,17 @@ $("attachFile").addEventListener("change",async e=>{
     }
   }
   renderAttachList();
+}
+$("attachFile").addEventListener("change",e=>{
+  const files=[...e.target.files];
+  e.target.value="";
+  handleAttachFiles(files);
+});
+$("main").addEventListener("dragover",e=>e.preventDefault());
+$("main").addEventListener("drop",e=>{
+  e.preventDefault();
+  const files=[...e.dataTransfer.files];
+  if(files.length)handleAttachFiles(files);
 });
 $("attachList").addEventListener("click",e=>{
   const i=e.target.dataset.i;
