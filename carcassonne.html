@@ -325,6 +325,7 @@ body{
         <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optShield" checked style="width:auto"> 城市盾牌分</label></div>
         <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optUnfin" checked style="width:auto"> 未完成区域半价分</label></div>
         <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optSound" checked style="width:auto"> 音效</label></div>
+        <div class="opt"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="optRiver" checked style="width:auto"> 河流扩展</label></div>
       </div>
     </div>
     <button id="btnStart">开 始 游 戏</button>
@@ -425,7 +426,43 @@ var TYPES=[
        {t:'field',half:['N0','W0'],hot:[25,25]},
        {t:'field',half:['N1','E0'],hot:[75,25]},
        {t:'field',half:['E1','S1'],hot:[75,75]},
-       {t:'field',half:['S0','W1'],hot:[25,75]}]}
+       {t:'field',half:['S0','W1'],hot:[25,75]}]},
+/* ===== 河流扩展（The River）：12 张，替换起始瓦片 =====
+   V=河流边。河阶段先放：源头→10 张河段（洗牌）→湖泊。
+   河流不参与计分/米宝，但分割草地；桥瓦片的路横跨河流 */
+{id:'spring',edges:['F','F','V','F'],count:1,desc:'河源',river:1,
+ regs:[{t:'river',dirs:[2]},
+       {t:'field',half:['N0','N1','E0','E1','S0','S1','W0','W1'],hot:[50,72]}]},
+{id:'lake',edges:['F','F','V','F'],count:1,desc:'湖泊',river:1,
+ regs:[{t:'river',dirs:[2]},
+       {t:'field',half:['N0','N1','E0','E1','S0','S1','W0','W1'],hot:[50,72]}]},
+{id:'rvs',edges:['V','F','V','F'],count:2,desc:'直河',river:1,
+ regs:[{t:'river',dirs:[0,2]},
+       {t:'field',half:['N0','W0','W1','S0'],hot:[22,30]},
+       {t:'field',half:['N1','E0','E1','S1'],hot:[78,30]}]},
+{id:'rvc',edges:['V','V','F','F'],count:4,desc:'弯河',river:1,
+ regs:[{t:'river',dirs:[0,1]},
+       {t:'field',half:['N1','E0'],hot:[72,28]},
+       {t:'field',half:['N0','E1','S0','S1','W0','W1'],hot:[32,64]}]},
+{id:'rvbs',edges:['V','R','V','R'],count:1,desc:'桥河',river:1,
+ regs:[{t:'river',dirs:[0,2]},{t:'road',dirs:[1,3]},
+       {t:'field',half:['N0','W0','W1','S0'],hot:[22,30]},
+       {t:'field',half:['N1','E0','E1','S1'],hot:[78,30]}]},
+{id:'rvbc',edges:['R','R','V','V'],count:1,desc:'弯桥河',river:1,
+ regs:[{t:'road',dirs:[0,1]},{t:'river',dirs:[2,3]},
+       {t:'field',half:['N1','E0'],hot:[72,28]},
+       {t:'field',half:['S0','W1'],hot:[28,72]},
+       {t:'field',half:['N0','W0'],hot:[28,28]},
+       {t:'field',half:['E1','S1'],hot:[72,72]}]},
+{id:'rvm',edges:['V','F','V','F'],count:1,desc:'修道院河',river:1,m:1,
+ regs:[{t:'river',dirs:[0,2]},{t:'mon',dirs:[]},
+       {t:'field',half:['N0','W0','W1','S0'],hot:[22,30]},
+       {t:'field',half:['N1','E0','E1','S1'],hot:[78,30]}]},
+{id:'rvcity',edges:['C','V','R','V'],count:1,desc:'城河',river:1,s:1,
+ regs:[{t:'city',dirs:[0]},{t:'river',dirs:[1,3]},{t:'road',dirs:[2]},
+       {t:'field',half:['E0','W0'],adj:[0],hot:[50,30]},
+       {t:'field',half:['E1','S1'],hot:[73,73]},
+       {t:'field',half:['S0','W1'],hot:[27,73]}]}
 ];
 /* 边配对: dir 0=N 1=E 2=S 3=W; 对面= (dir+2)%4
    半边配对: N0↔S1(上方瓦片的N0 对着下方瓦片的 S1 的对应位置) 实际:
@@ -552,6 +589,44 @@ function drawTile(ctx,tile,x,y,sz,opts){
   for(var ti=0;ti<18;ti++){
     var gx=((ti*37)%88)+6,gy=((ti*53)%88)+6;
     ctx.beginPath();ctx.arc(gx,gy,1.4,0,7);ctx.fill();
+  }
+  /* 河流（先画，道路/城市后画叠在上面=桥） */
+  var RIVER_DARK='#1e5f8a',RIVER_FILL='#3a9ad9';
+  tile.regs.forEach(function(r){
+    if(r.t!=='river')return;
+    var d=r.dirs;
+    ctx.lineCap='round';ctx.lineJoin='round';
+    var pts=[];
+    if(d.length===1){
+      var e=EDGE_CENTER[d[0]];
+      var c=(tile.id==='lake')?[50,52]:[50,46];
+      pts.push(c);pts.push(e);
+    }else if(d.length===2){
+      var a=EDGE_CENTER[d[0]],b=EDGE_CENTER[d[1]];
+      if((d[0]%2)===(d[1]%2)){pts.push(a);pts.push(b)}
+      else{pts.push(a);pts.push([50,50]);pts.push(b)}
+    }
+    ctx.strokeStyle=RIVER_DARK;ctx.lineWidth=14;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0],pts[0][1]);
+    for(var pi=1;pi<pts.length;pi++)ctx.lineTo(pts[pi][0],pts[pi][1]);
+    ctx.stroke();
+    ctx.strokeStyle=RIVER_FILL;ctx.lineWidth=9;
+    ctx.stroke();
+  });
+  /* 泉眼 / 湖泊 */
+  if(tile.id==='spring'){
+    ctx.fillStyle=RIVER_FILL;
+    ctx.beginPath();ctx.arc(50,46,8.5,0,7);ctx.fill();
+    ctx.strokeStyle=RIVER_DARK;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(50,46,11,0,7);ctx.stroke();
+  }else if(tile.id==='lake'){
+    ctx.fillStyle=RIVER_FILL;
+    ctx.beginPath();ctx.arc(50,52,13,0,7);ctx.fill();
+    ctx.strokeStyle=RIVER_DARK;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(50,52,15.5,0,7);ctx.stroke();
+    ctx.fillStyle='#bcd9ee';
+    ctx.beginPath();ctx.arc(46,48,3,0,7);ctx.arc(54,56,2.2,0,7);ctx.fill();
   }
   /* 道路（粗+黑描边） */
   var roadSegs=tile.regs.filter(function(r){return r.t==='road'});
@@ -815,6 +890,13 @@ function connectRegions(tile,x,y){
           }
         });
       }
+      if(r.t==='river'&&tile.edges[d]==='V'&&r.dirs.indexOf(d)>=0){
+        nb.regs.forEach(function(nr,nri){
+          if(nr.t==='river'&&nb.edges[EDGE_OPP[d]]==='V'&&nr.dirs.indexOf(EDGE_OPP[d])>=0){
+            ufUnion(ufId(tile,ri),ufId(nb,nri));
+          }
+        });
+      }
       if(r.t==='field'){
         EDGE_HALVES[d].forEach(function(h){
           if(r.half.indexOf(h)>=0){
@@ -960,16 +1042,17 @@ var players=[],curPlayer=0,curTile=null,meepleMode=false,tilePlaced=false;
 var boardMap={};
 var phase='menu';
 var totalTiles=0,deck=[];
+var riverDeck=[],riverPhase=false,riverOpen=null,riverBend=null;/* 河流扩展状态 */
 var finished={};/* 已完成的区域（用于草地计分） */
 var scoreLog=[];/* 积分明细 */
 var lastTile=null;/* 最近放置的格块（金色框标注） */
 /* ===== 全局设置（计分选项/音效） ===== */
-var SETTINGS={field:true,shield:true,unfinished:true,sound:true,aiLv:2};
+var SETTINGS={field:true,shield:true,unfinished:true,sound:true,aiLv:2,river:true};
 function loadSettings(){
   try{
     var s=JSON.parse(localStorage.getItem('carcassonne_settings')||'null');
     if(s&&typeof s==='object'){
-      ['field','shield','unfinished','sound'].forEach(function(k){if(typeof s[k]==='boolean')SETTINGS[k]=s[k]});
+      ['field','shield','unfinished','sound','river'].forEach(function(k){if(typeof s[k]==='boolean')SETTINGS[k]=s[k]});
       if(typeof s.aiLv==='number')SETTINGS.aiLv=s.aiLv;
     }
   }catch(e){}
@@ -989,9 +1072,14 @@ function saveGame(){
       board[k]={id:t.id,rot:t.rot,meeple:meeple};
     }
     var save={
-      v:2,
+      v:3,
       board:board,
       deck:deck,
+      riverDeck:riverDeck,
+      riverPhase:riverPhase,
+      riverOpen:riverOpen,
+      riverBend:riverBend,
+      river:SETTINGS.river,
       players:players.map(function(p){return {name:p.name,ai:p.ai,aiLv:p.aiLv,score:p.score,meeples:p.meeples}}),
       curPlayer:curPlayer,
       curTile:curTile?{id:curTile.id,rot:curTile.rot}:null,
@@ -1025,6 +1113,11 @@ function loadGame(){
       boardMap[k]=t;
     }
     deck=s.deck||[];
+    riverDeck=s.riverDeck||[];
+    riverPhase=!!s.riverPhase;
+    riverOpen=s.riverOpen||null;
+    riverBend=s.riverBend||null;
+    if(typeof s.river==='boolean')SETTINGS.river=s.river;
     players=(s.players||[]).map(function(p,i){
       return {name:p.name,ai:p.ai||p.aiLv>0,aiLv:p.aiLv!=null?p.aiLv:(p.ai?2:0),score:p.score||0,meeples:p.meeples!=null?p.meeples:7,color:PLAYER_COLORS[i%PLAYER_COLORS.length],idx:i};
     });
@@ -1112,19 +1205,31 @@ function popGains(gains,x,y){
 function buildDeck(mode){
   var list=[];
   TYPES.forEach(function(T){
+    if(T.river)return;/* 河瓦片单独成堆 */
     var c=mode==='2'?Math.max(1,Math.round(T.count/2)):mode==='1'?Math.max(1,Math.round(T.count/3)):T.count;
     for(var i=0;i<c;i++)list.push(T.id);
   });
-  /* 起始瓦片固定第一张 */
-  var startIdx=list.indexOf('start');
-  list.splice(startIdx,1);
-  deck=list.sort(function(){return Math.random()-0.5});
-  /* 起始瓦片 */
-  var start=makeTile('start',0);
-  start.x=0;start.y=0;
-  boardMap['0,0']=start;
-  totalTiles=deck.length+1;
+  /* 起始瓦片固定第一张（启用河流时替换为源头，不放起始瓦片） */
+  if(!SETTINGS.river){
+    var startIdx=list.indexOf('start');
+    list.splice(startIdx,1);
+    deck=list.sort(function(){return Math.random()-0.5});
+    var start=makeTile('start',0);
+    start.x=0;start.y=0;
+    boardMap['0,0']=start;
+    totalTiles=deck.length+1;
+  }else{
+    deck=list.sort(function(){return Math.random()-0.5});
+    totalTiles=deck.length+12;/* 源头+10 河段+湖泊 */
+  }
   return deck.length;
+}
+/* 河牌堆：10 张河段洗牌 + 湖泊垫底 */
+function buildRiverDeck(){
+  var ids=['rvs','rvs','rvc','rvc','rvc','rvc','rvbs','rvbc','rvm','rvcity'];
+  ids=ids.sort(function(){return Math.random()-0.5});
+  ids.push('lake');
+  return ids;
 }
 function newGame(opts){
   clearSave();/* 新对局清除旧存档 */
@@ -1133,6 +1238,21 @@ function newGame(opts){
   players.forEach(function(p,i){p.score=0;p.idx=i;p.meeples=7;p.color=PLAYER_COLORS[i%PLAYER_COLORS.length]});
   boardMap={};
   buildDeck(opts.mode);
+  if(SETTINGS.river){
+    /* 河流阶段：源头先放 (0,0)，河朝 S，其余河段轮流抽放，湖泊最后 */
+    riverDeck=buildRiverDeck();
+    riverPhase=true;
+    riverBend=null;
+    var sp=makeTile('spring',0);
+    sp.x=0;sp.y=0;
+    boardMap['0,0']=sp;
+    riverOpen={x:0,y:0,dir:2};
+  }else{
+    riverDeck=[];
+    riverPhase=false;
+    riverOpen=null;
+    riverBend=null;
+  }
   curPlayer=0;phase='draw';
   lastTile=null;
   finished={};
@@ -1143,9 +1263,41 @@ function newGame(opts){
 }
 function updateDeckCount(){
   var el=$id('deckCount');
-  if(el)el.textContent='剩余 '+deck.length+' 张';
+  if(!el)return;
+  if(riverPhase){
+    el.textContent='河流 '+(riverDeck.length+1)+'/12';
+  }else{
+    el.textContent='剩余 '+deck.length+' 张';
+  }
 }
 function nextTurn(){
+  /* 河流阶段：先抽放河瓦片（湖泊放完自动结束） */
+  if(riverPhase){
+    if(riverDeck.length){
+      curTile=makeTile(riverDeck.pop(),0);
+      updateDeckCount();
+      tilePlaced=false;meepleMode=false;
+      phase='place';
+      var plR=players[curPlayer];
+      if(!plR.ai){
+        hint('河流阶段 '+plR.name+'：把河瓦片旋转后接到河流开放端（绿色位置）');
+      }else{
+        hint('AI '+plR.name+' 放置河瓦片…');
+      }
+      renderCurTile();
+      render();
+      if(plR.ai){
+        setTimeout(function(){aiTurn(plR)},500);
+      }
+      return;
+    }
+    /* 河阶段结束（湖泊已放置），转入常规游戏 */
+    riverPhase=false;
+    riverOpen=null;
+    riverBend=null;
+    hint('河流完成，开始常规游戏！');
+    render();
+  }
   if(!deck.length){
     endGame();
     return;
@@ -1186,8 +1338,38 @@ function nextTurn(){
     setTimeout(function(){aiTurn(pl)},500);
   }
 }
+/* 河瓦片放置判定：必须接在河流开放端，且满足弯向/防交叉规则 */
+function riverValid(tile,x,y){
+  if(!riverOpen||riverOpen.dir==null)return false;
+  var ox=riverOpen.x+DIR_DX[riverOpen.dir],oy=riverOpen.y+DIR_DY[riverOpen.dir];
+  if(x!==ox||y!==oy)return false;
+  if(boardGet(x,y))return false;
+  var dirIn=EDGE_OPP[riverOpen.dir];/* 新瓦片该方向的边朝向上游 */
+  var hasIn=false,dirOut=null;
+  tile.regs.forEach(function(r){
+    if(r.t!=='river')return;
+    r.dirs.forEach(function(d){
+      if(d===dirIn)hasIn=true;else dirOut=d;
+    });
+  });
+  if(!hasIn)return false;
+  if(dirOut===null)return true;/* 湖泊：终止河流 */
+  /* 下游位置已有瓦片 = 河自交叉/闭环，禁止 */
+  if(boardGet(x+DIR_DX[dirOut],y+DIR_DY[dirOut]))return false;
+  /* 弯段：连续两个弯不能同方向（避免 U 形回头） */
+  if(dirOut!==EDGE_OPP[dirIn]){
+    var b=(dirOut===(dirIn+1)%4)?'R':'L';
+    if(riverBend===b)return false;
+  }
+  return true;
+}
 function placeTile(x,y){
-  if(!validPlacement(curTile,x,y)){
+  if(riverPhase){
+    if(!riverValid(curTile,x,y)){
+      toast('河瓦片必须接到河流开放端');
+      return;
+    }
+  }else if(!validPlacement(curTile,x,y)){
     toast('此处无法放置：地形不匹配');
     return;
   }
@@ -1201,6 +1383,27 @@ function placeTile(x,y){
     fitView();
   }
   connectAll(curTile);
+  if(riverPhase){
+    /* 更新河流开放端与弯向 */
+    var dirIn2=EDGE_OPP[riverOpen.dir],dirOut2=null;
+    curTile.regs.forEach(function(r){
+      if(r.t!=='river')return;
+      r.dirs.forEach(function(d){if(d!==dirIn2)dirOut2=d});
+    });
+    if(curTile.id==='lake'){
+      riverPhase=false;
+      riverOpen=null;
+      riverBend=null;
+      hint('河流完成，开始常规游戏！');
+    }else{
+      riverOpen={x:x,y:y,dir:dirOut2};
+      if(dirOut2!==null&&dirOut2!==EDGE_OPP[dirIn2]){
+        riverBend=(dirOut2===(dirIn2+1)%4)?'R':'L';
+      }else{
+        riverBend=null;
+      }
+    }
+  }
   phase='score';
   render();
   renderCurTile();
@@ -1233,6 +1436,7 @@ function finishTurn(){
 function hasOpenRegions(tile){
   var any=false;
   tile.regs.forEach(function(r,ri){
+    if(r.t==='river')return;
     if(regHasMeepleAnywhere(tile,ri))return;
     any=true;
   });
@@ -1251,6 +1455,7 @@ function hotOfReg(tile,ri){
 function openHotSpots(){
   var list=[];
   curTile.regs.forEach(function(r,ri){
+    if(r.t==='river')return;
     if(regHasMeepleAnywhere(curTile,ri))return;
     var h=tileHot(curTile,ri);
     list.push({ri:ri,reg:r,h:[h[0],h[1]]});
@@ -1308,6 +1513,12 @@ function connectAll(tile){
         var ar=t2.regs.filter(function(r){return r.t==='road'&&r.dirs.indexOf(d)>=0});
         var br=nb.regs.filter(function(r){return r.t==='road'&&r.dirs.indexOf(EDGE_OPP[d])>=0});
         ar.forEach(function(ra){br.forEach(function(rb){ufUnion(ufId(t2,t2.regs.indexOf(ra)),ufId(nb,nb.regs.indexOf(rb)))})});
+      }
+      /* 河流（同边相接，仅作连通记录，不参与计分） */
+      if(t2.edges[d]==='V'){
+        var av=t2.regs.filter(function(r){return r.t==='river'&&r.dirs.indexOf(d)>=0});
+        var bv=nb.regs.filter(function(r){return r.t==='river'&&r.dirs.indexOf(EDGE_OPP[d])>=0});
+        av.forEach(function(ra){bv.forEach(function(rb){ufUnion(ufId(t2,t2.regs.indexOf(ra)),ufId(nb,nb.regs.indexOf(rb)))})});
       }
       /* 草地 */
       if(t2.edges[d]==='F'){
@@ -1653,7 +1864,13 @@ function render(){
   }
   /* 合法位置高亮（跟随当前旋转） */
   if(phase==='place'&&curTile&&!tilePlaced){
-    var spots=findPlacements(curTile);
+    var spots;
+    if(riverPhase&&riverOpen){
+      var ox=riverOpen.x+DIR_DX[riverOpen.dir],oy=riverOpen.y+DIR_DY[riverOpen.dir];
+      spots=riverValid(curTile,ox,oy)?[[ox,oy]]:[];
+    }else{
+      spots=findPlacements(curTile);
+    }
     spots.forEach(function(sp){
       var pp=tileScreenPos(sp[0],sp[1]);
       ctx.strokeStyle='rgba(130,220,130,.6)';
@@ -1672,7 +1889,7 @@ function render(){
   if(phase==='place'&&curTile&&!tilePlaced&&view.mouse){
     var m=view.mouse;
     var tc=screenToTile(m.x,m.y);
-    var ok=validPlacement(curTile,tc.x,tc.y);
+    var ok=(riverPhase&&riverOpen)?riverValid(curTile,tc.x,tc.y):validPlacement(curTile,tc.x,tc.y);
     var pp=tileScreenPos(tc.x,tc.y);
     ctx.save();
     ctx.globalAlpha=0.75;
@@ -1815,7 +2032,8 @@ function onUp(e){
   if(moved<8){
     if(phase==='place'&&curTile&&!tilePlaced&&!players[curPlayer].ai){
       var tc=screenToTile(pt.x,pt.y);
-      if(validPlacement(curTile,tc.x,tc.y)){
+      var okP=(riverPhase&&riverOpen)?riverValid(curTile,tc.x,tc.y):validPlacement(curTile,tc.x,tc.y);
+      if(okP){
         placeTile(tc.x,tc.y);
       }
     }else if(meepleMode&&curTile&&!players[curPlayer].ai){
@@ -1881,6 +2099,29 @@ function rebuildEdges(){
 }
 function aiTurn(pl){
   var lv=pl.aiLv||2;/* 每位玩家自己的 AI 难度 */
+  /* 河流阶段：接到开放端的合法旋转（河阶段不放米宝） */
+  if(riverPhase&&riverOpen){
+    var okSpot=null;
+    for(var rv=0;rv<4;rv++){
+      curTile.rot=rv;
+      rebuildEdges();
+      var ox=riverOpen.x+DIR_DX[riverOpen.dir],oy=riverOpen.y+DIR_DY[riverOpen.dir];
+      if(riverValid(curTile,ox,oy)){
+        okSpot={x:ox,y:oy,rot:rv};
+        break;
+      }
+    }
+    if(!okSpot){
+      toast('AI 河瓦片无处可放');
+      endTurnSkip();
+      return;
+    }
+    curTile.rot=okSpot.rot;
+    rebuildEdges();
+    placeTile(okSpot.x,okSpot.y);
+    finishTurn();
+    return;
+  }
   var best=null;
   /* 尝试所有旋转与位置 */
   for(var r=0;r<4;r++){
@@ -2075,11 +2316,12 @@ function renderSetup(){
   });
   renderLegend();
   /* 同步计分选项 */
-  var f=$id('optField'),sh=$id('optShield'),uf=$id('optUnfin'),sd=$id('optSound');
+  var f=$id('optField'),sh=$id('optShield'),uf=$id('optUnfin'),sd=$id('optSound'),rv=$id('optRiver');
   if(f)f.checked=SETTINGS.field;
   if(sh)sh.checked=SETTINGS.shield;
   if(uf)uf.checked=SETTINGS.unfinished;
   if(sd)sd.checked=SETTINGS.sound;
+  if(rv)rv.checked=SETTINGS.river;
 }
 /* 图例：设置面板里的地形示例 */
 var LEGEND_TILES=[['ff','旷野（农夫放这里）'],['rr','道路（强盗放这里）'],['cf','城市（骑士放这里）'],['ffm','修道院（修士放这里）']];
@@ -2139,6 +2381,7 @@ function bindSetup(){
     SETTINGS.shield=$id('optShield').checked;
     SETTINGS.unfinished=$id('optUnfin').checked;
     SETTINGS.sound=$id('optSound').checked;
+    SETTINGS.river=$id('optRiver').checked;
     saveSettings();
     $id('setupMask').classList.add('hide');
     $id('result').classList.remove('show');
