@@ -1228,7 +1228,7 @@ function buildDeck(mode){
 function buildRiverDeck(){
   var ids=['rvs','rvs','rvc','rvc','rvc','rvc','rvbs','rvbc','rvm','rvcity'];
   ids=ids.sort(function(){return Math.random()-0.5});
-  ids.push('lake');
+  ids.unshift('lake');
   return ids;
 }
 function newGame(opts){
@@ -1270,11 +1270,37 @@ function updateDeckCount(){
     el.textContent='剩余 '+deck.length+' 张';
   }
 }
+function anyRiverPlacement(tile){
+  if(!riverOpen||riverOpen.dir==null)return false;
+  var ox=riverOpen.x+DIR_DX[riverOpen.dir],oy=riverOpen.y+DIR_DY[riverOpen.dir];
+  for(var r=0;r<4;r++){
+    var tt=makeTile(tile.id,r);
+    if(riverValid(tt,ox,oy))return true;
+  }
+  return false;
+}
 function nextTurn(){
   /* 河流阶段：先抽放河瓦片（湖泊放完自动结束） */
   if(riverPhase){
     if(riverDeck.length){
       curTile=makeTile(riverDeck.pop(),0);
+      /* 河段放不下：洗回重抽（湖泊除外，湖泊总可放置） */
+      var rTried={};
+      while(!anyRiverPlacement(curTile)){
+        if(curTile.id==='lake')break;
+        if(riverDeck.length){
+          rTried[curTile.id]=1;
+          riverDeck.splice(1+((Math.random()*(riverDeck.length-1))|0),0,curTile.id);
+          curTile=makeTile(riverDeck.pop(),0);
+        }else if(rTried[curTile.id]){
+          /* 所有河段都无法放置：强制湖泊闭合河流 */
+          riverDeck=[];
+          curTile=makeTile('lake',(EDGE_OPP[riverOpen.dir]-2+4)%4);
+          break;
+        }else{
+          break;
+        }
+      }
       updateDeckCount();
       tilePlaced=false;meepleMode=false;
       phase='place';
