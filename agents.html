@@ -38,6 +38,8 @@ textarea{resize:vertical}
 .sidebar-actions button{flex:1;height:36px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
 .btn-new{background:var(--seal);color:#fdf6e8}
 .btn-new:hover{filter:brightness(1.08)}
+.btn-ghost-side{background:var(--card);border:1px solid var(--line);color:var(--text2)}
+.btn-ghost-side:hover{color:var(--accent);border-color:var(--accent)}
 .sidebar-search{padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);display:flex;align-items:center;gap:8px}
 .sidebar-search input{border:none;background:none;padding:0;font-size:13px}
 .sidebar-search input:focus{outline:none}
@@ -239,6 +241,7 @@ textarea{resize:vertical}
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-actions">
       <button class="btn-new" id="newAgentBtn">新建智能体</button>
+      <button class="btn-ghost-side" id="skillLibBtn">技能库</button>
     </div>
     <div class="sidebar-search"><input id="searchInput" type="search" placeholder="搜索智能体" autocomplete="off"></div>
     <div class="agent-list" id="agentList"></div>
@@ -349,7 +352,7 @@ textarea{resize:vertical}
         <input type="file" id="skillFile" accept=".md,.txt,text/markdown,text/plain" style="display:none">
       </div>
       <div class="field">
-        <label>我的技能</label>
+        <label>我的技能 <span id="skillBindHint" style="font-weight:400;color:var(--text2);font-size:12px"></span></label>
         <input id="skillSearch" placeholder="搜索名称或描述…" autocomplete="off">
         <div class="skill-list" id="skillList"></div>
       </div>
@@ -1443,10 +1446,42 @@ $("openSkillLib").addEventListener("click",()=>{
   $("skillsOverlay").classList.add("show");
   $("skillSearch").focus();
 });
+$("skillLibBtn").addEventListener("click",()=>{
+  state.editingSkills=$("editOverlay").classList.contains("show")?(state.editingSkills||[]):null;
+  renderSkillList();
+  $("skillsOverlay").classList.add("show");
+});
 $("skillSearch").addEventListener("input",renderSkillList);
+function skillBoundToCurrent(id){
+  const a=currentAgent();
+  return a&&a.skills&&a.skills.includes(id);
+}
+function toggleSkillBound(sk){
+  if(state.editingSkills){
+    if(state.editingSkills.includes(sk.id))state.editingSkills=state.editingSkills.filter(x=>x!==sk.id);
+    else state.editingSkills.push(sk.id);
+    renderAgSkillList();
+  }else{
+    const a=currentAgent();
+    if(!a){toast("请先选择智能体",true);return;}
+    if(!a.skills)a.skills=[];
+    if(a.skills.includes(sk.id))a.skills=a.skills.filter(x=>x!==sk.id);
+    else a.skills.push(sk.id);
+    save();
+    renderAgents();
+    renderChat();
+  }
+  renderSkillList();
+}
 function renderSkillList(){
   const box=$("skillList");
   if(!box)return;
+  const hint=$("skillBindHint");
+  if(hint){
+    if(state.editingSkills)hint.textContent="（绑定到编辑中的智能体）";
+    else if(currentAgent())hint.textContent="（绑定到当前智能体："+currentAgent().name+"）";
+    else hint.textContent="";
+  }
   box.innerHTML="";
   const kw=$("skillSearch").value.trim().toLowerCase();
   const items=Object.values(skillCache).filter(s=>!kw||s.name.toLowerCase().includes(kw)||s.description.toLowerCase().includes(kw));
@@ -1467,15 +1502,10 @@ function renderSkillList(){
     ds.textContent=sk.description;
     main.appendChild(nm);main.appendChild(ds);
     const addBtn=document.createElement("button");
-    const bound=state.editingSkills&&state.editingSkills.includes(sk.id);
+    const bound=state.editingSkills?state.editingSkills.includes(sk.id):skillBoundToCurrent(sk.id);
     addBtn.className="si-add"+(bound?" on":"");
     addBtn.textContent=bound?"已绑定":"绑定";
-    addBtn.addEventListener("click",()=>{
-      if(!bound)state.editingSkills.push(sk.id);
-      else state.editingSkills=state.editingSkills.filter(x=>x!==sk.id);
-      renderSkillList();
-      renderAgSkillList();
-    });
+    addBtn.addEventListener("click",()=>toggleSkillBound(sk));
     const delBtn=document.createElement("button");
     delBtn.className="si-del";
     delBtn.textContent="删除";
@@ -1484,7 +1514,7 @@ function renderSkillList(){
       skillDel(sk.id);
       if(state.editingSkills)state.editingSkills=state.editingSkills.filter(x=>x!==sk.id);
       renderSkillList();
-      renderAgSkillList();
+      if(state.editingSkills)renderAgSkillList();
     });
     d.appendChild(main);d.appendChild(addBtn);d.appendChild(delBtn);
     box.appendChild(d);
