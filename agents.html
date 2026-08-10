@@ -1069,6 +1069,16 @@ function editUserMessage(m){
 }
 $("quoteX").addEventListener("click",clearQuote);
 
+function scrubTops(){
+  const sc=$("messages");
+  const users=sc.querySelectorAll(".msg.user");
+  const h=Math.max(1,sc.scrollHeight);
+  const raw=[];
+  users.forEach(el=>raw.push(el.offsetTop/h*100));
+  const pMin=raw.length?Math.min.apply(null,raw):0;
+  const pMax=raw.length?Math.max.apply(null,raw):100;
+  return raw.map(p=>Math.min(97,Math.max(3,(p-pMin)/((pMax-pMin)||1)*70+15)));
+}
 function renderScrubber(){
   const sc=$("messages"),sb=$("scrubber");
   if(!sc||!sb)return;
@@ -1077,14 +1087,14 @@ function renderScrubber(){
   if(!users.length){sb.classList.remove("show");return;}
   sb.classList.add("show");
   const h=Math.max(1,sc.scrollHeight);
+  const tops=scrubTops();
   users.forEach((el,i)=>{
     const t=document.createElement("div");
     t.className="scrub-tick";
     const textEl=el.querySelector(".msg-body .bubble");
     const q=(textEl?textEl.textContent:"").replace(/\s+/g," ").trim();
     t.title=q?q.slice(0,24)+(q.length>24?"…":""):"用户消息";
-    const p=el.offsetTop/h*100;
-    t.style.top=Math.min(97,Math.max(i===0?12:3,p))+"%";
+    t.style.top=tops[i]+"%";
     t.addEventListener("click",()=>{
       sc.scrollTop=Math.max(0,el.offsetTop-sc.clientHeight/3);
       stickToBottom=sc.scrollHeight-sc.scrollTop-sc.clientHeight<60;
@@ -1108,9 +1118,10 @@ function markScrubActive(){
 function updateScrubberPositions(){
   const sb=$("scrubber"),sc=$("messages");
   if(!sb||!sc||!sb.classList.contains("show"))return;
-  const h=Math.max(1,sc.scrollHeight),ticks=sb.children;
+  const ticks=sb.children;
+  const tops=scrubTops();
   sc.querySelectorAll(".msg.user").forEach((el,i)=>{
-    if(i<ticks.length)ticks[i].style.top=Math.min(97,Math.max(3,el.offsetTop/h*100))+"%";
+    if(i<ticks.length)ticks[i].style.top=tops[i]+"%";
   });
   markScrubActive();
 }
