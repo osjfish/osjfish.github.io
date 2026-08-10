@@ -893,6 +893,8 @@ function appendStreamEl(container){
 }
 function updateStreamEl(el,msg){
   const bubble=el.querySelector(".bubble");
+  const ti0=bubble.querySelector(".think-inner");
+  const nearBottom=ti0&&ti0.scrollHeight-ti0.scrollTop-ti0.clientHeight<12;
   let html="";
   if(msg.reasoning){
     html+='<details class="thinking" open><summary>思考过程</summary><div class="think-inner">'+esc(msg.reasoning)+'</div></details>';
@@ -900,6 +902,8 @@ function updateStreamEl(el,msg){
   html+=md(msg.content);
   if(msg.streaming)html+='<span class="typing-cursor"></span>';
   bubble.innerHTML=html;
+  const ti=bubble.querySelector(".think-inner");
+  if(msg.streaming&&ti&&nearBottom)ti.scrollTop=ti.scrollHeight;
   if(stickToBottom)scrollBottomNow($("messages"));
   updateScrubberPositions();
 }
