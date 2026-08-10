@@ -1742,6 +1742,26 @@ $("input").addEventListener("keydown",e=>{
     else if(state.generating){}else $("input").focus();
   }
 });
+$("input").addEventListener("paste",e=>{
+  const items=e.clipboardData?(e.clipboardData.items||[]):[];
+  const imgs=[...items].filter(it=>it.type&&it.type.indexOf("image/")===0);
+  if(!imgs.length)return;
+  e.preventDefault();
+  let idx=0;
+  imgs.forEach(it=>{
+    const f=it.getAsFile();
+    if(!f)return;
+    idx++;
+    readFileAsDataUrl(f)
+      .then(raw=>compressImage(raw))
+      .then(data=>{
+        state.pendingFiles.push({name:f.name||("粘贴图片 "+idx+".png"),type:"image",data});
+        renderAttachList();
+      })
+      .catch(()=>toast("图片读取失败",true));
+  });
+  if(idx)toast("已添加 "+idx+" 张图片，发送后 AI 可查看");
+});
 $("input").addEventListener("input",autoResize);
 $("messages").addEventListener("scroll",()=>{
   const sc=$("messages");
