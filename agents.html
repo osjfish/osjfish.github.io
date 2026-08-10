@@ -886,8 +886,8 @@ function appendMsgEl(container,m){
   body+=m.streaming?'<div class="bubble ai-bubble"></div>':'<div class="bubble">'+md(msgText(m))+'</div>';
   if(m.error)body+='<div style="color:var(--danger);font-size:12.5px;margin-top:4px">错误：'+esc(m.error)+'</div>';
   body+='<div class="msg-time">'+time+'</div>';
-  if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button><button data-act="regen">重生成</button><button data-act="followup">追问</button></div>';
-  else body+='<div class="msg-actions"><button data-act="edit">编辑</button><button data-act="quote">引用</button></div>';
+  if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button><button data-act="regen">重生成</button><button data-act="followup">追问</button><button data-act="del">删除</button></div>';
+  else body+='<div class="msg-actions"><button data-act="edit">编辑</button><button data-act="quote">引用</button><button data-act="del">删除</button></div>';
   div.innerHTML=avHtml+'<div class="msg-body">'+body+'</div>';
   container.appendChild(div);
   if(stickToBottom)scrollBottomNow(container);
@@ -907,6 +907,8 @@ function appendMsgEl(container,m){
   if(eb)eb.addEventListener("click",()=>editUserMessage(m));
   const fb=div.querySelector('[data-act="followup"]');
   if(fb)fb.addEventListener("click",()=>suggestFollowUps(m,fb));
+  const db=div.querySelector('[data-act="del"]');
+  if(db)db.addEventListener("click",()=>deleteMessage(m));
   enhanceCodeBlocks(div);
 }
 function setQuote(m){
@@ -937,6 +939,20 @@ function enhanceCodeBlocks(el){
     });
     p.appendChild(btn);
   });
+}
+function deleteMessage(m){
+  const a=currentAgent();
+  if(!a)return;
+  if(m.streaming||state.generating){toast("请先等待当前回复完成",true);return;}
+  const c=getConv(a.id);
+  const i=c.messages.indexOf(m);
+  if(i<0)return;
+  if(!confirm("删除这条消息？"))return;
+  c.messages.splice(i,1);
+  saveConv(c);
+  if(state.refQuote===m)clearQuote();
+  renderChat(true);
+  toast("已删除该消息");
 }
 function regenerateMessage(m){
   const a=currentAgent();
@@ -1246,7 +1262,7 @@ function appendStreamEl(container){
   const div=document.createElement("div");
   div.className="msg ai";
   const a=currentAgent();
-  div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div><div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button><button data-act="followup">追问</button></div></div>';
+  div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div><div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button><button data-act="followup">追问</button><button data-act="del">删除</button></div></div>';
   container.appendChild(div);
   if(stickToBottom)scrollBottomNow(container);
   div.querySelector('[data-act="copy"]').addEventListener("click",()=>{
@@ -1266,6 +1282,11 @@ function appendStreamEl(container){
     const m=div._aiMsg;
     if(!m)return;
     suggestFollowUps(m,fu);
+  });
+  div.querySelector('[data-act="del"]').addEventListener("click",()=>{
+    const m=div._aiMsg;
+    if(!m)return;
+    deleteMessage(m);
   });
   updateScrubberPositions();
   return div;
