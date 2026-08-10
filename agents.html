@@ -113,7 +113,11 @@ textarea{resize:vertical}
 .input-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:4px}
 .input-hint{flex:1;min-width:0;font-size:11.5px;color:var(--text2);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-bottom:10px}
 .attach-btn{height:38px;width:38px;border-radius:var(--radius-sm);background:var(--bg);border:1px solid var(--line);color:var(--text2);font-size:19px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
-.attach-btn.on{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.quote-bar{display:flex;align-items:center;gap:8px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;padding:6px 8px;margin-bottom:8px;font-size:12.5px}
+.quote-bar .qb-label{color:var(--accent);font-weight:600;flex-shrink:0}
+.quote-bar .qb-text{flex:1;min-width:0;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quote-bar .qb-x{width:22px;height:22px;flex-shrink:0;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text2);background:transparent;border:none;cursor:pointer;font-size:15px}
+.quote-bar .qb-x:hover{background:var(--bg);color:var(--danger)}
 .attach-btn:hover{border-color:var(--gold);color:var(--seal)}
 .attach-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
 .attach-item{position:relative;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);padding:4px 6px;font-size:12px;max-width:200px}
@@ -265,10 +269,14 @@ textarea{resize:vertical}
     <div class="input-wrap">
       <div class="input-box">
         <div class="attach-list" id="attachList"></div>
+        <div class="quote-bar" id="quoteBar" style="display:none">
+          <span class="qb-label">引用</span>
+          <span class="qb-text" id="quoteText"></span>
+          <button class="qb-x" id="quoteX" title="取消引用">×</button>
+        </div>
         <textarea id="input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
         <div class="input-bar">
           <button class="attach-btn" id="attachBtn" title="上传图片或文件">＋</button>
-          <button class="attach-btn" id="refFullBtn" title="发送时附带完整对话记录（让 AI 基于全文处理）" style="font-size:12px;font-weight:600">全文</button>
           <div class="input-hint">支持图片、文本文件，视频（需豆包视觉模型或支持视频的接口）</div>
           <button class="send-btn" id="sendBtn">发送</button>
         </div>
@@ -449,7 +457,7 @@ let state={
   pendingFiles:[],
   convCache:{},
   editingSkills:[],
-  refFullText:false
+  refQuote:null
 };
 let stickToBottom=true;
 
@@ -867,7 +875,8 @@ function appendMsgEl(container,m){
   body+=m.streaming?'<div class="bubble ai-bubble"></div>':'<div class="bubble">'+md(msgText(m))+'</div>';
   if(m.error)body+='<div style="color:var(--danger);font-size:12.5px;margin-top:4px">错误：'+esc(m.error)+'</div>';
   body+='<div class="msg-time">'+time+'</div>';
-  if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button></div>';
+  if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button></div>';
+  else body+='<div class="msg-actions"><button data-act="quote">引用</button></div>';
   div.innerHTML=avHtml+'<div class="msg-body">'+body+'</div>';
   container.appendChild(div);
   if(stickToBottom)scrollBottomNow(container);
@@ -879,7 +888,23 @@ function appendMsgEl(container,m){
   }
   const tb=div.querySelector('[data-act="tts"]');
   if(tb)tb.addEventListener("click",()=>speakText(plainText(msgText(m)),tb));
+  const qb=div.querySelector('[data-act="quote"]');
+  if(qb)qb.addEventListener("click",()=>setQuote(m));
 }
+function setQuote(m){
+  const t=msgText(m)||"";
+  if(!t){toast("该消息没有可引用的内容",true);return;}
+  state.refQuote={role:m.role,text:t};
+  $("quoteText").textContent=(m.role==="user"?"我":"AI")+"："+t;
+  $("quoteBar").style.display="flex";
+  $("input").focus();
+  toast("已引用该消息，发送时自动附带");
+}
+function clearQuote(){
+  state.refQuote=null;
+  $("quoteBar").style.display="none";
+}
+$("quoteX").addEventListener("click",clearQuote);
 
 function renderScrubber(){
   const sc=$("messages"),sb=$("scrubber");
@@ -1010,19 +1035,16 @@ async function sendMessage(text){
   if(totalBytes>2.5*1024*1024){toast("文本附件总大小超过限制（约 2.5MB）",true);return;}
   const c=getConv(a.id);
   let sendText=text;
-  if(state.refFullText){
-    const historyText=c.messages.map(m=>{
-      const t=msgText(m)||"";
-      return t?(m.role==="user"?"用户":"AI")+"：\n"+t:"";
-    }).filter(Boolean).join("\n\n");
-    sendText=(text?text+"\n\n":"")+"【本对话完整记录，供你参考】\n"+historyText;
-    if(sendText.length>60000){toast("对话过长，无法引用全文（最多 6 万字）",true);return;}
+  if(state.refQuote){
+    sendText=(text?text+"\n\n":"")+"【引用消息】"+((state.refQuote.role==="user"?"我":"AI")+"："+state.refQuote.text);
   }
   const savedFiles=files.map(f=>f.type==="video"?{name:f.name,type:"video"}:f);
   c.messages.push({role:"user",content:sendText,files:savedFiles.length?savedFiles:undefined,ts:Date.now()});
   saveConv(c);
   input.value="";
   state.pendingFiles=[];
+  state.refQuote=null;
+  $("quoteBar").style.display="none";
   renderAttachList();
   autoResize();
   renderChat(true);
@@ -1072,7 +1094,7 @@ function appendStreamEl(container){
   const div=document.createElement("div");
   div.className="msg ai";
   const a=currentAgent();
-  div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div><div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button></div></div>';
+  div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div><div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button></div></div>';
   container.appendChild(div);
   if(stickToBottom)scrollBottomNow(container);
   div.querySelector('[data-act="copy"]').addEventListener("click",()=>{
@@ -1081,6 +1103,11 @@ function appendStreamEl(container){
   div.querySelector('[data-act="tts"]').addEventListener("click",()=>{
     const m=div._aiMsg;
     speakText(plainText((m?(m.reasoning||"")+(m.content||""):"")),div.querySelector('[data-act="tts"]'));
+  });
+  div.querySelector('[data-act="quote"]').addEventListener("click",()=>{
+    const m=div._aiMsg;
+    if(!m||!m.content){toast("该消息没有可引用的内容",true);return;}
+    setQuote(m);
   });
   updateScrubberPositions();
   return div;
@@ -1184,12 +1211,6 @@ function renderAttachList(){
   });
 }
 $("attachBtn").addEventListener("click",()=>$("attachFile").click());
-$("refFullBtn").addEventListener("click",()=>{
-  state.refFullText=!state.refFullText;
-  $("refFullBtn").classList.toggle("on",state.refFullText);
-  $("refFullBtn").title=state.refFullText?"已开启：发送时附带完整对话记录":"发送时附带完整对话记录";
-  toast(state.refFullText?"已开启引用全文：发送时附带完整对话记录":"已关闭引用全文");
-});
 $("attachFile").addEventListener("change",async e=>{
   const files=[...e.target.files];
   e.target.value="";
