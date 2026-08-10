@@ -394,7 +394,8 @@ let state={
   editing:null,
   generating:false,
   abort:null,
-  pendingFiles:[]
+  pendingFiles:[],
+  convCache:{}
 };
 let stickToBottom=true;
 
@@ -456,17 +457,80 @@ function load(){
 function save(){localStorage.setItem("agentwork_agents",JSON.stringify(state.agents));}
 function getAgent(id){return state.agents.find(a=>a.id===id)||null;}
 function currentAgent(){return getAgent(state.currentId);}
+const DB_NAME="agentwork",DB_STORE="convs";
+let dbPromise=null;
+function openDb(){
+  if(dbPromise)return dbPromise;
+  dbPromise=new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,1);
+    r.onupgradeneeded=()=>r.result.createObjectStore(DB_STORE,{keyPath:"id"});
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+  return dbPromise;
+}
+function dbReq(mode,fn){
+  return openDb().then(d=>new Promise((res,rej)=>{
+    const t=d.transaction(DB_STORE,mode);
+    const rq=fn(t.objectStore(DB_STORE));
+    if(rq){
+      rq.onsuccess=()=>res(rq.result);
+      rq.onerror=()=>rej(rq.error);
+    }else{
+      t.oncomplete=()=>res(null);
+    }
+    t.onerror=()=>rej(t.error);
+  }));
+}
+function dbPut(c){dbReq("readwrite",s=>s.put(c)).catch(()=>toast("对话保存失败：存储空间不足，请减少大附件",true));}
+function dbDel(id){dbReq("readwrite",s=>s.delete(id)).catch(()=>{});}
+function dbGet(id){return dbReq("readonly",s=>s.get(id)).catch(()=>null);}
+function dbAll(){return dbReq("readonly",s=>s.getAll()).catch(()=>[]);}
+function dbClear(){return dbReq("readwrite",s=>s.clear()).catch(()=>{});}
 function getConv(id){
-  let c;
+  if(state.convCache[id])return state.convCache[id];
+  let c=null;
   try{c=JSON.parse(localStorage.getItem("agentwork_conv_"+id)||"null");}catch(e){c=null;}
-  if(!c){c={id,messages:[]};localStorage.setItem("agentwork_conv_"+id,JSON.stringify(c));}
+  if(!c)c={id,messages:[]};
+  state.convCache[id]=c;
+  dbPut(c);
+  localStorage.removeItem("agentwork_conv_"+id);
   return c;
 }
-function saveConv(c){
-  try{localStorage.setItem("agentwork_conv_"+c.id,JSON.stringify(c));}
-  catch(e){toast("对话保存失败：本地存储空间不足，请减少图片附件",true);}
+async function getConvAsync(id){
+  if(state.convCache[id])return state.convCache[id];
+  const c=await dbGet(id);
+  if(c){state.convCache[id]=c;return c;}
+  return getConv(id);
 }
-function delConv(id){localStorage.removeItem("agentwork_conv_"+id);}
+function saveConv(c){
+  state.convCache[c.id]=c;
+  dbPut(c);
+}
+function delConv(id){
+  delete state.convCache[id];
+  dbDel(id);
+  localStorage.removeItem("agentwork_conv_"+id);
+}
+async function preloadConvs(){
+  try{
+    for(const c of await dbAll())state.convCache[c.id]=c;
+  }catch(e){}
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.indexOf("agentwork_conv_")===0)keys.push(k);
+  }
+  for(const k of keys){
+    const id=k.slice("agentwork_conv_".length);
+    if(!state.convCache[id]){
+      try{state.convCache[id]=JSON.parse(localStorage.getItem(k)||"null");}catch(e){}
+      if(!state.convCache[id])state.convCache[id]={id,messages:[]};
+      dbPut(state.convCache[id]);
+    }
+    localStorage.removeItem(k);
+  }
+}
 
 const PROVIDERS={
   deepseek:{label:"DeepSeek",base:"https://api.deepseek.com/v1",model:"deepseek-v4-flash",models:["deepseek-v4-flash","deepseek-v4-pro"],tip:"deepseek-v4-flash（快速，推荐）/ deepseek-v4-pro（更强）。"},
@@ -600,10 +664,11 @@ function renderAgents(){
   $("sidebarEmpty").style.display=shown.length?"none":"block";
 }
 
-function selectAgent(id){
+async function selectAgent(id){
   state.currentId=id;
   save();
   renderAgents();
+  await getConvAsync(id);
   renderChat(true);
   closeSidebarMobile();
 }
@@ -1285,8 +1350,8 @@ $("saveSettings").addEventListener("click",()=>{
   renderChat();
   toast("设置已保存");
 });
-$("exportBtn").addEventListener("click",()=>{
-  const data=buildExportData();
+$("exportBtn").addEventListener("click",async()=>{
+  const data=await buildExportData();
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const aEl=document.createElement("a");
@@ -1315,12 +1380,14 @@ $("importFile").addEventListener("change",async e=>{
   e.target.value="";
 });
 $("resetBtn").addEventListener("click",factoryReset);
-function buildExportData(){
+async function buildExportData(){
+  const convs=[];
+  for(const a of state.agents)convs.push({id:a.id,messages:(await getConvAsync(a.id)).messages});
   const data={
     app:"agentwork",version:2,exportedAt:new Date().toISOString(),
     settings:deepcopy(state.settings),
     agents:deepcopy(state.agents),
-    conversations:state.agents.map(a=>({id:a.id,messages:getConv(a.id).messages})),
+    conversations:convs,
     theme:localStorage.getItem("agentwork_theme")||"light"
   };
   for(const p in data.settings.providers)data.settings.providers[p].apiKey="";
@@ -1367,7 +1434,8 @@ function factoryReset(){
     if(k&&k.indexOf("agentwork_conv_")===0)keys.push(k);
   }
   keys.forEach(k=>localStorage.removeItem(k));
-  location.reload();
+  state.convCache={};
+  dbClear().finally(()=>location.reload());
 }
 document.querySelectorAll("#providerChips button").forEach(b=>{
   b.addEventListener("click",()=>renderProviderChips(b.dataset.p));
@@ -1449,13 +1517,15 @@ window.addEventListener("resize",()=>{
   if(window.innerWidth>760)closeSidebarMobile();
 });
 
-(function init(){
+(async function init(){
   const theme=localStorage.getItem("agentwork_theme")||"light";
   document.documentElement.dataset.theme=theme;
   updateThemeBtn();
   load();
   renderAgents();
+  await preloadConvs();
   renderChat(true);
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
   document.addEventListener("keydown",e=>{
     if(e.key==="Escape"){
       document.querySelectorAll(".overlay.show").forEach(o=>o.classList.remove("show"));
