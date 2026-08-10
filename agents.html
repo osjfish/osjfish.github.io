@@ -1046,7 +1046,9 @@ async function sendMessage(text){
   }
   aiMsg.streaming=false;
   aiMsg.content=lastContent;
-  if(!lastContent&&!errorMsg)aiMsg.content="（无回复内容）";
+  if(!lastContent&&!errorMsg){
+    aiMsg.content=aiMsg.reasoning?"（AI 未输出正式回答，仅生成思考过程）":"（无回复内容）";
+  }
   saveConv(c);
   updateStreamEl(aiEl,aiMsg);
   state.generating=false;
@@ -1730,6 +1732,7 @@ $("sendBtn").addEventListener("click",()=>{
   if(state.generating){if(state.abort)state.abort.abort();return;}
   const v=$("input").value.trim();
   if(v)sendMessage(v);
+  else if(!state.pendingFiles.length)toast("请先输入内容");
 });
 $("input").addEventListener("keydown",e=>{
   if(e.key==="Enter"&&!e.shiftKey){
