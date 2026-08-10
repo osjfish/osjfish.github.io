@@ -1246,7 +1246,7 @@ function appendStreamEl(container){
   const div=document.createElement("div");
   div.className="msg ai";
   const a=currentAgent();
-  div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div><div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button></div></div>';
+  div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div><div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button><button data-act="quote">引用</button><button data-act="followup">追问</button></div></div>';
   container.appendChild(div);
   if(stickToBottom)scrollBottomNow(container);
   div.querySelector('[data-act="copy"]').addEventListener("click",()=>{
@@ -1261,10 +1261,11 @@ function appendStreamEl(container){
     if(!m||!m.content){toast("该消息没有可引用的内容",true);return;}
     setQuote(m);
   });
-  div.querySelector('[data-act="followup"]').addEventListener("click",()=>{
+  const fu=div.querySelector('[data-act="followup"]');
+  if(fu)fu.addEventListener("click",()=>{
     const m=div._aiMsg;
     if(!m)return;
-    suggestFollowUps(m,div.querySelector('[data-act="followup"]'));
+    suggestFollowUps(m,fu);
   });
   updateScrubberPositions();
   return div;
