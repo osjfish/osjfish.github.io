@@ -96,6 +96,7 @@ textarea{resize:vertical}
 .msg:hover .msg-actions{opacity:1}
 .msg-actions button{font-size:11.5px;color:var(--text2);background:var(--card);border:1px solid var(--line);border-radius:4px;padding:3px 9px}
 .msg-actions button:hover{color:var(--accent);border-color:var(--accent)}
+.msg-actions button.speaking{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 .welcome{max-width:840px;margin:0 auto;width:100%;padding:30px 0 10px}
 .welcome .hello{font-size:25px;font-weight:700;font-family:var(--serif);letter-spacing:1px;color:var(--text)}
 .welcome .hint{color:var(--text2);font-size:14px;margin-top:10px;line-height:1.8}
@@ -694,7 +695,7 @@ function appendMsgEl(container,m){
   body+=m.streaming?'<div class="bubble ai-bubble"></div>':'<div class="bubble">'+md(msgText(m))+'</div>';
   if(m.error)body+='<div style="color:var(--danger);font-size:12.5px;margin-top:4px">错误：'+esc(m.error)+'</div>';
   body+='<div class="msg-time">'+time+'</div>';
-  if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button></div>';
+  if(m.role!=="user")body+='<div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button></div>';
   div.innerHTML=avHtml+'<div class="msg-body">'+body+'</div>';
   container.appendChild(div);
   if(stickToBottom)scrollBottomNow(container);
@@ -704,6 +705,8 @@ function appendMsgEl(container,m){
       navigator.clipboard.writeText(msgText(m)||"").then(()=>toast("已复制到剪贴板")).catch(()=>toast("复制失败"));
     });
   }
+  const tb=div.querySelector('[data-act="tts"]');
+  if(tb)tb.addEventListener("click",()=>speakText(plainText(msgText(m)),tb));
 }
 
 function renderScrubber(){
@@ -849,6 +852,7 @@ async function sendMessage(text){
   c.messages.push(aiMsg);
   saveConv(c);
   const aiEl=appendStreamEl(msgsEl);
+  aiEl._aiMsg=aiMsg;
 
   const payload=buildPayload(a,{text,files},c.messages.slice(0,-2));
   state.generating=true;
@@ -885,9 +889,16 @@ function appendStreamEl(container){
   const div=document.createElement("div");
   div.className="msg ai";
   const a=currentAgent();
-  div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div></div>';
+  div.innerHTML='<div class="msg-avatar" style="background:'+(a?a.color:"#3d5a70")+'">'+esc((a?a.avatar||a.name.slice(0,1):"智"))+'</div><div class="msg-body"><div class="bubble ai-bubble"></div><div class="msg-actions"><button data-act="copy">复制</button><button data-act="tts">朗读</button></div></div>';
   container.appendChild(div);
   if(stickToBottom)scrollBottomNow(container);
+  div.querySelector('[data-act="copy"]').addEventListener("click",()=>{
+    navigator.clipboard.writeText((div._aiMsg&&(div._aiMsg.content||""))||"").then(()=>toast("已复制到剪贴板")).catch(()=>toast("复制失败"));
+  });
+  div.querySelector('[data-act="tts"]').addEventListener("click",()=>{
+    const m=div._aiMsg;
+    speakText(plainText((m?(m.reasoning||"")+(m.content||""):"")),div.querySelector('[data-act="tts"]'));
+  });
   updateScrubberPositions();
   return div;
 }
@@ -912,6 +923,49 @@ function setGeneratingUI(on){
   btn.disabled=on;
   btn.innerHTML=on?'停止':'发送';
   btn.className="send-btn"+(on?" stop-btn":"");
+}
+
+const ttsState={ut:null,btn:null};
+function setTtsBtn(btn,on){
+  if(!btn)return;
+  btn.classList.toggle("speaking",on);
+  btn.textContent=on?"停止朗读":"朗读";
+}
+function speakText(text,btn){
+  if(!("speechSynthesis" in window)){toast("当前浏览器不支持朗读",true);return;}
+  if(!text){toast("没有可朗读的内容",true);return;}
+  if(ttsState.ut){
+    speechSynthesis.cancel();
+    setTtsBtn(ttsState.btn,false);
+    const same=ttsState.btn===btn;
+    ttsState.ut=null;
+    ttsState.btn=null;
+    if(same)return;
+  }
+  const ut=new SpeechSynthesisUtterance(text);
+  ut.lang="zh-CN";
+  const v=speechSynthesis.getVoices().find(v=>/^zh[-_]?CN/i.test(v.lang));
+  if(v)ut.voice=v;
+  ttsState.ut=ut;
+  ttsState.btn=btn;
+  setTtsBtn(btn,true);
+  ut.onend=()=>{setTtsBtn(btn,false);ttsState.ut=null;ttsState.btn=null;};
+  ut.onerror=()=>{setTtsBtn(btn,false);ttsState.ut=null;ttsState.btn=null;};
+  speechSynthesis.speak(ut);
+}
+function plainText(s){
+  return String(s||"")
+    .replace(/```[\s\S]*?```/g,"代码块 ")
+    .replace(/`([^`]+)`/g,"$1 ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g,"图片 ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g,"$1 ")
+    .replace(/^#{1,6}\s+/gm,"")
+    .replace(/[*_~>]+/g,"")
+    .replace(/^\s*[-*+]\s+/gm,"")
+    .replace(/^\s*\d+\.\s+/gm,"")
+    .replace(/[\r\n]+/g," ")
+    .replace(/\s{2,}/g," ")
+    .trim();
 }
 
 const ATTACH_TEXT_EXT={txt:1,md:1,json:1,csv:1,log:1,js:1,py:1,html:1,css:1,xml:1,yml:1,yaml:1,ini:1,ts:1,jsx:1,tsx:1};
