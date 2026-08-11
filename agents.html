@@ -35,6 +35,11 @@ textarea{resize:vertical}
 .backdrop{position:fixed;inset:0;top:56px;background:rgba(30,28,22,.35);z-index:40;display:none}
 .backdrop.show{display:block}
 .sidebar-actions{display:flex;gap:8px}
+.side-tab{flex:1;height:34px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;background:var(--card);border:1px solid var(--line);color:var(--text2);display:flex;align-items:center;justify-content:center;transition:.15s}
+.side-tab:hover{color:var(--accent);border-color:var(--accent)}
+.side-tab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+.sidebar-sub{display:flex;gap:8px}
+.sidebar-sub button{flex:1;height:36px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
 .sidebar-actions button{flex:1;height:36px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
 .btn-new{background:var(--seal);color:#fdf6e8}
 .btn-new:hover{filter:brightness(1.08)}
@@ -60,7 +65,8 @@ textarea{resize:vertical}
 .skill-detail .sd-body blockquote{border-left:3px solid var(--gold);padding:2px 12px;color:var(--text2);margin:8px 0;background:var(--bg);border-radius:0 4px 4px 0}
 .skill-bind{margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
 .skill-bind .sb-title{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)}
-.skill-bind .sb-chip{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:13px;margin:0 8px 8px 0;cursor:pointer;transition:.12s}
+.skill-bind .sb-chip{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:13px;margin:0 8px 8px 0;cursor:pointer;transition:.12s;user-select:none}
+.skill-bind .sb-chip input{width:auto;margin:0;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 .skill-bind .sb-chip:hover{border-color:var(--accent);color:var(--accent)}
 .skill-bind .sb-empty{color:var(--text2);font-size:13px;line-height:1.7}
 .sidebar-search{padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);display:flex;align-items:center;gap:8px}
@@ -272,9 +278,12 @@ textarea{resize:vertical}
 <div class="layout">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-actions">
-      <button class="btn-new" id="newAgentBtn">新建智能体</button>
-      <button class="btn-ghost-side" id="importSkillLibBtn" style="display:none">导入技能</button>
-      <button class="btn-ghost-side" id="skillLibBtn">技能库</button>
+      <button class="side-tab on" id="tabAgents">智能体</button>
+      <button class="side-tab" id="tabSkills">技能库</button>
+    </div>
+    <div class="sidebar-sub">
+      <button class="btn-new" id="newAgentBtn">＋ 新建智能体</button>
+      <button class="btn-ghost-side" id="importSkillLibBtn" style="display:none">＋ 导入技能</button>
     </div>
     <div class="sidebar-search"><input id="searchInput" type="search" placeholder="搜索智能体" autocomplete="off"></div>
     <div class="agent-list" id="agentList"></div>
@@ -1728,7 +1737,8 @@ $("openSkillLib").addEventListener("click",()=>{
   $("skillsOverlay").classList.add("show");
   $("skillSearch").focus();
 });
-$("skillLibBtn").addEventListener("click",()=>{setView(state.view==="skills"?"agents":"skills");});
+$("tabAgents").addEventListener("click",()=>setView("agents"));
+$("tabSkills").addEventListener("click",()=>setView("skills"));
 $("importSkillLibBtn").addEventListener("click",()=>{
   $("skillsOverlay").classList.add("show");
   $("skillSearch").focus();
@@ -1736,22 +1746,23 @@ $("importSkillLibBtn").addEventListener("click",()=>{
 function setView(v){
   state.view=v;
   state.curSkill=null;
+  $("tabAgents").classList.toggle("on",v==="agents");
+  $("tabSkills").classList.toggle("on",v==="skills");
   $("newAgentBtn").style.display=v==="agents"?"":"none";
   $("importSkillLibBtn").style.display=v==="skills"?"":"none";
-  $("skillLibBtn").textContent=v==="skills"?"← 返回智能体":"技能库";
-  $("skillLibBtn").classList.toggle("on",v==="skills");
   $("searchInput").value="";
   state.search="";
   $("searchInput").placeholder=v==="skills"?"搜索技能":"搜索智能体";
-  $("chatHead").style.display=v==="skills"?"none":"";
-  $("messages").style.display=v==="skills"?"none":"";
-  $("inputWrap").style.display=v==="skills"?"none":"";
-  const sb=$("scrubber");if(sb)sb.style.display=v==="skills"?"none":"";
   if(v==="skills"){
+    $("chatHead").style.display="none";
+    $("messages").style.display="none";
+    $("inputWrap").style.display="none";
+    const sb=$("scrubber");if(sb)sb.style.display="none";
     renderSkillSide();
     renderSkillDetail();
     closeSidebarMobile();
   }else{
+    $("skillsView").style.display="none";
     renderAgents();
     renderChat(true);
   }
@@ -1876,24 +1887,21 @@ function renderSkillDetail(){
     return;
   }
   const meta=sk.content.split("\n").slice(0,8).map(x=>x.trim()).filter(x=>x&&!x.startsWith("#")).join(" ");
-  $("skillHeadSub").textContent="已绑定 "+(state.agents.filter(a=>a.skills&&a.skills.includes(sk.id)).length)+" 个智能体";
   const bound=state.agents.filter(a=>a.skills&&a.skills.includes(sk.id));
+  $("skillHeadSub").textContent="已绑定 "+bound.length+" 个智能体";
   let h='<div class="skill-detail">'+
     '<div class="sd-head"><div style="flex:1;min-width:0">'+
     '<div class="sd-name">'+esc(sk.name)+'</div>'+
     '<div class="sd-desc">'+esc(sk.description||meta||"")+'</div></div>'+
     '<div class="msg-actions" style="opacity:1;margin:0"><button id="skCopy">复制内容</button><button id="skDel" style="color:var(--danger)">删除</button></div></div>'+
-    '<div class="sd-body">'+md(sk.content)+'</div>'+
-    '<div class="skill-bind"><div class="sb-title">绑定的智能体（'+bound.length+'）</div>';
-  if(!bound.length)h+='<div class="sb-empty">未绑定任何智能体。编辑智能体 → 技能 → 从技能库添加。</div>';
-  else{
-    h+='<div>';
-    bound.forEach(a=>{
-      h+='<span class="sb-chip" data-ag="'+a.id+'"><span class="agent-avatar" style="background:'+a.color+';width:22px;height:22px;font-size:11px">'+esc(a.avatar||a.name.slice(0,1))+'</span>'+esc(a.name)+'</span>';
-    });
-    h+='</div>';
-  }
-  h+='</div></div>';
+    '<div class="skill-bind"><div class="sb-title">绑定的智能体（'+bound.length+'）<span style="font-weight:400;color:var(--text2);font-size:12px">勾选即可绑定/解绑</span></div>'+
+    '<div>';
+  state.agents.forEach(a=>{
+    const on=bound.indexOf(a)>=0;
+    h+='<label class="sb-chip"><input type="checkbox" data-ag="'+a.id+'"'+(on?' checked':'')+'><span class="agent-avatar" style="background:'+a.color+';width:22px;height:22px;font-size:11px;color:#fdf6e8">'+esc(a.avatar||a.name.slice(0,1))+'</span>'+esc(a.name)+'</label>';
+  });
+  h+='</div></div>'+
+    '<div class="sd-body" style="margin-top:8px">'+md(sk.content)+'</div></div>';
   box.innerHTML=h;
   const cp=box.querySelector("#skCopy");
   if(cp)cp.addEventListener("click",()=>{
@@ -1908,10 +1916,20 @@ function renderSkillDetail(){
     renderSkillDetail();
     renderAgents();
   });
-  box.querySelectorAll("[data-ag]").forEach(el=>{
-    el.addEventListener("click",()=>{
-      setView("agents");
-      selectAgent(el.dataset.ag);
+  box.querySelectorAll('[data-ag]').forEach(cb=>{
+    cb.addEventListener("change",()=>{
+      const ag=getAgent(cb.dataset.ag);
+      if(!ag)return;
+      if(!ag.skills)ag.skills=[];
+      const i=ag.skills.indexOf(sk.id);
+      if(cb.checked&&i<0)ag.skills.push(sk.id);
+      if(!cb.checked&&i>=0)ag.skills.splice(i,1);
+      save();
+      renderAgents();
+      const n=state.agents.filter(x=>x.skills&&x.skills.includes(sk.id)).length;
+      $("skillHeadSub").textContent="已绑定 "+n+" 个智能体";
+      const t=box.querySelector(".sb-title");
+      if(t)t.childNodes[0].textContent="绑定的智能体（"+n+"）";
     });
   });
   box.scrollTop=0;
