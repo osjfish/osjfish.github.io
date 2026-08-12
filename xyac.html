@@ -19,7 +19,7 @@
     <!-- Google Fonts 移至最前 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS (CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" defer></script>
     <style>
         body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #fcfaf2; color: #2c2c2c; }
         .font-heading { font-family: 'Noto Serif SC', serif; }
@@ -45,41 +45,182 @@
     <!-- 强制使用 unpkg 稳定版并开启跨域获取，解决部分环境下脚本被识别为 text/html 的问题 -->
     <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/@babel/standalone@7.24.4/babel.min.js" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/marked@12.0.1/marked.min.js" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js" crossorigin="anonymous"></script>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        // --- 内置图标组件 (解决 lucide 冲突) ---
-        const Icon = ({ name, className = "w-4 h-4" }) => {
-            const icons = {
-                'pen-tool': <><path d="m11 11 7-7 2 2-7 7-6-2Z"/><path d="m11 11-7 7-2-2 7-7 2 6Z"/><path d="M11 11c0-1.7 1.3-3 3-3"/><path d="M11 11c-1.7 0-3 1.3-3 3"/></>,
-                'settings': <><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>,
-                'sparkles': <><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="m5 3 1 1"/><path d="m19 17 1 1"/><path d="M19 3l-1 1"/><path d="M5 17l-1 1"/></>,
-                'file-text': <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></>,
-                'copy': <><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></>,
-                'trash': <><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>,
-                'rotate-cw': <><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><polyline points="21 3 21 8 16 8"/></>,
-                'archive': <><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></>,
-                'save': <><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>,
-                'history': <><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></>,
-                'x': <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
-                'square': <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>,
-                'check-square': <><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></>,
-                'package': <><path d="m16.5 9.4 4.5-2.8L12 2 3 6.6l4.5 2.8"/><path d="M12 22 3 17.5V6.6l9 4.4 9-4.4v10.9Z"/><path d="M12 11v11"/></>,
-                'edit': <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
-                'message-square': <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
-                'check': <polyline points="20 6 9 17 4 12"/>
-            };
-            return <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || null}</svg>;
-        };
-
-        // --- 提示词模块 ---
-        const PROMPT_TEMPLATES = {
-            ANALYSIS: (topic) => `你是一位语文中考作文审题专家，请使用最科学、严密的 KQ-XYAC 审题立意系统对作文题【${topic}】进行深度拆解。
+    <script>
+const {
+  useState,
+  useEffect
+} = React;
+const Icon = ({
+  name,
+  className = "w-4 h-4"
+}) => {
+  const icons = {
+    'pen-tool': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "m11 11 7-7 2 2-7 7-6-2Z"
+    }), React.createElement("path", {
+      d: "m11 11-7 7-2-2 7-7 2 6Z"
+    }), React.createElement("path", {
+      d: "M11 11c0-1.7 1.3-3 3-3"
+    }), React.createElement("path", {
+      d: "M11 11c-1.7 0-3 1.3-3 3"
+    })),
+    'settings': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+    }), React.createElement("circle", {
+      cx: "12",
+      cy: "12",
+      r: "3"
+    })),
+    'sparkles': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"
+    }), React.createElement("path", {
+      d: "m5 3 1 1"
+    }), React.createElement("path", {
+      d: "m19 17 1 1"
+    }), React.createElement("path", {
+      d: "M19 3l-1 1"
+    }), React.createElement("path", {
+      d: "M5 17l-1 1"
+    })),
+    'file-text': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+    }), React.createElement("polyline", {
+      points: "14 2 14 8 20 8"
+    }), React.createElement("line", {
+      x1: "16",
+      y1: "13",
+      x2: "8",
+      y2: "13"
+    }), React.createElement("line", {
+      x1: "16",
+      y1: "17",
+      x2: "8",
+      y2: "17"
+    }), React.createElement("line", {
+      x1: "10",
+      y1: "9",
+      x2: "8",
+      y2: "9"
+    })),
+    'copy': React.createElement(React.Fragment, null, React.createElement("rect", {
+      width: "14",
+      height: "14",
+      x: "8",
+      y: "8",
+      rx: "2",
+      ry: "2"
+    }), React.createElement("path", {
+      d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+    })),
+    'trash': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "M3 6h18"
+    }), React.createElement("path", {
+      d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+    }), React.createElement("path", {
+      d: "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+    }), React.createElement("line", {
+      x1: "10",
+      y1: "11",
+      x2: "10",
+      y2: "17"
+    }), React.createElement("line", {
+      x1: "14",
+      y1: "11",
+      x2: "14",
+      y2: "17"
+    })),
+    'rotate-cw': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
+    }), React.createElement("polyline", {
+      points: "21 3 21 8 16 8"
+    })),
+    'archive': React.createElement(React.Fragment, null, React.createElement("polyline", {
+      points: "21 8 21 21 3 21 3 8"
+    }), React.createElement("rect", {
+      x: "1",
+      y: "3",
+      width: "22",
+      height: "5"
+    }), React.createElement("line", {
+      x1: "10",
+      y1: "12",
+      x2: "14",
+      y2: "12"
+    })),
+    'save': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+    }), React.createElement("polyline", {
+      points: "17 21 17 13 7 13 7 21"
+    }), React.createElement("polyline", {
+      points: "7 3 7 8 15 8"
+    })),
+    'history': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+    }), React.createElement("path", {
+      d: "M3 3v5h5"
+    }), React.createElement("path", {
+      d: "M12 7v5l4 2"
+    })),
+    'x': React.createElement(React.Fragment, null, React.createElement("line", {
+      x1: "18",
+      y1: "6",
+      x2: "6",
+      y2: "18"
+    }), React.createElement("line", {
+      x1: "6",
+      y1: "6",
+      x2: "18",
+      y2: "18"
+    })),
+    'square': React.createElement("rect", {
+      x: "3",
+      y: "3",
+      width: "18",
+      height: "18",
+      rx: "2",
+      ry: "2"
+    }),
+    'check-square': React.createElement(React.Fragment, null, React.createElement("polyline", {
+      points: "9 11 12 14 22 4"
+    }), React.createElement("path", {
+      d: "M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+    })),
+    'package': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "m16.5 9.4 4.5-2.8L12 2 3 6.6l4.5 2.8"
+    }), React.createElement("path", {
+      d: "M12 22 3 17.5V6.6l9 4.4 9-4.4v10.9Z"
+    }), React.createElement("path", {
+      d: "M12 11v11"
+    })),
+    'edit': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+    }), React.createElement("path", {
+      d: "M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+    })),
+    'message-square': React.createElement(React.Fragment, null, React.createElement("path", {
+      d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+    })),
+    'check': React.createElement("polyline", {
+      points: "20 6 9 17 4 12"
+    })
+  };
+  return React.createElement("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className: className
+  }, icons[name] || null);
+};
+const PROMPT_TEMPLATES = {
+  ANALYSIS: topic => `你是一位语文中考作文审题专家，请使用最科学、严密的 KQ-XYAC 审题立意系统对作文题【${topic}】进行深度拆解。
 你的任务是输出 6 个部分，**严禁使用任何 Markdown 格式符号**。
 请严格按照以下各部分的逻辑进行输出，每个部分开始前用 [SECTION_NAME] 标记（如 [K]）：
 
@@ -91,8 +232,7 @@
 [C] 价值重塑：阐述达成 C 状态后，对个人内核或精神成长的深意。
 
 注意：严禁在正文中出现英文字母或“客观境遇”等术语作为代词。不要回复任何无关内容，纯文本回复。`,
-
-            MATERIALS: (topic) => `你是一位中考作文素材专家。请为作文题【${topic}】提供精准的素材支撑。
+  MATERIALS: topic => `你是一位中考作文素材专家。请为作文题【${topic}】提供精准的素材支撑。
 你的任务是输出以下 3 个部分，请务必每类下位素材各生成 5 个，**各素材之间必须用空行隔开，严禁任何 Markdown 格式符号**。
 
 **【核心锚点指令】**：
@@ -107,9 +247,8 @@
 历史与名人素材（权威、有出处）。要求：深刻阐述人物如何践行核心行动路径（A）。
 [MAT_CROSS]
 跨界启发素材（科技、社会或自然界运行逻辑）。`,
-
-            REFRESH_ITEM: (topic, key, label, extraInstructions = "") => {
-                const baseInstructions = `你是一位中考作文专家。当前作文题为【${topic}】。
+  REFRESH_ITEM: (topic, key, label, extraInstructions = "") => {
+    const baseInstructions = `你是一位中考作文专家。当前作文题为【${topic}】。
 请针对该题目，仅提供【${label}】部分的内容。
 要求：
 1. **【精准扣题】**：必须精准扣住作文题的核心意旨，严格遵循行动路径（A）要求，落脚于价值重塑（C）。
@@ -119,38 +258,36 @@ ${extraInstructions ? `4. **【用户补充要求】**：${extraInstructions}\n`
 5. 严禁使用任何 Markdown 标记或排版符号。
 6. 严禁出现逻辑术语标签或英文字母。
 7. 不要回复任何无关内容，纯文本回复。`;
-
-                if (['K', 'Q', 'X', 'Y', 'A', 'C'].includes(key)) {
-                    return `${baseInstructions}
+    if (['K', 'Q', 'X', 'Y', 'A', 'C'].includes(key)) {
+      return `${baseInstructions}
 请直接输出该部分的内容解析文字（约 120 字），不要带标签名。`;
-                }
-                if (key === 'MAT_LIFE') {
-                    return `${baseInstructions}
+    }
+    if (key === 'MAT_LIFE') {
+      return `${baseInstructions}
 请提供 5 个【中学生生活情境素材】。选材优先学习、成长、校园社交、家庭生活。包含动作细节，严禁使用题干案例。**各素材间用空行隔开。**`;
-                }
-                if (key === 'MAT_HISTORY' || key === 'MAT_CROSS') {
-                    const subLabel = label === '历史文化素材' ? '历史与名人素材' : '跨界启发素材';
-                    return `${baseInstructions}
+    }
+    if (key === 'MAT_HISTORY' || key === 'MAT_CROSS') {
+      const subLabel = label === '历史文化素材' ? '历史与名人素材' : '跨界启发素材';
+      return `${baseInstructions}
 请提供 5 个【${subLabel}】。事例必须权威有据，严禁小事，突出行动至价值的转化过程。**各素材间用空行隔开。**`;
-                }
-                if (key === 'NARRATIVE') {
-                    return `${baseInstructions}
+    }
+    if (key === 'NARRATIVE') {
+      return `${baseInstructions}
 请创作一篇【记叙文范文】。
 - 选材：校园、家庭、成长场景。避开题干案例，共鸣感强。
 - 叙事：起于起笔展现缺失困境（X），落实于符合行动细节（A），收于价值升华重塑（C）。
 - 风格：道理化盐入水，严禁技术术语，字数 700-800 字。`;
-                }
-                if (key === 'ARGUMENTATIVE') {
-                    return `${baseInstructions}
+    }
+    if (key === 'ARGUMENTATIVE') {
+      return `${baseInstructions}
 请创作一篇【议论文范文】。
 - 核心：论证严密，深刻阐述理法逻辑。
 - 论据：包含两个权威历史/名家事例（禁止身边小事），独立成段，详细阐述具体的“怎样做”（A）。
 - 要求：严禁提及题干事例，严禁术语标签，字数 700-800 字。`;
-                }
-                return baseInstructions;
-            },
-
-            ESSAYS: (topic) => `你是一位中考作文满分范文专家。请为作文题【${topic}】创作两篇高质量范文。
+    }
+    return baseInstructions;
+  },
+  ESSAYS: topic => `你是一位中考作文满分范文专家。请为作文题【${topic}】创作两篇高质量范文。
 
 共同要求：
 1. **【精准扣题】**：必须精准扣住作文题干的核心意旨，严格遵循行动路径（A）要求，落脚于价值重塑（C）。
@@ -173,8 +310,7 @@ ${extraInstructions ? `4. **【用户补充要求】**：${extraInstructions}\n`
 （记叙文全文）
 [ARGUMENTATIVE]
 （议论文全文）`,
-
-            COMBINED_EXTERNAL: (topic) => `你是一位顶尖作文专家。请针对作文题【${topic || "请在此处输入作文题"}】完成以下三项任务。**请注意，在任何回复中严禁使用任何标题、加粗、列表等排版标记符号（如 #, ##, **, - 等）**。
+  COMBINED_EXTERNAL: topic => `你是一位顶尖作文专家。请针对作文题【${topic || "请在此处输入作文题"}】完成以下三项任务。**请注意，在任何回复中严禁使用任何标题、加粗、列表等排版标记符号（如 #, ##, **, - 等）**。
 
 第一部分：审题深度拆解
 你需要按顺序深度拆解以下六个核心要素，每个要素前用 【要素名称】 格式标注：
@@ -212,1306 +348,1970 @@ ${extraInstructions ? `4. **【用户补充要求】**：${extraInstructions}\n`
 5. **【强制复核】**：输出前自检，若文章中含有 K/A 等标注，则必须删除重写。**【字数强制限制】：每篇范文字数必须严格控制在 700-800 字之间。**
 
 当前作文题为：${topic || "（请在下方输入或粘贴你的作文题目）"}`
-        };
-
-        function App() {
-            const [topic, setTopic] = useState(() => localStorage.getItem("xyac_topic_cache") || "");
-            const [config, setConfig] = useState(() => {
-                const defaultConf = { 
-                    currentProvider: "deepseek",
-                    providers: {
-                        deepseek: { apiKey: "", model: "deepseek-v4-flash" }, kimi: { apiKey: "" }, zhipu: { apiKey: "" },
-                        qwen: { apiKey: "" }, baidu: { apiKey: "" },
-                        doubao: { apiKey: "", endpointId: "" }, ollama: { apiKey: "", ollamaModel: "qwen2" }
-                    }
-                };
-                try {
-                    const saved = localStorage.getItem("xyac_standalone_config_v2");
-                    return saved ? JSON.parse(saved) : defaultConf;
-                } catch (e) { return defaultConf; }
-            });
-
-            const [isLoading, setIsLoading] = useState({ 
-                analysis: false, materials: false, essays: false,
-                K: false, Q: false, X: false, Y: false, A: false, C: false,
-                MAT_LIFE: false, MAT_HISTORY: false, MAT_CROSS: false,
-                NARRATIVE: false, ARGUMENTATIVE: false
-            });
-            const [data, setData] = useState(() => {
-                try {
-                    const saved = localStorage.getItem("xyac_data_cache_v2");
-                    return saved ? JSON.parse(saved) : { analysis: null, materials: null, essays: null };
-                } catch (e) { return { analysis: null, materials: null, essays: null }; }
-            });
-            const [showSettings, setShowSettings] = useState(false);
-            const [showArchives, setShowArchives] = useState(false);
-            const [archives, setArchives] = useState(() => {
-                try {
-                    const saved = localStorage.getItem("xyac_archives_v1");
-                    return saved ? JSON.parse(saved) : [];
-                } catch (e) { return []; }
-            });
-            const [selectedArchiveIds, setSelectedArchiveIds] = useState([]);
-            const [toast, setToast] = useState(null);
-            const [genStatus, setGenStatus] = useState(null); // { steps: [] }
-
-            useEffect(() => {
-                localStorage.setItem("xyac_archives_v1", JSON.stringify(archives));
-            }, [archives]);
-            const [modal, setModal] = useState(null); // { title, content, actions }
-
-            useEffect(() => { localStorage.setItem("xyac_topic_cache", topic); }, [topic]);
-            useEffect(() => { localStorage.setItem("xyac_standalone_config_v2", JSON.stringify(config)); }, [config]);
-            useEffect(() => { localStorage.setItem("xyac_data_cache_v2", JSON.stringify(data)); }, [data]);
-
-            const showToast = (msg) => {
-                setToast(msg);
-                setTimeout(() => setToast(null), 2000);
-            };
-
-            const showAlert = (title, content) => {
-                setModal({
-                    title,
-                    content,
-                    actions: [{ label: "确定", type: "primary", onClick: () => setModal(null) }]
-                });
-            };
-
-            const callAI = async (prompt, onChunk = null) => {
-                const provider = config.currentProvider;
-                const creds = config.providers[provider];
-                if (!creds.apiKey && provider !== 'ollama') throw new Error(`请先设置 ${provider} 的 API Key`);
-
-                let endpoint = "", model = "";
-                let headers = { "Content-Type": "application/json" };
-                if (creds.apiKey) headers["Authorization"] = `Bearer ${creds.apiKey}`;
-
-                switch (provider) {
-                    case "deepseek": endpoint = "https://api.deepseek.com/chat/completions"; model = creds.model || "deepseek-v4-flash"; break;
-                    case "kimi": endpoint = "https://api.moonshot.cn/v1/chat/completions"; model = "moonshot-v1-8k"; break;
-                    case "zhipu": endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions"; model = "glm-4"; break;
-                    case "qwen": endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"; model = "qwen-plus"; break;
-                    case "baidu": endpoint = "https://qianfan.baidubce.com/v2/chat/completions"; model = "ernie-4.0-8k-latest"; break;
-                    case "doubao": endpoint = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"; model = creds.endpointId; break;
-                    case "ollama": endpoint = "http://127.0.0.1:11434/v1/chat/completions"; model = creds.ollamaModel || "qwen2"; break;
-                }
-
-                const body = { 
-                    model, 
-                    messages: [{ role: "user", content: prompt }], 
-                    temperature: 0.7,
-                    stream: !!onChunk
-                };
-
-                const res = await fetch(endpoint, {
-                    method: "POST", headers, body: JSON.stringify(body)
-                });
-                
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.error?.message || "接口访问失败");
-                }
-
-                if (!onChunk) {
-                    const json = await res.json();
-                    return json.choices[0].message.content;
-                }
-
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder("utf-8");
-                let fullText = "";
-                let reasoningText = "";
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split("\n");
-                    
-                    for (const line of lines) {
-                        const trimmed = line.trim();
-                        if (!trimmed || !trimmed.startsWith("data: ")) continue;
-                        const dataStr = trimmed.slice(6);
-                        if (dataStr === "[DONE]") continue;
-                        
-                        try {
-                            const data = JSON.parse(dataStr);
-                            const delta = data.choices[0]?.delta || {};
-                            const content = delta.content || "";
-                            const reasoning = delta.reasoning_content || delta.reasoning || "";
-                            
-                            if (reasoning) {
-                                reasoningText += reasoning;
-                                onChunk(fullText, reasoningText);
-                            }
-                            if (content) {
-                                fullText += content;
-                                onChunk(fullText, reasoningText);
-                            }
-                        } catch (e) {}
-                    }
-                }
-                return fullText;
-            };
-
-            const runTask = async (type, subKey = null, label = "", extraInstructions = "") => {
-                if (!topic.trim()) return showAlert("提示", "请输入作文题");
-                
-                const loadingKey = subKey || type;
-                setIsLoading(prev => ({ ...prev, [loadingKey]: true }));
-                
-                const stepLabel = label || (subKey ? `${type === 'analysis' ? '核心要素' : (type === 'materials' ? '素材' : '范文')}：${subKey}` : type);
-                
-                setGenStatus(prev => {
-                    const newStep = { id: loadingKey, label: stepLabel, status: 'running', preview: "", reasoning: "" };
-                    if (!prev) return { steps: [newStep] };
-                    const existing = prev.steps.find(s => s.id === loadingKey);
-                    if (existing) {
-                        return { ...prev, steps: prev.steps.map(s => s.id === loadingKey ? newStep : s) };
-                    }
-                    return { ...prev, steps: [...prev.steps, newStep] };
-                });
-                
-                try {
-                    let finalContent = "";
-                    const onChunk = (accumulated, reasoning) => {
-                        setGenStatus(prev => {
-                            if (!prev) return prev;
-                            return {
-                                ...prev,
-                                steps: prev.steps.map(s => s.id === loadingKey ? { ...s, preview: accumulated, reasoning: reasoning } : s)
-                            };
-                        });
-                    };
-
-                    if (subKey) {
-                        finalContent = await callAI(PROMPT_TEMPLATES.REFRESH_ITEM(topic, subKey, label, extraInstructions), onChunk);
-                        setData(prev => ({ 
-                            ...prev, 
-                            [type]: { ...prev[type], [subKey]: finalContent } 
-                        }));
-                    } else {
-                        finalContent = await callAI(PROMPT_TEMPLATES[type.toUpperCase()](topic), onChunk);
-                        const parts = parseContent(finalContent);
-                        setData(prev => ({ ...prev, [type]: { ...prev[type], ...parts } }));
-                    }
-
-                    setGenStatus(prev => ({
-                        ...prev,
-                        steps: prev.steps.map(s => s.id === loadingKey ? { ...s, status: 'done', preview: finalContent } : s)
-                    }));
-                } catch (err) {
-                    setGenStatus(prev => ({
-                        ...prev,
-                        steps: prev.steps.map(s => s.id === loadingKey ? { ...s, status: 'error' } : s)
-                    }));
-                    if (!genStatus) showAlert("生成失败", err.message);
-                } finally {
-                    setIsLoading(prev => ({ ...prev, [loadingKey]: false }));
-                }
-            };
-
-            const executeAnalysis = async () => {
-                setModal(null);
-                setGenStatus({
-                    steps: [
-                        { id: 'analysis', label: '审题立意解析', status: 'running' },
-                        { id: 'materials', label: '核心素材支撑', status: 'running' },
-                        { id: 'essays', label: '满分范文创作', status: 'running' }
-                    ]
-                });
-                
-                await Promise.allSettled([
-                    runTask('analysis'),
-                    runTask('materials'),
-                    runTask('essays')
-                ]);
-            };
-
-            const handleAnalyzeAll = async () => {
-                if (!topic.trim()) return showAlert("提示", "请输入作文题");
-                
-                const provider = config.currentProvider;
-                const creds = config.providers[provider];
-                if (!creds.apiKey && provider !== 'ollama') return showAlert("配置错误", `请先设置 ${provider} 的 API Key`);
-                if (provider === 'doubao' && !creds.endpointId) return showAlert("配置错误", "使用豆包接口必须填写接入点 ID (Endpoint ID)");
-
-                if (data.analysis || data.materials || data.essays) {
-                    setModal({
-                        title: "重新生成提示",
-                        content: "检测到已有生成内容。您可以先复制或下载现有内容，重新生成将覆盖它们。",
-                        actions: [
-                            { label: "复制整篇报告", type: "secondary", onClick: () => { copyFull(); } },
-                            { label: "导出现有 Word", type: "secondary", onClick: () => { exportWord(); } },
-                            { label: "直接覆盖生成", type: "danger", onClick: executeAnalysis },
-                            { label: "取消", type: "ghost", onClick: () => setModal(null) }
-                        ]
-                    });
-                    return;
-                }
-                executeAnalysis();
-            };
-
-            const clearAllData = () => {
-                setModal({
-                    title: "清空确认",
-                    content: "确定要清空所有已生成的分析内容吗？此操作不可撤销，建议先复制或下载保存。",
-                    actions: [
-                        { label: "确定清空内容", type: "danger", onClick: () => { setData({ analysis: null, materials: null, essays: null }); setModal(null); } },
-                        { label: "取消", type: "ghost", onClick: () => setModal(null) }
-                    ]
-                });
-            };
-
-            const parseContent = (text) => {
-                const allPatterns = [
-                    '[K]', '【K】', '[客观境遇]', '【客观境遇】',
-                    '[Q]', '【Q】', '[核心前提]', '【核心前提】',
-                    '[X]', '【X】', '[现状对比]', '【现状对比】',
-                    '[Y]', '【Y】', '[核心理法]', '【核心理法】',
-                    '[A]', '【A】', '[行动路径]', '【行动路径】',
-                    '[C]', '【C】', '[价值重塑]', '【价值重塑】',
-                    '[MAT_LIFE]', '【MAT_LIFE】', '[生活素材]', '【生活素材】', '[生活情境素材]', '【生活情境素材】',
-                    '[MAT_HISTORY]', '【MAT_HISTORY】', '[历史素材]', '【历史素材】', '[历史文化素材]', '【历史文化素材】',
-                    '[MAT_CROSS]', '【MAT_CROSS】', '[跨界素材]', '【跨界素材】', '[跨界启发素材]', '【跨界启发素材】',
-                    '[NARRATIVE]', '【NARRATIVE】', '[记叙文]', '【记叙文】',
-                    '[ARGUMENTATIVE]', '【ARGUMENTATIVE】', '[议论文]', '【议论文】'
-                ];
-                const escapedAll = allPatterns.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                const lookahead = escapedAll.join('|');
-                const markerToKey = {
-                    'K': 'K', '客观境遇': 'K',
-                    'Q': 'Q', '核心前提': 'Q',
-                    'X': 'X', '现状对比': 'X',
-                    'Y': 'Y', '核心理法': 'Y',
-                    'A': 'A', '行动路径': 'A',
-                    'C': 'C', '价值重塑': 'C',
-                    'MAT_LIFE': 'MAT_LIFE', '生活素材': 'MAT_LIFE', '生活情境素材': 'MAT_LIFE',
-                    'MAT_HISTORY': 'MAT_HISTORY', '历史素材': 'MAT_HISTORY', '历史文化素材': 'MAT_HISTORY',
-                    'MAT_CROSS': 'MAT_CROSS', '跨界素材': 'MAT_CROSS', '跨界启发素材': 'MAT_CROSS',
-                    'NARRATIVE': 'NARRATIVE', '记叙文': 'NARRATIVE',
-                    'ARGUMENTATIVE': 'ARGUMENTATIVE', '议论文': 'ARGUMENTATIVE'
-                };
-                const result = {};
-                const re = new RegExp(`\\[([\\u4e00-\\u9fa5A-Z_]+)\\]|【([\\u4e00-\\u9fa5A-Z_]+)】`, 'gi');
-                const matches = [...text.matchAll(re)];
-                matches.forEach((m, i) => {
-                    const marker = m[1] || m[2];
-                    const key = markerToKey[marker];
-                    if (!key) return;
-                    const start = m.index + m[0].length;
-                    const end = (i + 1 < matches.length) ? matches[i + 1].index : text.length;
-                    const content = text.slice(start, end).trim();
-                    if (content) result[key] = content;
-                });
-                return result;
-            };
-
-            const copyText = (txt) => {
-                if (!txt) return;
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(txt).then(() => {
-                        showToast("已复制到剪贴板");
-                    }).catch(() => {
-                        fallbackCopy(txt);
-                    });
-                } else {
-                    fallbackCopy(txt);
-                }
-            };
-
-            const fallbackCopy = (text) => {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                // 确保在移动端不可见但可操作
-                textArea.style.position = "fixed";
-                textArea.style.left = "-9999px";
-                textArea.style.top = "0";
-                textArea.style.opacity = "0";
-                document.body.appendChild(textArea);
-                
-                textArea.focus();
-                textArea.select();
-                // 专门针对 iOS 的选择优化
-                textArea.setSelectionRange(0, 99999);
-
-                try {
-                    const successful = document.execCommand('copy');
-                    if (successful) {
-                        showToast("已成功复制");
-                    } else {
-                        throw new Error('execCommand returned false');
-                    }
-                } catch (err) {
-                    console.error('Fallback copy failed', err);
-                    // 如果还不行，引导用户手动长按
-                    showAlert("提示", "由于浏览器限制，请长按文本框手动选择复制。");
-                }
-                document.body.removeChild(textArea);
-            };
-
-            const saveToArchive = () => {
-                if (!data.analysis && !data.materials && !data.essays) {
-                    return showAlert("提示", "当前没有可归档的内容");
-                }
-                const newArchive = {
-                    id: Date.now().toString(),
-                    topic: topic || "未命名任务",
-                    data: JSON.parse(JSON.stringify(data)),
-                    timestamp: Date.now()
-                };
-                setArchives([newArchive, ...archives]);
-                showToast("已存入归档");
-            };
-
-            const deleteArchive = (id) => {
-                setModal({
-                    title: "删除确认",
-                    content: "确定要永久删除这条记录吗？",
-                    actions: [
-                        { label: "确认删除", type: "danger", onClick: () => {
-                            setArchives(archives.filter(a => a.id !== id));
-                            setSelectedArchiveIds(selectedArchiveIds.filter(sid => sid !== id));
-                            setModal(null);
-                        } },
-                        { label: "取消", type: "ghost", onClick: () => setModal(null) }
-                    ]
-                });
-            };
-
-            const loadArchive = (archive) => {
-                if (!archive || !archive.data) return showAlert("错误", "归档数据损坏");
-                
-                const executeLoad = () => {
-                    const cleanData = JSON.parse(JSON.stringify(archive.data));
-                    setTopic(archive.topic || "");
-                    setData({
-                        analysis: cleanData.analysis || null,
-                        materials: cleanData.materials || null,
-                        essays: cleanData.essays || null
-                    });
-                    setShowArchives(false);
-                    setSelectedArchiveIds([]);
-                    showToast("归档已载入");
-                    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
-                };
-
-                // 强制让弹窗在归档面板之上显示
-                setModal({
-                    title: "载入确认",
-                    content: (data.analysis || data.materials || data.essays) 
-                        ? "载入归档将覆盖当前工作区已生成的内容，确定吗？" 
-                        : "确认载入此份归档内容吗？",
-                    actions: [
-                        { label: "确定载入", type: "primary", onClick: () => { executeLoad(); setModal(null); } },
-                        { label: "取消", type: "ghost", onClick: () => setModal(null) }
-                    ]
-                });
-            };
-
-            const editArchiveContent = (archive) => {
-                let tempTopic = archive.topic;
-                let tempData = JSON.parse(JSON.stringify(archive.data));
-                
-                const handleFieldChange = (section, key, value) => {
-                    if (section === 'analysis') {
-                        tempData.analysis[key] = value;
-                    } else if (section === 'materials') {
-                        tempData.materials.MATERIALS = value;
-                    } else if (section === 'essays') {
-                        tempData.essays[key] = value;
-                    }
-                };
-
-                setModal({
-                    title: "编辑存档详情",
-                    content: (
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-[#2d5a52]">作文题目</label>
-                                <textarea 
-                                    className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#2d5a52]/30 outline-none" 
-                                    rows="3"
-                                    defaultValue={tempTopic}
-                                    onChange={(e) => tempTopic = e.target.value}
-                                />
-                            </div>
-                            
-                            {tempData.analysis && (
-                                <div className="space-y-3">
-                                    <label className="text-sm font-bold text-[#2d5a52]">审题立意 (KQ-XYAC)</label>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {['K', 'Q', 'X', 'Y', 'A', 'C'].map(k => (
-                                            <div key={k} className="flex flex-col space-y-1">
-                                                <span className="text-[10px] text-slate-400 font-mono">[{k}]</span>
-                                                <textarea 
-                                                    className="w-full border border-slate-100 rounded p-2 text-xs focus:ring-1 focus:ring-[#2d5a52]/30 outline-none"
-                                                    rows="4"
-                                                    defaultValue={tempData.analysis[k]}
-                                                    onChange={(e) => handleFieldChange('analysis', k, e.target.value)}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {tempData.materials && (
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-[#2d5a52]">材料支撑</label>
-                                    <textarea 
-                                        className="w-full border rounded-lg p-3 text-xs focus:ring-2 focus:ring-[#2d5a52]/30 outline-none" 
-                                        rows="8"
-                                        defaultValue={tempData.materials.MATERIALS}
-                                        onChange={(e) => handleFieldChange('materials', null, e.target.value)}
-                                    />
-                                </div>
-                            )}
-
-                            {tempData.essays && (
-                                <div className="space-y-4">
-                                    <label className="text-sm font-bold text-[#2d5a52]">优秀范文</label>
-                                    {['NARRATIVE', 'ARGUMENTATIVE'].map(type => (
-                                        <div key={type} className="space-y-1">
-                                            <span className="text-[10px] text-slate-400 font-semibold">{type === 'NARRATIVE' ? '记叙文' : '议论文'}</span>
-                                            <textarea 
-                                                className="w-full border rounded-lg p-3 text-xs focus:ring-2 focus:ring-[#2d5a52]/30 outline-none" 
-                                                rows="10"
-                                                defaultValue={tempData.essays[type]}
-                                                onChange={(e) => handleFieldChange('essays', type, e.target.value)}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ),
-                    actions: [
-                        { label: "保存全部修改", type: "primary", onClick: () => {
-                            const updated = archives.map(a => a.id === archive.id ? 
-                                { ...a, topic: tempTopic, data: tempData, timestamp: Date.now() } : a
-                            );
-                            setArchives(updated);
-                            setModal(null);
-                            showToast("存档已成功更新");
-                        } },
-                        { label: "放弃修改", type: "ghost", onClick: () => setModal(null) }
-                    ]
-                });
-            };
-
-            const renameArchive = (archive) => {
-                let newTitle = archive.topic;
-                setModal({
-                    title: "重命名归档",
-                    content: (
-                        <div className="py-2">
-                            <label className="text-sm text-gray-500 mb-2 block">请输入新的归档名称：</label>
-                            <input 
-                                type="text" 
-                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2d5a52]/40 outline-none" 
-                                defaultValue={archive.topic}
-                                onChange={(e) => { newTitle = e.target.value; }}
-                                autoFocus
-                            />
-                        </div>
-                    ),
-                    actions: [
-                        { label: "保存修改", type: "primary", onClick: () => {
-                            if (!newTitle.trim()) return showToast("名称不能为空");
-                            const updated = archives.map(a => a.id === archive.id ? {...a, topic: newTitle} : a);
-                            setArchives(updated);
-                            setModal(null);
-                            showToast("已更新名称");
-                        } },
-                        { label: "取消", type: "ghost", onClick: () => setModal(null) }
-                    ]
-                });
-            };
-
-            const batchDeleteArchives = () => {
-                if (selectedArchiveIds.length === 0) return;
-                setModal({
-                    title: "批量删除确认",
-                    content: `确定删除选中的 ${selectedArchiveIds.length} 项记录吗？`,
-                    actions: [
-                        { label: "确认删除", type: "danger", onClick: () => {
-                            setArchives(archives.filter(a => !selectedArchiveIds.includes(a.id)));
-                            setSelectedArchiveIds([]);
-                            setModal(null);
-                            showToast("已批量删除");
-                        } },
-                        { label: "取消", type: "ghost", onClick: () => setModal(null) }
-                    ]
-                });
-            };
-
-            const toggleArchiveSelection = (id) => {
-                setSelectedArchiveIds(prev =>
-                    prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-                );
-            };
-
-            const exportWord = async (targetData = data, targetTopic = topic) => {
-                if (!targetData.analysis && !targetData.materials && !targetData.essays) return showAlert("提示", "内容缺失无法导出");
-                const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
-                if (!docxLib) return showAlert("错误", "组件加载中...");
-                
-                try {
-                const { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Footer, PageNumber } = docxLib;
-                
-                const createContentParagraphs = (text, indent = true) => {
-                    if (!text) return [new Paragraph({ text: "内容缺失" })];
-                    return text.split('\n').filter(line => line.trim()).map(line => {
-                        return new Paragraph({
-                            children: [new TextRun({ text: line.trim(), size: 24 })],
-                            spacing: { before: 120, after: 120, line: 360 },
-                            indent: indent ? { firstLine: 480 } : undefined
-                        });
-                    });
-                };
-
-                const children = [
-                    new Paragraph({
-                        children: [new TextRun({ text: "作文分析报告", bold: true, size: 48, color: "2d5a52" })],
-                        alignment: AlignmentType.CENTER,
-                        spacing: { before: 400, after: 600 }
-                    }),
-                    new Paragraph({
-                        children: [new TextRun({ text: "【作文题】", bold: true, size: 26, color: "2d5a52" })],
-                        spacing: { before: 100, after: 100 }
-                    }),
-                    ...createContentParagraphs(targetTopic, true),
-                    new Paragraph({ text: "", spacing: { after: 200 } }),
-                ];
-
-                if (targetData.analysis) {
-                    children.push(new Paragraph({
-                        children: [new TextRun({ text: "一、 审题立意", bold: true, size: 32, color: "2d5a52" })],
-                        spacing: { before: 400, after: 200 },
-                        border: { bottom: { color: "e2ded0", space: 1, style: BorderStyle.SINGLE, size: 6 } }
-                    }));
-                    ['K', 'Q', 'X', 'Y', 'A', 'C'].forEach(k => {
-                        const labelMap = { K:'K 客观境遇', Q:'Q 核心前提', X:'X 现状对比', Y:'Y 核心理法', A:'A 行动路径', C:'C 价值重塑'};
-                        if (targetData.analysis[k]) {
-                            children.push(new Paragraph({
-                                children: [new TextRun({ text: labelMap[k], bold: true, size: 26, color: "963530" })],
-                                spacing: { before: 200, after: 100 }
-                            }));
-                            children.push(...createContentParagraphs(targetData.analysis[k], true));
-                        }
-                    });
-                }
-
-                if (targetData.materials) {
-                    children.push(new Paragraph({
-                        children: [new TextRun({ text: "二、 材料支撑", bold: true, size: 32, color: "2d5a52" })],
-                        spacing: { before: 600, after: 200 },
-                        border: { bottom: { color: "e2ded0", space: 1, style: BorderStyle.SINGLE, size: 6 } }
-                    }));
-                    if (targetData.materials.MATERIALS) {
-                        children.push(...createContentParagraphs(targetData.materials.MATERIALS, true));
-                    } else {
-                        const mLabels = { MAT_LIFE: "【中学生生活情境素材】", MAT_HISTORY: "【历史与文化素材】", MAT_CROSS: "【跨界启发素材】" };
-                        ['MAT_LIFE', 'MAT_HISTORY', 'MAT_CROSS'].forEach(mk => {
-                            if (targetData.materials[mk]) {
-                                children.push(new Paragraph({ children: [new TextRun({ text: mLabels[mk], bold: true, size: 26, color: "963530" })], spacing: { before: 200, after: 100 } }));
-                                children.push(...createContentParagraphs(targetData.materials[mk], true));
-                            }
-                        });
-                    }
-                }
-
-                if (targetData.essays) {
-                    children.push(new Paragraph({
-                        children: [new TextRun({ text: "三、 优秀范文", bold: true, size: 32, color: "2d5a52" })],
-                        spacing: { before: 600, after: 200 },
-                        border: { bottom: { color: "e2ded0", space: 1, style: BorderStyle.SINGLE, size: 6 } }
-                    }));
-                    children.push(new Paragraph({ children: [new TextRun({ text: "【记叙文】", bold: true, size: 28, color: "2d5a52" })], spacing: { before: 200, after: 100 } }));
-                    children.push(...createContentParagraphs(targetData.essays.NARRATIVE, true));
-                    children.push(new Paragraph({ children: [new TextRun({ text: "【议论文】", bold: true, size: 28, color: "2d5a52" })], spacing: { before: 300, after: 100 } }));
-                    children.push(...createContentParagraphs(targetData.essays.ARGUMENTATIVE, true));
-                }
-
-                const doc = new Document({
-                    sections: [{
-                        properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-                        footers: {
-                            default: new Footer({
-                                children: [
-                                    new Paragraph({
-                                        alignment: AlignmentType.CENTER,
-                                        children: [
-                                            new TextRun({ text: "第 ", size: 18, color: "999999" }),
-                                            new TextRun({ children: [PageNumber.CURRENT], size: 18, color: "999999" }),
-                                            new TextRun({ text: " 页 / 共 ", size: 18, color: "999999" }),
-                                            new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 18, color: "999999" }),
-                                            new TextRun({ text: " 页", size: 18, color: "999999" }),
-                                        ],
-                                    }),
-                                ],
-                            }),
-                        },
-                        children: children
-                    }]
-                });
-
-                const blob = await Packer.toBlob(doc);
-                saveAs(blob, `作文分析报告_${targetTopic.substring(0, 10)}.docx`);
-                } catch (e) {
-                    showAlert("导出失败", e.message);
-                }
-            };
-
-            const batchExportWord = async () => {
-                if (selectedArchiveIds.length === 0) return;
-                const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
-                if (!docxLib) return showAlert("错误", "组件加载中...");
-                const { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, Footer, PageNumber, PageBreak } = docxLib;
-                
-                try {
-                    const allChildren = [];
-                    const selected = archives.filter(a => selectedArchiveIds.includes(a.id));
-                    
-                    selected.forEach((archive, index) => {
-                        const reportChildren = [
-                            new Paragraph({
-                                children: [new TextRun({ text: "作文分析报告", bold: true, size: 48, color: "2d5a52" })],
-                                alignment: AlignmentType.CENTER,
-                                spacing: { before: 200, after: 400 }
-                            }),
-                            new Paragraph({ children: [new TextRun({ text: `【作文题】`, bold: true, size: 26, color: "2d5a52" })] }),
-                            ...archive.topic.split('\n').filter(l=>l).map(line => new Paragraph({
-                                children: [new TextRun({ text: line.trim(), size: 24 })],
-                                spacing: { before: 100, after: 100 },
-                                indent: { firstLine: 480 }
-                            })),
-                            new Paragraph({ text: "", spacing: { after: 200 } }),
-                        ];
-
-                        if (archive.data.analysis) {
-                            reportChildren.push(new Paragraph({
-                                children: [new TextRun({ text: "一、 审题立意", bold: true, size: 32, color: "2d5a52" })],
-                                spacing: { before: 400, after: 200 },
-                                border: { bottom: { color: "e2ded0", space: 1, style: BorderStyle.SINGLE, size: 6 } }
-                            }));
-                            ['K', 'Q', 'X', 'Y', 'A', 'C'].forEach(k => {
-                                const labels = { K:'K 客观境遇', Q:'Q 核心前提', X:'X 现状对比', Y:'Y 核心理法', A:'A 行动路径', C:'C 价值重塑'};
-                                if (archive.data.analysis[k]) {
-                                    reportChildren.push(new Paragraph({ children: [new TextRun({ text: labels[k], bold: true, size: 26, color: "963530" })], spacing: { before: 200, after: 100 } }));
-                                    archive.data.analysis[k].split('\n').filter(l=>l).forEach(line => {
-                                        reportChildren.push(new Paragraph({ children: [new TextRun({ text: line.trim(), size: 24 })], indent: { firstLine: 480 }, spacing: { before: 120, after: 120, line: 360 } }));
-                                    });
-                                }
-                            });
-                        }
-
-                        if (archive.data.materials) {
-                            reportChildren.push(new Paragraph({
-                                children: [new TextRun({ text: "二、 材料支撑", bold: true, size: 32, color: "2d5a52" })],
-                                spacing: { before: 400, after: 200 },
-                                border: { bottom: { color: "e2ded0", space: 1, style: BorderStyle.SINGLE, size: 6 } }
-                            }));
-                            if (archive.data.materials.MATERIALS) {
-                                archive.data.materials.MATERIALS.split('\n').filter(l=>l).forEach(line => {
-                                    reportChildren.push(new Paragraph({ children: [new TextRun({ text: line.trim(), size: 24 })], indent: { firstLine: 480 }, spacing: { before: 120, after: 120, line: 360 } }));
-                                });
-                            } else {
-                                const mLabels = { MAT_LIFE: "【中学生生活情境素材】", MAT_HISTORY: "【历史与文化素材】", MAT_CROSS: "【跨界启发素材】" };
-                                ['MAT_LIFE', 'MAT_HISTORY', 'MAT_CROSS'].forEach(mk => {
-                                    if (archive.data.materials[mk]) {
-                                        reportChildren.push(new Paragraph({ children: [new TextRun({ text: mLabels[mk], bold: true, size: 26, color: "963530" })], spacing: { before: 200, after: 100 } }));
-                                        archive.data.materials[mk].split('\n').filter(l=>l).forEach(line => {
-                                            reportChildren.push(new Paragraph({ children: [new TextRun({ text: line.trim(), size: 24 })], indent: { firstLine: 480 }, spacing: { before: 120, after: 120, line: 360 } }));
-                                        });
-                                    }
-                                });
-                            }
-                        }
-
-                        if (archive.data.essays) {
-                            reportChildren.push(new Paragraph({
-                                children: [new TextRun({ text: "三、 优秀范文", bold: true, size: 32, color: "2d5a52" })],
-                                spacing: { before: 400, after: 200 },
-                                border: { bottom: { color: "e2ded0", space: 1, style: BorderStyle.SINGLE, size: 6 } }
-                            }));
-                            ['NARRATIVE', 'ARGUMENTATIVE'].forEach(k => {
-                                reportChildren.push(new Paragraph({ children: [new TextRun({ text: k==='NARRATIVE'?'【记叙文】':'【议论文】', bold: true, size: 28, color: "2d5a52" })], spacing: { before: 200, after: 100 } }));
-                                archive.data.essays[k].split('\n').filter(l=>l).forEach(line => {
-                                    reportChildren.push(new Paragraph({ children: [new TextRun({ text: line.trim(), size: 24 })], indent: { firstLine: 480 }, spacing: { before: 120, after: 120, line: 360 } }));
-                                });
-                            });
-                        }
-
-                        allChildren.push(...reportChildren);
-                        if (index < selected.length - 1) {
-                            allChildren.push(new Paragraph({ children: [new PageBreak()] }));
-                        }
-                    });
-
-                    const doc = new Document({
-                        sections: [{
-                            properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-                            footers: {
-                                default: new Footer({
-                                    children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "第 ", size: 18 }), new TextRun({ children: [PageNumber.CURRENT] }), new TextRun({ text: " 页 / 共 " }), new TextRun({ children: [PageNumber.TOTAL_PAGES] }), new TextRun({ text: " 页" })] })]
-                                })
-                            },
-                            children: allChildren
-                        }]
-                    });
-                    const blob = await Packer.toBlob(doc);
-                    saveAs(blob, `批量作文报告_${selected.length}篇.docx`);
-                    showToast("批量导出成功");
-                } catch (e) {
-                    showAlert("批量导出失败", e.message);
-                }
-            };
-
-            const copyFull = () => {
-                let full = `【作文分析报告】\n\n【作文题】\n${topic}\n\n`;
-                if(data.analysis) {
-                    full += "【一、审题立意】\n";
-                    ['K', 'Q', 'X', 'Y', 'A', 'C'].forEach(k => {
-                        if (data.analysis[k]) full += `[${k}] ${data.analysis[k]}\n`;
-                    });
-                    full += "\n";
-                }
-                if(data.materials) {
-                    full += "【二、材料支撑】\n";
-                    if (data.materials.MATERIALS) {
-                        full += data.materials.MATERIALS + "\n\n";
-                    } else {
-                        const mLabels = { MAT_LIFE: "【中学生生活情境素材】", MAT_HISTORY: "【历史与文化素材】", MAT_CROSS: "【跨界启发素材】" };
-                        ['MAT_LIFE', 'MAT_HISTORY', 'MAT_CROSS'].forEach(mk => {
-                            if (data.materials[mk]) full += `${mLabels[mk]}\n${data.materials[mk]}\n\n`;
-                        });
-                    }
-                }
-                if(data.essays) full += `【三、优秀范文】\n[记叙文]\n${data.essays.NARRATIVE}\n\n[议论文]\n${data.essays.ARGUMENTATIVE}`;
-                copyText(full);
-            };
-
-            const copyAIPrompt = () => {
-                const prompt = PROMPT_TEMPLATES.COMBINED_EXTERNAL(topic);
-                copyText(prompt);
-            };
-
-            const ResultBox = ({ label, content, onRefresh, loading, onUpdate }) => {
-                const [isEditing, setIsEditing] = useState(false);
-                const [editValue, setEditValue] = useState(content);
-
-                useEffect(() => { setEditValue(content); }, [content]);
-
-                const handleSave = () => {
-                    if (onUpdate) onUpdate(editValue);
-                    setIsEditing(false);
-                    showToast("内容已保存");
-                };
-
-                const handleRefreshClick = () => {
-                    if (!onRefresh) return;
-                    
-                    let userTip = "";
-                    setModal({
-                        title: `重新生成：${label}`,
-                        content: (
-                            <div className="space-y-4">
-                                <p className="text-sm text-slate-500">你可以输入额外的要求来指导生成方向（可选）：</p>
-                                <textarea 
-                                    className="w-full border rounded-xl p-4 h-32 text-sm focus:ring-2 focus:ring-[#2d5a52]/40 outline-none resize-none"
-                                    placeholder="例如：侧重亲情描写、增加历史厚度、语气更激昂一些..."
-                                    onChange={(e) => { userTip = e.target.value; }}
-                                />
-                            </div>
-                        ),
-                        actions: [
-                            { 
-                                label: "立即重新生成", 
-                                type: "primary", 
-                                onClick: () => {
-                                    onRefresh(userTip);
-                                    setModal(null);
-                                } 
-                            },
-                            { label: "取消", type: "ghost", onClick: () => setModal(null) }
-                        ]
-                    });
-                };
-
-                return (
-                    <div className="group relative space-y-2">
-                        <div className="flex justify-between items-center pr-1">
-                            <label className="text-sm font-bold text-[#2d5a52] tracking-widest pl-2 border-l-4 border-[#963530]">{label}</label>
-                            <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {isEditing ? (
-                                    <>
-                                        <button onClick={handleSave} className="p-1 text-emerald-600 hover:text-emerald-700" title="确认修改"><Icon name="check" className="w-4 h-4"/></button>
-                                        <button onClick={() => { setIsEditing(false); setEditValue(content); }} className="p-1 text-slate-400 hover:text-slate-600" title="取消"><Icon name="x" className="w-4 h-4"/></button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button onClick={() => setIsEditing(true)} className="p-1 hover:text-[#2d5a52]" title="直接编辑此段落"><Icon name="edit" className="w-3.5 h-3.5"/></button>
-                                        <button onClick={() => copyText(content)} className="p-1 hover:text-[#963530]" title="复制内容"><Icon name="copy" className="w-3.5 h-3.5"/></button>
-                                        {onRefresh && <button onClick={handleRefreshClick} className={`p-1 hover:text-[#2d5a52] ${loading ? 'animate-spin' : ''}`} disabled={loading}><Icon name="rotate-cw" className="w-3.5 h-3.5"/></button>}
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                        <div className={`bg-[#fcfaf2] border border-[#e2ded0] rounded-xl p-5 text-[#2c2c2c] leading-relaxed paper-shadow min-h-[100px] relative overflow-hidden transition-all ${isEditing ? 'ring-2 ring-[#2d5a52]/20 bg-white' : ''}`}>
-                            {loading && <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-[5]"><div className="animate-spin text-[#2d5a52]">🌀</div></div>}
-                            {isEditing ? (
-                                <textarea 
-                                    className="w-full bg-transparent border-none focus:ring-0 outline-none text-sm leading-relaxed p-0 h-full min-h-[220px] resize-none"
-                                    value={editValue || ""}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    autoFocus
-                                />
-                            ) : (
-                                <div className="whitespace-pre-wrap">{content || "等待生成..."}</div>
-                            )}
-                        </div>
-                    </div>
-                );
-            };
-
-            const SectionHeader = ({ title, onCopy, onRefresh, loading }) => (
-                <div className="flex flex-wrap sm:flex-nowrap justify-between items-center bg-[#f1eee4] px-4 sm:px-6 py-3 sm:py-4 rounded-xl border border-[#e2ded0] mb-6 gap-3">
-                    <h2 className="text-lg sm:text-xl font-bold text-[#2d5a52] flex items-center whitespace-nowrap">
-                        <Icon name="file-text" className="w-5 h-5 mr-2 shrink-0" />
-                        {title}
-                    </h2>
-                    <div className="flex items-center space-x-2 sm:space-x-3 ml-auto">
-                        <button onClick={onCopy} title="复制此板块" className="p-2 sm:px-3 sm:py-2 bg-white rounded-lg hover:bg-slate-50 border border-[#e2ded0] flex items-center justify-center space-x-1 min-w-[40px] h-10 transition-all active:scale-95 shadow-sm">
-                            <Icon name="copy" className="w-4 h-4 text-[#2d5a52]"/>
-                            <span className="hidden sm:inline text-xs font-semibold text-[#2d5a52]">复制板块</span>
-                        </button>
-                        <button onClick={onRefresh} className={`p-2 sm:px-3 sm:py-2 bg-white rounded-lg hover:bg-slate-50 border border-[#e2ded0] flex items-center justify-center space-x-1 min-w-[40px] h-10 transition-all active:scale-95 shadow-sm ${loading ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={loading}>
-                            <Icon name="rotate-cw" className={`w-4 h-4 text-[#2d5a52] ${loading ? 'animate-spin' : ''}`}/>
-                            <span className="hidden sm:inline text-xs font-semibold text-[#2d5a52]">{loading ? '重构中...' : '重新生成'}</span>
-                        </button>
-                    </div>
-                </div>
-            );
-            const Modal = ({ config }) => {
-                if (!config) return null;
-                return (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-[#2d5a52]/40 backdrop-blur-sm animate-in fade-in" onClick={() => setModal(null)}></div>
-                        <div className="relative bg-white border border-[#e2ded0] w-full max-w-3xl p-6 sm:p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 fade-in duration-200 flex flex-col max-h-[90vh]">
-                            <h3 className="text-2xl font-bold font-heading text-[#2d5a52] mb-4 shrink-0">{config.title}</h3>
-                            <div className="flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar">
-                                {typeof config.content === 'string' ? (
-                                    <p className="text-slate-600 leading-relaxed">{config.content}</p>
-                                ) : config.content}
-                            </div>
-                            <div className="flex flex-col gap-3 shrink-0">
-                                {config.actions.map((act, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={act.onClick}
-                                        className={`py-3 px-6 rounded-xl font-bold transition-all ${
-                                            act.type === 'primary' ? 'bg-[#2d5a52] text-white hover:opacity-90' :
-                                            act.type === 'danger' ? 'bg-[#963530] text-white hover:opacity-90' :
-                                            act.type === 'secondary' ? 'bg-[#f1eee4] text-[#2d5a52] border border-[#e2ded0] hover:bg-[#e2ded0]' :
-                                            'text-slate-400 hover:text-slate-600'
-                                        }`}
-                                    >
-                                        {act.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const GenerationModal = ({ status, onClose }) => {
-                if (!status) return null;
-                const isAllDone = status.steps.every(s => s.status === 'done' || s.status === 'error');
-
-                return (
-                    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-[#2d5a52]/60 backdrop-blur-md animate-in fade-in" onClick={isAllDone ? onClose : null}></div>
-                        <div className="relative bg-white border border-[#e2ded0] w-full max-w-md p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 fade-in duration-300 flex flex-col">
-                            <div className="flex items-center space-x-3 mb-6">
-                                <div className="p-3 bg-[#2d5a52]/10 rounded-2xl">
-                                    {isAllDone ? (
-                                        <Icon name="check-circle" className="w-8 h-8 text-[#2d5a52]" />
-                                    ) : (
-                                        <div className="w-8 h-8 flex items-center justify-center">
-                                            <div className="w-full h-full border-4 border-[#2d5a52]/20 border-t-[#2d5a52] rounded-full animate-spin"></div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-xl font-bold text-[#2d5a52]">{isAllDone ? "方案构建完成" : "正在深度解析中"}</h3>
-                                    <p className="text-xs text-slate-400 font-medium">请稍候，专家正在为您构建满分方案</p>
-                                </div>
-                                {isAllDone && <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"><Icon name="x" className="w-5 h-5"/></button>}
-                            </div>
-
-                            <div className="space-y-4 mb-8">
-                                {status.steps.map((step, idx) => {
-                                    const StepItem = ({ s, i }) => {
-                                        return (
-                                            <div className="bg-[#fcfaf2] border border-[#e2ded0] rounded-2xl transition-all overflow-hidden shadow-sm">
-                                                <div className="flex items-center justify-between p-4 bg-[#f1eee4]/50 border-b border-[#e2ded0]/50 text-sm">
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                                                            s.status === 'done' ? 'bg-[#2d5a52] text-white' :
-                                                            s.status === 'running' ? 'bg-[#2d5a52]/20 text-[#2d5a52] animate-pulse' :
-                                                            s.status === 'error' ? 'bg-[#963530] text-white' :
-                                                            'bg-slate-100 text-slate-400'
-                                                        }`}>
-                                                            {s.status === 'done' ? <Icon name="check" className="w-3.5 h-3.5"/> : 
-                                                             s.status === 'error' ? <Icon name="alert-circle" className="w-3.5 h-3.5"/> : (i + 1)}
-                                                        </div>
-                                                        <span className={`font-semibold ${s.status === 'running' ? 'text-[#2d5a52]' : 'text-slate-600'}`}>{s.label}</span>
-                                                    </div>
-                                                    <div className="flex items-center">
-                                                        {s.status === 'running' && <div className="flex space-x-1"><div className="w-1.5 h-1.5 bg-[#2d5a52] rounded-full animate-bounce [animation-delay:-0.3s]"></div><div className="w-1.5 h-1.5 bg-[#2d5a52] rounded-full animate-bounce [animation-delay:-0.15s]"></div><div className="w-1.5 h-1.5 bg-[#2d5a52] rounded-full animate-bounce"></div></div>}
-                                                        {s.status === 'done' && <span className="text-[10px] text-[#2d5a52] font-bold bg-[#2d5a52]/10 px-2 py-0.5 rounded tracking-tighter">SUCCESS</span>}
-                                                        {s.status === 'error' && <span className="text-[10px] text-[#963530] font-bold bg-[#963530]/10 px-2 py-0.5 rounded tracking-tighter">FAILED</span>}
-                                                    </div>
-                                                </div>
-                                                {s.status === 'running' && (
-                                                    <div className="p-3 bg-white/50 h-32 overflow-hidden flex flex-col-reverse">
-                                                        <div className="flex flex-col space-y-4">
-                                                            {!s.preview && !s.reasoning ? (
-                                                                <div className="py-8 flex flex-col items-center justify-center text-xs text-slate-400 animate-pulse italic">
-                                                                    <Icon name="edit-3" className="w-3.5 h-3.5 mb-2" />
-                                                                    <span>链接大模型中...</span>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    {s.reasoning && (
-                                                                        <div className="bg-[#f1eee4]/40 p-3 rounded-lg border-l-2 border-[#2d5a52]/30">
-                                                                            <div className="flex items-center text-[10px] text-[#2d5a52] font-bold mb-2 opacity-60">
-                                                                                <Icon name="sparkles" className="w-3 h-3 mr-1" />
-                                                                                <span>思考深度解析中...</span>
-                                                                            </div>
-                                                                            <p className="text-[11px] text-slate-400 italic leading-relaxed whitespace-pre-wrap">
-                                                                                {s.reasoning}
-                                                                            </p>
-                                                                        </div>
-                                                                    )}
-                                                                    {s.preview && (
-                                                                        <div className="bg-[#2d5a52]/5 p-3 rounded-lg border-l-2 border-[#2d5a52]">
-                                                                            <div className="flex items-center text-[10px] text-[#2d5a52] font-bold mb-2">
-                                                                                <Icon name="pen-tool" className="w-3 h-3 mr-1" />
-                                                                                <span>正在同步成文...</span>
-                                                                            </div>
-                                                                            <p className="text-[11px] text-[#2d5a52] leading-relaxed font-mono whitespace-pre-wrap">
-                                                                                “ {s.preview} ”
-                                                                            </p>
-                                                                        </div>
-                                                                    )}
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {s.status === 'done' && (
-                                                    <div className="p-3 bg-white/50 max-h-24 overflow-hidden relative">
-                                                        <p className="text-[11px] text-slate-500 line-clamp-3 leading-relaxed font-mono whitespace-pre-wrap italic">
-                                                            “ {(s.preview || "").substring(0, 150)}{(s.preview && s.preview.length > 150) ? "..." : ""} ”
-                                                        </p>
-                                                        <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white/80 to-transparent"></div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    };
-                                    return <StepItem key={idx} s={step} i={idx} />;
-                                })}
-                            </div>
-
-                            {isAllDone && (
-                                <button onClick={onClose} className="w-full py-4 bg-[#2d5a52] text-white rounded-2xl font-bold shadow-lg shadow-[#2d5a52]/20 hover:opacity-90 active:scale-95 transition-all">
-                                    进入查看结果
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                );
-            };
-
-            return (
-                <div className="max-w-4xl mx-auto px-4 py-12 relative">
-                    <header className="text-center mb-12 space-y-4">
-                        <h1 className="text-4xl font-bold tracking-tight font-heading">
-                            作文分析
-                        </h1>
-                        <div className="flex items-center justify-center space-x-6">
-                            <button onClick={() => setShowArchives(true)} className="inline-flex items-center text-slate-500 hover:text-[#2d5a52] transition-colors font-medium">
-                                <Icon name="history" className="w-4 h-4 mr-1.5" />
-                                历史归档
-                            </button>
-                            <button onClick={() => setShowSettings(!showSettings)} className="inline-flex items-center text-slate-500 hover:text-[#2d5a52] transition-colors font-medium">
-                                <Icon name="settings" className="w-4 h-4 mr-1.5" />
-                                设置
-                            </button>
-                        </div>
-                    </header>
-
-                    <main className="space-y-12">
-                        {showSettings && (
-                            <div className="bg-white/50 border rounded-xl p-6 border-dashed border-[#e2ded0] grid grid-cols-1 md:grid-cols-2 gap-6 scale-95 origin-top animate-in fade-in zoom-in-95">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-[#2d5a52]">服务商</label>
-                                    <select className="w-full border rounded-lg px-3 py-2 bg-white/50" value={config.currentProvider} onChange={(e) => setConfig({...config, currentProvider: e.target.value})}>
-                                        <option value="deepseek">DeepSeek</option>
-                                        <option value="kimi">Kimi</option>
-                                        <option value="zhipu">智谱 AI</option>
-                                        <option value="qwen">通义千问</option>
-                                        <option value="baidu">文心一言</option>
-                                        <option value="doubao">豆包</option>
-                                        <option value="ollama">Ollama</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-[#2d5a52]">
-                                        {config.currentProvider === 'doubao' ? 'API Key (Access Key)' : 'API Key'}
-                                    </label>
-                                    <input type="password" placeholder="输入 API Key..." className="w-full border rounded-lg px-3 py-2" value={config.providers[config.currentProvider].apiKey} onChange={(e) => setConfig({...config, providers: {...config.providers, [config.currentProvider]: {...config.providers[config.currentProvider], apiKey: e.target.value}}})} />
-                                </div>
-                                {config.currentProvider === 'deepseek' && (
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-[#2d5a52]">模型选择</label>
-                                        <select className="w-full border rounded-lg px-3 py-2" value={config.providers.deepseek.model || "deepseek-v4-flash"} onChange={(e) => setConfig({...config, providers: {...config.providers, deepseek: {...config.providers.deepseek, model: e.target.value}}})}>
-                                            <option value="deepseek-v4-flash">DeepSeek V4 Flash (默认)</option>
-                                            <option value="deepseek-v4-pro">DeepSeek V4 Pro (深入思考)</option>
-                                        </select>
-                                    </div>
-                                )}
-                                {config.currentProvider === 'doubao' && (
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-[#2d5a52]">推理接入点 ID (Endpoint ID)</label>
-                                        <input type="text" placeholder="ep-2024..." className="w-full border rounded-lg px-3 py-2" value={config.providers.doubao.endpointId} onChange={(e) => setConfig({...config, providers: {...config.providers, doubao: {...config.providers.doubao, endpointId: e.target.value}}})} />
-                                    </div>
-                                )}
-                                {config.currentProvider === 'ollama' && (
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-[#2d5a52]">模型名称</label>
-                                        <input type="text" placeholder="qwen2, llama3..." className="w-full border rounded-lg px-3 py-2" value={config.providers.ollama.ollamaModel} onChange={(e) => setConfig({...config, providers: {...config.providers, ollama: {...config.providers.ollama, ollamaModel: e.target.value}}})} />
-                                    </div>
-                                )}
-                                <div className="md:col-span-2 pt-4 flex justify-end border-t border-[#e2ded0] mt-4">
-                                    <button 
-                                        onClick={() => {
-                                            setShowSettings(false);
-                                            showToast("配置已成功持久化保存");
-                                        }} 
-                                        className="px-8 py-3 bg-[#2d5a52] text-white rounded-xl font-bold hover:bg-[#1f3d38] active:scale-95 transition-all shadow-lg shadow-[#2d5a52]/30 flex items-center space-x-2 ring-2 ring-emerald-100 ring-offset-2"
-                                    >
-                                        <Icon name="check" className="w-5 h-5" />
-                                        <span>保存设置</span>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="space-y-4">
-                            <textarea className="w-full border rounded-2xl p-4 sm:p-6 h-24 text-lg border-[#e2ded0] bg-white shadow-sm transition-all focus:ring-2 focus:ring-[#2d5a52]/40 outline-none" placeholder="输入作文题目..." value={topic} onChange={(e) => setTopic(e.target.value)} />
-                            <div className="grid grid-cols-1 gap-3">
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <button onClick={handleAnalyzeAll} disabled={Object.values(isLoading).some(v => v)} className="sm:flex-[3] w-full bg-[#2d5a52] text-white rounded-xl h-14 sm:h-16 text-lg sm:text-xl font-bold flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[#2d5a52]/10 px-4 min-h-[3.5rem]">
-                                        {Object.values(isLoading).some(v => v) ? "正在全速生成..." : "一键开启 AI 深度拆解"}
-                                    </button>
-                                    <button onClick={copyAIPrompt} className="sm:flex-1 w-full bg-[#f1eee4] text-[#2d5a52] border border-[#e2ded0] rounded-xl h-14 sm:h-16 flex items-center justify-center space-x-2 hover:bg-[#e2ded0] transition-all active:scale-95 shrink-0 px-4 font-semibold text-sm sm:text-base min-h-[3.5rem]">
-                                        <Icon name="message-square" className="w-5 h-5"/>
-                                        <span>复制 AI 指令</span>
-                                    </button>
-                                </div>
-                                {(data.analysis || data.materials || data.essays) && (
-                                    <div className="grid grid-cols-8 gap-2">
-                                        <button onClick={saveToArchive} className="col-span-2 bg-[#2d5a52]/10 text-[#2d5a52] rounded-xl hover:bg-[#2d5a52]/20 border border-[#2d5a52]/20 flex items-center justify-center space-x-1 sm:space-x-2 h-14 sm:h-16 transition-all active:scale-95 shadow-sm overflow-hidden" title="保存到历史归档">
-                                            <Icon name="save" className="w-5 h-5 flex-shrink-0"/>
-                                            <span className="font-semibold text-sm sm:text-base whitespace-nowrap">全文存档</span>
-                                        </button>
-                                        <button onClick={copyFull} className="col-span-2 bg-white border border-[#e2ded0] text-[#2d5a52] rounded-xl hover:bg-slate-50 flex items-center justify-center space-x-1 sm:space-x-2 h-14 sm:h-16 transition-all active:scale-95 shadow-sm overflow-hidden" title="复制完整报告内容">
-                                            <Icon name="copy" className="w-5 h-5 flex-shrink-0"/>
-                                            <span className="font-semibold text-sm sm:text-base whitespace-nowrap">全文复制</span>
-                                        </button>
-                                        <button onClick={() => exportWord()} className="col-span-3 bg-[#963530] text-white rounded-xl hover:opacity-90 flex items-center justify-center space-x-1 sm:space-x-2 h-14 sm:h-16 transition-all active:scale-95 shadow-sm overflow-hidden">
-                                            <Icon name="file-text" className="w-5 h-5 flex-shrink-0"/>
-                                            <span className="font-semibold text-sm sm:text-base whitespace-nowrap">导出 Word</span>
-                                        </button>
-                                        <button onClick={clearAllData} className="col-span-1 bg-white text-slate-400 hover:text-[#963530] border border-[#e2ded0] rounded-xl hover:bg-slate-50 flex items-center justify-center h-14 sm:h-16 transition-all active:scale-95 shadow-sm overflow-hidden" title="清空当前所有内容">
-                                            <Icon name="trash" className="w-5 h-5 flex-shrink-0"/>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Analysis Section */}
-                        {data.analysis && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4">
-                                <SectionHeader title="审题立意" onRefresh={() => runTask('analysis')} onCopy={() => copyText(Object.values(data.analysis).join('\n'))} loading={isLoading.analysis} />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {['K', 'Q', 'X', 'Y', 'A', 'C'].map(k => (
-                                        <ResultBox 
-                                            key={k} 
-                                            label={({K:'K · 客观境遇', Q:'Q · 核心前提', X:'X · 现状对比', Y:'Y · 核心理法', A:'A · 行动路径', C:'C · 价值重塑'}[k])} 
-                                            content={data.analysis[k]} 
-                                            onUpdate={(val) => setData(prev => ({...prev, analysis: {...prev.analysis, [k]: val}}))} 
-                                            onRefresh={(tip) => runTask('analysis', k, ({K:'客观境遇 K', Q:'核心前提 Q', X:'现状对比 X', Y:'核心理法 Y', A:'行动路径 A', C:'价值重塑 C'}[k]), tip)}
-                                            loading={isLoading[k]}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Materials Section */}
-                        {data.materials && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4">
-                                <SectionHeader title="材料支撑" onRefresh={() => runTask('materials')} onCopy={() => copyText(`${data.materials.MAT_LIFE}\n${data.materials.MAT_HISTORY}\n${data.materials.MAT_CROSS}`)} loading={isLoading.materials} />
-                                <div className="space-y-6">
-                                    <ResultBox 
-                                        label="生活情境素材"
-                                        content={data.materials.MAT_LIFE} 
-                                        onUpdate={(val) => setData(prev => ({...prev, materials: {...prev.materials, MAT_LIFE: val}}))}
-                                        onRefresh={(tip) => runTask('materials', 'MAT_LIFE', '生活情境素材', tip)}
-                                        loading={isLoading.MAT_LIFE}
-                                    />
-                                    <ResultBox 
-                                        label="历史文化素材"
-                                        content={data.materials.MAT_HISTORY} 
-                                        onUpdate={(val) => setData(prev => ({...prev, materials: {...prev.materials, MAT_HISTORY: val}}))}
-                                        onRefresh={(tip) => runTask('materials', 'MAT_HISTORY', '历史文化素材', tip)}
-                                        loading={isLoading.MAT_HISTORY}
-                                    />
-                                    <ResultBox 
-                                        label="跨界启发素材"
-                                        content={data.materials.MAT_CROSS} 
-                                        onUpdate={(val) => setData(prev => ({...prev, materials: {...prev.materials, MAT_CROSS: val}}))}
-                                        onRefresh={(tip) => runTask('materials', 'MAT_CROSS', '跨界启发素材', tip)}
-                                        loading={isLoading.MAT_CROSS}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Essays Section */}
-                        {data.essays && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4 pb-12">
-                                <SectionHeader title="优秀范文" onRefresh={() => runTask('essays')} onCopy={() => copyText(`[记叙文]\n${data.essays.NARRATIVE}\n\n[议论文]\n${data.essays.ARGUMENTATIVE}`)} loading={isLoading.essays} />
-                                <div className="space-y-8">
-                                    <ResultBox 
-                                        label="记叙文" 
-                                        content={data.essays.NARRATIVE} 
-                                        onUpdate={(val) => setData(prev => ({...prev, essays: {...prev.essays, NARRATIVE: val}}))}
-                                        onRefresh={(tip) => runTask('essays', 'NARRATIVE', '记叙文', tip)}
-                                        loading={isLoading.NARRATIVE}
-                                    />
-                                    <ResultBox 
-                                        label="议论文" 
-                                        content={data.essays.ARGUMENTATIVE} 
-                                        onUpdate={(val) => setData(prev => ({...prev, essays: {...prev.essays, ARGUMENTATIVE: val}}))}
-                                        onRefresh={(tip) => runTask('essays', 'ARGUMENTATIVE', '议论文', tip)}
-                                        loading={isLoading.ARGUMENTATIVE}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Archive Modal */}
-                        {showArchives && (
-                            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[120] p-4 animate-in fade-in duration-200">
-                                <div className="bg-[#fcfaf2] w-full max-w-4xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[#e2ded0]">
-                                    <div className="px-6 py-4 border-b border-[#e2ded0] flex items-center justify-between bg-[#f1eee4]">
-                                        <div className="flex items-center space-x-3">
-                                            <Icon name="archive" className="w-6 h-6 text-[#2d5a52]" />
-                                            <h2 className="text-xl font-bold text-[#2d5a52]">历史归档</h2>
-                                            <span className="text-xs bg-[#2d5a52]/10 text-[#2d5a52] px-2 py-0.5 rounded-full font-semibold">{archives.length} 条记录</span>
-                                        </div>
-                                        <button onClick={() => { setShowArchives(false); setSelectedArchiveIds([]); }} className="p-2 hover:bg-[#e2ded0] rounded-full transition-colors">
-                                            <Icon name="x" className="w-6 h-6 text-slate-500" />
-                                        </button>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
-                                        {archives.length === 0 ? (
-                                            <div className="h-60 flex flex-col items-center justify-center text-slate-400 space-y-4">
-                                                <Icon name="archive" className="w-12 h-12 opacity-20" />
-                                                <p>暂无归档内容，请在主页点击“存归档”</p>
-                                            </div>
-                                        ) : (
-                                            archives.map(archive => (
-                                                <div key={archive.id} className={`group border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-[#2d5a52] hover:bg-white paper-shadow ${selectedArchiveIds.includes(archive.id) ? 'bg-white border-[#2d5a52] ring-2 ring-[#2d5a52]/10' : 'bg-white/50 border-[#e2ded0]'}`}>
-                                                    <div className="flex items-start space-x-4 flex-1 min-w-0">
-                                                        <button onClick={() => toggleArchiveSelection(archive.id)} className={`mt-1 flex-shrink-0 transition-colors ${selectedArchiveIds.includes(archive.id) ? 'text-[#2d5a52]' : 'text-slate-300 hover:text-slate-400'}`}>
-                                                            <Icon name={selectedArchiveIds.includes(archive.id) ? "check-square" : "square"} className="w-6 h-6" />
-                                                        </button>
-                        <div className="min-w-0 flex-1 cursor-pointer" onClick={() => loadArchive(archive)}>
-                            <h3 className="font-bold text-[#2c2c2c] truncate text-lg">{archive.topic}</h3>
-                            <div className="flex items-center space-x-3 text-xs text-slate-400 mt-1">
-                                <span>{new Date(archive.timestamp).toLocaleString()}</span>
-                                <span className="bg-slate-100 px-1.5 py-0.5 rounded italic">
-                                    {[archive.data.analysis && '审题', archive.data.materials && '材料', archive.data.essays && '范文'].filter(Boolean).join(' · ')}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                        <button onClick={() => loadArchive(archive)} className="p-2 text-[#2d5a52] hover:bg-[#2d5a52]/10 rounded-lg flex items-center space-x-1" title="载入到草稿区">
-                            <Icon name="rotate-cw" className="w-4 h-4" />
-                            <span className="text-sm font-medium">载入</span>
-                        </button>
-                        <button onClick={() => editArchiveContent(archive)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center space-x-1" title="修改归档所有内容">
-                            <Icon name="edit" className="w-4 h-4" />
-                            <span className="text-sm font-medium">编辑内容</span>
-                        </button>
-                        <button onClick={() => deleteArchive(archive.id)} className="p-2 text-slate-400 hover:text-[#963530] hover:bg-[#963530]/10 rounded-lg" title="删除记录">
-                            <Icon name="trash" className="w-4 h-4" />
-                        </button>
-                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-
-                                    {archives.length > 0 && (
-                                        <div className="px-6 py-4 border-t border-[#e2ded0] bg-[#f1eee4] flex items-center justify-between">
-                                            <div className="flex items-center space-x-4 text-sm font-medium">
-                                <button onClick={() => setSelectedArchiveIds(selectedArchiveIds.length === archives.length ? [] : archives.map(a => a.id))} className="text-[#2d5a52] hover:underline whitespace-nowrap">
-                                                    {selectedArchiveIds.length === archives.length ? "取消全选" : "全选"}
-                                                </button>
-                                                <span className="text-slate-500 whitespace-nowrap">已选 {selectedArchiveIds.length} 项</span>
-                                            </div>
-                                            <div className="flex items-center space-x-3">
-                                                <button onClick={batchDeleteArchives} disabled={selectedArchiveIds.length === 0} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 transition-all ${selectedArchiveIds.length === 0 ? 'bg-slate-200 text-slate-400' : 'bg-white text-[#963530] border border-[#963530]/20 hover:bg-[#963530]/5 active:scale-95'}`}>
-                                                    <Icon name="trash" className="w-4 h-4" />
-                                                    <span>批量删除</span>
-                                                </button>
-                                                <button onClick={batchExportWord} disabled={selectedArchiveIds.length === 0} className={`px-5 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 transition-all shadow-md ${selectedArchiveIds.length === 0 ? 'bg-slate-300 text-white' : 'bg-[#963530] text-white hover:opacity-90 active:scale-95'}`}>
-                                                    <Icon name="package" className="w-4 h-4" />
-                                                    <span>批量导出 Word</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </main>
-
-                    <Modal config={modal} />
-                    <GenerationModal status={genStatus} onClose={() => setGenStatus(null)} />
-                    {/* Toast */}
-                    {toast && <div className="fixed top-12 left-1/2 -translate-x-1/2 bg-[#2d5a52] text-white px-8 py-3 rounded-full shadow-2xl z-[210] animate-in slide-in-from-top-4 duration-300 transition-all font-semibold whitespace-nowrap">{toast}</div>}
-                </div>
-            );
+};
+function App() {
+  const [topic, setTopic] = useState(() => localStorage.getItem("xyac_topic_cache") || "");
+  const [config, setConfig] = useState(() => {
+    const defaultConf = {
+      currentProvider: "deepseek",
+      providers: {
+        deepseek: {
+          apiKey: "",
+          model: "deepseek-v4-flash"
+        },
+        kimi: {
+          apiKey: ""
+        },
+        zhipu: {
+          apiKey: ""
+        },
+        qwen: {
+          apiKey: ""
+        },
+        baidu: {
+          apiKey: ""
+        },
+        doubao: {
+          apiKey: "",
+          endpointId: ""
+        },
+        ollama: {
+          apiKey: "",
+          ollamaModel: "qwen2"
         }
-
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+      }
+    };
+    try {
+      const saved = localStorage.getItem("xyac_standalone_config_v2");
+      return saved ? JSON.parse(saved) : defaultConf;
+    } catch (e) {
+      return defaultConf;
+    }
+  });
+  const [isLoading, setIsLoading] = useState({
+    analysis: false,
+    materials: false,
+    essays: false,
+    K: false,
+    Q: false,
+    X: false,
+    Y: false,
+    A: false,
+    C: false,
+    MAT_LIFE: false,
+    MAT_HISTORY: false,
+    MAT_CROSS: false,
+    NARRATIVE: false,
+    ARGUMENTATIVE: false
+  });
+  const [data, setData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("xyac_data_cache_v2");
+      return saved ? JSON.parse(saved) : {
+        analysis: null,
+        materials: null,
+        essays: null
+      };
+    } catch (e) {
+      return {
+        analysis: null,
+        materials: null,
+        essays: null
+      };
+    }
+  });
+  const [showSettings, setShowSettings] = useState(false);
+  const [showArchives, setShowArchives] = useState(false);
+  const [archives, setArchives] = useState(() => {
+    try {
+      const saved = localStorage.getItem("xyac_archives_v1");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [selectedArchiveIds, setSelectedArchiveIds] = useState([]);
+  const [toast, setToast] = useState(null);
+  const [genStatus, setGenStatus] = useState(null);
+  useEffect(() => {
+    localStorage.setItem("xyac_archives_v1", JSON.stringify(archives));
+  }, [archives]);
+  const [modal, setModal] = useState(null);
+  useEffect(() => {
+    localStorage.setItem("xyac_topic_cache", topic);
+  }, [topic]);
+  useEffect(() => {
+    localStorage.setItem("xyac_standalone_config_v2", JSON.stringify(config));
+  }, [config]);
+  useEffect(() => {
+    localStorage.setItem("xyac_data_cache_v2", JSON.stringify(data));
+  }, [data]);
+  const showToast = msg => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2000);
+  };
+  const showAlert = (title, content) => {
+    setModal({
+      title,
+      content,
+      actions: [{
+        label: "确定",
+        type: "primary",
+        onClick: () => setModal(null)
+      }]
+    });
+  };
+  const callAI = async (prompt, onChunk = null) => {
+    const provider = config.currentProvider;
+    const creds = config.providers[provider];
+    if (!creds.apiKey && provider !== 'ollama') throw new Error(`请先设置 ${provider} 的 API Key`);
+    let endpoint = "",
+      model = "";
+    let headers = {
+      "Content-Type": "application/json"
+    };
+    if (creds.apiKey) headers["Authorization"] = `Bearer ${creds.apiKey}`;
+    switch (provider) {
+      case "deepseek":
+        endpoint = "https://api.deepseek.com/chat/completions";
+        model = creds.model || "deepseek-v4-flash";
+        break;
+      case "kimi":
+        endpoint = "https://api.moonshot.cn/v1/chat/completions";
+        model = "moonshot-v1-8k";
+        break;
+      case "zhipu":
+        endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
+        model = "glm-4";
+        break;
+      case "qwen":
+        endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+        model = "qwen-plus";
+        break;
+      case "baidu":
+        endpoint = "https://qianfan.baidubce.com/v2/chat/completions";
+        model = "ernie-4.0-8k-latest";
+        break;
+      case "doubao":
+        endpoint = "https://ark.cn-beijing.volces.com/api/v3/chat/completions";
+        model = creds.endpointId;
+        break;
+      case "ollama":
+        endpoint = "http://127.0.0.1:11434/v1/chat/completions";
+        model = creds.ollamaModel || "qwen2";
+        break;
+    }
+    const body = {
+      model,
+      messages: [{
+        role: "user",
+        content: prompt
+      }],
+      temperature: 0.7,
+      stream: !!onChunk
+    };
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || "接口访问失败");
+    }
+    if (!onChunk) {
+      const json = await res.json();
+      return json.choices[0].message.content;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
+    let reasoningText = "";
+    while (true) {
+      const {
+        done,
+        value
+      } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, {
+        stream: true
+      });
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith("data: ")) continue;
+        const dataStr = trimmed.slice(6);
+        if (dataStr === "[DONE]") continue;
+        try {
+          const data = JSON.parse(dataStr);
+          const delta = data.choices[0]?.delta || {};
+          const content = delta.content || "";
+          const reasoning = delta.reasoning_content || delta.reasoning || "";
+          if (reasoning) {
+            reasoningText += reasoning;
+            onChunk(fullText, reasoningText);
+          }
+          if (content) {
+            fullText += content;
+            onChunk(fullText, reasoningText);
+          }
+        } catch (e) {}
+      }
+    }
+    return fullText;
+  };
+  const runTask = async (type, subKey = null, label = "", extraInstructions = "") => {
+    if (!topic.trim()) return showAlert("提示", "请输入作文题");
+    const loadingKey = subKey || type;
+    setIsLoading(prev => ({
+      ...prev,
+      [loadingKey]: true
+    }));
+    const stepLabel = label || (subKey ? `${type === 'analysis' ? '核心要素' : type === 'materials' ? '素材' : '范文'}：${subKey}` : type);
+    setGenStatus(prev => {
+      const newStep = {
+        id: loadingKey,
+        label: stepLabel,
+        status: 'running',
+        preview: "",
+        reasoning: ""
+      };
+      if (!prev) return {
+        steps: [newStep]
+      };
+      const existing = prev.steps.find(s => s.id === loadingKey);
+      if (existing) {
+        return {
+          ...prev,
+          steps: prev.steps.map(s => s.id === loadingKey ? newStep : s)
+        };
+      }
+      return {
+        ...prev,
+        steps: [...prev.steps, newStep]
+      };
+    });
+    try {
+      let finalContent = "";
+      const onChunk = (accumulated, reasoning) => {
+        setGenStatus(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            steps: prev.steps.map(s => s.id === loadingKey ? {
+              ...s,
+              preview: accumulated,
+              reasoning: reasoning
+            } : s)
+          };
+        });
+      };
+      if (subKey) {
+        finalContent = await callAI(PROMPT_TEMPLATES.REFRESH_ITEM(topic, subKey, label, extraInstructions), onChunk);
+        setData(prev => ({
+          ...prev,
+          [type]: {
+            ...prev[type],
+            [subKey]: finalContent
+          }
+        }));
+      } else {
+        finalContent = await callAI(PROMPT_TEMPLATES[type.toUpperCase()](topic), onChunk);
+        const parts = parseContent(finalContent);
+        setData(prev => ({
+          ...prev,
+          [type]: {
+            ...prev[type],
+            ...parts
+          }
+        }));
+      }
+      setGenStatus(prev => ({
+        ...prev,
+        steps: prev.steps.map(s => s.id === loadingKey ? {
+          ...s,
+          status: 'done',
+          preview: finalContent
+        } : s)
+      }));
+    } catch (err) {
+      setGenStatus(prev => ({
+        ...prev,
+        steps: prev.steps.map(s => s.id === loadingKey ? {
+          ...s,
+          status: 'error'
+        } : s)
+      }));
+      if (!genStatus) showAlert("生成失败", err.message);
+    } finally {
+      setIsLoading(prev => ({
+        ...prev,
+        [loadingKey]: false
+      }));
+    }
+  };
+  const executeAnalysis = async () => {
+    setModal(null);
+    setGenStatus({
+      steps: [{
+        id: 'analysis',
+        label: '审题立意解析',
+        status: 'running'
+      }, {
+        id: 'materials',
+        label: '核心素材支撑',
+        status: 'running'
+      }, {
+        id: 'essays',
+        label: '满分范文创作',
+        status: 'running'
+      }]
+    });
+    await Promise.allSettled([runTask('analysis'), runTask('materials'), runTask('essays')]);
+  };
+  const handleAnalyzeAll = async () => {
+    if (!topic.trim()) return showAlert("提示", "请输入作文题");
+    const provider = config.currentProvider;
+    const creds = config.providers[provider];
+    if (!creds.apiKey && provider !== 'ollama') return showAlert("配置错误", `请先设置 ${provider} 的 API Key`);
+    if (provider === 'doubao' && !creds.endpointId) return showAlert("配置错误", "使用豆包接口必须填写接入点 ID (Endpoint ID)");
+    if (data.analysis || data.materials || data.essays) {
+      setModal({
+        title: "重新生成提示",
+        content: "检测到已有生成内容。您可以先复制或下载现有内容，重新生成将覆盖它们。",
+        actions: [{
+          label: "复制整篇报告",
+          type: "secondary",
+          onClick: () => {
+            copyFull();
+          }
+        }, {
+          label: "导出现有 Word",
+          type: "secondary",
+          onClick: () => {
+            exportWord();
+          }
+        }, {
+          label: "直接覆盖生成",
+          type: "danger",
+          onClick: executeAnalysis
+        }, {
+          label: "取消",
+          type: "ghost",
+          onClick: () => setModal(null)
+        }]
+      });
+      return;
+    }
+    executeAnalysis();
+  };
+  const clearAllData = () => {
+    setModal({
+      title: "清空确认",
+      content: "确定要清空所有已生成的分析内容吗？此操作不可撤销，建议先复制或下载保存。",
+      actions: [{
+        label: "确定清空内容",
+        type: "danger",
+        onClick: () => {
+          setData({
+            analysis: null,
+            materials: null,
+            essays: null
+          });
+          setModal(null);
+        }
+      }, {
+        label: "取消",
+        type: "ghost",
+        onClick: () => setModal(null)
+      }]
+    });
+  };
+  const parseContent = text => {
+    const allPatterns = ['[K]', '【K】', '[客观境遇]', '【客观境遇】', '[Q]', '【Q】', '[核心前提]', '【核心前提】', '[X]', '【X】', '[现状对比]', '【现状对比】', '[Y]', '【Y】', '[核心理法]', '【核心理法】', '[A]', '【A】', '[行动路径]', '【行动路径】', '[C]', '【C】', '[价值重塑]', '【价值重塑】', '[MAT_LIFE]', '【MAT_LIFE】', '[生活素材]', '【生活素材】', '[生活情境素材]', '【生活情境素材】', '[MAT_HISTORY]', '【MAT_HISTORY】', '[历史素材]', '【历史素材】', '[历史文化素材]', '【历史文化素材】', '[MAT_CROSS]', '【MAT_CROSS】', '[跨界素材]', '【跨界素材】', '[跨界启发素材]', '【跨界启发素材】', '[NARRATIVE]', '【NARRATIVE】', '[记叙文]', '【记叙文】', '[ARGUMENTATIVE]', '【ARGUMENTATIVE】', '[议论文]', '【议论文】'];
+    const escapedAll = allPatterns.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const lookahead = escapedAll.join('|');
+    const markerToKey = {
+      'K': 'K',
+      '客观境遇': 'K',
+      'Q': 'Q',
+      '核心前提': 'Q',
+      'X': 'X',
+      '现状对比': 'X',
+      'Y': 'Y',
+      '核心理法': 'Y',
+      'A': 'A',
+      '行动路径': 'A',
+      'C': 'C',
+      '价值重塑': 'C',
+      'MAT_LIFE': 'MAT_LIFE',
+      '生活素材': 'MAT_LIFE',
+      '生活情境素材': 'MAT_LIFE',
+      'MAT_HISTORY': 'MAT_HISTORY',
+      '历史素材': 'MAT_HISTORY',
+      '历史文化素材': 'MAT_HISTORY',
+      'MAT_CROSS': 'MAT_CROSS',
+      '跨界素材': 'MAT_CROSS',
+      '跨界启发素材': 'MAT_CROSS',
+      'NARRATIVE': 'NARRATIVE',
+      '记叙文': 'NARRATIVE',
+      'ARGUMENTATIVE': 'ARGUMENTATIVE',
+      '议论文': 'ARGUMENTATIVE'
+    };
+    const result = {};
+    const re = new RegExp(`\\[([\\u4e00-\\u9fa5A-Z_]+)\\]|【([\\u4e00-\\u9fa5A-Z_]+)】`, 'gi');
+    const matches = [...text.matchAll(re)];
+    matches.forEach((m, i) => {
+      const marker = m[1] || m[2];
+      const key = markerToKey[marker];
+      if (!key) return;
+      const start = m.index + m[0].length;
+      const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+      const content = text.slice(start, end).trim();
+      if (content) result[key] = content;
+    });
+    return result;
+  };
+  const copyText = txt => {
+    if (!txt) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(() => {
+        showToast("已复制到剪贴板");
+      }).catch(() => {
+        fallbackCopy(txt);
+      });
+    } else {
+      fallbackCopy(txt);
+    }
+  };
+  const fallbackCopy = text => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    textArea.setSelectionRange(0, 99999);
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        showToast("已成功复制");
+      } else {
+        throw new Error('execCommand returned false');
+      }
+    } catch (err) {
+      console.error('Fallback copy failed', err);
+      showAlert("提示", "由于浏览器限制，请长按文本框手动选择复制。");
+    }
+    document.body.removeChild(textArea);
+  };
+  const saveToArchive = () => {
+    if (!data.analysis && !data.materials && !data.essays) {
+      return showAlert("提示", "当前没有可归档的内容");
+    }
+    const newArchive = {
+      id: Date.now().toString(),
+      topic: topic || "未命名任务",
+      data: JSON.parse(JSON.stringify(data)),
+      timestamp: Date.now()
+    };
+    setArchives([newArchive, ...archives]);
+    showToast("已存入归档");
+  };
+  const deleteArchive = id => {
+    setModal({
+      title: "删除确认",
+      content: "确定要永久删除这条记录吗？",
+      actions: [{
+        label: "确认删除",
+        type: "danger",
+        onClick: () => {
+          setArchives(archives.filter(a => a.id !== id));
+          setSelectedArchiveIds(selectedArchiveIds.filter(sid => sid !== id));
+          setModal(null);
+        }
+      }, {
+        label: "取消",
+        type: "ghost",
+        onClick: () => setModal(null)
+      }]
+    });
+  };
+  const loadArchive = archive => {
+    if (!archive || !archive.data) return showAlert("错误", "归档数据损坏");
+    const executeLoad = () => {
+      const cleanData = JSON.parse(JSON.stringify(archive.data));
+      setTopic(archive.topic || "");
+      setData({
+        analysis: cleanData.analysis || null,
+        materials: cleanData.materials || null,
+        essays: cleanData.essays || null
+      });
+      setShowArchives(false);
+      setSelectedArchiveIds([]);
+      showToast("归档已载入");
+      setTimeout(() => window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      }), 100);
+    };
+    setModal({
+      title: "载入确认",
+      content: data.analysis || data.materials || data.essays ? "载入归档将覆盖当前工作区已生成的内容，确定吗？" : "确认载入此份归档内容吗？",
+      actions: [{
+        label: "确定载入",
+        type: "primary",
+        onClick: () => {
+          executeLoad();
+          setModal(null);
+        }
+      }, {
+        label: "取消",
+        type: "ghost",
+        onClick: () => setModal(null)
+      }]
+    });
+  };
+  const editArchiveContent = archive => {
+    let tempTopic = archive.topic;
+    let tempData = JSON.parse(JSON.stringify(archive.data));
+    const handleFieldChange = (section, key, value) => {
+      if (section === 'analysis') {
+        tempData.analysis[key] = value;
+      } else if (section === 'materials') {
+        tempData.materials.MATERIALS = value;
+      } else if (section === 'essays') {
+        tempData.essays[key] = value;
+      }
+    };
+    setModal({
+      title: "编辑存档详情",
+      content: React.createElement("div", {
+        className: "space-y-6"
+      }, React.createElement("div", {
+        className: "space-y-2"
+      }, React.createElement("label", {
+        className: "text-sm font-bold text-[#2d5a52]"
+      }, "\u4F5C\u6587\u9898\u76EE"), React.createElement("textarea", {
+        className: "w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#2d5a52]/30 outline-none",
+        rows: "3",
+        defaultValue: tempTopic,
+        onChange: e => tempTopic = e.target.value
+      })), tempData.analysis && React.createElement("div", {
+        className: "space-y-3"
+      }, React.createElement("label", {
+        className: "text-sm font-bold text-[#2d5a52]"
+      }, "\u5BA1\u9898\u7ACB\u610F (KQ-XYAC)"), React.createElement("div", {
+        className: "grid grid-cols-1 gap-2"
+      }, ['K', 'Q', 'X', 'Y', 'A', 'C'].map(k => React.createElement("div", {
+        key: k,
+        className: "flex flex-col space-y-1"
+      }, React.createElement("span", {
+        className: "text-[10px] text-slate-400 font-mono"
+      }, "[", k, "]"), React.createElement("textarea", {
+        className: "w-full border border-slate-100 rounded p-2 text-xs focus:ring-1 focus:ring-[#2d5a52]/30 outline-none",
+        rows: "4",
+        defaultValue: tempData.analysis[k],
+        onChange: e => handleFieldChange('analysis', k, e.target.value)
+      }))))), tempData.materials && React.createElement("div", {
+        className: "space-y-2"
+      }, React.createElement("label", {
+        className: "text-sm font-bold text-[#2d5a52]"
+      }, "\u6750\u6599\u652F\u6491"), React.createElement("textarea", {
+        className: "w-full border rounded-lg p-3 text-xs focus:ring-2 focus:ring-[#2d5a52]/30 outline-none",
+        rows: "8",
+        defaultValue: tempData.materials.MATERIALS,
+        onChange: e => handleFieldChange('materials', null, e.target.value)
+      })), tempData.essays && React.createElement("div", {
+        className: "space-y-4"
+      }, React.createElement("label", {
+        className: "text-sm font-bold text-[#2d5a52]"
+      }, "\u4F18\u79C0\u8303\u6587"), ['NARRATIVE', 'ARGUMENTATIVE'].map(type => React.createElement("div", {
+        key: type,
+        className: "space-y-1"
+      }, React.createElement("span", {
+        className: "text-[10px] text-slate-400 font-semibold"
+      }, type === 'NARRATIVE' ? '记叙文' : '议论文'), React.createElement("textarea", {
+        className: "w-full border rounded-lg p-3 text-xs focus:ring-2 focus:ring-[#2d5a52]/30 outline-none",
+        rows: "10",
+        defaultValue: tempData.essays[type],
+        onChange: e => handleFieldChange('essays', type, e.target.value)
+      }))))),
+      actions: [{
+        label: "保存全部修改",
+        type: "primary",
+        onClick: () => {
+          const updated = archives.map(a => a.id === archive.id ? {
+            ...a,
+            topic: tempTopic,
+            data: tempData,
+            timestamp: Date.now()
+          } : a);
+          setArchives(updated);
+          setModal(null);
+          showToast("存档已成功更新");
+        }
+      }, {
+        label: "放弃修改",
+        type: "ghost",
+        onClick: () => setModal(null)
+      }]
+    });
+  };
+  const renameArchive = archive => {
+    let newTitle = archive.topic;
+    setModal({
+      title: "重命名归档",
+      content: React.createElement("div", {
+        className: "py-2"
+      }, React.createElement("label", {
+        className: "text-sm text-gray-500 mb-2 block"
+      }, "\u8BF7\u8F93\u5165\u65B0\u7684\u5F52\u6863\u540D\u79F0\uFF1A"), React.createElement("input", {
+        type: "text",
+        className: "w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2d5a52]/40 outline-none",
+        defaultValue: archive.topic,
+        onChange: e => {
+          newTitle = e.target.value;
+        },
+        autoFocus: true
+      })),
+      actions: [{
+        label: "保存修改",
+        type: "primary",
+        onClick: () => {
+          if (!newTitle.trim()) return showToast("名称不能为空");
+          const updated = archives.map(a => a.id === archive.id ? {
+            ...a,
+            topic: newTitle
+          } : a);
+          setArchives(updated);
+          setModal(null);
+          showToast("已更新名称");
+        }
+      }, {
+        label: "取消",
+        type: "ghost",
+        onClick: () => setModal(null)
+      }]
+    });
+  };
+  const batchDeleteArchives = () => {
+    if (selectedArchiveIds.length === 0) return;
+    setModal({
+      title: "批量删除确认",
+      content: `确定删除选中的 ${selectedArchiveIds.length} 项记录吗？`,
+      actions: [{
+        label: "确认删除",
+        type: "danger",
+        onClick: () => {
+          setArchives(archives.filter(a => !selectedArchiveIds.includes(a.id)));
+          setSelectedArchiveIds([]);
+          setModal(null);
+          showToast("已批量删除");
+        }
+      }, {
+        label: "取消",
+        type: "ghost",
+        onClick: () => setModal(null)
+      }]
+    });
+  };
+  const toggleArchiveSelection = id => {
+    setSelectedArchiveIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+  const exportWord = async (targetData = data, targetTopic = topic) => {
+    if (!targetData.analysis && !targetData.materials && !targetData.essays) return showAlert("提示", "内容缺失无法导出");
+    const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
+    if (!docxLib) return showAlert("错误", "组件加载中...");
+    try {
+      const {
+        Document,
+        Packer,
+        Paragraph,
+        TextRun,
+        AlignmentType,
+        BorderStyle,
+        Footer,
+        PageNumber
+      } = docxLib;
+      const createContentParagraphs = (text, indent = true) => {
+        if (!text) return [new Paragraph({
+          text: "内容缺失"
+        })];
+        return text.split('\n').filter(line => line.trim()).map(line => {
+          return new Paragraph({
+            children: [new TextRun({
+              text: line.trim(),
+              size: 24
+            })],
+            spacing: {
+              before: 120,
+              after: 120,
+              line: 360
+            },
+            indent: indent ? {
+              firstLine: 480
+            } : undefined
+          });
+        });
+      };
+      const children = [new Paragraph({
+        children: [new TextRun({
+          text: "作文分析报告",
+          bold: true,
+          size: 48,
+          color: "2d5a52"
+        })],
+        alignment: AlignmentType.CENTER,
+        spacing: {
+          before: 400,
+          after: 600
+        }
+      }), new Paragraph({
+        children: [new TextRun({
+          text: "【作文题】",
+          bold: true,
+          size: 26,
+          color: "2d5a52"
+        })],
+        spacing: {
+          before: 100,
+          after: 100
+        }
+      }), ...createContentParagraphs(targetTopic, true), new Paragraph({
+        text: "",
+        spacing: {
+          after: 200
+        }
+      })];
+      if (targetData.analysis) {
+        children.push(new Paragraph({
+          children: [new TextRun({
+            text: "一、 审题立意",
+            bold: true,
+            size: 32,
+            color: "2d5a52"
+          })],
+          spacing: {
+            before: 400,
+            after: 200
+          },
+          border: {
+            bottom: {
+              color: "e2ded0",
+              space: 1,
+              style: BorderStyle.SINGLE,
+              size: 6
+            }
+          }
+        }));
+        ['K', 'Q', 'X', 'Y', 'A', 'C'].forEach(k => {
+          const labelMap = {
+            K: 'K 客观境遇',
+            Q: 'Q 核心前提',
+            X: 'X 现状对比',
+            Y: 'Y 核心理法',
+            A: 'A 行动路径',
+            C: 'C 价值重塑'
+          };
+          if (targetData.analysis[k]) {
+            children.push(new Paragraph({
+              children: [new TextRun({
+                text: labelMap[k],
+                bold: true,
+                size: 26,
+                color: "963530"
+              })],
+              spacing: {
+                before: 200,
+                after: 100
+              }
+            }));
+            children.push(...createContentParagraphs(targetData.analysis[k], true));
+          }
+        });
+      }
+      if (targetData.materials) {
+        children.push(new Paragraph({
+          children: [new TextRun({
+            text: "二、 材料支撑",
+            bold: true,
+            size: 32,
+            color: "2d5a52"
+          })],
+          spacing: {
+            before: 600,
+            after: 200
+          },
+          border: {
+            bottom: {
+              color: "e2ded0",
+              space: 1,
+              style: BorderStyle.SINGLE,
+              size: 6
+            }
+          }
+        }));
+        if (targetData.materials.MATERIALS) {
+          children.push(...createContentParagraphs(targetData.materials.MATERIALS, true));
+        } else {
+          const mLabels = {
+            MAT_LIFE: "【中学生生活情境素材】",
+            MAT_HISTORY: "【历史与文化素材】",
+            MAT_CROSS: "【跨界启发素材】"
+          };
+          ['MAT_LIFE', 'MAT_HISTORY', 'MAT_CROSS'].forEach(mk => {
+            if (targetData.materials[mk]) {
+              children.push(new Paragraph({
+                children: [new TextRun({
+                  text: mLabels[mk],
+                  bold: true,
+                  size: 26,
+                  color: "963530"
+                })],
+                spacing: {
+                  before: 200,
+                  after: 100
+                }
+              }));
+              children.push(...createContentParagraphs(targetData.materials[mk], true));
+            }
+          });
+        }
+      }
+      if (targetData.essays) {
+        children.push(new Paragraph({
+          children: [new TextRun({
+            text: "三、 优秀范文",
+            bold: true,
+            size: 32,
+            color: "2d5a52"
+          })],
+          spacing: {
+            before: 600,
+            after: 200
+          },
+          border: {
+            bottom: {
+              color: "e2ded0",
+              space: 1,
+              style: BorderStyle.SINGLE,
+              size: 6
+            }
+          }
+        }));
+        children.push(new Paragraph({
+          children: [new TextRun({
+            text: "【记叙文】",
+            bold: true,
+            size: 28,
+            color: "2d5a52"
+          })],
+          spacing: {
+            before: 200,
+            after: 100
+          }
+        }));
+        children.push(...createContentParagraphs(targetData.essays.NARRATIVE, true));
+        children.push(new Paragraph({
+          children: [new TextRun({
+            text: "【议论文】",
+            bold: true,
+            size: 28,
+            color: "2d5a52"
+          })],
+          spacing: {
+            before: 300,
+            after: 100
+          }
+        }));
+        children.push(...createContentParagraphs(targetData.essays.ARGUMENTATIVE, true));
+      }
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1440,
+                bottom: 1440,
+                left: 1440,
+                right: 1440
+              }
+            }
+          },
+          footers: {
+            default: new Footer({
+              children: [new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({
+                  text: "第 ",
+                  size: 18,
+                  color: "999999"
+                }), new TextRun({
+                  children: [PageNumber.CURRENT],
+                  size: 18,
+                  color: "999999"
+                }), new TextRun({
+                  text: " 页 / 共 ",
+                  size: 18,
+                  color: "999999"
+                }), new TextRun({
+                  children: [PageNumber.TOTAL_PAGES],
+                  size: 18,
+                  color: "999999"
+                }), new TextRun({
+                  text: " 页",
+                  size: 18,
+                  color: "999999"
+                })]
+              })]
+            })
+          },
+          children: children
+        }]
+      });
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `作文分析报告_${targetTopic.substring(0, 10)}.docx`);
+    } catch (e) {
+      showAlert("导出失败", e.message);
+    }
+  };
+  const batchExportWord = async () => {
+    if (selectedArchiveIds.length === 0) return;
+    const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
+    if (!docxLib) return showAlert("错误", "组件加载中...");
+    const {
+      Document,
+      Packer,
+      Paragraph,
+      TextRun,
+      AlignmentType,
+      BorderStyle,
+      Footer,
+      PageNumber,
+      PageBreak
+    } = docxLib;
+    try {
+      const allChildren = [];
+      const selected = archives.filter(a => selectedArchiveIds.includes(a.id));
+      selected.forEach((archive, index) => {
+        const reportChildren = [new Paragraph({
+          children: [new TextRun({
+            text: "作文分析报告",
+            bold: true,
+            size: 48,
+            color: "2d5a52"
+          })],
+          alignment: AlignmentType.CENTER,
+          spacing: {
+            before: 200,
+            after: 400
+          }
+        }), new Paragraph({
+          children: [new TextRun({
+            text: `【作文题】`,
+            bold: true,
+            size: 26,
+            color: "2d5a52"
+          })]
+        }), ...archive.topic.split('\n').filter(l => l).map(line => new Paragraph({
+          children: [new TextRun({
+            text: line.trim(),
+            size: 24
+          })],
+          spacing: {
+            before: 100,
+            after: 100
+          },
+          indent: {
+            firstLine: 480
+          }
+        })), new Paragraph({
+          text: "",
+          spacing: {
+            after: 200
+          }
+        })];
+        if (archive.data.analysis) {
+          reportChildren.push(new Paragraph({
+            children: [new TextRun({
+              text: "一、 审题立意",
+              bold: true,
+              size: 32,
+              color: "2d5a52"
+            })],
+            spacing: {
+              before: 400,
+              after: 200
+            },
+            border: {
+              bottom: {
+                color: "e2ded0",
+                space: 1,
+                style: BorderStyle.SINGLE,
+                size: 6
+              }
+            }
+          }));
+          ['K', 'Q', 'X', 'Y', 'A', 'C'].forEach(k => {
+            const labels = {
+              K: 'K 客观境遇',
+              Q: 'Q 核心前提',
+              X: 'X 现状对比',
+              Y: 'Y 核心理法',
+              A: 'A 行动路径',
+              C: 'C 价值重塑'
+            };
+            if (archive.data.analysis[k]) {
+              reportChildren.push(new Paragraph({
+                children: [new TextRun({
+                  text: labels[k],
+                  bold: true,
+                  size: 26,
+                  color: "963530"
+                })],
+                spacing: {
+                  before: 200,
+                  after: 100
+                }
+              }));
+              archive.data.analysis[k].split('\n').filter(l => l).forEach(line => {
+                reportChildren.push(new Paragraph({
+                  children: [new TextRun({
+                    text: line.trim(),
+                    size: 24
+                  })],
+                  indent: {
+                    firstLine: 480
+                  },
+                  spacing: {
+                    before: 120,
+                    after: 120,
+                    line: 360
+                  }
+                }));
+              });
+            }
+          });
+        }
+        if (archive.data.materials) {
+          reportChildren.push(new Paragraph({
+            children: [new TextRun({
+              text: "二、 材料支撑",
+              bold: true,
+              size: 32,
+              color: "2d5a52"
+            })],
+            spacing: {
+              before: 400,
+              after: 200
+            },
+            border: {
+              bottom: {
+                color: "e2ded0",
+                space: 1,
+                style: BorderStyle.SINGLE,
+                size: 6
+              }
+            }
+          }));
+          if (archive.data.materials.MATERIALS) {
+            archive.data.materials.MATERIALS.split('\n').filter(l => l).forEach(line => {
+              reportChildren.push(new Paragraph({
+                children: [new TextRun({
+                  text: line.trim(),
+                  size: 24
+                })],
+                indent: {
+                  firstLine: 480
+                },
+                spacing: {
+                  before: 120,
+                  after: 120,
+                  line: 360
+                }
+              }));
+            });
+          } else {
+            const mLabels = {
+              MAT_LIFE: "【中学生生活情境素材】",
+              MAT_HISTORY: "【历史与文化素材】",
+              MAT_CROSS: "【跨界启发素材】"
+            };
+            ['MAT_LIFE', 'MAT_HISTORY', 'MAT_CROSS'].forEach(mk => {
+              if (archive.data.materials[mk]) {
+                reportChildren.push(new Paragraph({
+                  children: [new TextRun({
+                    text: mLabels[mk],
+                    bold: true,
+                    size: 26,
+                    color: "963530"
+                  })],
+                  spacing: {
+                    before: 200,
+                    after: 100
+                  }
+                }));
+                archive.data.materials[mk].split('\n').filter(l => l).forEach(line => {
+                  reportChildren.push(new Paragraph({
+                    children: [new TextRun({
+                      text: line.trim(),
+                      size: 24
+                    })],
+                    indent: {
+                      firstLine: 480
+                    },
+                    spacing: {
+                      before: 120,
+                      after: 120,
+                      line: 360
+                    }
+                  }));
+                });
+              }
+            });
+          }
+        }
+        if (archive.data.essays) {
+          reportChildren.push(new Paragraph({
+            children: [new TextRun({
+              text: "三、 优秀范文",
+              bold: true,
+              size: 32,
+              color: "2d5a52"
+            })],
+            spacing: {
+              before: 400,
+              after: 200
+            },
+            border: {
+              bottom: {
+                color: "e2ded0",
+                space: 1,
+                style: BorderStyle.SINGLE,
+                size: 6
+              }
+            }
+          }));
+          ['NARRATIVE', 'ARGUMENTATIVE'].forEach(k => {
+            reportChildren.push(new Paragraph({
+              children: [new TextRun({
+                text: k === 'NARRATIVE' ? '【记叙文】' : '【议论文】',
+                bold: true,
+                size: 28,
+                color: "2d5a52"
+              })],
+              spacing: {
+                before: 200,
+                after: 100
+              }
+            }));
+            archive.data.essays[k].split('\n').filter(l => l).forEach(line => {
+              reportChildren.push(new Paragraph({
+                children: [new TextRun({
+                  text: line.trim(),
+                  size: 24
+                })],
+                indent: {
+                  firstLine: 480
+                },
+                spacing: {
+                  before: 120,
+                  after: 120,
+                  line: 360
+                }
+              }));
+            });
+          });
+        }
+        allChildren.push(...reportChildren);
+        if (index < selected.length - 1) {
+          allChildren.push(new Paragraph({
+            children: [new PageBreak()]
+          }));
+        }
+      });
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1440,
+                bottom: 1440,
+                left: 1440,
+                right: 1440
+              }
+            }
+          },
+          footers: {
+            default: new Footer({
+              children: [new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({
+                  text: "第 ",
+                  size: 18
+                }), new TextRun({
+                  children: [PageNumber.CURRENT]
+                }), new TextRun({
+                  text: " 页 / 共 "
+                }), new TextRun({
+                  children: [PageNumber.TOTAL_PAGES]
+                }), new TextRun({
+                  text: " 页"
+                })]
+              })]
+            })
+          },
+          children: allChildren
+        }]
+      });
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `批量作文报告_${selected.length}篇.docx`);
+      showToast("批量导出成功");
+    } catch (e) {
+      showAlert("批量导出失败", e.message);
+    }
+  };
+  const copyFull = () => {
+    let full = `【作文分析报告】\n\n【作文题】\n${topic}\n\n`;
+    if (data.analysis) {
+      full += "【一、审题立意】\n";
+      ['K', 'Q', 'X', 'Y', 'A', 'C'].forEach(k => {
+        if (data.analysis[k]) full += `[${k}] ${data.analysis[k]}\n`;
+      });
+      full += "\n";
+    }
+    if (data.materials) {
+      full += "【二、材料支撑】\n";
+      if (data.materials.MATERIALS) {
+        full += data.materials.MATERIALS + "\n\n";
+      } else {
+        const mLabels = {
+          MAT_LIFE: "【中学生生活情境素材】",
+          MAT_HISTORY: "【历史与文化素材】",
+          MAT_CROSS: "【跨界启发素材】"
+        };
+        ['MAT_LIFE', 'MAT_HISTORY', 'MAT_CROSS'].forEach(mk => {
+          if (data.materials[mk]) full += `${mLabels[mk]}\n${data.materials[mk]}\n\n`;
+        });
+      }
+    }
+    if (data.essays) full += `【三、优秀范文】\n[记叙文]\n${data.essays.NARRATIVE}\n\n[议论文]\n${data.essays.ARGUMENTATIVE}`;
+    copyText(full);
+  };
+  const copyAIPrompt = () => {
+    const prompt = PROMPT_TEMPLATES.COMBINED_EXTERNAL(topic);
+    copyText(prompt);
+  };
+  const ResultBox = ({
+    label,
+    content,
+    onRefresh,
+    loading,
+    onUpdate
+  }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState(content);
+    useEffect(() => {
+      setEditValue(content);
+    }, [content]);
+    const handleSave = () => {
+      if (onUpdate) onUpdate(editValue);
+      setIsEditing(false);
+      showToast("内容已保存");
+    };
+    const handleRefreshClick = () => {
+      if (!onRefresh) return;
+      let userTip = "";
+      setModal({
+        title: `重新生成：${label}`,
+        content: React.createElement("div", {
+          className: "space-y-4"
+        }, React.createElement("p", {
+          className: "text-sm text-slate-500"
+        }, "\u4F60\u53EF\u4EE5\u8F93\u5165\u989D\u5916\u7684\u8981\u6C42\u6765\u6307\u5BFC\u751F\u6210\u65B9\u5411\uFF08\u53EF\u9009\uFF09\uFF1A"), React.createElement("textarea", {
+          className: "w-full border rounded-xl p-4 h-32 text-sm focus:ring-2 focus:ring-[#2d5a52]/40 outline-none resize-none",
+          placeholder: "\u4F8B\u5982\uFF1A\u4FA7\u91CD\u4EB2\u60C5\u63CF\u5199\u3001\u589E\u52A0\u5386\u53F2\u539A\u5EA6\u3001\u8BED\u6C14\u66F4\u6FC0\u6602\u4E00\u4E9B...",
+          onChange: e => {
+            userTip = e.target.value;
+          }
+        })),
+        actions: [{
+          label: "立即重新生成",
+          type: "primary",
+          onClick: () => {
+            onRefresh(userTip);
+            setModal(null);
+          }
+        }, {
+          label: "取消",
+          type: "ghost",
+          onClick: () => setModal(null)
+        }]
+      });
+    };
+    return React.createElement("div", {
+      className: "group relative space-y-2"
+    }, React.createElement("div", {
+      className: "flex justify-between items-center pr-1"
+    }, React.createElement("label", {
+      className: "text-sm font-bold text-[#2d5a52] tracking-widest pl-2 border-l-4 border-[#963530]"
+    }, label), React.createElement("div", {
+      className: "flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity"
+    }, isEditing ? React.createElement(React.Fragment, null, React.createElement("button", {
+      onClick: handleSave,
+      className: "p-1 text-emerald-600 hover:text-emerald-700",
+      title: "\u786E\u8BA4\u4FEE\u6539"
+    }, React.createElement(Icon, {
+      name: "check",
+      className: "w-4 h-4"
+    })), React.createElement("button", {
+      onClick: () => {
+        setIsEditing(false);
+        setEditValue(content);
+      },
+      className: "p-1 text-slate-400 hover:text-slate-600",
+      title: "\u53D6\u6D88"
+    }, React.createElement(Icon, {
+      name: "x",
+      className: "w-4 h-4"
+    }))) : React.createElement(React.Fragment, null, React.createElement("button", {
+      onClick: () => setIsEditing(true),
+      className: "p-1 hover:text-[#2d5a52]",
+      title: "\u76F4\u63A5\u7F16\u8F91\u6B64\u6BB5\u843D"
+    }, React.createElement(Icon, {
+      name: "edit",
+      className: "w-3.5 h-3.5"
+    })), React.createElement("button", {
+      onClick: () => copyText(content),
+      className: "p-1 hover:text-[#963530]",
+      title: "\u590D\u5236\u5185\u5BB9"
+    }, React.createElement(Icon, {
+      name: "copy",
+      className: "w-3.5 h-3.5"
+    })), onRefresh && React.createElement("button", {
+      onClick: handleRefreshClick,
+      className: `p-1 hover:text-[#2d5a52] ${loading ? 'animate-spin' : ''}`,
+      disabled: loading
+    }, React.createElement(Icon, {
+      name: "rotate-cw",
+      className: "w-3.5 h-3.5"
+    }))))), React.createElement("div", {
+      className: `bg-[#fcfaf2] border border-[#e2ded0] rounded-xl p-5 text-[#2c2c2c] leading-relaxed paper-shadow min-h-[100px] relative overflow-hidden transition-all ${isEditing ? 'ring-2 ring-[#2d5a52]/20 bg-white' : ''}`
+    }, loading && React.createElement("div", {
+      className: "absolute inset-0 bg-white/60 flex items-center justify-center z-[5]"
+    }, React.createElement("div", {
+      className: "animate-spin text-[#2d5a52]"
+    }, "\uD83C\uDF00")), isEditing ? React.createElement("textarea", {
+      className: "w-full bg-transparent border-none focus:ring-0 outline-none text-sm leading-relaxed p-0 h-full min-h-[220px] resize-none",
+      value: editValue || "",
+      onChange: e => setEditValue(e.target.value),
+      autoFocus: true
+    }) : React.createElement("div", {
+      className: "whitespace-pre-wrap"
+    }, content || "等待生成...")));
+  };
+  const SectionHeader = ({
+    title,
+    onCopy,
+    onRefresh,
+    loading
+  }) => React.createElement("div", {
+    className: "flex flex-wrap sm:flex-nowrap justify-between items-center bg-[#f1eee4] px-4 sm:px-6 py-3 sm:py-4 rounded-xl border border-[#e2ded0] mb-6 gap-3"
+  }, React.createElement("h2", {
+    className: "text-lg sm:text-xl font-bold text-[#2d5a52] flex items-center whitespace-nowrap"
+  }, React.createElement(Icon, {
+    name: "file-text",
+    className: "w-5 h-5 mr-2 shrink-0"
+  }), title), React.createElement("div", {
+    className: "flex items-center space-x-2 sm:space-x-3 ml-auto"
+  }, React.createElement("button", {
+    onClick: onCopy,
+    title: "\u590D\u5236\u6B64\u677F\u5757",
+    className: "p-2 sm:px-3 sm:py-2 bg-white rounded-lg hover:bg-slate-50 border border-[#e2ded0] flex items-center justify-center space-x-1 min-w-[40px] h-10 transition-all active:scale-95 shadow-sm"
+  }, React.createElement(Icon, {
+    name: "copy",
+    className: "w-4 h-4 text-[#2d5a52]"
+  }), React.createElement("span", {
+    className: "hidden sm:inline text-xs font-semibold text-[#2d5a52]"
+  }, "\u590D\u5236\u677F\u5757")), React.createElement("button", {
+    onClick: onRefresh,
+    className: `p-2 sm:px-3 sm:py-2 bg-white rounded-lg hover:bg-slate-50 border border-[#e2ded0] flex items-center justify-center space-x-1 min-w-[40px] h-10 transition-all active:scale-95 shadow-sm ${loading ? 'opacity-50 cursor-not-allowed' : ''}`,
+    disabled: loading
+  }, React.createElement(Icon, {
+    name: "rotate-cw",
+    className: `w-4 h-4 text-[#2d5a52] ${loading ? 'animate-spin' : ''}`
+  }), React.createElement("span", {
+    className: "hidden sm:inline text-xs font-semibold text-[#2d5a52]"
+  }, loading ? '重构中...' : '重新生成'))));
+  const Modal = ({
+    config
+  }) => {
+    if (!config) return null;
+    return React.createElement("div", {
+      className: "fixed inset-0 z-[200] flex items-center justify-center p-4"
+    }, React.createElement("div", {
+      className: "absolute inset-0 bg-[#2d5a52]/40 backdrop-blur-sm animate-in fade-in",
+      onClick: () => setModal(null)
+    }), React.createElement("div", {
+      className: "relative bg-white border border-[#e2ded0] w-full max-w-3xl p-6 sm:p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 fade-in duration-200 flex flex-col max-h-[90vh]"
+    }, React.createElement("h3", {
+      className: "text-2xl font-bold font-heading text-[#2d5a52] mb-4 shrink-0"
+    }, config.title), React.createElement("div", {
+      className: "flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar"
+    }, typeof config.content === 'string' ? React.createElement("p", {
+      className: "text-slate-600 leading-relaxed"
+    }, config.content) : config.content), React.createElement("div", {
+      className: "flex flex-col gap-3 shrink-0"
+    }, config.actions.map((act, idx) => React.createElement("button", {
+      key: idx,
+      onClick: act.onClick,
+      className: `py-3 px-6 rounded-xl font-bold transition-all ${act.type === 'primary' ? 'bg-[#2d5a52] text-white hover:opacity-90' : act.type === 'danger' ? 'bg-[#963530] text-white hover:opacity-90' : act.type === 'secondary' ? 'bg-[#f1eee4] text-[#2d5a52] border border-[#e2ded0] hover:bg-[#e2ded0]' : 'text-slate-400 hover:text-slate-600'}`
+    }, act.label)))));
+  };
+  const GenerationModal = ({
+    status,
+    onClose
+  }) => {
+    if (!status) return null;
+    const isAllDone = status.steps.every(s => s.status === 'done' || s.status === 'error');
+    return React.createElement("div", {
+      className: "fixed inset-0 z-[300] flex items-center justify-center p-4"
+    }, React.createElement("div", {
+      className: "absolute inset-0 bg-[#2d5a52]/60 backdrop-blur-md animate-in fade-in",
+      onClick: isAllDone ? onClose : null
+    }), React.createElement("div", {
+      className: "relative bg-white border border-[#e2ded0] w-full max-w-md p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 fade-in duration-300 flex flex-col"
+    }, React.createElement("div", {
+      className: "flex items-center space-x-3 mb-6"
+    }, React.createElement("div", {
+      className: "p-3 bg-[#2d5a52]/10 rounded-2xl"
+    }, isAllDone ? React.createElement(Icon, {
+      name: "check-circle",
+      className: "w-8 h-8 text-[#2d5a52]"
+    }) : React.createElement("div", {
+      className: "w-8 h-8 flex items-center justify-center"
+    }, React.createElement("div", {
+      className: "w-full h-full border-4 border-[#2d5a52]/20 border-t-[#2d5a52] rounded-full animate-spin"
+    }))), React.createElement("div", {
+      className: "flex-1"
+    }, React.createElement("h3", {
+      className: "text-xl font-bold text-[#2d5a52]"
+    }, isAllDone ? "方案构建完成" : "正在深度解析中"), React.createElement("p", {
+      className: "text-xs text-slate-400 font-medium"
+    }, "\u8BF7\u7A0D\u5019\uFF0C\u4E13\u5BB6\u6B63\u5728\u4E3A\u60A8\u6784\u5EFA\u6EE1\u5206\u65B9\u6848")), isAllDone && React.createElement("button", {
+      onClick: onClose,
+      className: "p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
+    }, React.createElement(Icon, {
+      name: "x",
+      className: "w-5 h-5"
+    }))), React.createElement("div", {
+      className: "space-y-4 mb-8"
+    }, status.steps.map((step, idx) => {
+      const StepItem = ({
+        s,
+        i
+      }) => {
+        return React.createElement("div", {
+          className: "bg-[#fcfaf2] border border-[#e2ded0] rounded-2xl transition-all overflow-hidden shadow-sm"
+        }, React.createElement("div", {
+          className: "flex items-center justify-between p-4 bg-[#f1eee4]/50 border-b border-[#e2ded0]/50 text-sm"
+        }, React.createElement("div", {
+          className: "flex items-center space-x-3"
+        }, React.createElement("div", {
+          className: `w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${s.status === 'done' ? 'bg-[#2d5a52] text-white' : s.status === 'running' ? 'bg-[#2d5a52]/20 text-[#2d5a52] animate-pulse' : s.status === 'error' ? 'bg-[#963530] text-white' : 'bg-slate-100 text-slate-400'}`
+        }, s.status === 'done' ? React.createElement(Icon, {
+          name: "check",
+          className: "w-3.5 h-3.5"
+        }) : s.status === 'error' ? React.createElement(Icon, {
+          name: "alert-circle",
+          className: "w-3.5 h-3.5"
+        }) : i + 1), React.createElement("span", {
+          className: `font-semibold ${s.status === 'running' ? 'text-[#2d5a52]' : 'text-slate-600'}`
+        }, s.label)), React.createElement("div", {
+          className: "flex items-center"
+        }, s.status === 'running' && React.createElement("div", {
+          className: "flex space-x-1"
+        }, React.createElement("div", {
+          className: "w-1.5 h-1.5 bg-[#2d5a52] rounded-full animate-bounce [animation-delay:-0.3s]"
+        }), React.createElement("div", {
+          className: "w-1.5 h-1.5 bg-[#2d5a52] rounded-full animate-bounce [animation-delay:-0.15s]"
+        }), React.createElement("div", {
+          className: "w-1.5 h-1.5 bg-[#2d5a52] rounded-full animate-bounce"
+        })), s.status === 'done' && React.createElement("span", {
+          className: "text-[10px] text-[#2d5a52] font-bold bg-[#2d5a52]/10 px-2 py-0.5 rounded tracking-tighter"
+        }, "SUCCESS"), s.status === 'error' && React.createElement("span", {
+          className: "text-[10px] text-[#963530] font-bold bg-[#963530]/10 px-2 py-0.5 rounded tracking-tighter"
+        }, "FAILED"))), s.status === 'running' && React.createElement("div", {
+          className: "p-3 bg-white/50 h-32 overflow-hidden flex flex-col-reverse"
+        }, React.createElement("div", {
+          className: "flex flex-col space-y-4"
+        }, !s.preview && !s.reasoning ? React.createElement("div", {
+          className: "py-8 flex flex-col items-center justify-center text-xs text-slate-400 animate-pulse italic"
+        }, React.createElement(Icon, {
+          name: "edit-3",
+          className: "w-3.5 h-3.5 mb-2"
+        }), React.createElement("span", null, "\u94FE\u63A5\u5927\u6A21\u578B\u4E2D...")) : React.createElement(React.Fragment, null, s.reasoning && React.createElement("div", {
+          className: "bg-[#f1eee4]/40 p-3 rounded-lg border-l-2 border-[#2d5a52]/30"
+        }, React.createElement("div", {
+          className: "flex items-center text-[10px] text-[#2d5a52] font-bold mb-2 opacity-60"
+        }, React.createElement(Icon, {
+          name: "sparkles",
+          className: "w-3 h-3 mr-1"
+        }), React.createElement("span", null, "\u601D\u8003\u6DF1\u5EA6\u89E3\u6790\u4E2D...")), React.createElement("p", {
+          className: "text-[11px] text-slate-400 italic leading-relaxed whitespace-pre-wrap"
+        }, s.reasoning)), s.preview && React.createElement("div", {
+          className: "bg-[#2d5a52]/5 p-3 rounded-lg border-l-2 border-[#2d5a52]"
+        }, React.createElement("div", {
+          className: "flex items-center text-[10px] text-[#2d5a52] font-bold mb-2"
+        }, React.createElement(Icon, {
+          name: "pen-tool",
+          className: "w-3 h-3 mr-1"
+        }), React.createElement("span", null, "\u6B63\u5728\u540C\u6B65\u6210\u6587...")), React.createElement("p", {
+          className: "text-[11px] text-[#2d5a52] leading-relaxed font-mono whitespace-pre-wrap"
+        }, "\u201C ", s.preview, " \u201D"))))), s.status === 'done' && React.createElement("div", {
+          className: "p-3 bg-white/50 max-h-24 overflow-hidden relative"
+        }, React.createElement("p", {
+          className: "text-[11px] text-slate-500 line-clamp-3 leading-relaxed font-mono whitespace-pre-wrap italic"
+        }, "\u201C ", (s.preview || "").substring(0, 150), s.preview && s.preview.length > 150 ? "..." : "", " \u201D"), React.createElement("div", {
+          className: "absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white/80 to-transparent"
+        })));
+      };
+      return React.createElement(StepItem, {
+        key: idx,
+        s: step,
+        i: idx
+      });
+    })), isAllDone && React.createElement("button", {
+      onClick: onClose,
+      className: "w-full py-4 bg-[#2d5a52] text-white rounded-2xl font-bold shadow-lg shadow-[#2d5a52]/20 hover:opacity-90 active:scale-95 transition-all"
+    }, "\u8FDB\u5165\u67E5\u770B\u7ED3\u679C")));
+  };
+  return React.createElement("div", {
+    className: "max-w-4xl mx-auto px-4 py-12 relative"
+  }, React.createElement("header", {
+    className: "text-center mb-12 space-y-4"
+  }, React.createElement("h1", {
+    className: "text-4xl font-bold tracking-tight font-heading"
+  }, "\u4F5C\u6587\u5206\u6790"), React.createElement("div", {
+    className: "flex items-center justify-center space-x-6"
+  }, React.createElement("button", {
+    onClick: () => setShowArchives(true),
+    className: "inline-flex items-center text-slate-500 hover:text-[#2d5a52] transition-colors font-medium"
+  }, React.createElement(Icon, {
+    name: "history",
+    className: "w-4 h-4 mr-1.5"
+  }), "\u5386\u53F2\u5F52\u6863"), React.createElement("button", {
+    onClick: () => setShowSettings(!showSettings),
+    className: "inline-flex items-center text-slate-500 hover:text-[#2d5a52] transition-colors font-medium"
+  }, React.createElement(Icon, {
+    name: "settings",
+    className: "w-4 h-4 mr-1.5"
+  }), "\u8BBE\u7F6E"))), React.createElement("main", {
+    className: "space-y-12"
+  }, showSettings && React.createElement("div", {
+    className: "bg-white/50 border rounded-xl p-6 border-dashed border-[#e2ded0] grid grid-cols-1 md:grid-cols-2 gap-6 scale-95 origin-top animate-in fade-in zoom-in-95"
+  }, React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("label", {
+    className: "text-sm font-semibold text-[#2d5a52]"
+  }, "\u670D\u52A1\u5546"), React.createElement("select", {
+    className: "w-full border rounded-lg px-3 py-2 bg-white/50",
+    value: config.currentProvider,
+    onChange: e => setConfig({
+      ...config,
+      currentProvider: e.target.value
+    })
+  }, React.createElement("option", {
+    value: "deepseek"
+  }, "DeepSeek"), React.createElement("option", {
+    value: "kimi"
+  }, "Kimi"), React.createElement("option", {
+    value: "zhipu"
+  }, "\u667A\u8C31 AI"), React.createElement("option", {
+    value: "qwen"
+  }, "\u901A\u4E49\u5343\u95EE"), React.createElement("option", {
+    value: "baidu"
+  }, "\u6587\u5FC3\u4E00\u8A00"), React.createElement("option", {
+    value: "doubao"
+  }, "\u8C46\u5305"), React.createElement("option", {
+    value: "ollama"
+  }, "Ollama"))), React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("label", {
+    className: "text-sm font-semibold text-[#2d5a52]"
+  }, config.currentProvider === 'doubao' ? 'API Key (Access Key)' : 'API Key'), React.createElement("input", {
+    type: "password",
+    placeholder: "\u8F93\u5165 API Key...",
+    className: "w-full border rounded-lg px-3 py-2",
+    value: config.providers[config.currentProvider].apiKey,
+    onChange: e => setConfig({
+      ...config,
+      providers: {
+        ...config.providers,
+        [config.currentProvider]: {
+          ...config.providers[config.currentProvider],
+          apiKey: e.target.value
+        }
+      }
+    })
+  })), config.currentProvider === 'deepseek' && React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("label", {
+    className: "text-sm font-semibold text-[#2d5a52]"
+  }, "\u6A21\u578B\u9009\u62E9"), React.createElement("select", {
+    className: "w-full border rounded-lg px-3 py-2",
+    value: config.providers.deepseek.model || "deepseek-v4-flash",
+    onChange: e => setConfig({
+      ...config,
+      providers: {
+        ...config.providers,
+        deepseek: {
+          ...config.providers.deepseek,
+          model: e.target.value
+        }
+      }
+    })
+  }, React.createElement("option", {
+    value: "deepseek-v4-flash"
+  }, "DeepSeek V4 Flash (\u9ED8\u8BA4)"), React.createElement("option", {
+    value: "deepseek-v4-pro"
+  }, "DeepSeek V4 Pro (\u6DF1\u5165\u601D\u8003)"))), config.currentProvider === 'doubao' && React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("label", {
+    className: "text-sm font-semibold text-[#2d5a52]"
+  }, "\u63A8\u7406\u63A5\u5165\u70B9 ID (Endpoint ID)"), React.createElement("input", {
+    type: "text",
+    placeholder: "ep-2024...",
+    className: "w-full border rounded-lg px-3 py-2",
+    value: config.providers.doubao.endpointId,
+    onChange: e => setConfig({
+      ...config,
+      providers: {
+        ...config.providers,
+        doubao: {
+          ...config.providers.doubao,
+          endpointId: e.target.value
+        }
+      }
+    })
+  })), config.currentProvider === 'ollama' && React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("label", {
+    className: "text-sm font-semibold text-[#2d5a52]"
+  }, "\u6A21\u578B\u540D\u79F0"), React.createElement("input", {
+    type: "text",
+    placeholder: "qwen2, llama3...",
+    className: "w-full border rounded-lg px-3 py-2",
+    value: config.providers.ollama.ollamaModel,
+    onChange: e => setConfig({
+      ...config,
+      providers: {
+        ...config.providers,
+        ollama: {
+          ...config.providers.ollama,
+          ollamaModel: e.target.value
+        }
+      }
+    })
+  })), React.createElement("div", {
+    className: "md:col-span-2 pt-4 flex justify-end border-t border-[#e2ded0] mt-4"
+  }, React.createElement("button", {
+    onClick: () => {
+      setShowSettings(false);
+      showToast("配置已成功持久化保存");
+    },
+    className: "px-8 py-3 bg-[#2d5a52] text-white rounded-xl font-bold hover:bg-[#1f3d38] active:scale-95 transition-all shadow-lg shadow-[#2d5a52]/30 flex items-center space-x-2 ring-2 ring-emerald-100 ring-offset-2"
+  }, React.createElement(Icon, {
+    name: "check",
+    className: "w-5 h-5"
+  }), React.createElement("span", null, "\u4FDD\u5B58\u8BBE\u7F6E")))), React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("textarea", {
+    className: "w-full border rounded-2xl p-4 sm:p-6 h-24 text-lg border-[#e2ded0] bg-white shadow-sm transition-all focus:ring-2 focus:ring-[#2d5a52]/40 outline-none",
+    placeholder: "\u8F93\u5165\u4F5C\u6587\u9898\u76EE...",
+    value: topic,
+    onChange: e => setTopic(e.target.value)
+  }), React.createElement("div", {
+    className: "grid grid-cols-1 gap-3"
+  }, React.createElement("div", {
+    className: "flex flex-col sm:flex-row gap-3"
+  }, React.createElement("button", {
+    onClick: handleAnalyzeAll,
+    disabled: Object.values(isLoading).some(v => v),
+    className: "sm:flex-[3] w-full bg-[#2d5a52] text-white rounded-xl h-14 sm:h-16 text-lg sm:text-xl font-bold flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[#2d5a52]/10 px-4 min-h-[3.5rem]"
+  }, Object.values(isLoading).some(v => v) ? "正在全速生成..." : "一键开启 AI 深度拆解"), React.createElement("button", {
+    onClick: copyAIPrompt,
+    className: "sm:flex-1 w-full bg-[#f1eee4] text-[#2d5a52] border border-[#e2ded0] rounded-xl h-14 sm:h-16 flex items-center justify-center space-x-2 hover:bg-[#e2ded0] transition-all active:scale-95 shrink-0 px-4 font-semibold text-sm sm:text-base min-h-[3.5rem]"
+  }, React.createElement(Icon, {
+    name: "message-square",
+    className: "w-5 h-5"
+  }), React.createElement("span", null, "\u590D\u5236 AI \u6307\u4EE4"))), (data.analysis || data.materials || data.essays) && React.createElement("div", {
+    className: "grid grid-cols-8 gap-2"
+  }, React.createElement("button", {
+    onClick: saveToArchive,
+    className: "col-span-2 bg-[#2d5a52]/10 text-[#2d5a52] rounded-xl hover:bg-[#2d5a52]/20 border border-[#2d5a52]/20 flex items-center justify-center space-x-1 sm:space-x-2 h-14 sm:h-16 transition-all active:scale-95 shadow-sm overflow-hidden",
+    title: "\u4FDD\u5B58\u5230\u5386\u53F2\u5F52\u6863"
+  }, React.createElement(Icon, {
+    name: "save",
+    className: "w-5 h-5 flex-shrink-0"
+  }), React.createElement("span", {
+    className: "font-semibold text-sm sm:text-base whitespace-nowrap"
+  }, "\u5168\u6587\u5B58\u6863")), React.createElement("button", {
+    onClick: copyFull,
+    className: "col-span-2 bg-white border border-[#e2ded0] text-[#2d5a52] rounded-xl hover:bg-slate-50 flex items-center justify-center space-x-1 sm:space-x-2 h-14 sm:h-16 transition-all active:scale-95 shadow-sm overflow-hidden",
+    title: "\u590D\u5236\u5B8C\u6574\u62A5\u544A\u5185\u5BB9"
+  }, React.createElement(Icon, {
+    name: "copy",
+    className: "w-5 h-5 flex-shrink-0"
+  }), React.createElement("span", {
+    className: "font-semibold text-sm sm:text-base whitespace-nowrap"
+  }, "\u5168\u6587\u590D\u5236")), React.createElement("button", {
+    onClick: () => exportWord(),
+    className: "col-span-3 bg-[#963530] text-white rounded-xl hover:opacity-90 flex items-center justify-center space-x-1 sm:space-x-2 h-14 sm:h-16 transition-all active:scale-95 shadow-sm overflow-hidden"
+  }, React.createElement(Icon, {
+    name: "file-text",
+    className: "w-5 h-5 flex-shrink-0"
+  }), React.createElement("span", {
+    className: "font-semibold text-sm sm:text-base whitespace-nowrap"
+  }, "\u5BFC\u51FA Word")), React.createElement("button", {
+    onClick: clearAllData,
+    className: "col-span-1 bg-white text-slate-400 hover:text-[#963530] border border-[#e2ded0] rounded-xl hover:bg-slate-50 flex items-center justify-center h-14 sm:h-16 transition-all active:scale-95 shadow-sm overflow-hidden",
+    title: "\u6E05\u7A7A\u5F53\u524D\u6240\u6709\u5185\u5BB9"
+  }, React.createElement(Icon, {
+    name: "trash",
+    className: "w-5 h-5 flex-shrink-0"
+  }))))), data.analysis && React.createElement("div", {
+    className: "animate-in fade-in slide-in-from-bottom-4"
+  }, React.createElement(SectionHeader, {
+    title: "\u5BA1\u9898\u7ACB\u610F",
+    onRefresh: () => runTask('analysis'),
+    onCopy: () => copyText(Object.values(data.analysis).join('\n')),
+    loading: isLoading.analysis
+  }), React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-6"
+  }, ['K', 'Q', 'X', 'Y', 'A', 'C'].map(k => React.createElement(ResultBox, {
+    key: k,
+    label: {
+      K: 'K · 客观境遇',
+      Q: 'Q · 核心前提',
+      X: 'X · 现状对比',
+      Y: 'Y · 核心理法',
+      A: 'A · 行动路径',
+      C: 'C · 价值重塑'
+    }[k],
+    content: data.analysis[k],
+    onUpdate: val => setData(prev => ({
+      ...prev,
+      analysis: {
+        ...prev.analysis,
+        [k]: val
+      }
+    })),
+    onRefresh: tip => runTask('analysis', k, {
+      K: '客观境遇 K',
+      Q: '核心前提 Q',
+      X: '现状对比 X',
+      Y: '核心理法 Y',
+      A: '行动路径 A',
+      C: '价值重塑 C'
+    }[k], tip),
+    loading: isLoading[k]
+  })))), data.materials && React.createElement("div", {
+    className: "animate-in fade-in slide-in-from-bottom-4"
+  }, React.createElement(SectionHeader, {
+    title: "\u6750\u6599\u652F\u6491",
+    onRefresh: () => runTask('materials'),
+    onCopy: () => copyText(`${data.materials.MAT_LIFE}\n${data.materials.MAT_HISTORY}\n${data.materials.MAT_CROSS}`),
+    loading: isLoading.materials
+  }), React.createElement("div", {
+    className: "space-y-6"
+  }, React.createElement(ResultBox, {
+    label: "\u751F\u6D3B\u60C5\u5883\u7D20\u6750",
+    content: data.materials.MAT_LIFE,
+    onUpdate: val => setData(prev => ({
+      ...prev,
+      materials: {
+        ...prev.materials,
+        MAT_LIFE: val
+      }
+    })),
+    onRefresh: tip => runTask('materials', 'MAT_LIFE', '生活情境素材', tip),
+    loading: isLoading.MAT_LIFE
+  }), React.createElement(ResultBox, {
+    label: "\u5386\u53F2\u6587\u5316\u7D20\u6750",
+    content: data.materials.MAT_HISTORY,
+    onUpdate: val => setData(prev => ({
+      ...prev,
+      materials: {
+        ...prev.materials,
+        MAT_HISTORY: val
+      }
+    })),
+    onRefresh: tip => runTask('materials', 'MAT_HISTORY', '历史文化素材', tip),
+    loading: isLoading.MAT_HISTORY
+  }), React.createElement(ResultBox, {
+    label: "\u8DE8\u754C\u542F\u53D1\u7D20\u6750",
+    content: data.materials.MAT_CROSS,
+    onUpdate: val => setData(prev => ({
+      ...prev,
+      materials: {
+        ...prev.materials,
+        MAT_CROSS: val
+      }
+    })),
+    onRefresh: tip => runTask('materials', 'MAT_CROSS', '跨界启发素材', tip),
+    loading: isLoading.MAT_CROSS
+  }))), data.essays && React.createElement("div", {
+    className: "animate-in fade-in slide-in-from-bottom-4 pb-12"
+  }, React.createElement(SectionHeader, {
+    title: "\u4F18\u79C0\u8303\u6587",
+    onRefresh: () => runTask('essays'),
+    onCopy: () => copyText(`[记叙文]\n${data.essays.NARRATIVE}\n\n[议论文]\n${data.essays.ARGUMENTATIVE}`),
+    loading: isLoading.essays
+  }), React.createElement("div", {
+    className: "space-y-8"
+  }, React.createElement(ResultBox, {
+    label: "\u8BB0\u53D9\u6587",
+    content: data.essays.NARRATIVE,
+    onUpdate: val => setData(prev => ({
+      ...prev,
+      essays: {
+        ...prev.essays,
+        NARRATIVE: val
+      }
+    })),
+    onRefresh: tip => runTask('essays', 'NARRATIVE', '记叙文', tip),
+    loading: isLoading.NARRATIVE
+  }), React.createElement(ResultBox, {
+    label: "\u8BAE\u8BBA\u6587",
+    content: data.essays.ARGUMENTATIVE,
+    onUpdate: val => setData(prev => ({
+      ...prev,
+      essays: {
+        ...prev.essays,
+        ARGUMENTATIVE: val
+      }
+    })),
+    onRefresh: tip => runTask('essays', 'ARGUMENTATIVE', '议论文', tip),
+    loading: isLoading.ARGUMENTATIVE
+  }))), showArchives && React.createElement("div", {
+    className: "fixed inset-0 bg-black/40 flex items-center justify-center z-[120] p-4 animate-in fade-in duration-200"
+  }, React.createElement("div", {
+    className: "bg-[#fcfaf2] w-full max-w-4xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[#e2ded0]"
+  }, React.createElement("div", {
+    className: "px-6 py-4 border-b border-[#e2ded0] flex items-center justify-between bg-[#f1eee4]"
+  }, React.createElement("div", {
+    className: "flex items-center space-x-3"
+  }, React.createElement(Icon, {
+    name: "archive",
+    className: "w-6 h-6 text-[#2d5a52]"
+  }), React.createElement("h2", {
+    className: "text-xl font-bold text-[#2d5a52]"
+  }, "\u5386\u53F2\u5F52\u6863"), React.createElement("span", {
+    className: "text-xs bg-[#2d5a52]/10 text-[#2d5a52] px-2 py-0.5 rounded-full font-semibold"
+  }, archives.length, " \u6761\u8BB0\u5F55")), React.createElement("button", {
+    onClick: () => {
+      setShowArchives(false);
+      setSelectedArchiveIds([]);
+    },
+    className: "p-2 hover:bg-[#e2ded0] rounded-full transition-colors"
+  }, React.createElement(Icon, {
+    name: "x",
+    className: "w-6 h-6 text-slate-500"
+  }))), React.createElement("div", {
+    className: "flex-1 overflow-y-auto p-4 sm:p-6 space-y-3"
+  }, archives.length === 0 ? React.createElement("div", {
+    className: "h-60 flex flex-col items-center justify-center text-slate-400 space-y-4"
+  }, React.createElement(Icon, {
+    name: "archive",
+    className: "w-12 h-12 opacity-20"
+  }), React.createElement("p", null, "\u6682\u65E0\u5F52\u6863\u5185\u5BB9\uFF0C\u8BF7\u5728\u4E3B\u9875\u70B9\u51FB\u201C\u5B58\u5F52\u6863\u201D")) : archives.map(archive => React.createElement("div", {
+    key: archive.id,
+    className: `group border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-[#2d5a52] hover:bg-white paper-shadow ${selectedArchiveIds.includes(archive.id) ? 'bg-white border-[#2d5a52] ring-2 ring-[#2d5a52]/10' : 'bg-white/50 border-[#e2ded0]'}`
+  }, React.createElement("div", {
+    className: "flex items-start space-x-4 flex-1 min-w-0"
+  }, React.createElement("button", {
+    onClick: () => toggleArchiveSelection(archive.id),
+    className: `mt-1 flex-shrink-0 transition-colors ${selectedArchiveIds.includes(archive.id) ? 'text-[#2d5a52]' : 'text-slate-300 hover:text-slate-400'}`
+  }, React.createElement(Icon, {
+    name: selectedArchiveIds.includes(archive.id) ? "check-square" : "square",
+    className: "w-6 h-6"
+  })), React.createElement("div", {
+    className: "min-w-0 flex-1 cursor-pointer",
+    onClick: () => loadArchive(archive)
+  }, React.createElement("h3", {
+    className: "font-bold text-[#2c2c2c] truncate text-lg"
+  }, archive.topic), React.createElement("div", {
+    className: "flex items-center space-x-3 text-xs text-slate-400 mt-1"
+  }, React.createElement("span", null, new Date(archive.timestamp).toLocaleString()), React.createElement("span", {
+    className: "bg-slate-100 px-1.5 py-0.5 rounded italic"
+  }, [archive.data.analysis && '审题', archive.data.materials && '材料', archive.data.essays && '范文'].filter(Boolean).join(' · '))))), React.createElement("div", {
+    className: "flex items-center space-x-2 w-full sm:w-auto justify-end"
+  }, React.createElement("button", {
+    onClick: () => loadArchive(archive),
+    className: "p-2 text-[#2d5a52] hover:bg-[#2d5a52]/10 rounded-lg flex items-center space-x-1",
+    title: "\u8F7D\u5165\u5230\u8349\u7A3F\u533A"
+  }, React.createElement(Icon, {
+    name: "rotate-cw",
+    className: "w-4 h-4"
+  }), React.createElement("span", {
+    className: "text-sm font-medium"
+  }, "\u8F7D\u5165")), React.createElement("button", {
+    onClick: () => editArchiveContent(archive),
+    className: "p-2 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center space-x-1",
+    title: "\u4FEE\u6539\u5F52\u6863\u6240\u6709\u5185\u5BB9"
+  }, React.createElement(Icon, {
+    name: "edit",
+    className: "w-4 h-4"
+  }), React.createElement("span", {
+    className: "text-sm font-medium"
+  }, "\u7F16\u8F91\u5185\u5BB9")), React.createElement("button", {
+    onClick: () => deleteArchive(archive.id),
+    className: "p-2 text-slate-400 hover:text-[#963530] hover:bg-[#963530]/10 rounded-lg",
+    title: "\u5220\u9664\u8BB0\u5F55"
+  }, React.createElement(Icon, {
+    name: "trash",
+    className: "w-4 h-4"
+  })))))), archives.length > 0 && React.createElement("div", {
+    className: "px-6 py-4 border-t border-[#e2ded0] bg-[#f1eee4] flex items-center justify-between"
+  }, React.createElement("div", {
+    className: "flex items-center space-x-4 text-sm font-medium"
+  }, React.createElement("button", {
+    onClick: () => setSelectedArchiveIds(selectedArchiveIds.length === archives.length ? [] : archives.map(a => a.id)),
+    className: "text-[#2d5a52] hover:underline whitespace-nowrap"
+  }, selectedArchiveIds.length === archives.length ? "取消全选" : "全选"), React.createElement("span", {
+    className: "text-slate-500 whitespace-nowrap"
+  }, "\u5DF2\u9009 ", selectedArchiveIds.length, " \u9879")), React.createElement("div", {
+    className: "flex items-center space-x-3"
+  }, React.createElement("button", {
+    onClick: batchDeleteArchives,
+    disabled: selectedArchiveIds.length === 0,
+    className: `px-4 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 transition-all ${selectedArchiveIds.length === 0 ? 'bg-slate-200 text-slate-400' : 'bg-white text-[#963530] border border-[#963530]/20 hover:bg-[#963530]/5 active:scale-95'}`
+  }, React.createElement(Icon, {
+    name: "trash",
+    className: "w-4 h-4"
+  }), React.createElement("span", null, "\u6279\u91CF\u5220\u9664")), React.createElement("button", {
+    onClick: batchExportWord,
+    disabled: selectedArchiveIds.length === 0,
+    className: `px-5 py-2 rounded-lg text-sm font-bold flex items-center space-x-2 transition-all shadow-md ${selectedArchiveIds.length === 0 ? 'bg-slate-300 text-white' : 'bg-[#963530] text-white hover:opacity-90 active:scale-95'}`
+  }, React.createElement(Icon, {
+    name: "package",
+    className: "w-4 h-4"
+  }), React.createElement("span", null, "\u6279\u91CF\u5BFC\u51FA Word"))))))), React.createElement(Modal, {
+    config: modal
+  }), React.createElement(GenerationModal, {
+    status: genStatus,
+    onClose: () => setGenStatus(null)
+  }), toast && React.createElement("div", {
+    className: "fixed top-12 left-1/2 -translate-x-1/2 bg-[#2d5a52] text-white px-8 py-3 rounded-full shadow-2xl z-[210] animate-in slide-in-from-top-4 duration-300 transition-all font-semibold whitespace-nowrap"
+  }, toast));
+}
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App, null));
+</script>
 </body>
 </html>

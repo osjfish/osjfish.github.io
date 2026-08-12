@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>学生辩论赛计票系统</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" defer></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
     <script src="https://unpkg.com/lucide/dist/umd/lucide.min.js"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -190,1458 +189,1650 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useMemo, useEffect, useRef } = React;
-        
-        // Finalized robust library fallbacks for direct script usage
-        const _Motion = window.Motion || window.FramerMotion;
-        const motion = _Motion?.motion || (() => {
-            const c = (t) => ({ children, whileHover, whileTap, layoutId, layout, initial, animate, exit, ...p }) => React.createElement(t, p, children);
-            return { div: c('div'), button: c('button'), span: c('span'), section: c('section'), p: c('p'), h1: c('h1'), h2: c('h2'), h3: c('h3'), h4: c('h4') };
-        })();
-        const AnimatePresence = _Motion?.AnimatePresence || (({ children }) => <React.Fragment>{children}</React.Fragment>);
-
-        const Icon = ({ name, className = "w-4 h-4" }) => {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (window.lucide && iconRef.current) {
-                    try {
-                        const kebabName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-                        iconRef.current.innerHTML = `<i data-lucide="${kebabName}"></i>`;
-                        window.lucide.createIcons({ 
-                            attrs: { class: className }, 
-                            nameAttr: 'data-lucide',
-                            root: iconRef.current
-                        });
-                    } catch (e) {
-                        console.error('Lucide error:', e);
-                    }
-                }
-            }, [name, className]);
-            return <span ref={iconRef} className="inline-flex items-center justify-center" />;
-        };
-
-        const STORAGE_KEY = 'debate_pro_v5';
-        const SESSIONS_KEY = 'debate_sessions_v5';
-
-        // --- Components ---
-        const ReportModal = ({ show, onClose, data }) => {
-            const reportRef = React.useRef(null);
-            const [exporting, setExporting] = React.useState(false);
-            
-            if (!show || !data) return null;
-
-            const exportAsImage = async () => {
-                if (!reportRef.current) return;
-                setExporting(true);
-                try {
-                    const canvas = await window.html2canvas(reportRef.current, {
-                        scale: 3, // 提高倍率增加清晰度
-                        backgroundColor: '#fdfcf7',
-                        logging: false,
-                        useCORS: true,
-                        allowTaint: true,
-                        scrollX: 0,
-                        scrollY: -window.scrollY,
-                        onclone: (clonedDoc) => {
-                            const el = clonedDoc.querySelector('[data-report-container]');
-                            if (el) {
-                                el.style.height = 'auto';
-                                el.style.overflow = 'visible';
-                            }
-                        }
-                    });
-                    
-                    const link = document.createElement('a');
-                    link.download = `辩论赛战报-${data.topic}-${new Date().getTime()}.png`;
-                    link.href = canvas.toDataURL('image/png', 1.0);
-                    link.click();
-                } catch (err) {
-                    console.error('Export failed:', err);
-                    alert('导出预览图失败，建议直接通过浏览器截图保存。');
-                } finally {
-                    setExporting(false);
-                }
-            };
-
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div onClick={onClose} className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" />
-                    <div className="relative w-full max-w-lg bg-[#fdfcf7] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[95vh] fade-in border-[12px] border-double border-[#c5a368]/30">
-                        <div className="absolute inset-0 pointer-events-none border border-[#c5a368]/10 m-1" />
-                        
-                        <div className="overflow-y-auto relative z-10 flex-1 scrollbar-hide">
-                            <div ref={reportRef} data-report-container className="p-8 space-y-6 bg-[#fdfcf7] min-h-max">
-                                <div className="text-center space-y-3">
-                                    <div className="w-12 h-12 bg-[#b22222] text-white flex items-center justify-center mx-auto font-serif font-black text-2xl shadow-lg border-2 border-[#fff]">
-                                        捷
-                                    </div>
-                                    <h1 className="text-3xl font-serif font-black text-[#1a1a1a] tracking-[0.2em] mt-2 border-b-2 border-[#c5a368]/20 pb-4">辩论赛战报</h1>
-                                </div>
-
-                                <div className="text-center py-2">
-                                    <span className="text-[10px] font-bold text-[#c5a368] uppercase tracking-[0.3em] block mb-2">辩题回顾</span>
-                                    <h2 className="text-xl font-serif font-bold text-slate-800 leading-relaxed px-4">
-                                        “ {data.topic} ”
-                                    </h2>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-px bg-[#c5a368]/20 border border-[#c5a368]/20 rounded-sm overflow-hidden">
-                                    <div className={`relative bg-white p-5 text-center flex flex-col items-center justify-center min-h-[120px] ${data.results.winner === 'pro' ? 'bg-slate-50/30' : ''}`}>
-                                        {data.results.winner === 'pro' && (
-                                            <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#223e36] text-white text-[8px] font-black rounded-sm z-20">获胜方</div>
-                                        )}
-                                        <span className="text-[10px] font-bold text-[#223e36] opacity-80 uppercase block mb-1">正方 · {data.proName}</span>
-                                        <div className="text-4xl font-black text-[#223e36] font-mono leading-none my-1">{data.results ? data.results.proTotalVotes : 0}</div>
-                                        <p className="text-[10px] text-slate-400 font-medium">总积分累计</p>
-                                    </div>
-                                    <div className={`relative bg-white p-5 text-center flex flex-col items-center justify-center min-h-[120px] ${data.results.winner === 'con' ? 'bg-slate-50/30' : ''}`}>
-                                        {data.results.winner === 'con' && (
-                                            <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#b22222] text-white text-[8px] font-black rounded-sm z-20">获胜方</div>
-                                        )}
-                                        <span className="text-[10px] font-bold text-[#b22222] opacity-80 uppercase block mb-1">反方 · {data.conName}</span>
-                                        <div className="text-4xl font-black text-[#b22222] font-mono leading-none my-1">{data.results ? data.results.conTotalVotes : 0}</div>
-                                        <p className="text-[10px] text-slate-400 font-medium">总积分累计</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">详细战况</span>
-                                        <span className="text-[10px] font-medium text-slate-300">环节明细</span>
-                                    </div>
-                                    <table className="w-full text-xs border-collapse font-serif text-slate-800 table-fixed">
-                                        <thead>
-                                            <tr className="text-slate-400">
-                                                <th className="py-2 text-left font-normal w-[45%]">分论点</th>
-                                                <th className="py-2 text-right font-normal w-[18%] px-1">正方</th>
-                                                <th className="py-2 text-right font-normal w-[18%] px-1">反方</th>
-                                                <th className="py-2 text-center font-normal w-[19%]">胜负</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {data.points && data.points.map((p, i) => {
-                                                const proAudience = p.proVotes;
-                                                const conAudience = data.totalVoters - p.proVotes;
-                                                const abstain = p.abstainCount || 0;
-                                                const activeTotal = Math.max(0, data.judgeCount - abstain);
-                                                const hasJudgeVoted = p.proJudgeVotes !== null && p.proJudgeVotes !== undefined;
-                                                const proJudge = hasJudgeVoted ? Math.min(activeTotal, p.proJudgeVotes) : 0;
-                                                const conJudge = hasJudgeVoted ? (activeTotal - proJudge) : 0;
-                                                const proScore = proAudience + proJudge * data.judgeWeight;
-                                                const conScore = conAudience + conJudge * data.judgeWeight;
-                                                const win = proScore > conScore ? '正' : (conScore > proScore ? '反' : '平');
-                                                return (
-                                                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                                        <td className="py-3 pr-2 align-top">
-                                                            <div className="text-[8px] text-slate-400 font-sans mb-0.5">第{i+1}轮·{p.owner === 'pro' ? '正' : '反'}方立论</div>
-                                                            <div className="text-xs text-slate-700 font-bold leading-tight break-words">{p.text}</div>
-                                                        </td>
-                                                        <td className="py-3 text-right font-mono font-bold text-[#223e36] whitespace-nowrap px-1 align-top">
-                                                            {proScore}
-                                                            <div className="text-[7px] text-slate-300 font-normal">({proAudience}+{proJudge}p)</div>
-                                                        </td>
-                                                        <td className="py-3 text-right font-mono font-bold text-[#b22222] whitespace-nowrap px-1 align-top">
-                                                            {conScore}
-                                                            <div className="text-[7px] text-slate-300 font-normal">({conAudience}+{conJudge}p)</div>
-                                                        </td>
-                                                        <td className="py-3 text-center align-top">
-                                                            <span className={`inline-flex items-center justify-center w-5 h-5 border border-current rounded-full text-[10px] font-bold mt-1 ${
-                                                                win === '正' ? 'bg-[#223e36] border-[#223e36] text-white' : win === '反' ? 'bg-[#b22222] border-[#b22222] text-white' : 'bg-transparent text-slate-400 border-slate-200'
-                                                            }`}>
-                                                                {win}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                            {data.confirmedFinalVote !== null && (
-                                                <tr className="bg-amber-50/30">
-                                                    <td className="py-3 pr-2 align-top">
-                                                        <div className="text-[8px] text-amber-600 font-sans mb-0.5 font-bold uppercase">终极环节</div>
-                                                        <div className="text-xs text-amber-800 font-bold leading-tight">平局决胜·投票</div>
-                                                    </td>
-                                                    <td className="py-3 text-right font-mono font-bold text-[#223e36] whitespace-nowrap px-1 align-top">
-                                                        {data.confirmedFinalVote}
-                                                        <div className="text-[7px] text-amber-300/80 font-normal">(票数)</div>
-                                                    </td>
-                                                    <td className="py-3 text-right font-mono font-bold text-[#b22222] whitespace-nowrap px-1 align-top">
-                                                        {data.totalVoters - data.confirmedFinalVote}
-                                                        <div className="text-[7px] text-amber-300/80 font-normal">(票数)</div>
-                                                    </td>
-                                                    <td className="py-3 text-center align-top">
-                                                        <span className={`inline-flex items-center justify-center w-5 h-5 border border-current rounded-full text-[10px] font-bold mt-1 ${
-                                                            data.confirmedFinalVote > data.totalVoters / 2 ? 'bg-[#223e36] border-[#223e36] text-white' : 'bg-[#b22222] border-[#b22222] text-white'
-                                                        }`}>
-                                                            {data.confirmedFinalVote > data.totalVoters / 2 ? '正' : '反'}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div className="pt-8 border-t border-slate-100 text-center pb-4">
-                                    <p className="text-[10px] text-slate-400 font-mono tracking-widest uppercase opacity-60">
-                                        DATE: {new Date(data.timestamp || Date.now()).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="p-6 bg-white border-t flex flex-col gap-3 mt-auto">
-                            <button 
-                                onClick={exportAsImage} 
-                                disabled={exporting}
-                                className="w-full max-w-xs mx-auto py-3 bg-[#c5a368] text-white font-bold tracking-widest hover:bg-[#b59358] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                <Icon name={exporting ? "Loader2" : "Image"} className={`w-4 h-4 ${exporting ? 'animate-spin' : ''}`} />
-                                {exporting ? "导出中..." : "导出截图 (PNG)"}
-                            </button>
-                            <button onClick={onClose} className="w-full max-w-xs mx-auto py-3 border-2 border-slate-200 text-slate-400 font-bold tracking-widest hover:bg-slate-50 transition-all active:scale-95 text-xs text-center">
-                                关闭
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        function App() {
-            const getSaved = (key, fallback) => {
-                const s = localStorage.getItem(key);
-                if (s) try { return JSON.parse(s); } catch(e){}
-                return fallback;
-            };
-
-            const initialData = getSaved(STORAGE_KEY, {});
-
-            const [view, setView] = useState(initialData.view || 'setup');
-            const [currentRound, setCurrentRound] = useState(initialData.currentRound || 0);
-            const [topic, setTopic] = useState(initialData.topic || '');
-            const [proName, setProName] = useState(initialData.proName || '正方');
-            const [conName, setConName] = useState(initialData.conName || '反方');
-            const [totalVoters, setTotalVoters] = useState(initialData.totalVoters || 30);
-            const [roundCount, setRoundCount] = useState(initialData.roundCount || 4);
-            const [timerDuration, setTimerDuration] = useState(initialData.timerDuration || 240);
-            const [openingDuration, setOpeningDuration] = useState(initialData.openingDuration || 60);
-            const [proTimeLeft, setProTimeLeft] = useState(initialData.proTimeLeft !== undefined ? initialData.proTimeLeft : 120);
-            const [conTimeLeft, setConTimeLeft] = useState(initialData.conTimeLeft !== undefined ? initialData.conTimeLeft : 120);
-            const [openingTimeLeft, setOpeningTimeLeft] = useState(initialData.openingTimeLeft !== undefined ? initialData.openingTimeLeft : 60);
-            const [activeSide, setActiveSide] = useState(initialData.activeSide || null);
-            const [isTimerRunning, setIsTimerRunning] = useState(false);
-            const [judgeCount, setJudgeCount] = useState(initialData.judgeCount || 1);
-            const [judgeWeight, setJudgeWeight] = useState(initialData.judgeWeight || 5);
-            const [points, setPoints] = useState(initialData.points?.map(p => ({
-                ...p,
-                abstainCount: p.abstainCount !== undefined ? p.abstainCount : 0
-            })) || [
-                { text: '', owner: 'pro', proVotes: 15, proJudgeVotes: null, abstainCount: 0 },
-                { text: '', owner: 'con', proVotes: 15, proJudgeVotes: null, abstainCount: 0 },
-                { text: '', owner: 'pro', proVotes: 15, proJudgeVotes: null, abstainCount: 0 },
-                { text: '', owner: 'con', proVotes: 15, proJudgeVotes: null, abstainCount: 0 }
-            ]);
-            const [finalVote, setFinalVote] = useState(initialData.finalVote || 15);
-            const [confirmedFinalVote, setConfirmedFinalVote] = useState(null);
-            const [sessions, setSessions] = useState(() => getSaved(SESSIONS_KEY, []));
-            const [showHistory, setShowHistory] = useState(false);
-            const [showReport, setShowReport] = useState(false);
-            const [viewingHistory, setViewingHistory] = useState(null);
-            const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null });
-            const fileInputRef = useRef(null);
-            const setupFileInputRef = useRef(null); // 上传准备页配置用到
-
-            const formatTime = (s) => {
-                const m = Math.floor(s / 60);
-                const sc = s % 60;
-                return `${m}:${sc < 10 ? '0' : ''}${sc}`;
-            };
-
-            const playAlertSound = React.useCallback(() => {
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    const gainNode = ctx.createGain();
-                    
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    
-                    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-                    gainNode.gain.setValueAtTime(0.3, ctx.currentTime + 1.8);
-                    gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 2);
-                    
-                    osc.connect(gainNode);
-                    gainNode.connect(ctx.destination);
-                    
-                    osc.start();
-                    osc.stop(ctx.currentTime + 2);
-                } catch (e) {
-                    console.error("Audio playback failed", e);
-                }
-            }, []);
-
-
-            useEffect(() => {
-                const saved = localStorage.getItem(SESSIONS_KEY);
-                if (saved) try { setSessions(JSON.parse(saved)); } catch(e){}
-            }, []);
-
-            useEffect(() => {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-                    topic, proName, conName, totalVoters, points, view, currentRound, finalVote,
-                    roundCount, timerDuration, judgeCount, judgeWeight, openingDuration,
-                    proTimeLeft, conTimeLeft, openingTimeLeft, activeSide
-                }));
-            }, [topic, proName, conName, totalVoters, points, view, currentRound, finalVote, 
-                roundCount, timerDuration, judgeCount, judgeWeight, openingDuration,
-                proTimeLeft, conTimeLeft, openingTimeLeft, activeSide]);
-
-            // Clamp votes when totalVoters changes to prevent negative counts
-            useEffect(() => {
-                const half = Math.floor(totalVoters / 2);
-                const clamped = points.map(p => ({
-                    ...p,
-                    proVotes: view === 'setup' ? half : Math.max(0, Math.min(totalVoters, p.proVotes))
-                }));
-                if (JSON.stringify(clamped) !== JSON.stringify(points)) {
-                    setPoints(clamped);
-                }
-                if (view === 'setup') setFinalVote(half);
-                else if (finalVote > totalVoters) setFinalVote(totalVoters);
-            }, [totalVoters]);
-
-            const updateRoundCount = (val) => {
-                const count = Math.max(1, parseInt(val) || 1);
-                setRoundCount(count);
-                const half = Math.floor(totalVoters / 2);
-                const newPoints = Array.from({ length: count }, (_, i) => ({
-                    text: points[i]?.text || '',
-                    owner: i % 2 === 0 ? 'pro' : 'con',
-                    proVotes: points[i]?.proVotes || half,
-                    proJudgeVotes: points[i]?.proJudgeVotes || null,
-                    abstainCount: points[i]?.abstainCount || 0
-                }));
-                setPoints(newPoints);
-            };
-
-            useEffect(() => {
-                let interval;
-                if (isTimerRunning && (timerDuration > 0 || openingDuration > 0)) {
-                    interval = setInterval(() => {
-                        if (activeSide === 'opening') {
-                            setOpeningTimeLeft(prev => Math.max(0, prev - 1));
-                        } else if (activeSide === 'pro') {
-                            setProTimeLeft(prev => Math.max(0, prev - 1));
-                        } else if (activeSide === 'con') {
-                            setConTimeLeft(prev => Math.max(0, prev - 1));
-                        }
-                    }, 1000);
-                }
-                return () => clearInterval(interval);
-            }, [isTimerRunning, activeSide, timerDuration, openingDuration]);
-
-            useEffect(() => {
-                if (!isTimerRunning) return;
-
-                if (activeSide === 'opening' && openingTimeLeft === 0) {
-                    setIsTimerRunning(false); // 立论结束，停止计时，不自动读秒
-                    setActiveSide(points[currentRound]?.owner === 'pro' ? 'con' : 'pro');
-                    playAlertSound();
-                } else if (activeSide === 'pro' && proTimeLeft === 0) {
-                    playAlertSound();
-                    if (conTimeLeft > 0) {
-                        setIsTimerRunning(false);
-                        setActiveSide('con');
-                    } else {
-                        setIsTimerRunning(false);
-                        setActiveSide(null);
-                    }
-                } else if (activeSide === 'con' && conTimeLeft === 0) {
-                    playAlertSound();
-                    if (proTimeLeft > 0) {
-                        setIsTimerRunning(false);
-                        setActiveSide('pro');
-                    } else {
-                        setIsTimerRunning(false);
-                        setActiveSide(null);
-                    }
-                }
-
-                if (proTimeLeft === 0 && conTimeLeft === 0 && isTimerRunning) {
-                    setIsTimerRunning(false);
-                    setActiveSide(null);
-                }
-            }, [openingTimeLeft, proTimeLeft, conTimeLeft, activeSide, isTimerRunning, points, currentRound, playAlertSound]);
-
-            useEffect(() => {
-                const half = Math.floor(timerDuration / 2);
-                setProTimeLeft(half);
-                setConTimeLeft(timerDuration - half);
-                setOpeningTimeLeft(openingDuration);
-                setIsTimerRunning(false);
-                setActiveSide(null);
-            }, [currentRound, timerDuration, openingDuration, view]);
-
-            useEffect(() => {
-                localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-            }, [sessions]);
-
-            const results = useMemo(() => {
-                let proRounds = 0, conRounds = 0;
-                let proAudienceTotal = 0, conAudienceTotal = 0;
-                let proJudgeTotal = 0, conJudgeTotal = 0;
-                let proTotalVotes = 0, conTotalVotes = 0;
-
-                points.forEach(p => {
-                    const proAudience = p.proVotes;
-                    const conAudience = totalVoters - p.proVotes;
-                    
-                    // Handle judge abstention
-                    const abstain = p.abstainCount || 0;
-                    const activeJudgeTotal = Math.max(0, judgeCount - abstain);
-                    const hasJudgeVoted = p.proJudgeVotes !== null && p.proJudgeVotes !== undefined;
-                    
-                    const proJudge = hasJudgeVoted ? Math.min(activeJudgeTotal, p.proJudgeVotes) : 0;
-                    const conJudge = hasJudgeVoted ? (activeJudgeTotal - proJudge) : 0;
-
-                    const proScore = proAudience + proJudge * judgeWeight;
-                    const conScore = conAudience + conJudge * judgeWeight;
-                    
-                    if (proScore > conScore) proRounds++; 
-                    else if (conScore > proScore) conRounds++;
-
-                    proAudienceTotal += proAudience;
-                    conAudienceTotal += conAudience;
-                    proJudgeTotal += proJudge;
-                    conJudgeTotal += conJudge;
-                    proTotalVotes += proScore;
-                    conTotalVotes += conScore;
-                });
-
-                let winner = 'tie';
-                if (proRounds > conRounds) winner = 'pro';
-                else if (conRounds > proRounds) winner = 'con';
-                else {
-                    if (proTotalVotes > conTotalVotes) winner = 'pro';
-                    else if (conTotalVotes > proTotalVotes) winner = 'con';
-                    else {
-                        // 只有在终极投票已确认的情况下，才根据终极投票判定胜负
-                        if (confirmedFinalVote !== null) {
-                            const half = totalVoters / 2;
-                            if (confirmedFinalVote > half) winner = 'pro';
-                            else if (confirmedFinalVote < half) winner = 'con';
-                            else winner = 'tie';
-                        } else {
-                            // 未确认终极投票前，保持平局
-                            winner = 'tie';
-                        }
-                    }
-                }
-
-                // 强制确保：如果未确认终极投票，且平局，则 winner 必须为 'tie'
-                if (confirmedFinalVote === null && proRounds === conRounds && proTotalVotes === conTotalVotes) {
-                    winner = 'tie';
-                }
-
-                return { 
-                    proRounds, conRounds, 
-                    proAudienceTotal, conAudienceTotal,
-                    proJudgeTotal, conJudgeTotal,
-                    proTotalVotes, conTotalVotes, 
-                    winner 
-                };
-            }, [points, totalVoters, judgeCount, judgeWeight, finalVote, confirmedFinalVote]);
-
-            const setProVotesSafe = (idx, val) => {
-                const n = [...points];
-                n[idx].proVotes = Math.max(0, Math.min(totalVoters, val));
-                setPoints(n);
-            };
-
-            const saveToHistory = () => {
-                if (!topic) return;
-                const newSession = {
-                    id: Date.now().toString(),
-                    topic, proName, conName, totalVoters, points, finalVote, confirmedFinalVote,
-                    roundCount, timerDuration, openingDuration, judgeCount, judgeWeight,
-                    results, // 保存完整的计算结果
-                    winner: results.winner,
-                    timestamp: Date.now()
-                };
-                setSessions(prev => [newSession, ...prev]);
-            };
-
-            const loadSession = (s) => {
-                setTopic(s.topic);
-                setProName(s.proName);
-                setConName(s.conName);
-                setTotalVoters(s.totalVoters);
-                setPoints(s.points);
-                setFinalVote(s.finalVote !== undefined ? s.finalVote : Math.floor(s.totalVoters / 2));
-                setConfirmedFinalVote(s.confirmedFinalVote !== undefined ? s.confirmedFinalVote : null);
-                setRoundCount(s.roundCount || 4);
-                setTimerDuration(s.timerDuration || 180);
-                setOpeningDuration(s.openingDuration || 60);
-                setJudgeCount(s.judgeCount || 0);
-                setJudgeWeight(s.judgeWeight || 10);
-                setView('summary');
-                setShowHistory(false);
-                window.scrollTo(0, 0);
-            };
-
-            const exportSetupConfig = () => {
-                const config = {
-                    topic, proName, conName, totalVoters, roundCount, 
-                    timerDuration, openingDuration, judgeCount, judgeWeight,
-                    points: points.map(p => ({ text: p.text, owner: p.owner }))
-                };
-                const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `辩论设置-${topic || '未命名'}.json`;
-                link.click();
-            };
-
-            const importSetupConfig = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    try {
-                        const config = JSON.parse(evt.target.result);
-                        if (config.topic !== undefined) setTopic(config.topic);
-                        if (config.proName) setProName(config.proName);
-                        if (config.conName) setConName(config.conName);
-                        if (config.totalVoters !== undefined) setTotalVoters(config.totalVoters);
-                        if (config.roundCount !== undefined) updateRoundCount(config.roundCount);
-                        if (config.timerDuration !== undefined) setTimerDuration(config.timerDuration);
-                        if (config.openingDuration !== undefined) setOpeningDuration(config.openingDuration);
-                        if (config.judgeCount !== undefined) setJudgeCount(config.judgeCount);
-                        if (config.judgeWeight !== undefined) setJudgeWeight(config.judgeWeight);
-                        if (config.points && Array.isArray(config.points)) {
-                            setPoints(config.points.map(p => ({
-                                text: p.text || '',
-                                owner: p.owner || 'pro',
-                                proVotes: Math.floor((config.totalVoters || totalVoters) / 2),
-                                proJudgeVotes: null,
-                                abstainCount: 0
-                            })));
-                        }
-                        alert('设置导入成功');
-                    } catch (err) {
-                        console.error(err);
-                        alert('导入失败，请检查配置文件是否正确');
-                    }
-                };
-                reader.readAsText(file);
-                e.target.value = '';
-            };
-
-            const clearAllData = () => {
-                setConfirmModal({
-                    show: true,
-                    title: '清空所有数据',
-                    message: '此操作将永久删除所有历史记录并重置当前比赛，确定继续吗？',
-                    onConfirm: () => {
-                        localStorage.clear();
-                        setSessions([]);
-                        setTopic('');
-                        setProName('正方');
-                        setConName('反方');
-                        setTotalVoters(30);
-                        setRoundCount(4);
-                        setTimerDuration(240);
-                        setJudgeCount(1);
-                        setJudgeWeight(5);
-                        setPoints([
-                            { text: '', owner: 'pro', proVotes: 15, proJudgeVotes: null, abstainCount: 0 },
-                            { text: '', owner: 'con', proVotes: 15, proJudgeVotes: null, abstainCount: 0 },
-                            { text: '', owner: 'pro', proVotes: 15, proJudgeVotes: null, abstainCount: 0 },
-                            { text: '', owner: 'con', proVotes: 15, proJudgeVotes: null, abstainCount: 0 }
-                        ]);
-                        setFinalVote(15);
-                        setConfirmedFinalVote(null);
-                        setView('setup');
-                        setCurrentRound(0);
-                        setConfirmModal({ show: false });
-                    }
-                });
-            };
-
-            const exportExcel = () => {
-                const now = new Date();
-                const timestamp = now.getFullYear() + 
-                    String(now.getMonth() + 1).padStart(2, '0') + 
-                    String(now.getDate()).padStart(2, '0') + "_" + 
-                    String(now.getHours()).padStart(2, '0') + 
-                    String(now.getMinutes()).padStart(2, '0');
-
-                const detailData = points.map((p, i) => {
-                    const abstain = p.abstainCount || 0;
-                    const activeTotal = Math.max(0, judgeCount - abstain);
-                    const proJ = (p.proJudgeVotes !== null) ? Math.min(activeTotal, p.proJudgeVotes) : 0;
-                    const conJ = (p.proJudgeVotes !== null) ? (activeTotal - proJ) : 0;
-                    
-                    return {
-                        '环节': `第${i+1}场 (${p.owner === 'pro' ? '正方' : '反方'}分论点)`,
-                        '论点内容': p.text,
-                        '正方观众票': p.proVotes,
-                        '反方观众票': totalVoters - p.proVotes,
-                        '弃权评委票': abstain,
-                        '正方评委票': proJ,
-                        '反方评委票': conJ,
-                        '胜方': (p.proVotes + proJ * judgeWeight) > ((totalVoters - p.proVotes) + conJ * judgeWeight) ? '正方' : ((p.proVotes + proJ * judgeWeight) < ((totalVoters - p.proVotes) + conJ * judgeWeight) ? '反方' : '平局')
-                    };
-                });
-                
-                const summaryData = [{
-                    '辩题': topic,
-                    '正方选手': proName,
-                    '反方选手': conName,
-                    '观众总人数': totalVoters,
-                    '轮数': roundCount,
-                    '评委人数': judgeCount,
-                    '评委权重': judgeWeight,
-                    '正方胜场': results.proRounds,
-                    '反方胜场': results.conRounds,
-                    '正方总积分': results.proTotalVotes,
-                    '反方总积分': results.conTotalVotes,
-                    '最终结果': results.winner === 'pro' ? '正方胜' : (results.winner === 'con' ? '反方胜' : '平局'),
-                    '终极投票(正方)': finalVote,
-                    '终极投票(反方)': totalVoters - finalVote
-                }];
-
-                const historyData = sessions.map(s => {
-                    const r = s.results || { proRounds: 0, conRounds: 0, proTotalVotes: 0, conTotalVotes: 0, winner: s.winner };
-                    return {
-                        'ID': s.id,
-                        '时间': new Date(s.timestamp).toLocaleString(),
-                        '辩题': s.topic,
-                        '正方': s.proName,
-                        '反方': s.conName,
-                        '总人数': s.totalVoters,
-                        '轮数': s.roundCount || 4,
-                        '评委数': s.judgeCount || 0,
-                        '评委权重': s.judgeWeight || 10,
-                        '正方胜场': r.proRounds,
-                        '反方胜场': r.conRounds,
-                        '正方总积分': r.proTotalVotes,
-                        '反方总积分': r.conTotalVotes,
-                        '最终结果': r.winner === 'pro' ? '正方胜' : (r.winner === 'con' ? '反方胜' : '平局'),
-                        '完整数据JSON': JSON.stringify(s)
-                    };
-                });
-
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData), '辩论详情');
-                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), '比赛总结');
-                if (historyData.length > 0) {
-                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(historyData), '历史记录');
-                }
-                XLSX.writeFile(wb, `辩论赛备份_${timestamp}.xlsx`);
-            };
-
-            const handleImport = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    try {
-                        const data = new Uint8Array(evt.target.result);
-                        const wb = XLSX.read(data, { type: 'array' });
-                        
-                        // 恢复历史记录
-                        const historySheet = wb.Sheets['历史记录'];
-                        if (historySheet) {
-                            const historyJson = XLSX.utils.sheet_to_json(historySheet);
-                            const importedSessions = historyJson.map(h => {
-                                try { return JSON.parse(h['完整数据JSON']); } catch(e) { return null; }
-                            }).filter(s => s !== null);
-                            if (importedSessions.length > 0) {
-                                setSessions(importedSessions);
-                            }
-                        }
-
-                        // 恢复当前比赛状态
-                        const summary = XLSX.utils.sheet_to_json(wb.Sheets['比赛总结'])[0];
-                        if (summary) {
-                            setTopic(summary.辩题 || '');
-                            setProName(summary.正方选手 || '正方');
-                            setConName(summary.反方选手 || '反方');
-                            setTotalVoters(summary.观众总人数 || summary.总人数 || 100);
-                            setRoundCount(summary.轮数 || 4);
-                            setTimerDuration(summary.每轮时长 || 180);
-                            setJudgeCount(summary.评委人数 || 0);
-                            setJudgeWeight(summary.评委权重 || 10);
-                            setFinalVote(summary['终极投票(正方)'] || 50);
-                        }
-                        const detail = XLSX.utils.sheet_to_json(wb.Sheets['辩论详情']);
-                        if (detail && detail.length > 0) {
-                            setPoints(detail.map((d, i) => ({
-                                text: d.论点内容 || '',
-                                owner: i % 2 === 0 ? 'pro' : 'con',
-                                proVotes: Math.max(0, Math.min(summary?.观众总人数 || summary?.总人数 || 100, d.正方观众票 || d.正方得票 || 0)),
-                                proJudgeVotes: d.正方评委票 !== undefined ? d.正方评委票 : null,
-                                abstainCount: d.弃权评委票 || 0
-                            })));
-                        }
-                        alert('数据已完全还原');
-                    } catch(e) { 
-                        console.error(e);
-                        alert('导入失败，请检查文件格式'); 
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            };
-
-            const renderSetup = () => (
-                <div className="max-w-4xl mx-auto space-y-2 fade-in">
-                    <div className="guofeng-card p-4">
-                        <div className="space-y-2">
-                            {/* 顶部：辩题与人数 */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-2 border-b border-slate-100">
-                                <div className="md:col-span-2 space-y-0.5">
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">辩论题目</label>
-                                    <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="请输入本次辩论的主题..." className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">观众人数 (总投票数)</label>
-                                    <input type="number" value={totalVoters} onChange={e => setTotalVoters(parseInt(e.target.value) || 0)} className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-slate-900 outline-none transition-all font-mono text-md" />
-                                </div>
-                            </div>
-
-                            {/* 新增：轮数、计时、评委设置 */}
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 pb-2 border-b border-slate-100">
-                                <div className="space-y-0.5">
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">辩论轮数</label>
-                                    <input type="number" min="1" value={roundCount} onChange={e => updateRoundCount(e.target.value)} className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">立论时长 (秒)</label>
-                                    <input type="number" min="0" value={openingDuration} onChange={e => setOpeningDuration(Math.max(0, parseInt(e.target.value) || 0))} className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">争论时长 (秒)</label>
-                                    <input type="number" min="0" value={timerDuration} onChange={e => setTimerDuration(Math.max(0, parseInt(e.target.value) || 0))} className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">评委人数</label>
-                                    <input type="number" min="0" value={judgeCount} onChange={e => setJudgeCount(Math.max(0, parseInt(e.target.value) || 0))} className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">评委权重</label>
-                                    <input type="number" min="0" value={judgeWeight} onChange={e => setJudgeWeight(Math.max(0, parseInt(e.target.value) || 0))} className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md" />
-                                </div>
-                            </div>
-                            
-                            {/* 中部：正反方对等布局 */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* 正方列 */}
-                                <div className="space-y-2">
-                                    <div className="space-y-0.5">
-                                        <label className="text-[9px] font-bold text-[#223e36] uppercase tracking-widest">正方名称</label>
-                                        <input value={proName} onChange={e => setProName(e.target.value)} className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all text-sm" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">正方分论点</label>
-                                        {Array.from({ length: roundCount }, (_, i) => i).filter(i => i % 2 === 0).map(i => (
-                                            <div key={i} className="p-2 rounded-lg border-l-4 border-[#223e36] bg-[#223e36]/5">
-                                                <div className="flex justify-between items-center mb-0.5">
-                                                    <span className="text-[9px] font-bold opacity-60 uppercase">分论点 {Math.floor(i/2) + 1}</span>
-                                                </div>
-                                                <textarea value={points[i]?.text || ''} onChange={e => {
-                                                    const next = [...points];
-                                                    if (!next[i]) next[i] = { text: '', owner: 'pro', proVotes: Math.floor(totalVoters / 2), proJudgeVotes: 0 };
-                                                    next[i].text = e.target.value;
-                                                    setPoints(next);
-                                                }} placeholder="输入分论点核心内容..." className="w-full bg-transparent border-b border-slate-200 p-0.5 focus:border-slate-900 outline-none transition-all text-xs h-12 resize-none" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* 反方列 */}
-                                <div className="space-y-2">
-                                    <div className="space-y-0.5">
-                                        <label className="text-[9px] font-bold text-[#b22222] uppercase tracking-widest">反方名称</label>
-                                        <input value={conName} onChange={e => setConName(e.target.value)} className="w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#b22222] outline-none transition-all text-sm" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">反方分论点</label>
-                                        {Array.from({ length: roundCount }, (_, i) => i).filter(i => i % 2 !== 0).map(i => (
-                                            <div key={i} className="p-2 rounded-lg border-l-4 border-[#b22222] bg-[#b22222]/5">
-                                                <div className="flex justify-between items-center mb-0.5">
-                                                    <span className="text-[9px] font-bold opacity-60 uppercase">分论点 {Math.floor(i/2) + 1}</span>
-                                                </div>
-                                                <textarea value={points[i]?.text || ''} onChange={e => {
-                                                    const next = [...points];
-                                                    if (!next[i]) next[i] = { text: '', owner: 'con', proVotes: Math.floor(totalVoters / 2), proJudgeVotes: 0 };
-                                                    next[i].text = e.target.value;
-                                                    setPoints(next);
-                                                }} placeholder="输入分论点核心内容..." className="w-full bg-transparent border-b border-slate-200 p-0.5 focus:border-slate-900 outline-none transition-all text-xs h-12 resize-none" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col items-center gap-3">
-                            <div className="flex gap-2">
-                                <button onClick={() => setupFileInputRef.current?.click()} className="px-4 py-1.5 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all font-bold tracking-widest text-xs flex items-center justify-center gap-1 shadow-sm">
-                                    <Icon name="Upload" className="w-3 h-3" />
-                                    导入配置
-                                </button>
-                                <input type="file" ref={setupFileInputRef} onChange={importSetupConfig} accept=".json" className="hidden" />
-                                <button onClick={exportSetupConfig} className="px-4 py-1.5 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all font-bold tracking-widest text-xs flex items-center justify-center gap-1 shadow-sm">
-                                    <Icon name="Download" className="w-3 h-3" />
-                                    导出配置
-                                </button>
-                            </div>
-                            <button onClick={() => { 
-                                if(!topic || points.some(p => !p.text)) return alert('请填写完整辩题和所有分论点'); 
-                                setConfirmedFinalVote(null);
-                                setView('debate'); 
-                                setCurrentRound(0); 
-                            }} className="w-64 py-2.5 bg-[#2c3e50] text-white font-bold tracking-[0.2em] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg text-sm rounded-sm">
-                                开始辩论
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            const renderDebate = () => {
-                const p = points[currentRound];
-                const proVotes = p.proVotes;
-                const conVotes = totalVoters - p.proVotes;
-                const proPercent = totalVoters > 0 ? (proVotes / totalVoters) * 100 : 50;
-
-                return (
-                <div className="max-w-4xl mx-auto space-y-2 fade-in">
-                    <div className="guofeng-card p-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-2">
-                                <div className="guofeng-border">
-                                    <div className="bg-[#2c3e50] text-white px-2 py-0.5 text-[9px] font-bold">第 {currentRound + 1} / {roundCount} 场</div>
-                                </div>
-                                <span className="text-[9px] font-bold text-slate-400 tracking-widest">
-                                    {p.owner === 'pro' ? proName : conName}分论点
-                                </span>
-                            </div>
-                            <div className="text-right">
-                                <h2 className="text-sm font-serif font-black text-slate-900 leading-none">“ {topic} ”</h2>
-                            </div>
-                        </div>
-
-                        <div className="text-center py-5 border-y border-slate-100 mb-4 bg-slate-50/30">
-                            <h3 className="text-2xl font-serif font-black text-slate-900 tracking-tight">{p.text}</h3>
-                        </div>
-                         <div className="space-y-4">
-                            <div className="flex justify-between items-end px-2">
-                                <div className="text-center w-20 shrink-0">
-                                    <p className="text-4xl font-black text-[#223e36] font-mono">{proVotes}</p>
-                                </div>
-                                <div className="flex-1 px-4 pb-2">
-                                    <div className="vote-slider-container">
-                                        <div className="vote-track">
-                                            <div className="vote-bar-pro h-full" style={{ width: `${proPercent}%` }} />
-                                            <div className="vote-bar-con h-full flex-1" />
-                                        </div>
-                                        <div className="vote-handle-capsule" style={{ left: `${proPercent}%`, width: '12px', height: '24px' }}></div>
-                                        <input 
-                                            type="range" 
-                                            min="0" 
-                                            max={totalVoters} 
-                                            value={proVotes} 
-                                            onChange={e => {
-                                                const next = [...points];
-                                                next[currentRound].proVotes = parseInt(e.target.value);
-                                                setPoints(next);
-                                            }} 
-                                            className="vote-slider-input" 
-                                        />
-                                    </div>
-                                </div>
-                                <div className="text-center w-20 shrink-0">
-                                    <p className="text-4xl font-black text-[#b22222] font-mono">{conVotes}</p>
-                                </div>
-                            </div>
-
-                            {/* 观众与评委投票仪表盘 */}
-                            <div className="flex items-stretch gap-2 h-24">
-                                {/* 左侧：正方观众票 */}
-                                <div className="flex-1 bg-slate-50/50 p-2 rounded-xl border border-dotted border-slate-200 flex flex-col items-center justify-center gap-1.5 min-w-[70px]">
-                                    <span className="text-[8px] font-bold text-[#223e36] opacity-50 uppercase tracking-tighter">{proName}观众</span>
-                                    <div className="flex flex-col gap-1 w-full px-1">
-                                        <button onClick={() => {
-                                            const next = [...points];
-                                            next[currentRound].proVotes = Math.min(totalVoters, p.proVotes + 1);
-                                            setPoints(next);
-                                        }} className="w-full h-7 bg-[#223e36] text-white flex items-center justify-center hover:bg-opacity-90 transition-all rounded shadow-sm font-bold text-xs">+1</button>
-                                        <button onClick={() => {
-                                            const next = [...points];
-                                            next[currentRound].proVotes = Math.min(totalVoters, p.proVotes + 5);
-                                            setPoints(next);
-                                        }} className="w-full h-7 bg-[#223e36] text-white flex items-center justify-center hover:bg-opacity-90 transition-all rounded shadow-sm font-bold text-xs">+5</button>
-                                    </div>
-                                </div>
-
-                                {judgeCount > 0 && (
-                                    <div className="flex-[2.5] bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-center gap-1.5 min-w-0">
-                                         <div className="flex justify-between items-center px-2 mb-0.5">
-                                             <div className="flex flex-col">
-                                                 <span className="text-[9px] font-bold text-slate-400">评委席 (共 {judgeCount} 位)</span>
-                                                 <span className="text-[8px] text-slate-300">有效总数: {judgeCount - (p.abstainCount || 0)}</span>
-                                             </div>
-                                             <div className="flex items-center gap-2">
-                                                 <span className="text-[9px] font-bold text-amber-600">弃权: {p.abstainCount || 0}</span>
-                                                 <div className="flex gap-0.5">
-                                                     <button 
-                                                         onClick={() => {
-                                                             const next = [...points];
-                                                             next[currentRound].abstainCount = Math.max(0, (p.abstainCount || 0) - 1);
-                                                             setPoints(next);
-                                                         }}
-                                                         className="w-4 h-4 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] hover:bg-slate-300"
-                                                     >-</button>
-                                                     <button 
-                                                         onClick={() => {
-                                                             const next = [...points];
-                                                             next[currentRound].abstainCount = Math.min(judgeCount, (p.abstainCount || 0) + 1);
-                                                             const activeTotal = judgeCount - next[currentRound].abstainCount;
-                                                             if ((next[currentRound].proJudgeVotes || 0) > activeTotal) {
-                                                                 next[currentRound].proJudgeVotes = activeTotal;
-                                                             }
-                                                             setPoints(next);
-                                                         }}
-                                                         className="w-4 h-4 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] hover:bg-slate-300"
-                                                     >+</button>
-                                                 </div>
-                                             </div>
-                                         </div>
-                                         
-                                         <div className="flex items-center gap-3 px-2">
-                                             <div className="w-10 text-center shrink-0">
-                                                 <span className={`text-xl font-black font-mono transition-colors ${p.proJudgeVotes !== null ? 'text-[#223e36]' : 'text-slate-300'}`}>
-                                                     {p.proJudgeVotes !== null ? p.proJudgeVotes : 0}
-                                                 </span>
-                                                 <p className="text-[7px] text-slate-400 mt-[-2px]">正方</p>
-                                             </div>
-                                             <div className="flex-1 relative flex items-center h-6">
-                                                 <input 
-                                                     type="range"
-                                                     min="0"
-                                                     max={judgeCount - (p.abstainCount || 0)}
-                                                     step="1"
-                                                     value={p.proJudgeVotes !== null ? p.proJudgeVotes : 0}
-                                                     onChange={(e) => {
-                                                         const next = [...points];
-                                                         next[currentRound].proJudgeVotes = parseInt(e.target.value);
-                                                         setPoints(next);
-                                                     }}
-                                                     className="judge-slider accent-[#c5a368]"
-                                                 />
-                                             </div>
-                                             <div className="w-10 text-center shrink-0">
-                                                 <span className={`text-xl font-black font-mono transition-colors ${p.proJudgeVotes !== null ? 'text-[#b22222]' : 'text-slate-300'}`}>
-                                                     {p.proJudgeVotes !== null ? (Math.max(0, judgeCount - (p.abstainCount || 0) - p.proJudgeVotes)) : 0}
-                                                 </span>
-                                                 <p className="text-[7px] text-slate-400 mt-[-2px]">反方</p>
-                                             </div>
-                                         </div>
-                                         <div className="text-center px-2 text-[8px] font-bold text-slate-300 tracking-[0.2em]">
-                                             {p.proJudgeVotes === null ? '—— 请滑动分配此轮评委票 ——' : '· 票数分配确认 ·'}
-                                         </div>
-                                     </div>
-                                )}
-
-                                {/* 右侧：反方观众票 */}
-                                <div className="flex-1 bg-slate-50/50 p-2 rounded-xl border border-dotted border-slate-200 flex flex-col items-center justify-center gap-1.5 min-w-[70px]">
-                                    <span className="text-[8px] font-bold text-[#b22222] opacity-50 uppercase tracking-tighter">{conName}观众</span>
-                                    <div className="flex flex-col gap-1 w-full px-1">
-                                        <button onClick={() => {
-                                            const next = [...points];
-                                            next[currentRound].proVotes = Math.max(0, p.proVotes - 1);
-                                            setPoints(next);
-                                        }} className="w-full h-7 bg-[#b22222] text-white flex items-center justify-center hover:bg-opacity-90 transition-all rounded shadow-sm font-bold text-xs">+1</button>
-                                        <button onClick={() => {
-                                            const next = [...points];
-                                            next[currentRound].proVotes = Math.max(0, p.proVotes - 5);
-                                            setPoints(next);
-                                        }} className="w-full h-7 bg-[#b22222] text-white flex items-center justify-center hover:bg-opacity-90 transition-all rounded shadow-sm font-bold text-xs">+5</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 计时器模块 - 止戈为武·纯境布局 (融合计时版) */}
-                            {(timerDuration > 0 || openingDuration > 0) && (
-                                <div className="pt-2 mt-1 border-t border-slate-100">
-                                    <div className="max-w-3xl mx-auto px-4">
-                                        
-                                        {/* 主交互层 */}
-                                        <div className="flex items-center justify-between gap-4 md:gap-8">
-                                            
-                                            {/* 正方区域 */}
-                                            <div className="flex-1 flex flex-col items-center">
-                                                <div className="mb-4 text-center">
-                                                    <h4 className="text-lg font-serif font-bold text-[#223e36]">{proName}</h4>
-                                                </div>
-                                                <button 
-                                                    onClick={() => {
-                                                        const isOwner = p.owner === 'pro';
-                                                        if (!isTimerRunning) { 
-                                                            if (openingTimeLeft > 0) {
-                                                                setActiveSide('opening');
-                                                            }
-                                                            setIsTimerRunning(true); 
-                                                        } else {
-                                                            // 运行中点击
-                                                            if (activeSide === 'opening' && isOwner) {
-                                                                // 3. 提前结束立论，启动对方争论
-                                                                setOpeningTimeLeft(0);
-                                                                setActiveSide('con');
-                                                                setIsTimerRunning(true);
-                                                            } else if (activeSide === 'pro') {
-                                                                setActiveSide('con');
-                                                            }
-                                                        }
-                                                    }}
-                                                    className={`w-full group relative py-6 rounded-[2.5rem] transition-all duration-1000 overflow-hidden ${
-                                                        (activeSide === 'pro' || (activeSide === 'opening' && p.owner === 'pro')) 
-                                                        ? 'bg-[#223e36] shadow-[0_20px_40px_-10px_rgba(34,62,54,0.4)] scale-[1.03]' 
-                                                        : 'bg-slate-50 border border-slate-100'
-                                                    }`}
-                                                >
-                                                    <div className="relative z-10 flex flex-col items-center">
-                                                        <span className={`text-xs font-bold tracking-[0.4em] mb-2 transition-colors ${
-                                                            (activeSide === 'pro' || (activeSide === 'opening' && p.owner === 'pro')) ? 'text-white/40' : 'text-slate-300'
-                                                        }`}>
-                                                            {openingTimeLeft > 0 && p.owner === 'pro' ? '立论' : '争论'}
-                                                        </span>
-                                                        <div className={`text-6xl font-mono leading-none tracking-tighter font-black transition-all ${
-                                                            (activeSide === 'pro' || (activeSide === 'opening' && p.owner === 'pro')) ? 'text-white' : 'text-slate-400'
-                                                        }`}>
-                                                            {formatTime(openingTimeLeft > 0 && p.owner === 'pro' ? openingTimeLeft : proTimeLeft)}
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            </div>
-
-                                            {/* 中央控制枢纽 */}
-                                            <div className="flex flex-col items-center gap-6 pb-2">
-                                                <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-200 to-transparent" />
-                                                <div className="flex flex-col items-center gap-4">
-                                                    <motion.button 
-                                                        whileHover={{ scale: 1.1 }}
-                                                        whileTap={{ scale: 0.9 }}
-                                                        onClick={() => {
-                                                            if (!isTimerRunning) {
-                                                                if (openingTimeLeft > 0 && !activeSide) {
-                                                                    setActiveSide('opening');
-                                                                } else if (!activeSide) {
-                                                                    setActiveSide('pro');
-                                                                }
-                                                                setIsTimerRunning(true);
-                                                            } else {
-                                                                setIsTimerRunning(false);
-                                                            }
-                                                        }} 
-                                                        className={`w-14 h-14 rounded-full shadow-2xl transition-all flex items-center justify-center border-4 ${isTimerRunning ? 'bg-white border-slate-50 text-slate-800' : 'bg-white border-slate-50 shadow-[#2c3e50]/20 text-[#2c3e50]'}`}
-                                                    >
-                                                        <Icon name={isTimerRunning ? "Pause" : "Play"} className="w-6 h-6" />
-                                                    </motion.button>
-                                                    <button 
-                                                        onClick={(e) => { 
-                                                            e.stopPropagation();
-                                                            setIsTimerRunning(false); 
-                                                            setActiveSide(null);
-                                                            const half = Math.floor(timerDuration / 2);
-                                                            setProTimeLeft(half);
-                                                            setConTimeLeft(timerDuration - half);
-                                                            setOpeningTimeLeft(openingDuration);
-                                                        }} 
-                                                        className="p-2 text-slate-200 hover:text-slate-800 transition-colors"
-                                                        title="重置"
-                                                    >
-                                                        <Icon name="RotateCcw" className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                                <div className="w-px h-10 bg-gradient-to-t from-transparent via-slate-200 to-transparent" />
-                                            </div>
-
-                                            {/* 反方区域 */}
-                                            <div className="flex-1 flex flex-col items-center">
-                                                <div className="mb-4 text-center">
-                                                    <h4 className="text-lg font-serif font-bold text-[#b22222]">{conName}</h4>
-                                                </div>
-                                                <button 
-                                                    onClick={() => {
-                                                        const isOwner = p.owner === 'con';
-                                                        if (!isTimerRunning) { 
-                                                            if (openingTimeLeft > 0) {
-                                                                setActiveSide('opening');
-                                                            }
-                                                            setIsTimerRunning(true); 
-                                                        } else {
-                                                            // 运行中点击
-                                                            if (activeSide === 'opening' && isOwner) {
-                                                                // 提前结束立论，启动对方争论
-                                                                setOpeningTimeLeft(0);
-                                                                setActiveSide('pro');
-                                                                setIsTimerRunning(true);
-                                                            } else if (activeSide === 'con') {
-                                                                setActiveSide('pro');
-                                                            }
-                                                        }
-                                                    }}
-                                                    className={`w-full group relative py-6 rounded-[2.5rem] transition-all duration-1000 overflow-hidden ${
-                                                        (activeSide === 'con' || (activeSide === 'opening' && p.owner === 'con')) 
-                                                        ? 'bg-[#b22222] shadow-[0_20px_40px_-10px_rgba(178,34,34,0.4)] scale-[1.03]' 
-                                                        : 'bg-slate-50 border border-slate-100'
-                                                    }`}
-                                                >
-                                                    <div className="relative z-10 flex flex-col items-center">
-                                                        <span className={`text-xs font-bold tracking-[0.4em] mb-2 transition-colors ${
-                                                            (activeSide === 'con' || (activeSide === 'opening' && p.owner === 'con')) ? 'text-white/40' : 'text-slate-300'
-                                                        }`}>
-                                                            {openingTimeLeft > 0 && p.owner === 'con' ? '立论' : '争论'}
-                                                        </span>
-                                                        <div className={`text-6xl font-mono leading-none tracking-tighter font-black transition-all ${
-                                                            (activeSide === 'con' || (activeSide === 'opening' && p.owner === 'con')) ? 'text-white' : 'text-slate-400'
-                                                        }`}>
-                                                            {formatTime(openingTimeLeft > 0 && p.owner === 'con' ? openingTimeLeft : conTimeLeft)}
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                            {currentRound === 0 ? (
-                                <button onClick={() => setView('setup')} className="px-4 py-2 text-slate-400 font-bold hover:text-slate-900 transition-all flex items-center gap-1 text-sm">
-                                    <Icon name="ChevronLeft" className="w-4 h-4" /> 返回准备页
-                                </button>
-                            ) : (
-                                <button onClick={() => setCurrentRound(currentRound - 1)} className="px-4 py-2 text-slate-400 font-bold hover:text-slate-900 transition-all flex items-center gap-1 text-sm">
-                                    <Icon name="ChevronLeft" className="w-4 h-4" /> 上一轮
-                                </button>
-                            )}
-                            {currentRound < roundCount - 1 ? (
-                                <button onClick={() => {
-                                    setCurrentRound(currentRound + 1);
-                                }} className="px-6 py-2 bg-[#2c3e50] text-white font-bold tracking-widest hover:bg-slate-800 transition-all shadow-xl flex items-center gap-1 text-sm">
-                                    下一轮 <Icon name="ChevronRight" className="w-4 h-4" />
-                                </button>
-                            ) : (
-                                <button onClick={() => setView('summary')} className="px-8 py-2 bg-[#b22222] text-white font-bold tracking-widest hover:bg-red-700 transition-all shadow-xl text-sm">
-                                    查看结果
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-            const renderSummary = () => (
-                <div className="max-w-4xl mx-auto space-y-8 fade-in">
-                    <div className="guofeng-card overflow-hidden">
-                        {/* 1. 获胜者 */}
-                        <div className="bg-[#b22222] p-6 text-center text-white relative">
-                            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#ffd700 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                            <span className="text-[9px] font-bold text-[#ffd700] uppercase tracking-[0.3em] block mb-2">最终胜出</span>
-                            <div className="text-5xl font-black font-serif tracking-widest mb-1 text-[#ffd700] drop-shadow-lg">
-                                {results.winner === 'pro' ? proName : results.winner === 'con' ? conName : '双方持平'}
-                            </div>
-                            <div className="w-16 h-0.5 bg-[#ffd700] mx-auto mt-4"></div>
-                        </div>
-
-                        <div className="p-4 space-y-6">
-                            {/* 2. 辩题 */}
-                            <div className="text-center space-y-1">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">辩论题目</span>
-                                <h2 className="text-lg font-serif font-black text-[#2c3e50]">“ {topic} ”</h2>
-                            </div>
-
-                            {/* 数据概览 */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-3 text-center border-l-2 border-[#223e36] bg-slate-50">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase block mb-1">{proName} (正方)</span>
-                                    <div className="flex justify-around items-center">
-                                        <div><p className="text-[8px] text-slate-400">胜场</p><p className="text-xl font-black text-[#223e36]">{results.proRounds}</p></div>
-                                        <div className="w-px h-6 bg-slate-200" />
-                                        <div><p className="text-[8px] text-slate-400">总分</p><p className="text-xl font-black text-[#223e36]">{results.proTotalVotes}</p></div>
-                                    </div>
-                                </div>
-                                <div className="p-3 text-center border-r-2 border-[#b22222] bg-slate-50">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase block mb-1">{conName} (反方)</span>
-                                    <div className="flex justify-around items-center">
-                                        <div><p className="text-[8px] text-slate-400">胜场</p><p className="text-xl font-black text-[#b22222]">{results.conRounds}</p></div>
-                                        <div className="w-px h-6 bg-slate-200" />
-                                        <div><p className="text-[8px] text-slate-400">总分</p><p className="text-xl font-black text-[#b22222]">{results.conTotalVotes}</p></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 3. 各场次情况表格 */}
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2">
-                                    <Icon name="Table" className="w-4 h-4" /> 各场次情况
-                                </h3>
-                                <div className="overflow-hidden border border-slate-200">
-                                    <table className="debate-table">
-                                        <thead>
-                                            <tr>
-                                                <th>场次</th>
-                                                <th>分论点内容</th>
-                                                <th>{proName} (观众+评委)</th>
-                                                <th>{conName} (观众+评委)</th>
-                                                <th>本场结果</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {points.map((p, i) => {
-                                                const proAudience = p.proVotes;
-                                                const conAudience = totalVoters - p.proVotes;
-                                                const abstain = p.abstainCount || 0;
-                                                const activeTotal = Math.max(0, judgeCount - abstain);
-                                                const hasJudgeVoted = p.proJudgeVotes !== null && p.proJudgeVotes !== undefined;
-                                                const proJudge = hasJudgeVoted ? Math.min(activeTotal, p.proJudgeVotes) : 0;
-                                                const conJudge = hasJudgeVoted ? (activeTotal - proJudge) : 0;
-
-                                                const proScore = proAudience + proJudge * judgeWeight;
-                                                const conScore = conAudience + conJudge * judgeWeight;
-                                                const win = proScore > conScore ? 'pro' : (conScore > proScore ? 'con' : 'tie');
-                                                return (
-                                                    <tr key={i}>
-                                                        <td className="font-bold text-xs">第 {i+1} 场</td>
-                                                        <td className="text-left max-w-xs truncate text-xs">{p.text}</td>
-                                                        <td className="font-mono text-xs">
-                                                            <div className="font-bold text-[#223e36]">{proScore}</div>
-                                                            <div className="text-[9px] text-slate-400">({proAudience} + {proJudge}×{judgeWeight})</div>
-                                                        </td>
-                                                        <td className="font-mono text-xs">
-                                                            <div className="font-bold text-[#b22222]">{conScore}</div>
-                                                            <div className="text-[9px] text-slate-400">({conAudience} + {conJudge}×{judgeWeight})</div>
-                                                        </td>
-                                                        <td>
-                                                            <span className={`px-2 py-1 text-[10px] font-bold ${win === 'pro' ? 'bg-[#223e36]/10 text-[#223e36]' : win === 'con' ? 'bg-[#b22222]/10 text-[#b22222]' : 'bg-slate-100 text-slate-600'}`}>
-                                                                {win === 'pro' ? '正方胜' : win === 'con' ? '反方胜' : '平局'}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                            {confirmedFinalVote !== null && (
-                                                <tr className="bg-amber-50">
-                                                    <td className="font-bold text-xs py-2">终极投票</td>
-                                                    <td className="text-left text-xs py-2">-</td>
-                                                    <td className="font-mono text-xs font-bold text-[#223e36] py-2">
-                                                        <div>{confirmedFinalVote}</div>
-                                                        <div className="text-[9px] text-slate-400 font-normal">正方票数</div>
-                                                    </td>
-                                                    <td className="font-mono text-xs font-bold text-[#b22222] py-2">
-                                                        <div>{totalVoters - confirmedFinalVote}</div>
-                                                        <div className="text-[9px] text-slate-400 font-normal">反方票数</div>
-                                                    </td>
-                                                    <td className="py-2">
-                                                        <span className={`px-2 py-1 text-[10px] font-bold ${confirmedFinalVote > totalVoters / 2 ? 'bg-[#223e36]/10 text-[#223e36]' : 'bg-[#b22222]/10 text-[#b22222]'}`}>
-                                                            {confirmedFinalVote > totalVoters / 2 ? `${proName}胜` : `${conName}胜`}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            {results.winner === 'tie' && (
-                                <div className="bg-amber-50 border-2 border-double border-amber-200 p-8 space-y-6 fade-in">
-                                    <div className="text-center">
-                                        <span className="text-[10px] font-bold text-amber-600 uppercase tracking-[0.3em] block mb-2">终极投票 (平局决胜)</span>
-                                        <p className="text-sm text-amber-800 font-serif">请观众进行最后一轮整体投票</p>
-                                    </div>
-                                    <div className="flex justify-between items-end px-10">
-                                        <div className="text-center w-24">
-                                            <p className="text-xs font-bold text-[#223e36] mb-2">{proName}</p>
-                                            <p className="text-4xl font-black text-[#223e36]">{finalVote}</p>
-                                        </div>
-                                        <div className="flex-1 px-12 pb-4">
-                                            <div className="vote-slider-container">
-                                                <div className="vote-track">
-                                                    <div className="vote-bar-pro h-full" style={{ width: `${totalVoters > 0 ? (finalVote/totalVoters)*100 : 50}%` }} />
-                                                    <div className="vote-bar-con h-full flex-1" />
-                                                </div>
-                                                <div className="vote-handle-capsule" style={{ left: `${totalVoters > 0 ? (finalVote/totalVoters)*100 : 50}%` }}></div>
-                                                <input 
-                                                    type="range" 
-                                                    min="0" 
-                                                    max={totalVoters} 
-                                                    value={finalVote} 
-                                                    onChange={e => setFinalVote(parseInt(e.target.value))} 
-                                                    className="vote-slider-input" 
-                                                />
-                                            </div>
-                                            <div className="text-center mt-4">
-                                                <button 
-                                                    onClick={() => {
-                                                        if (finalVote === totalVoters / 2) {
-                                                            // 使用应用内状态显示提示，避免被 iframe 拦截
-                                                            alert('终极投票不得平票，请重新投票');
-                                                            return;
-                                                        }
-                                                        setConfirmedFinalVote(finalVote);
-                                                    }} 
-                                                    className={`px-6 py-2 font-bold transition-all ${confirmedFinalVote === finalVote ? 'bg-slate-300 text-slate-600' : 'bg-[#223e36] text-white hover:bg-opacity-90'}`}
-                                                >
-                                                    {confirmedFinalVote === finalVote ? '已确认' : '确认投票'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="text-center w-24">
-                                            <p className="text-xs font-bold text-[#b22222] mb-2">{conName}</p>
-                                            <p className="text-4xl font-black text-[#b22222]">{totalVoters - finalVote}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="flex justify-center gap-4 pt-6">
-                                <button onClick={() => { 
-                                    setView('debate');
-                                    setCurrentRound(roundCount - 1);
-                                }} className="px-6 py-3 border-2 border-[#2c3e50] text-[#2c3e50] font-bold hover:bg-slate-50 transition-all flex items-center gap-2">
-                                    <Icon name="ChevronLeft" className="w-4 h-4" /> 上一轮
-                                </button>
-                                <button 
-                                    disabled={results.winner === 'tie' && confirmedFinalVote === null}
-                                    onClick={() => { 
-                                        if (results.winner === 'tie' && confirmedFinalVote === null) {
-                                            alert('平局环节需要通过“终极投票”产生获胜方后方可保存。');
-                                            return;
-                                        }
-                                        saveToHistory();
-                                        setView('setup'); 
-                                        setTopic(''); 
-                                        setConfirmedFinalVote(null);
-                                        setFinalVote(Math.floor(totalVoters / 2));
-                                        setPoints(points.map(p=>({...p, text:'', proVotes: Math.floor(totalVoters/2)}))); 
-                                    }} 
-                                    className={`px-10 py-3 font-bold transition-all shadow-xl ${
-                                        (results.winner === 'tie' && confirmedFinalVote === null) 
-                                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
-                                        : 'bg-[#2c3e50] text-white hover:bg-slate-800'
-                                    }`}
-                                >
-                                    保存并结束比赛
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            return (
-                <div className="min-h-screen flex flex-col">
-                    <nav className="bg-white/90 backdrop-blur-md border-b-2 border-double border-slate-200 px-6 py-4 sticky top-0 z-40">
-                        <div className="max-w-5xl mx-auto flex justify-between items-center">
-                            <div className="flex items-center gap-4">
-                                <div className="seal-logo">辩</div>
-                                <div className="flex flex-col">
-                                    <span className="font-black text-slate-900 tracking-widest text-lg font-serif">辩论赛计票系统</span>
-                                </div>
-                            </div>
-                            <div className="flex gap-1">
-                                <button onClick={clearAllData} className="p-2 text-slate-400 hover:text-red-600 transition-all" title="清空所有数据"><Icon name="Trash2" /></button>
-                                <button onClick={() => setShowHistory(true)} className="p-2 text-slate-400 hover:text-[#223e36] transition-all" title="历史记录"><Icon name="History" /></button>
-                                <button onClick={exportExcel} className="p-2 text-slate-400 hover:text-[#223e36] transition-all" title="导出备份"><Icon name="Download" /></button>
-                                <button onClick={() => fileInputRef.current.click()} className="p-2 text-slate-400 hover:text-[#223e36] transition-all" title="导入备份"><Icon name="Upload" /></button>
-                                <input type="file" ref={fileInputRef} onChange={handleImport} accept=".xlsx, .xls" className="hidden" />
-                            </div>
-                        </div>
-                    </nav>
-
-                    <main className="flex-1 max-w-5xl w-full mx-auto p-2 md:p-4">
-                        {view === 'setup' && renderSetup()}
-                        {view === 'debate' && renderDebate()}
-                        {view === 'summary' && renderSummary()}
-                        <ReportModal 
-                            show={showReport} 
-                            onClose={() => { setShowReport(false); setViewingHistory(null); }} 
-                            data={viewingHistory || (showReport ? { topic, proName, conName, results, points, totalVoters, judgeCount, judgeWeight, confirmedFinalVote, winner: results.winner, timestamp: Date.now() } : null)} 
-                        />
-                    </main>
-
-                    {showHistory && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                            <div onClick={() => setShowHistory(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-                            <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh] fade-in">
-                                <div className="p-5 border-b flex justify-between items-center">
-                                    <h2 className="font-bold">历史记录</h2>
-                                    <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-100 rounded-full"><Icon name="X" /></button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                    {sessions.length === 0 ? <p className="text-center text-slate-400 py-10">暂无记录</p> : sessions.map(s => (
-                                        <div key={s.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center group">
-                                            <div className="cursor-pointer flex-1" onClick={() => {
-                                                setViewingHistory(s);
-                                                setShowReport(true);
-                                                setShowHistory(false);
-                                            }}>
-                                                <h4 className="font-bold text-slate-800">{s.topic}</h4>
-                                                <p className="text-[10px] text-slate-400 uppercase">{new Date(s.timestamp).toLocaleString()}</p>
-                                            </div>
-                                            <button onClick={() => {
-                                                setConfirmModal({
-                                                    show: true,
-                                                    title: '删除记录',
-                                                    message: `确定要删除“${s.topic}”这条历史记录吗？`,
-                                                    onConfirm: () => {
-                                                        setSessions(sessions.filter(x => x.id !== s.id));
-                                                        setConfirmModal({ show: false });
-                                                    }
-                                                });
-                                            }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"><Icon name="Trash2" /></button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {confirmModal.show && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                            <div onClick={() => setConfirmModal({ show: false })} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-                            <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden fade-in">
-                                <div className="p-6 text-center space-y-4">
-                                    <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto">
-                                        <Icon name="AlertTriangle" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h3 className="font-bold text-lg text-slate-900">{confirmModal.title}</h3>
-                                        <p className="text-sm text-slate-500 leading-relaxed">{confirmModal.message}</p>
-                                    </div>
-                                    <div className="flex gap-3 pt-2">
-                                        <button onClick={() => setConfirmModal({ show: false })} className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all">取消</button>
-                                        <button onClick={confirmModal.onConfirm} className="flex-1 px-4 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200">确定</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
+    <script>
+const {
+  useState,
+  useMemo,
+  useEffect,
+  useRef
+} = React;
+const _Motion = window.Motion || window.FramerMotion;
+const motion = _Motion?.motion || (() => {
+  const c = t => ({
+    children,
+    whileHover,
+    whileTap,
+    layoutId,
+    layout,
+    initial,
+    animate,
+    exit,
+    ...p
+  }) => React.createElement(t, p, children);
+  return {
+    div: c('div'),
+    button: c('button'),
+    span: c('span'),
+    section: c('section'),
+    p: c('p'),
+    h1: c('h1'),
+    h2: c('h2'),
+    h3: c('h3'),
+    h4: c('h4')
+  };
+})();
+const AnimatePresence = _Motion?.AnimatePresence || (({
+  children
+}) => React.createElement(React.Fragment, null, children));
+const Icon = ({
+  name,
+  className = "w-4 h-4"
+}) => {
+  const iconRef = useRef(null);
+  useEffect(() => {
+    if (window.lucide && iconRef.current) {
+      try {
+        const kebabName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+        iconRef.current.innerHTML = `<i data-lucide="${kebabName}"></i>`;
+        window.lucide.createIcons({
+          attrs: {
+            class: className
+          },
+          nameAttr: 'data-lucide',
+          root: iconRef.current
+        });
+      } catch (e) {
+        console.error('Lucide error:', e);
+      }
+    }
+  }, [name, className]);
+  return React.createElement("span", {
+    ref: iconRef,
+    className: "inline-flex items-center justify-center"
+  });
+};
+const STORAGE_KEY = 'debate_pro_v5';
+const SESSIONS_KEY = 'debate_sessions_v5';
+const ReportModal = ({
+  show,
+  onClose,
+  data
+}) => {
+  const reportRef = React.useRef(null);
+  const [exporting, setExporting] = React.useState(false);
+  if (!show || !data) return null;
+  const exportAsImage = async () => {
+    if (!reportRef.current) return;
+    setExporting(true);
+    try {
+      const canvas = await window.html2canvas(reportRef.current, {
+        scale: 3,
+        backgroundColor: '#fdfcf7',
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        onclone: clonedDoc => {
+          const el = clonedDoc.querySelector('[data-report-container]');
+          if (el) {
+            el.style.height = 'auto';
+            el.style.overflow = 'visible';
+          }
         }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+      });
+      const link = document.createElement('a');
+      link.download = `辩论赛战报-${data.topic}-${new Date().getTime()}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('导出预览图失败，建议直接通过浏览器截图保存。');
+    } finally {
+      setExporting(false);
+    }
+  };
+  return React.createElement("div", {
+    className: "fixed inset-0 z-50 flex items-center justify-center p-4"
+  }, React.createElement("div", {
+    onClick: onClose,
+    className: "absolute inset-0 bg-slate-900/90 backdrop-blur-md"
+  }), React.createElement("div", {
+    className: "relative w-full max-w-lg bg-[#fdfcf7] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[95vh] fade-in border-[12px] border-double border-[#c5a368]/30"
+  }, React.createElement("div", {
+    className: "absolute inset-0 pointer-events-none border border-[#c5a368]/10 m-1"
+  }), React.createElement("div", {
+    className: "overflow-y-auto relative z-10 flex-1 scrollbar-hide"
+  }, React.createElement("div", {
+    ref: reportRef,
+    "data-report-container": true,
+    className: "p-8 space-y-6 bg-[#fdfcf7] min-h-max"
+  }, React.createElement("div", {
+    className: "text-center space-y-3"
+  }, React.createElement("div", {
+    className: "w-12 h-12 bg-[#b22222] text-white flex items-center justify-center mx-auto font-serif font-black text-2xl shadow-lg border-2 border-[#fff]"
+  }, "\u6377"), React.createElement("h1", {
+    className: "text-3xl font-serif font-black text-[#1a1a1a] tracking-[0.2em] mt-2 border-b-2 border-[#c5a368]/20 pb-4"
+  }, "\u8FA9\u8BBA\u8D5B\u6218\u62A5")), React.createElement("div", {
+    className: "text-center py-2"
+  }, React.createElement("span", {
+    className: "text-[10px] font-bold text-[#c5a368] uppercase tracking-[0.3em] block mb-2"
+  }, "\u8FA9\u9898\u56DE\u987E"), React.createElement("h2", {
+    className: "text-xl font-serif font-bold text-slate-800 leading-relaxed px-4"
+  }, "\u201C ", data.topic, " \u201D")), React.createElement("div", {
+    className: "grid grid-cols-2 gap-px bg-[#c5a368]/20 border border-[#c5a368]/20 rounded-sm overflow-hidden"
+  }, React.createElement("div", {
+    className: `relative bg-white p-5 text-center flex flex-col items-center justify-center min-h-[120px] ${data.results.winner === 'pro' ? 'bg-slate-50/30' : ''}`
+  }, data.results.winner === 'pro' && React.createElement("div", {
+    className: "absolute top-1 right-1 px-1.5 py-0.5 bg-[#223e36] text-white text-[8px] font-black rounded-sm z-20"
+  }, "\u83B7\u80DC\u65B9"), React.createElement("span", {
+    className: "text-[10px] font-bold text-[#223e36] opacity-80 uppercase block mb-1"
+  }, "\u6B63\u65B9 \xB7 ", data.proName), React.createElement("div", {
+    className: "text-4xl font-black text-[#223e36] font-mono leading-none my-1"
+  }, data.results ? data.results.proTotalVotes : 0), React.createElement("p", {
+    className: "text-[10px] text-slate-400 font-medium"
+  }, "\u603B\u79EF\u5206\u7D2F\u8BA1")), React.createElement("div", {
+    className: `relative bg-white p-5 text-center flex flex-col items-center justify-center min-h-[120px] ${data.results.winner === 'con' ? 'bg-slate-50/30' : ''}`
+  }, data.results.winner === 'con' && React.createElement("div", {
+    className: "absolute top-1 right-1 px-1.5 py-0.5 bg-[#b22222] text-white text-[8px] font-black rounded-sm z-20"
+  }, "\u83B7\u80DC\u65B9"), React.createElement("span", {
+    className: "text-[10px] font-bold text-[#b22222] opacity-80 uppercase block mb-1"
+  }, "\u53CD\u65B9 \xB7 ", data.conName), React.createElement("div", {
+    className: "text-4xl font-black text-[#b22222] font-mono leading-none my-1"
+  }, data.results ? data.results.conTotalVotes : 0), React.createElement("p", {
+    className: "text-[10px] text-slate-400 font-medium"
+  }, "\u603B\u79EF\u5206\u7D2F\u8BA1"))), React.createElement("div", {
+    className: "space-y-3"
+  }, React.createElement("div", {
+    className: "flex items-center justify-between border-b border-slate-200 pb-1"
+  }, React.createElement("span", {
+    className: "text-[10px] font-black text-slate-400 uppercase tracking-widest"
+  }, "\u8BE6\u7EC6\u6218\u51B5"), React.createElement("span", {
+    className: "text-[10px] font-medium text-slate-300"
+  }, "\u73AF\u8282\u660E\u7EC6")), React.createElement("table", {
+    className: "w-full text-xs border-collapse font-serif text-slate-800 table-fixed"
+  }, React.createElement("thead", null, React.createElement("tr", {
+    className: "text-slate-400"
+  }, React.createElement("th", {
+    className: "py-2 text-left font-normal w-[45%]"
+  }, "\u5206\u8BBA\u70B9"), React.createElement("th", {
+    className: "py-2 text-right font-normal w-[18%] px-1"
+  }, "\u6B63\u65B9"), React.createElement("th", {
+    className: "py-2 text-right font-normal w-[18%] px-1"
+  }, "\u53CD\u65B9"), React.createElement("th", {
+    className: "py-2 text-center font-normal w-[19%]"
+  }, "\u80DC\u8D1F"))), React.createElement("tbody", {
+    className: "divide-y divide-slate-100"
+  }, data.points && data.points.map((p, i) => {
+    const proAudience = p.proVotes;
+    const conAudience = data.totalVoters - p.proVotes;
+    const abstain = p.abstainCount || 0;
+    const activeTotal = Math.max(0, data.judgeCount - abstain);
+    const hasJudgeVoted = p.proJudgeVotes !== null && p.proJudgeVotes !== undefined;
+    const proJudge = hasJudgeVoted ? Math.min(activeTotal, p.proJudgeVotes) : 0;
+    const conJudge = hasJudgeVoted ? activeTotal - proJudge : 0;
+    const proScore = proAudience + proJudge * data.judgeWeight;
+    const conScore = conAudience + conJudge * data.judgeWeight;
+    const win = proScore > conScore ? '正' : conScore > proScore ? '反' : '平';
+    return React.createElement("tr", {
+      key: i,
+      className: "hover:bg-slate-50/50 transition-colors"
+    }, React.createElement("td", {
+      className: "py-3 pr-2 align-top"
+    }, React.createElement("div", {
+      className: "text-[8px] text-slate-400 font-sans mb-0.5"
+    }, "\u7B2C", i + 1, "\u8F6E\xB7", p.owner === 'pro' ? '正' : '反', "\u65B9\u7ACB\u8BBA"), React.createElement("div", {
+      className: "text-xs text-slate-700 font-bold leading-tight break-words"
+    }, p.text)), React.createElement("td", {
+      className: "py-3 text-right font-mono font-bold text-[#223e36] whitespace-nowrap px-1 align-top"
+    }, proScore, React.createElement("div", {
+      className: "text-[7px] text-slate-300 font-normal"
+    }, "(", proAudience, "+", proJudge, "p)")), React.createElement("td", {
+      className: "py-3 text-right font-mono font-bold text-[#b22222] whitespace-nowrap px-1 align-top"
+    }, conScore, React.createElement("div", {
+      className: "text-[7px] text-slate-300 font-normal"
+    }, "(", conAudience, "+", conJudge, "p)")), React.createElement("td", {
+      className: "py-3 text-center align-top"
+    }, React.createElement("span", {
+      className: `inline-flex items-center justify-center w-5 h-5 border border-current rounded-full text-[10px] font-bold mt-1 ${win === '正' ? 'bg-[#223e36] border-[#223e36] text-white' : win === '反' ? 'bg-[#b22222] border-[#b22222] text-white' : 'bg-transparent text-slate-400 border-slate-200'}`
+    }, win)));
+  }), data.confirmedFinalVote !== null && React.createElement("tr", {
+    className: "bg-amber-50/30"
+  }, React.createElement("td", {
+    className: "py-3 pr-2 align-top"
+  }, React.createElement("div", {
+    className: "text-[8px] text-amber-600 font-sans mb-0.5 font-bold uppercase"
+  }, "\u7EC8\u6781\u73AF\u8282"), React.createElement("div", {
+    className: "text-xs text-amber-800 font-bold leading-tight"
+  }, "\u5E73\u5C40\u51B3\u80DC\xB7\u6295\u7968")), React.createElement("td", {
+    className: "py-3 text-right font-mono font-bold text-[#223e36] whitespace-nowrap px-1 align-top"
+  }, data.confirmedFinalVote, React.createElement("div", {
+    className: "text-[7px] text-amber-300/80 font-normal"
+  }, "(\u7968\u6570)")), React.createElement("td", {
+    className: "py-3 text-right font-mono font-bold text-[#b22222] whitespace-nowrap px-1 align-top"
+  }, data.totalVoters - data.confirmedFinalVote, React.createElement("div", {
+    className: "text-[7px] text-amber-300/80 font-normal"
+  }, "(\u7968\u6570)")), React.createElement("td", {
+    className: "py-3 text-center align-top"
+  }, React.createElement("span", {
+    className: `inline-flex items-center justify-center w-5 h-5 border border-current rounded-full text-[10px] font-bold mt-1 ${data.confirmedFinalVote > data.totalVoters / 2 ? 'bg-[#223e36] border-[#223e36] text-white' : 'bg-[#b22222] border-[#b22222] text-white'}`
+  }, data.confirmedFinalVote > data.totalVoters / 2 ? '正' : '反')))))), React.createElement("div", {
+    className: "pt-8 border-t border-slate-100 text-center pb-4"
+  }, React.createElement("p", {
+    className: "text-[10px] text-slate-400 font-mono tracking-widest uppercase opacity-60"
+  }, "DATE: ", new Date(data.timestamp || Date.now()).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }))))), React.createElement("div", {
+    className: "p-6 bg-white border-t flex flex-col gap-3 mt-auto"
+  }, React.createElement("button", {
+    onClick: exportAsImage,
+    disabled: exporting,
+    className: "w-full max-w-xs mx-auto py-3 bg-[#c5a368] text-white font-bold tracking-widest hover:bg-[#b59358] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+  }, React.createElement(Icon, {
+    name: exporting ? "Loader2" : "Image",
+    className: `w-4 h-4 ${exporting ? 'animate-spin' : ''}`
+  }), exporting ? "导出中..." : "导出截图 (PNG)"), React.createElement("button", {
+    onClick: onClose,
+    className: "w-full max-w-xs mx-auto py-3 border-2 border-slate-200 text-slate-400 font-bold tracking-widest hover:bg-slate-50 transition-all active:scale-95 text-xs text-center"
+  }, "\u5173\u95ED"))));
+};
+function App() {
+  const getSaved = (key, fallback) => {
+    const s = localStorage.getItem(key);
+    if (s) try {
+      return JSON.parse(s);
+    } catch (e) {}
+    return fallback;
+  };
+  const initialData = getSaved(STORAGE_KEY, {});
+  const [view, setView] = useState(initialData.view || 'setup');
+  const [currentRound, setCurrentRound] = useState(initialData.currentRound || 0);
+  const [topic, setTopic] = useState(initialData.topic || '');
+  const [proName, setProName] = useState(initialData.proName || '正方');
+  const [conName, setConName] = useState(initialData.conName || '反方');
+  const [totalVoters, setTotalVoters] = useState(initialData.totalVoters || 30);
+  const [roundCount, setRoundCount] = useState(initialData.roundCount || 4);
+  const [timerDuration, setTimerDuration] = useState(initialData.timerDuration || 240);
+  const [openingDuration, setOpeningDuration] = useState(initialData.openingDuration || 60);
+  const [proTimeLeft, setProTimeLeft] = useState(initialData.proTimeLeft !== undefined ? initialData.proTimeLeft : 120);
+  const [conTimeLeft, setConTimeLeft] = useState(initialData.conTimeLeft !== undefined ? initialData.conTimeLeft : 120);
+  const [openingTimeLeft, setOpeningTimeLeft] = useState(initialData.openingTimeLeft !== undefined ? initialData.openingTimeLeft : 60);
+  const [activeSide, setActiveSide] = useState(initialData.activeSide || null);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [judgeCount, setJudgeCount] = useState(initialData.judgeCount || 1);
+  const [judgeWeight, setJudgeWeight] = useState(initialData.judgeWeight || 5);
+  const [points, setPoints] = useState(initialData.points?.map(p => ({
+    ...p,
+    abstainCount: p.abstainCount !== undefined ? p.abstainCount : 0
+  })) || [{
+    text: '',
+    owner: 'pro',
+    proVotes: 15,
+    proJudgeVotes: null,
+    abstainCount: 0
+  }, {
+    text: '',
+    owner: 'con',
+    proVotes: 15,
+    proJudgeVotes: null,
+    abstainCount: 0
+  }, {
+    text: '',
+    owner: 'pro',
+    proVotes: 15,
+    proJudgeVotes: null,
+    abstainCount: 0
+  }, {
+    text: '',
+    owner: 'con',
+    proVotes: 15,
+    proJudgeVotes: null,
+    abstainCount: 0
+  }]);
+  const [finalVote, setFinalVote] = useState(initialData.finalVote || 15);
+  const [confirmedFinalVote, setConfirmedFinalVote] = useState(null);
+  const [sessions, setSessions] = useState(() => getSaved(SESSIONS_KEY, []));
+  const [showHistory, setShowHistory] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [viewingHistory, setViewingHistory] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
+  const fileInputRef = useRef(null);
+  const setupFileInputRef = useRef(null);
+  const formatTime = s => {
+    const m = Math.floor(s / 60);
+    const sc = s % 60;
+    return `${m}:${sc < 10 ? '0' : ''}${sc}`;
+  };
+  const playAlertSound = React.useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime + 1.8);
+      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 2);
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 2);
+    } catch (e) {
+      console.error("Audio playback failed", e);
+    }
+  }, []);
+  useEffect(() => {
+    const saved = localStorage.getItem(SESSIONS_KEY);
+    if (saved) try {
+      setSessions(JSON.parse(saved));
+    } catch (e) {}
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      topic,
+      proName,
+      conName,
+      totalVoters,
+      points,
+      view,
+      currentRound,
+      finalVote,
+      roundCount,
+      timerDuration,
+      judgeCount,
+      judgeWeight,
+      openingDuration,
+      proTimeLeft,
+      conTimeLeft,
+      openingTimeLeft,
+      activeSide
+    }));
+  }, [topic, proName, conName, totalVoters, points, view, currentRound, finalVote, roundCount, timerDuration, judgeCount, judgeWeight, openingDuration, proTimeLeft, conTimeLeft, openingTimeLeft, activeSide]);
+  useEffect(() => {
+    const half = Math.floor(totalVoters / 2);
+    const clamped = points.map(p => ({
+      ...p,
+      proVotes: view === 'setup' ? half : Math.max(0, Math.min(totalVoters, p.proVotes))
+    }));
+    if (JSON.stringify(clamped) !== JSON.stringify(points)) {
+      setPoints(clamped);
+    }
+    if (view === 'setup') setFinalVote(half);else if (finalVote > totalVoters) setFinalVote(totalVoters);
+  }, [totalVoters]);
+  const updateRoundCount = val => {
+    const count = Math.max(1, parseInt(val) || 1);
+    setRoundCount(count);
+    const half = Math.floor(totalVoters / 2);
+    const newPoints = Array.from({
+      length: count
+    }, (_, i) => ({
+      text: points[i]?.text || '',
+      owner: i % 2 === 0 ? 'pro' : 'con',
+      proVotes: points[i]?.proVotes || half,
+      proJudgeVotes: points[i]?.proJudgeVotes || null,
+      abstainCount: points[i]?.abstainCount || 0
+    }));
+    setPoints(newPoints);
+  };
+  useEffect(() => {
+    let interval;
+    if (isTimerRunning && (timerDuration > 0 || openingDuration > 0)) {
+      interval = setInterval(() => {
+        if (activeSide === 'opening') {
+          setOpeningTimeLeft(prev => Math.max(0, prev - 1));
+        } else if (activeSide === 'pro') {
+          setProTimeLeft(prev => Math.max(0, prev - 1));
+        } else if (activeSide === 'con') {
+          setConTimeLeft(prev => Math.max(0, prev - 1));
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, activeSide, timerDuration, openingDuration]);
+  useEffect(() => {
+    if (!isTimerRunning) return;
+    if (activeSide === 'opening' && openingTimeLeft === 0) {
+      setIsTimerRunning(false);
+      setActiveSide(points[currentRound]?.owner === 'pro' ? 'con' : 'pro');
+      playAlertSound();
+    } else if (activeSide === 'pro' && proTimeLeft === 0) {
+      playAlertSound();
+      if (conTimeLeft > 0) {
+        setIsTimerRunning(false);
+        setActiveSide('con');
+      } else {
+        setIsTimerRunning(false);
+        setActiveSide(null);
+      }
+    } else if (activeSide === 'con' && conTimeLeft === 0) {
+      playAlertSound();
+      if (proTimeLeft > 0) {
+        setIsTimerRunning(false);
+        setActiveSide('pro');
+      } else {
+        setIsTimerRunning(false);
+        setActiveSide(null);
+      }
+    }
+    if (proTimeLeft === 0 && conTimeLeft === 0 && isTimerRunning) {
+      setIsTimerRunning(false);
+      setActiveSide(null);
+    }
+  }, [openingTimeLeft, proTimeLeft, conTimeLeft, activeSide, isTimerRunning, points, currentRound, playAlertSound]);
+  useEffect(() => {
+    const half = Math.floor(timerDuration / 2);
+    setProTimeLeft(half);
+    setConTimeLeft(timerDuration - half);
+    setOpeningTimeLeft(openingDuration);
+    setIsTimerRunning(false);
+    setActiveSide(null);
+  }, [currentRound, timerDuration, openingDuration, view]);
+  useEffect(() => {
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+  }, [sessions]);
+  const results = useMemo(() => {
+    let proRounds = 0,
+      conRounds = 0;
+    let proAudienceTotal = 0,
+      conAudienceTotal = 0;
+    let proJudgeTotal = 0,
+      conJudgeTotal = 0;
+    let proTotalVotes = 0,
+      conTotalVotes = 0;
+    points.forEach(p => {
+      const proAudience = p.proVotes;
+      const conAudience = totalVoters - p.proVotes;
+      const abstain = p.abstainCount || 0;
+      const activeJudgeTotal = Math.max(0, judgeCount - abstain);
+      const hasJudgeVoted = p.proJudgeVotes !== null && p.proJudgeVotes !== undefined;
+      const proJudge = hasJudgeVoted ? Math.min(activeJudgeTotal, p.proJudgeVotes) : 0;
+      const conJudge = hasJudgeVoted ? activeJudgeTotal - proJudge : 0;
+      const proScore = proAudience + proJudge * judgeWeight;
+      const conScore = conAudience + conJudge * judgeWeight;
+      if (proScore > conScore) proRounds++;else if (conScore > proScore) conRounds++;
+      proAudienceTotal += proAudience;
+      conAudienceTotal += conAudience;
+      proJudgeTotal += proJudge;
+      conJudgeTotal += conJudge;
+      proTotalVotes += proScore;
+      conTotalVotes += conScore;
+    });
+    let winner = 'tie';
+    if (proRounds > conRounds) winner = 'pro';else if (conRounds > proRounds) winner = 'con';else {
+      if (proTotalVotes > conTotalVotes) winner = 'pro';else if (conTotalVotes > proTotalVotes) winner = 'con';else {
+        if (confirmedFinalVote !== null) {
+          const half = totalVoters / 2;
+          if (confirmedFinalVote > half) winner = 'pro';else if (confirmedFinalVote < half) winner = 'con';else winner = 'tie';
+        } else {
+          winner = 'tie';
+        }
+      }
+    }
+    if (confirmedFinalVote === null && proRounds === conRounds && proTotalVotes === conTotalVotes) {
+      winner = 'tie';
+    }
+    return {
+      proRounds,
+      conRounds,
+      proAudienceTotal,
+      conAudienceTotal,
+      proJudgeTotal,
+      conJudgeTotal,
+      proTotalVotes,
+      conTotalVotes,
+      winner
+    };
+  }, [points, totalVoters, judgeCount, judgeWeight, finalVote, confirmedFinalVote]);
+  const setProVotesSafe = (idx, val) => {
+    const n = [...points];
+    n[idx].proVotes = Math.max(0, Math.min(totalVoters, val));
+    setPoints(n);
+  };
+  const saveToHistory = () => {
+    if (!topic) return;
+    const newSession = {
+      id: Date.now().toString(),
+      topic,
+      proName,
+      conName,
+      totalVoters,
+      points,
+      finalVote,
+      confirmedFinalVote,
+      roundCount,
+      timerDuration,
+      openingDuration,
+      judgeCount,
+      judgeWeight,
+      results,
+      winner: results.winner,
+      timestamp: Date.now()
+    };
+    setSessions(prev => [newSession, ...prev]);
+  };
+  const loadSession = s => {
+    setTopic(s.topic);
+    setProName(s.proName);
+    setConName(s.conName);
+    setTotalVoters(s.totalVoters);
+    setPoints(s.points);
+    setFinalVote(s.finalVote !== undefined ? s.finalVote : Math.floor(s.totalVoters / 2));
+    setConfirmedFinalVote(s.confirmedFinalVote !== undefined ? s.confirmedFinalVote : null);
+    setRoundCount(s.roundCount || 4);
+    setTimerDuration(s.timerDuration || 180);
+    setOpeningDuration(s.openingDuration || 60);
+    setJudgeCount(s.judgeCount || 0);
+    setJudgeWeight(s.judgeWeight || 10);
+    setView('summary');
+    setShowHistory(false);
+    window.scrollTo(0, 0);
+  };
+  const exportSetupConfig = () => {
+    const config = {
+      topic,
+      proName,
+      conName,
+      totalVoters,
+      roundCount,
+      timerDuration,
+      openingDuration,
+      judgeCount,
+      judgeWeight,
+      points: points.map(p => ({
+        text: p.text,
+        owner: p.owner
+      }))
+    };
+    const blob = new Blob([JSON.stringify(config, null, 2)], {
+      type: 'application/json'
+    });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `辩论设置-${topic || '未命名'}.json`;
+    link.click();
+  };
+  const importSetupConfig = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const config = JSON.parse(evt.target.result);
+        if (config.topic !== undefined) setTopic(config.topic);
+        if (config.proName) setProName(config.proName);
+        if (config.conName) setConName(config.conName);
+        if (config.totalVoters !== undefined) setTotalVoters(config.totalVoters);
+        if (config.roundCount !== undefined) updateRoundCount(config.roundCount);
+        if (config.timerDuration !== undefined) setTimerDuration(config.timerDuration);
+        if (config.openingDuration !== undefined) setOpeningDuration(config.openingDuration);
+        if (config.judgeCount !== undefined) setJudgeCount(config.judgeCount);
+        if (config.judgeWeight !== undefined) setJudgeWeight(config.judgeWeight);
+        if (config.points && Array.isArray(config.points)) {
+          setPoints(config.points.map(p => ({
+            text: p.text || '',
+            owner: p.owner || 'pro',
+            proVotes: Math.floor((config.totalVoters || totalVoters) / 2),
+            proJudgeVotes: null,
+            abstainCount: 0
+          })));
+        }
+        alert('设置导入成功');
+      } catch (err) {
+        console.error(err);
+        alert('导入失败，请检查配置文件是否正确');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+  const clearAllData = () => {
+    setConfirmModal({
+      show: true,
+      title: '清空所有数据',
+      message: '此操作将永久删除所有历史记录并重置当前比赛，确定继续吗？',
+      onConfirm: () => {
+        localStorage.clear();
+        setSessions([]);
+        setTopic('');
+        setProName('正方');
+        setConName('反方');
+        setTotalVoters(30);
+        setRoundCount(4);
+        setTimerDuration(240);
+        setJudgeCount(1);
+        setJudgeWeight(5);
+        setPoints([{
+          text: '',
+          owner: 'pro',
+          proVotes: 15,
+          proJudgeVotes: null,
+          abstainCount: 0
+        }, {
+          text: '',
+          owner: 'con',
+          proVotes: 15,
+          proJudgeVotes: null,
+          abstainCount: 0
+        }, {
+          text: '',
+          owner: 'pro',
+          proVotes: 15,
+          proJudgeVotes: null,
+          abstainCount: 0
+        }, {
+          text: '',
+          owner: 'con',
+          proVotes: 15,
+          proJudgeVotes: null,
+          abstainCount: 0
+        }]);
+        setFinalVote(15);
+        setConfirmedFinalVote(null);
+        setView('setup');
+        setCurrentRound(0);
+        setConfirmModal({
+          show: false
+        });
+      }
+    });
+  };
+  const exportExcel = () => {
+    const now = new Date();
+    const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + "_" + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    const detailData = points.map((p, i) => {
+      const abstain = p.abstainCount || 0;
+      const activeTotal = Math.max(0, judgeCount - abstain);
+      const proJ = p.proJudgeVotes !== null ? Math.min(activeTotal, p.proJudgeVotes) : 0;
+      const conJ = p.proJudgeVotes !== null ? activeTotal - proJ : 0;
+      return {
+        '环节': `第${i + 1}场 (${p.owner === 'pro' ? '正方' : '反方'}分论点)`,
+        '论点内容': p.text,
+        '正方观众票': p.proVotes,
+        '反方观众票': totalVoters - p.proVotes,
+        '弃权评委票': abstain,
+        '正方评委票': proJ,
+        '反方评委票': conJ,
+        '胜方': p.proVotes + proJ * judgeWeight > totalVoters - p.proVotes + conJ * judgeWeight ? '正方' : p.proVotes + proJ * judgeWeight < totalVoters - p.proVotes + conJ * judgeWeight ? '反方' : '平局'
+      };
+    });
+    const summaryData = [{
+      '辩题': topic,
+      '正方选手': proName,
+      '反方选手': conName,
+      '观众总人数': totalVoters,
+      '轮数': roundCount,
+      '评委人数': judgeCount,
+      '评委权重': judgeWeight,
+      '正方胜场': results.proRounds,
+      '反方胜场': results.conRounds,
+      '正方总积分': results.proTotalVotes,
+      '反方总积分': results.conTotalVotes,
+      '最终结果': results.winner === 'pro' ? '正方胜' : results.winner === 'con' ? '反方胜' : '平局',
+      '终极投票(正方)': finalVote,
+      '终极投票(反方)': totalVoters - finalVote
+    }];
+    const historyData = sessions.map(s => {
+      const r = s.results || {
+        proRounds: 0,
+        conRounds: 0,
+        proTotalVotes: 0,
+        conTotalVotes: 0,
+        winner: s.winner
+      };
+      return {
+        'ID': s.id,
+        '时间': new Date(s.timestamp).toLocaleString(),
+        '辩题': s.topic,
+        '正方': s.proName,
+        '反方': s.conName,
+        '总人数': s.totalVoters,
+        '轮数': s.roundCount || 4,
+        '评委数': s.judgeCount || 0,
+        '评委权重': s.judgeWeight || 10,
+        '正方胜场': r.proRounds,
+        '反方胜场': r.conRounds,
+        '正方总积分': r.proTotalVotes,
+        '反方总积分': r.conTotalVotes,
+        '最终结果': r.winner === 'pro' ? '正方胜' : r.winner === 'con' ? '反方胜' : '平局',
+        '完整数据JSON': JSON.stringify(s)
+      };
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData), '辩论详情');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), '比赛总结');
+    if (historyData.length > 0) {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(historyData), '历史记录');
+    }
+    XLSX.writeFile(wb, `辩论赛备份_${timestamp}.xlsx`);
+  };
+  const handleImport = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, {
+          type: 'array'
+        });
+        const historySheet = wb.Sheets['历史记录'];
+        if (historySheet) {
+          const historyJson = XLSX.utils.sheet_to_json(historySheet);
+          const importedSessions = historyJson.map(h => {
+            try {
+              return JSON.parse(h['完整数据JSON']);
+            } catch (e) {
+              return null;
+            }
+          }).filter(s => s !== null);
+          if (importedSessions.length > 0) {
+            setSessions(importedSessions);
+          }
+        }
+        const summary = XLSX.utils.sheet_to_json(wb.Sheets['比赛总结'])[0];
+        if (summary) {
+          setTopic(summary.辩题 || '');
+          setProName(summary.正方选手 || '正方');
+          setConName(summary.反方选手 || '反方');
+          setTotalVoters(summary.观众总人数 || summary.总人数 || 100);
+          setRoundCount(summary.轮数 || 4);
+          setTimerDuration(summary.每轮时长 || 180);
+          setJudgeCount(summary.评委人数 || 0);
+          setJudgeWeight(summary.评委权重 || 10);
+          setFinalVote(summary['终极投票(正方)'] || 50);
+        }
+        const detail = XLSX.utils.sheet_to_json(wb.Sheets['辩论详情']);
+        if (detail && detail.length > 0) {
+          setPoints(detail.map((d, i) => ({
+            text: d.论点内容 || '',
+            owner: i % 2 === 0 ? 'pro' : 'con',
+            proVotes: Math.max(0, Math.min(summary?.观众总人数 || summary?.总人数 || 100, d.正方观众票 || d.正方得票 || 0)),
+            proJudgeVotes: d.正方评委票 !== undefined ? d.正方评委票 : null,
+            abstainCount: d.弃权评委票 || 0
+          })));
+        }
+        alert('数据已完全还原');
+      } catch (e) {
+        console.error(e);
+        alert('导入失败，请检查文件格式');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  const renderSetup = () => React.createElement("div", {
+    className: "max-w-4xl mx-auto space-y-2 fade-in"
+  }, React.createElement("div", {
+    className: "guofeng-card p-4"
+  }, React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-3 gap-2 pb-2 border-b border-slate-100"
+  }, React.createElement("div", {
+    className: "md:col-span-2 space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+  }, "\u8FA9\u8BBA\u9898\u76EE"), React.createElement("input", {
+    value: topic,
+    onChange: e => setTopic(e.target.value),
+    placeholder: "\u8BF7\u8F93\u5165\u672C\u6B21\u8FA9\u8BBA\u7684\u4E3B\u9898...",
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md"
+  })), React.createElement("div", {
+    className: "space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+  }, "\u89C2\u4F17\u4EBA\u6570 (\u603B\u6295\u7968\u6570)"), React.createElement("input", {
+    type: "number",
+    value: totalVoters,
+    onChange: e => setTotalVoters(parseInt(e.target.value) || 0),
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-slate-900 outline-none transition-all font-mono text-md"
+  }))), React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-5 gap-2 pb-2 border-b border-slate-100"
+  }, React.createElement("div", {
+    className: "space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+  }, "\u8FA9\u8BBA\u8F6E\u6570"), React.createElement("input", {
+    type: "number",
+    min: "1",
+    value: roundCount,
+    onChange: e => updateRoundCount(e.target.value),
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md"
+  })), React.createElement("div", {
+    className: "space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+  }, "\u7ACB\u8BBA\u65F6\u957F (\u79D2)"), React.createElement("input", {
+    type: "number",
+    min: "0",
+    value: openingDuration,
+    onChange: e => setOpeningDuration(Math.max(0, parseInt(e.target.value) || 0)),
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md"
+  })), React.createElement("div", {
+    className: "space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+  }, "\u4E89\u8BBA\u65F6\u957F (\u79D2)"), React.createElement("input", {
+    type: "number",
+    min: "0",
+    value: timerDuration,
+    onChange: e => setTimerDuration(Math.max(0, parseInt(e.target.value) || 0)),
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md"
+  })), React.createElement("div", {
+    className: "space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+  }, "\u8BC4\u59D4\u4EBA\u6570"), React.createElement("input", {
+    type: "number",
+    min: "0",
+    value: judgeCount,
+    onChange: e => setJudgeCount(Math.max(0, parseInt(e.target.value) || 0)),
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md"
+  })), React.createElement("div", {
+    className: "space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+  }, "\u8BC4\u59D4\u6743\u91CD"), React.createElement("input", {
+    type: "number",
+    min: "0",
+    value: judgeWeight,
+    onChange: e => setJudgeWeight(Math.max(0, parseInt(e.target.value) || 0)),
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all font-mono text-md"
+  }))), React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
+  }, React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("div", {
+    className: "space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-[#223e36] uppercase tracking-widest"
+  }, "\u6B63\u65B9\u540D\u79F0"), React.createElement("input", {
+    value: proName,
+    onChange: e => setProName(e.target.value),
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#223e36] outline-none transition-all text-sm"
+  })), React.createElement("div", {
+    className: "space-y-1"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest block"
+  }, "\u6B63\u65B9\u5206\u8BBA\u70B9"), Array.from({
+    length: roundCount
+  }, (_, i) => i).filter(i => i % 2 === 0).map(i => React.createElement("div", {
+    key: i,
+    className: "p-2 rounded-lg border-l-4 border-[#223e36] bg-[#223e36]/5"
+  }, React.createElement("div", {
+    className: "flex justify-between items-center mb-0.5"
+  }, React.createElement("span", {
+    className: "text-[9px] font-bold opacity-60 uppercase"
+  }, "\u5206\u8BBA\u70B9 ", Math.floor(i / 2) + 1)), React.createElement("textarea", {
+    value: points[i]?.text || '',
+    onChange: e => {
+      const next = [...points];
+      if (!next[i]) next[i] = {
+        text: '',
+        owner: 'pro',
+        proVotes: Math.floor(totalVoters / 2),
+        proJudgeVotes: 0
+      };
+      next[i].text = e.target.value;
+      setPoints(next);
+    },
+    placeholder: "\u8F93\u5165\u5206\u8BBA\u70B9\u6838\u5FC3\u5185\u5BB9...",
+    className: "w-full bg-transparent border-b border-slate-200 p-0.5 focus:border-slate-900 outline-none transition-all text-xs h-12 resize-none"
+  }))))), React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("div", {
+    className: "space-y-0.5"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-[#b22222] uppercase tracking-widest"
+  }, "\u53CD\u65B9\u540D\u79F0"), React.createElement("input", {
+    value: conName,
+    onChange: e => setConName(e.target.value),
+    className: "w-full bg-slate-50 border-b-2 border-slate-200 p-1 focus:border-[#b22222] outline-none transition-all text-sm"
+  })), React.createElement("div", {
+    className: "space-y-1"
+  }, React.createElement("label", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest block"
+  }, "\u53CD\u65B9\u5206\u8BBA\u70B9"), Array.from({
+    length: roundCount
+  }, (_, i) => i).filter(i => i % 2 !== 0).map(i => React.createElement("div", {
+    key: i,
+    className: "p-2 rounded-lg border-l-4 border-[#b22222] bg-[#b22222]/5"
+  }, React.createElement("div", {
+    className: "flex justify-between items-center mb-0.5"
+  }, React.createElement("span", {
+    className: "text-[9px] font-bold opacity-60 uppercase"
+  }, "\u5206\u8BBA\u70B9 ", Math.floor(i / 2) + 1)), React.createElement("textarea", {
+    value: points[i]?.text || '',
+    onChange: e => {
+      const next = [...points];
+      if (!next[i]) next[i] = {
+        text: '',
+        owner: 'con',
+        proVotes: Math.floor(totalVoters / 2),
+        proJudgeVotes: 0
+      };
+      next[i].text = e.target.value;
+      setPoints(next);
+    },
+    placeholder: "\u8F93\u5165\u5206\u8BBA\u70B9\u6838\u5FC3\u5185\u5BB9...",
+    className: "w-full bg-transparent border-b border-slate-200 p-0.5 focus:border-slate-900 outline-none transition-all text-xs h-12 resize-none"
+  }))))))), React.createElement("div", {
+    className: "mt-2 pt-2 border-t border-slate-100 flex flex-col items-center gap-3"
+  }, React.createElement("div", {
+    className: "flex gap-2"
+  }, React.createElement("button", {
+    onClick: () => setupFileInputRef.current?.click(),
+    className: "px-4 py-1.5 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all font-bold tracking-widest text-xs flex items-center justify-center gap-1 shadow-sm"
+  }, React.createElement(Icon, {
+    name: "Upload",
+    className: "w-3 h-3"
+  }), "\u5BFC\u5165\u914D\u7F6E"), React.createElement("input", {
+    type: "file",
+    ref: setupFileInputRef,
+    onChange: importSetupConfig,
+    accept: ".json",
+    className: "hidden"
+  }), React.createElement("button", {
+    onClick: exportSetupConfig,
+    className: "px-4 py-1.5 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all font-bold tracking-widest text-xs flex items-center justify-center gap-1 shadow-sm"
+  }, React.createElement(Icon, {
+    name: "Download",
+    className: "w-3 h-3"
+  }), "\u5BFC\u51FA\u914D\u7F6E")), React.createElement("button", {
+    onClick: () => {
+      if (!topic || points.some(p => !p.text)) return alert('请填写完整辩题和所有分论点');
+      setConfirmedFinalVote(null);
+      setView('debate');
+      setCurrentRound(0);
+    },
+    className: "w-64 py-2.5 bg-[#2c3e50] text-white font-bold tracking-[0.2em] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg text-sm rounded-sm"
+  }, "\u5F00\u59CB\u8FA9\u8BBA"))));
+  const renderDebate = () => {
+    const p = points[currentRound];
+    const proVotes = p.proVotes;
+    const conVotes = totalVoters - p.proVotes;
+    const proPercent = totalVoters > 0 ? proVotes / totalVoters * 100 : 50;
+    return React.createElement("div", {
+      className: "max-w-4xl mx-auto space-y-2 fade-in"
+    }, React.createElement("div", {
+      className: "guofeng-card p-4"
+    }, React.createElement("div", {
+      className: "flex justify-between items-center mb-2"
+    }, React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, React.createElement("div", {
+      className: "guofeng-border"
+    }, React.createElement("div", {
+      className: "bg-[#2c3e50] text-white px-2 py-0.5 text-[9px] font-bold"
+    }, "\u7B2C ", currentRound + 1, " / ", roundCount, " \u573A")), React.createElement("span", {
+      className: "text-[9px] font-bold text-slate-400 tracking-widest"
+    }, p.owner === 'pro' ? proName : conName, "\u5206\u8BBA\u70B9")), React.createElement("div", {
+      className: "text-right"
+    }, React.createElement("h2", {
+      className: "text-sm font-serif font-black text-slate-900 leading-none"
+    }, "\u201C ", topic, " \u201D"))), React.createElement("div", {
+      className: "text-center py-5 border-y border-slate-100 mb-4 bg-slate-50/30"
+    }, React.createElement("h3", {
+      className: "text-2xl font-serif font-black text-slate-900 tracking-tight"
+    }, p.text)), React.createElement("div", {
+      className: "space-y-4"
+    }, React.createElement("div", {
+      className: "flex justify-between items-end px-2"
+    }, React.createElement("div", {
+      className: "text-center w-20 shrink-0"
+    }, React.createElement("p", {
+      className: "text-4xl font-black text-[#223e36] font-mono"
+    }, proVotes)), React.createElement("div", {
+      className: "flex-1 px-4 pb-2"
+    }, React.createElement("div", {
+      className: "vote-slider-container"
+    }, React.createElement("div", {
+      className: "vote-track"
+    }, React.createElement("div", {
+      className: "vote-bar-pro h-full",
+      style: {
+        width: `${proPercent}%`
+      }
+    }), React.createElement("div", {
+      className: "vote-bar-con h-full flex-1"
+    })), React.createElement("div", {
+      className: "vote-handle-capsule",
+      style: {
+        left: `${proPercent}%`,
+        width: '12px',
+        height: '24px'
+      }
+    }), React.createElement("input", {
+      type: "range",
+      min: "0",
+      max: totalVoters,
+      value: proVotes,
+      onChange: e => {
+        const next = [...points];
+        next[currentRound].proVotes = parseInt(e.target.value);
+        setPoints(next);
+      },
+      className: "vote-slider-input"
+    }))), React.createElement("div", {
+      className: "text-center w-20 shrink-0"
+    }, React.createElement("p", {
+      className: "text-4xl font-black text-[#b22222] font-mono"
+    }, conVotes))), React.createElement("div", {
+      className: "flex items-stretch gap-2 h-24"
+    }, React.createElement("div", {
+      className: "flex-1 bg-slate-50/50 p-2 rounded-xl border border-dotted border-slate-200 flex flex-col items-center justify-center gap-1.5 min-w-[70px]"
+    }, React.createElement("span", {
+      className: "text-[8px] font-bold text-[#223e36] opacity-50 uppercase tracking-tighter"
+    }, proName, "\u89C2\u4F17"), React.createElement("div", {
+      className: "flex flex-col gap-1 w-full px-1"
+    }, React.createElement("button", {
+      onClick: () => {
+        const next = [...points];
+        next[currentRound].proVotes = Math.min(totalVoters, p.proVotes + 1);
+        setPoints(next);
+      },
+      className: "w-full h-7 bg-[#223e36] text-white flex items-center justify-center hover:bg-opacity-90 transition-all rounded shadow-sm font-bold text-xs"
+    }, "+1"), React.createElement("button", {
+      onClick: () => {
+        const next = [...points];
+        next[currentRound].proVotes = Math.min(totalVoters, p.proVotes + 5);
+        setPoints(next);
+      },
+      className: "w-full h-7 bg-[#223e36] text-white flex items-center justify-center hover:bg-opacity-90 transition-all rounded shadow-sm font-bold text-xs"
+    }, "+5"))), judgeCount > 0 && React.createElement("div", {
+      className: "flex-[2.5] bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-center gap-1.5 min-w-0"
+    }, React.createElement("div", {
+      className: "flex justify-between items-center px-2 mb-0.5"
+    }, React.createElement("div", {
+      className: "flex flex-col"
+    }, React.createElement("span", {
+      className: "text-[9px] font-bold text-slate-400"
+    }, "\u8BC4\u59D4\u5E2D (\u5171 ", judgeCount, " \u4F4D)"), React.createElement("span", {
+      className: "text-[8px] text-slate-300"
+    }, "\u6709\u6548\u603B\u6570: ", judgeCount - (p.abstainCount || 0))), React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, React.createElement("span", {
+      className: "text-[9px] font-bold text-amber-600"
+    }, "\u5F03\u6743: ", p.abstainCount || 0), React.createElement("div", {
+      className: "flex gap-0.5"
+    }, React.createElement("button", {
+      onClick: () => {
+        const next = [...points];
+        next[currentRound].abstainCount = Math.max(0, (p.abstainCount || 0) - 1);
+        setPoints(next);
+      },
+      className: "w-4 h-4 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] hover:bg-slate-300"
+    }, "-"), React.createElement("button", {
+      onClick: () => {
+        const next = [...points];
+        next[currentRound].abstainCount = Math.min(judgeCount, (p.abstainCount || 0) + 1);
+        const activeTotal = judgeCount - next[currentRound].abstainCount;
+        if ((next[currentRound].proJudgeVotes || 0) > activeTotal) {
+          next[currentRound].proJudgeVotes = activeTotal;
+        }
+        setPoints(next);
+      },
+      className: "w-4 h-4 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-[10px] hover:bg-slate-300"
+    }, "+")))), React.createElement("div", {
+      className: "flex items-center gap-3 px-2"
+    }, React.createElement("div", {
+      className: "w-10 text-center shrink-0"
+    }, React.createElement("span", {
+      className: `text-xl font-black font-mono transition-colors ${p.proJudgeVotes !== null ? 'text-[#223e36]' : 'text-slate-300'}`
+    }, p.proJudgeVotes !== null ? p.proJudgeVotes : 0), React.createElement("p", {
+      className: "text-[7px] text-slate-400 mt-[-2px]"
+    }, "\u6B63\u65B9")), React.createElement("div", {
+      className: "flex-1 relative flex items-center h-6"
+    }, React.createElement("input", {
+      type: "range",
+      min: "0",
+      max: judgeCount - (p.abstainCount || 0),
+      step: "1",
+      value: p.proJudgeVotes !== null ? p.proJudgeVotes : 0,
+      onChange: e => {
+        const next = [...points];
+        next[currentRound].proJudgeVotes = parseInt(e.target.value);
+        setPoints(next);
+      },
+      className: "judge-slider accent-[#c5a368]"
+    })), React.createElement("div", {
+      className: "w-10 text-center shrink-0"
+    }, React.createElement("span", {
+      className: `text-xl font-black font-mono transition-colors ${p.proJudgeVotes !== null ? 'text-[#b22222]' : 'text-slate-300'}`
+    }, p.proJudgeVotes !== null ? Math.max(0, judgeCount - (p.abstainCount || 0) - p.proJudgeVotes) : 0), React.createElement("p", {
+      className: "text-[7px] text-slate-400 mt-[-2px]"
+    }, "\u53CD\u65B9"))), React.createElement("div", {
+      className: "text-center px-2 text-[8px] font-bold text-slate-300 tracking-[0.2em]"
+    }, p.proJudgeVotes === null ? '—— 请滑动分配此轮评委票 ——' : '· 票数分配确认 ·')), React.createElement("div", {
+      className: "flex-1 bg-slate-50/50 p-2 rounded-xl border border-dotted border-slate-200 flex flex-col items-center justify-center gap-1.5 min-w-[70px]"
+    }, React.createElement("span", {
+      className: "text-[8px] font-bold text-[#b22222] opacity-50 uppercase tracking-tighter"
+    }, conName, "\u89C2\u4F17"), React.createElement("div", {
+      className: "flex flex-col gap-1 w-full px-1"
+    }, React.createElement("button", {
+      onClick: () => {
+        const next = [...points];
+        next[currentRound].proVotes = Math.max(0, p.proVotes - 1);
+        setPoints(next);
+      },
+      className: "w-full h-7 bg-[#b22222] text-white flex items-center justify-center hover:bg-opacity-90 transition-all rounded shadow-sm font-bold text-xs"
+    }, "+1"), React.createElement("button", {
+      onClick: () => {
+        const next = [...points];
+        next[currentRound].proVotes = Math.max(0, p.proVotes - 5);
+        setPoints(next);
+      },
+      className: "w-full h-7 bg-[#b22222] text-white flex items-center justify-center hover:bg-opacity-90 transition-all rounded shadow-sm font-bold text-xs"
+    }, "+5")))), (timerDuration > 0 || openingDuration > 0) && React.createElement("div", {
+      className: "pt-2 mt-1 border-t border-slate-100"
+    }, React.createElement("div", {
+      className: "max-w-3xl mx-auto px-4"
+    }, React.createElement("div", {
+      className: "flex items-center justify-between gap-4 md:gap-8"
+    }, React.createElement("div", {
+      className: "flex-1 flex flex-col items-center"
+    }, React.createElement("div", {
+      className: "mb-4 text-center"
+    }, React.createElement("h4", {
+      className: "text-lg font-serif font-bold text-[#223e36]"
+    }, proName)), React.createElement("button", {
+      onClick: () => {
+        const isOwner = p.owner === 'pro';
+        if (!isTimerRunning) {
+          if (openingTimeLeft > 0) {
+            setActiveSide('opening');
+          }
+          setIsTimerRunning(true);
+        } else {
+          if (activeSide === 'opening' && isOwner) {
+            setOpeningTimeLeft(0);
+            setActiveSide('con');
+            setIsTimerRunning(true);
+          } else if (activeSide === 'pro') {
+            setActiveSide('con');
+          }
+        }
+      },
+      className: `w-full group relative py-6 rounded-[2.5rem] transition-all duration-1000 overflow-hidden ${activeSide === 'pro' || activeSide === 'opening' && p.owner === 'pro' ? 'bg-[#223e36] shadow-[0_20px_40px_-10px_rgba(34,62,54,0.4)] scale-[1.03]' : 'bg-slate-50 border border-slate-100'}`
+    }, React.createElement("div", {
+      className: "relative z-10 flex flex-col items-center"
+    }, React.createElement("span", {
+      className: `text-xs font-bold tracking-[0.4em] mb-2 transition-colors ${activeSide === 'pro' || activeSide === 'opening' && p.owner === 'pro' ? 'text-white/40' : 'text-slate-300'}`
+    }, openingTimeLeft > 0 && p.owner === 'pro' ? '立论' : '争论'), React.createElement("div", {
+      className: `text-6xl font-mono leading-none tracking-tighter font-black transition-all ${activeSide === 'pro' || activeSide === 'opening' && p.owner === 'pro' ? 'text-white' : 'text-slate-400'}`
+    }, formatTime(openingTimeLeft > 0 && p.owner === 'pro' ? openingTimeLeft : proTimeLeft))))), React.createElement("div", {
+      className: "flex flex-col items-center gap-6 pb-2"
+    }, React.createElement("div", {
+      className: "w-px h-10 bg-gradient-to-b from-transparent via-slate-200 to-transparent"
+    }), React.createElement("div", {
+      className: "flex flex-col items-center gap-4"
+    }, React.createElement(motion.button, {
+      whileHover: {
+        scale: 1.1
+      },
+      whileTap: {
+        scale: 0.9
+      },
+      onClick: () => {
+        if (!isTimerRunning) {
+          if (openingTimeLeft > 0 && !activeSide) {
+            setActiveSide('opening');
+          } else if (!activeSide) {
+            setActiveSide('pro');
+          }
+          setIsTimerRunning(true);
+        } else {
+          setIsTimerRunning(false);
+        }
+      },
+      className: `w-14 h-14 rounded-full shadow-2xl transition-all flex items-center justify-center border-4 ${isTimerRunning ? 'bg-white border-slate-50 text-slate-800' : 'bg-white border-slate-50 shadow-[#2c3e50]/20 text-[#2c3e50]'}`
+    }, React.createElement(Icon, {
+      name: isTimerRunning ? "Pause" : "Play",
+      className: "w-6 h-6"
+    })), React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        setIsTimerRunning(false);
+        setActiveSide(null);
+        const half = Math.floor(timerDuration / 2);
+        setProTimeLeft(half);
+        setConTimeLeft(timerDuration - half);
+        setOpeningTimeLeft(openingDuration);
+      },
+      className: "p-2 text-slate-200 hover:text-slate-800 transition-colors",
+      title: "\u91CD\u7F6E"
+    }, React.createElement(Icon, {
+      name: "RotateCcw",
+      className: "w-4 h-4"
+    }))), React.createElement("div", {
+      className: "w-px h-10 bg-gradient-to-t from-transparent via-slate-200 to-transparent"
+    })), React.createElement("div", {
+      className: "flex-1 flex flex-col items-center"
+    }, React.createElement("div", {
+      className: "mb-4 text-center"
+    }, React.createElement("h4", {
+      className: "text-lg font-serif font-bold text-[#b22222]"
+    }, conName)), React.createElement("button", {
+      onClick: () => {
+        const isOwner = p.owner === 'con';
+        if (!isTimerRunning) {
+          if (openingTimeLeft > 0) {
+            setActiveSide('opening');
+          }
+          setIsTimerRunning(true);
+        } else {
+          if (activeSide === 'opening' && isOwner) {
+            setOpeningTimeLeft(0);
+            setActiveSide('pro');
+            setIsTimerRunning(true);
+          } else if (activeSide === 'con') {
+            setActiveSide('pro');
+          }
+        }
+      },
+      className: `w-full group relative py-6 rounded-[2.5rem] transition-all duration-1000 overflow-hidden ${activeSide === 'con' || activeSide === 'opening' && p.owner === 'con' ? 'bg-[#b22222] shadow-[0_20px_40px_-10px_rgba(178,34,34,0.4)] scale-[1.03]' : 'bg-slate-50 border border-slate-100'}`
+    }, React.createElement("div", {
+      className: "relative z-10 flex flex-col items-center"
+    }, React.createElement("span", {
+      className: `text-xs font-bold tracking-[0.4em] mb-2 transition-colors ${activeSide === 'con' || activeSide === 'opening' && p.owner === 'con' ? 'text-white/40' : 'text-slate-300'}`
+    }, openingTimeLeft > 0 && p.owner === 'con' ? '立论' : '争论'), React.createElement("div", {
+      className: `text-6xl font-mono leading-none tracking-tighter font-black transition-all ${activeSide === 'con' || activeSide === 'opening' && p.owner === 'con' ? 'text-white' : 'text-slate-400'}`
+    }, formatTime(openingTimeLeft > 0 && p.owner === 'con' ? openingTimeLeft : conTimeLeft))))))))), React.createElement("div", {
+      className: "flex justify-between items-center"
+    }, currentRound === 0 ? React.createElement("button", {
+      onClick: () => setView('setup'),
+      className: "px-4 py-2 text-slate-400 font-bold hover:text-slate-900 transition-all flex items-center gap-1 text-sm"
+    }, React.createElement(Icon, {
+      name: "ChevronLeft",
+      className: "w-4 h-4"
+    }), " \u8FD4\u56DE\u51C6\u5907\u9875") : React.createElement("button", {
+      onClick: () => setCurrentRound(currentRound - 1),
+      className: "px-4 py-2 text-slate-400 font-bold hover:text-slate-900 transition-all flex items-center gap-1 text-sm"
+    }, React.createElement(Icon, {
+      name: "ChevronLeft",
+      className: "w-4 h-4"
+    }), " \u4E0A\u4E00\u8F6E"), currentRound < roundCount - 1 ? React.createElement("button", {
+      onClick: () => {
+        setCurrentRound(currentRound + 1);
+      },
+      className: "px-6 py-2 bg-[#2c3e50] text-white font-bold tracking-widest hover:bg-slate-800 transition-all shadow-xl flex items-center gap-1 text-sm"
+    }, "\u4E0B\u4E00\u8F6E ", React.createElement(Icon, {
+      name: "ChevronRight",
+      className: "w-4 h-4"
+    })) : React.createElement("button", {
+      onClick: () => setView('summary'),
+      className: "px-8 py-2 bg-[#b22222] text-white font-bold tracking-widest hover:bg-red-700 transition-all shadow-xl text-sm"
+    }, "\u67E5\u770B\u7ED3\u679C"))));
+  };
+  const renderSummary = () => React.createElement("div", {
+    className: "max-w-4xl mx-auto space-y-8 fade-in"
+  }, React.createElement("div", {
+    className: "guofeng-card overflow-hidden"
+  }, React.createElement("div", {
+    className: "bg-[#b22222] p-6 text-center text-white relative"
+  }, React.createElement("div", {
+    className: "absolute inset-0 opacity-20",
+    style: {
+      backgroundImage: 'radial-gradient(#ffd700 1px, transparent 1px)',
+      backgroundSize: '20px 20px'
+    }
+  }), React.createElement("span", {
+    className: "text-[9px] font-bold text-[#ffd700] uppercase tracking-[0.3em] block mb-2"
+  }, "\u6700\u7EC8\u80DC\u51FA"), React.createElement("div", {
+    className: "text-5xl font-black font-serif tracking-widest mb-1 text-[#ffd700] drop-shadow-lg"
+  }, results.winner === 'pro' ? proName : results.winner === 'con' ? conName : '双方持平'), React.createElement("div", {
+    className: "w-16 h-0.5 bg-[#ffd700] mx-auto mt-4"
+  })), React.createElement("div", {
+    className: "p-4 space-y-6"
+  }, React.createElement("div", {
+    className: "text-center space-y-1"
+  }, React.createElement("span", {
+    className: "text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+  }, "\u8FA9\u8BBA\u9898\u76EE"), React.createElement("h2", {
+    className: "text-lg font-serif font-black text-[#2c3e50]"
+  }, "\u201C ", topic, " \u201D")), React.createElement("div", {
+    className: "grid grid-cols-2 gap-4"
+  }, React.createElement("div", {
+    className: "p-3 text-center border-l-2 border-[#223e36] bg-slate-50"
+  }, React.createElement("span", {
+    className: "text-[9px] font-bold text-slate-400 uppercase block mb-1"
+  }, proName, " (\u6B63\u65B9)"), React.createElement("div", {
+    className: "flex justify-around items-center"
+  }, React.createElement("div", null, React.createElement("p", {
+    className: "text-[8px] text-slate-400"
+  }, "\u80DC\u573A"), React.createElement("p", {
+    className: "text-xl font-black text-[#223e36]"
+  }, results.proRounds)), React.createElement("div", {
+    className: "w-px h-6 bg-slate-200"
+  }), React.createElement("div", null, React.createElement("p", {
+    className: "text-[8px] text-slate-400"
+  }, "\u603B\u5206"), React.createElement("p", {
+    className: "text-xl font-black text-[#223e36]"
+  }, results.proTotalVotes)))), React.createElement("div", {
+    className: "p-3 text-center border-r-2 border-[#b22222] bg-slate-50"
+  }, React.createElement("span", {
+    className: "text-[9px] font-bold text-slate-400 uppercase block mb-1"
+  }, conName, " (\u53CD\u65B9)"), React.createElement("div", {
+    className: "flex justify-around items-center"
+  }, React.createElement("div", null, React.createElement("p", {
+    className: "text-[8px] text-slate-400"
+  }, "\u80DC\u573A"), React.createElement("p", {
+    className: "text-xl font-black text-[#b22222]"
+  }, results.conRounds)), React.createElement("div", {
+    className: "w-px h-6 bg-slate-200"
+  }), React.createElement("div", null, React.createElement("p", {
+    className: "text-[8px] text-slate-400"
+  }, "\u603B\u5206"), React.createElement("p", {
+    className: "text-xl font-black text-[#b22222]"
+  }, results.conTotalVotes))))), React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("h3", {
+    className: "text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2"
+  }, React.createElement(Icon, {
+    name: "Table",
+    className: "w-4 h-4"
+  }), " \u5404\u573A\u6B21\u60C5\u51B5"), React.createElement("div", {
+    className: "overflow-hidden border border-slate-200"
+  }, React.createElement("table", {
+    className: "debate-table"
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u573A\u6B21"), React.createElement("th", null, "\u5206\u8BBA\u70B9\u5185\u5BB9"), React.createElement("th", null, proName, " (\u89C2\u4F17+\u8BC4\u59D4)"), React.createElement("th", null, conName, " (\u89C2\u4F17+\u8BC4\u59D4)"), React.createElement("th", null, "\u672C\u573A\u7ED3\u679C"))), React.createElement("tbody", null, points.map((p, i) => {
+    const proAudience = p.proVotes;
+    const conAudience = totalVoters - p.proVotes;
+    const abstain = p.abstainCount || 0;
+    const activeTotal = Math.max(0, judgeCount - abstain);
+    const hasJudgeVoted = p.proJudgeVotes !== null && p.proJudgeVotes !== undefined;
+    const proJudge = hasJudgeVoted ? Math.min(activeTotal, p.proJudgeVotes) : 0;
+    const conJudge = hasJudgeVoted ? activeTotal - proJudge : 0;
+    const proScore = proAudience + proJudge * judgeWeight;
+    const conScore = conAudience + conJudge * judgeWeight;
+    const win = proScore > conScore ? 'pro' : conScore > proScore ? 'con' : 'tie';
+    return React.createElement("tr", {
+      key: i
+    }, React.createElement("td", {
+      className: "font-bold text-xs"
+    }, "\u7B2C ", i + 1, " \u573A"), React.createElement("td", {
+      className: "text-left max-w-xs truncate text-xs"
+    }, p.text), React.createElement("td", {
+      className: "font-mono text-xs"
+    }, React.createElement("div", {
+      className: "font-bold text-[#223e36]"
+    }, proScore), React.createElement("div", {
+      className: "text-[9px] text-slate-400"
+    }, "(", proAudience, " + ", proJudge, "\xD7", judgeWeight, ")")), React.createElement("td", {
+      className: "font-mono text-xs"
+    }, React.createElement("div", {
+      className: "font-bold text-[#b22222]"
+    }, conScore), React.createElement("div", {
+      className: "text-[9px] text-slate-400"
+    }, "(", conAudience, " + ", conJudge, "\xD7", judgeWeight, ")")), React.createElement("td", null, React.createElement("span", {
+      className: `px-2 py-1 text-[10px] font-bold ${win === 'pro' ? 'bg-[#223e36]/10 text-[#223e36]' : win === 'con' ? 'bg-[#b22222]/10 text-[#b22222]' : 'bg-slate-100 text-slate-600'}`
+    }, win === 'pro' ? '正方胜' : win === 'con' ? '反方胜' : '平局')));
+  }), confirmedFinalVote !== null && React.createElement("tr", {
+    className: "bg-amber-50"
+  }, React.createElement("td", {
+    className: "font-bold text-xs py-2"
+  }, "\u7EC8\u6781\u6295\u7968"), React.createElement("td", {
+    className: "text-left text-xs py-2"
+  }, "-"), React.createElement("td", {
+    className: "font-mono text-xs font-bold text-[#223e36] py-2"
+  }, React.createElement("div", null, confirmedFinalVote), React.createElement("div", {
+    className: "text-[9px] text-slate-400 font-normal"
+  }, "\u6B63\u65B9\u7968\u6570")), React.createElement("td", {
+    className: "font-mono text-xs font-bold text-[#b22222] py-2"
+  }, React.createElement("div", null, totalVoters - confirmedFinalVote), React.createElement("div", {
+    className: "text-[9px] text-slate-400 font-normal"
+  }, "\u53CD\u65B9\u7968\u6570")), React.createElement("td", {
+    className: "py-2"
+  }, React.createElement("span", {
+    className: `px-2 py-1 text-[10px] font-bold ${confirmedFinalVote > totalVoters / 2 ? 'bg-[#223e36]/10 text-[#223e36]' : 'bg-[#b22222]/10 text-[#b22222]'}`
+  }, confirmedFinalVote > totalVoters / 2 ? `${proName}胜` : `${conName}胜`))))))), results.winner === 'tie' && React.createElement("div", {
+    className: "bg-amber-50 border-2 border-double border-amber-200 p-8 space-y-6 fade-in"
+  }, React.createElement("div", {
+    className: "text-center"
+  }, React.createElement("span", {
+    className: "text-[10px] font-bold text-amber-600 uppercase tracking-[0.3em] block mb-2"
+  }, "\u7EC8\u6781\u6295\u7968 (\u5E73\u5C40\u51B3\u80DC)"), React.createElement("p", {
+    className: "text-sm text-amber-800 font-serif"
+  }, "\u8BF7\u89C2\u4F17\u8FDB\u884C\u6700\u540E\u4E00\u8F6E\u6574\u4F53\u6295\u7968")), React.createElement("div", {
+    className: "flex justify-between items-end px-10"
+  }, React.createElement("div", {
+    className: "text-center w-24"
+  }, React.createElement("p", {
+    className: "text-xs font-bold text-[#223e36] mb-2"
+  }, proName), React.createElement("p", {
+    className: "text-4xl font-black text-[#223e36]"
+  }, finalVote)), React.createElement("div", {
+    className: "flex-1 px-12 pb-4"
+  }, React.createElement("div", {
+    className: "vote-slider-container"
+  }, React.createElement("div", {
+    className: "vote-track"
+  }, React.createElement("div", {
+    className: "vote-bar-pro h-full",
+    style: {
+      width: `${totalVoters > 0 ? finalVote / totalVoters * 100 : 50}%`
+    }
+  }), React.createElement("div", {
+    className: "vote-bar-con h-full flex-1"
+  })), React.createElement("div", {
+    className: "vote-handle-capsule",
+    style: {
+      left: `${totalVoters > 0 ? finalVote / totalVoters * 100 : 50}%`
+    }
+  }), React.createElement("input", {
+    type: "range",
+    min: "0",
+    max: totalVoters,
+    value: finalVote,
+    onChange: e => setFinalVote(parseInt(e.target.value)),
+    className: "vote-slider-input"
+  })), React.createElement("div", {
+    className: "text-center mt-4"
+  }, React.createElement("button", {
+    onClick: () => {
+      if (finalVote === totalVoters / 2) {
+        alert('终极投票不得平票，请重新投票');
+        return;
+      }
+      setConfirmedFinalVote(finalVote);
+    },
+    className: `px-6 py-2 font-bold transition-all ${confirmedFinalVote === finalVote ? 'bg-slate-300 text-slate-600' : 'bg-[#223e36] text-white hover:bg-opacity-90'}`
+  }, confirmedFinalVote === finalVote ? '已确认' : '确认投票'))), React.createElement("div", {
+    className: "text-center w-24"
+  }, React.createElement("p", {
+    className: "text-xs font-bold text-[#b22222] mb-2"
+  }, conName), React.createElement("p", {
+    className: "text-4xl font-black text-[#b22222]"
+  }, totalVoters - finalVote)))), React.createElement("div", {
+    className: "flex justify-center gap-4 pt-6"
+  }, React.createElement("button", {
+    onClick: () => {
+      setView('debate');
+      setCurrentRound(roundCount - 1);
+    },
+    className: "px-6 py-3 border-2 border-[#2c3e50] text-[#2c3e50] font-bold hover:bg-slate-50 transition-all flex items-center gap-2"
+  }, React.createElement(Icon, {
+    name: "ChevronLeft",
+    className: "w-4 h-4"
+  }), " \u4E0A\u4E00\u8F6E"), React.createElement("button", {
+    disabled: results.winner === 'tie' && confirmedFinalVote === null,
+    onClick: () => {
+      if (results.winner === 'tie' && confirmedFinalVote === null) {
+        alert('平局环节需要通过“终极投票”产生获胜方后方可保存。');
+        return;
+      }
+      saveToHistory();
+      setView('setup');
+      setTopic('');
+      setConfirmedFinalVote(null);
+      setFinalVote(Math.floor(totalVoters / 2));
+      setPoints(points.map(p => ({
+        ...p,
+        text: '',
+        proVotes: Math.floor(totalVoters / 2)
+      })));
+    },
+    className: `px-10 py-3 font-bold transition-all shadow-xl ${results.winner === 'tie' && confirmedFinalVote === null ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#2c3e50] text-white hover:bg-slate-800'}`
+  }, "\u4FDD\u5B58\u5E76\u7ED3\u675F\u6BD4\u8D5B")))));
+  return React.createElement("div", {
+    className: "min-h-screen flex flex-col"
+  }, React.createElement("nav", {
+    className: "bg-white/90 backdrop-blur-md border-b-2 border-double border-slate-200 px-6 py-4 sticky top-0 z-40"
+  }, React.createElement("div", {
+    className: "max-w-5xl mx-auto flex justify-between items-center"
+  }, React.createElement("div", {
+    className: "flex items-center gap-4"
+  }, React.createElement("div", {
+    className: "seal-logo"
+  }, "\u8FA9"), React.createElement("div", {
+    className: "flex flex-col"
+  }, React.createElement("span", {
+    className: "font-black text-slate-900 tracking-widest text-lg font-serif"
+  }, "\u8FA9\u8BBA\u8D5B\u8BA1\u7968\u7CFB\u7EDF"))), React.createElement("div", {
+    className: "flex gap-1"
+  }, React.createElement("button", {
+    onClick: clearAllData,
+    className: "p-2 text-slate-400 hover:text-red-600 transition-all",
+    title: "\u6E05\u7A7A\u6240\u6709\u6570\u636E"
+  }, React.createElement(Icon, {
+    name: "Trash2"
+  })), React.createElement("button", {
+    onClick: () => setShowHistory(true),
+    className: "p-2 text-slate-400 hover:text-[#223e36] transition-all",
+    title: "\u5386\u53F2\u8BB0\u5F55"
+  }, React.createElement(Icon, {
+    name: "History"
+  })), React.createElement("button", {
+    onClick: exportExcel,
+    className: "p-2 text-slate-400 hover:text-[#223e36] transition-all",
+    title: "\u5BFC\u51FA\u5907\u4EFD"
+  }, React.createElement(Icon, {
+    name: "Download"
+  })), React.createElement("button", {
+    onClick: () => fileInputRef.current.click(),
+    className: "p-2 text-slate-400 hover:text-[#223e36] transition-all",
+    title: "\u5BFC\u5165\u5907\u4EFD"
+  }, React.createElement(Icon, {
+    name: "Upload"
+  })), React.createElement("input", {
+    type: "file",
+    ref: fileInputRef,
+    onChange: handleImport,
+    accept: ".xlsx, .xls",
+    className: "hidden"
+  })))), React.createElement("main", {
+    className: "flex-1 max-w-5xl w-full mx-auto p-2 md:p-4"
+  }, view === 'setup' && renderSetup(), view === 'debate' && renderDebate(), view === 'summary' && renderSummary(), React.createElement(ReportModal, {
+    show: showReport,
+    onClose: () => {
+      setShowReport(false);
+      setViewingHistory(null);
+    },
+    data: viewingHistory || (showReport ? {
+      topic,
+      proName,
+      conName,
+      results,
+      points,
+      totalVoters,
+      judgeCount,
+      judgeWeight,
+      confirmedFinalVote,
+      winner: results.winner,
+      timestamp: Date.now()
+    } : null)
+  })), showHistory && React.createElement("div", {
+    className: "fixed inset-0 z-50 flex items-center justify-center p-4"
+  }, React.createElement("div", {
+    onClick: () => setShowHistory(false),
+    className: "absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+  }), React.createElement("div", {
+    className: "relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh] fade-in"
+  }, React.createElement("div", {
+    className: "p-5 border-b flex justify-between items-center"
+  }, React.createElement("h2", {
+    className: "font-bold"
+  }, "\u5386\u53F2\u8BB0\u5F55"), React.createElement("button", {
+    onClick: () => setShowHistory(false),
+    className: "p-2 hover:bg-slate-100 rounded-full"
+  }, React.createElement(Icon, {
+    name: "X"
+  }))), React.createElement("div", {
+    className: "flex-1 overflow-y-auto p-4 space-y-3"
+  }, sessions.length === 0 ? React.createElement("p", {
+    className: "text-center text-slate-400 py-10"
+  }, "\u6682\u65E0\u8BB0\u5F55") : sessions.map(s => React.createElement("div", {
+    key: s.id,
+    className: "p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center group"
+  }, React.createElement("div", {
+    className: "cursor-pointer flex-1",
+    onClick: () => {
+      setViewingHistory(s);
+      setShowReport(true);
+      setShowHistory(false);
+    }
+  }, React.createElement("h4", {
+    className: "font-bold text-slate-800"
+  }, s.topic), React.createElement("p", {
+    className: "text-[10px] text-slate-400 uppercase"
+  }, new Date(s.timestamp).toLocaleString())), React.createElement("button", {
+    onClick: () => {
+      setConfirmModal({
+        show: true,
+        title: '删除记录',
+        message: `确定要删除“${s.topic}”这条历史记录吗？`,
+        onConfirm: () => {
+          setSessions(sessions.filter(x => x.id !== s.id));
+          setConfirmModal({
+            show: false
+          });
+        }
+      });
+    },
+    className: "p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+  }, React.createElement(Icon, {
+    name: "Trash2"
+  }))))))), confirmModal.show && React.createElement("div", {
+    className: "fixed inset-0 z-[60] flex items-center justify-center p-4"
+  }, React.createElement("div", {
+    onClick: () => setConfirmModal({
+      show: false
+    }),
+    className: "absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+  }), React.createElement("div", {
+    className: "relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden fade-in"
+  }, React.createElement("div", {
+    className: "p-6 text-center space-y-4"
+  }, React.createElement("div", {
+    className: "w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto"
+  }, React.createElement(Icon, {
+    name: "AlertTriangle"
+  })), React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("h3", {
+    className: "font-bold text-lg text-slate-900"
+  }, confirmModal.title), React.createElement("p", {
+    className: "text-sm text-slate-500 leading-relaxed"
+  }, confirmModal.message)), React.createElement("div", {
+    className: "flex gap-3 pt-2"
+  }, React.createElement("button", {
+    onClick: () => setConfirmModal({
+      show: false
+    }),
+    className: "flex-1 px-4 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all"
+  }, "\u53D6\u6D88"), React.createElement("button", {
+    onClick: confirmModal.onConfirm,
+    className: "flex-1 px-4 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200"
+  }, "\u786E\u5B9A"))))));
+}
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App, null));
+</script>
 </body>
 </html>
