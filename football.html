@@ -4134,18 +4134,30 @@ function updateHud(){
   rl.innerHTML=html;
 }
 // ================= 主循环 =================
-var lastTime=0;
+// 以真实时间推进比赛：后台标签页 rAF 暂停时，用 setInterval 兜底持续模拟，
+// 切回前台立即补账，保证切走时比赛照常进行
+var SIM_STEP=0.02;   // 单步模拟时长（秒）
+var lastSim=0;       // 上次模拟的真实时间戳（毫秒）
+function simTick(){
+  var now=performance.now();
+  if(!lastSim){ lastSim=now; return; }
+  var real=(now-lastSim)/1000;
+  lastSim=now;
+  if(real<=0||!match||match.over) return;
+  var n=Math.min(3000,Math.max(1,Math.ceil(real/SIM_STEP)));
+  for(var i=0;i<n;i++){
+    if(match.over) break;
+    updateMatch(match,real/n);
+  }
+  if(!match.over) updateHud();
+}
 function frame(ts){
   requestAnimationFrame(frame);
-  if(!lastTime) lastTime=ts;
-  var dt=(ts-lastTime)/1000;
-  lastTime=ts;
-  if(match&&!match.over){
-    updateMatch(match,Math.min(dt,0.05));
-    updateHud();
-  }
+  simTick();
   render();
 }
+setInterval(simTick,1000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) simTick(); });
 document.querySelectorAll('.tab').forEach(function(t){
   t.onclick=function(){
     document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('sel'); });
