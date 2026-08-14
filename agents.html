@@ -421,6 +421,7 @@ textarea{resize:vertical}
           <button class="btn-add" id="distillRun">开始蒸馏</button>
           <button class="btn-add" id="distillClear" style="display:none">清空文档</button>
         </div>
+        <div id="distillStatus" style="display:none;margin-top:10px;padding:8px 12px;border-radius:6px;font-size:12.5px;line-height:1.7;background:var(--bg);border:1px solid var(--line);color:var(--text2)"></div>
         <textarea id="distillResult" rows="9" placeholder="蒸馏生成的 SKILL.md 将显示在这里，可直接编辑修改…" style="display:none;font-family:Consolas,monospace;font-size:12.5px;margin-top:8px"></textarea>
         <div class="row2" id="distillResultBtns" style="display:none;margin-top:8px">
           <button class="btn-add" id="distillSave" style="border-color:var(--seal);color:var(--seal);background:var(--accent-soft)">保存为技能</button>
@@ -2097,8 +2098,18 @@ $("distillClear").addEventListener("click",()=>{
   $("distillResultBtns").style.display="none";
   $("distillRun").style.display="";
   $("distillRun").textContent="开始蒸馏";
+  setDistillStatus("",0);
   renderDistillFiles();
 });
+function setDistillStatus(msg,type){
+  const st=$("distillStatus");
+  if(!msg){st.style.display="none";return;}
+  st.style.display="";
+  st.style.color=type===1?"var(--ok)":(type===2?"var(--danger)":"var(--text2)");
+  st.style.borderColor=type===1?"var(--ok)":(type===2?"var(--danger)":"var(--line)");
+  st.style.background=type===1?"var(--accent-soft)":"var(--bg)";
+  st.textContent=msg;
+}
 $("distillRun").addEventListener("click",async()=>{
   const texts=distillFiles.filter(df=>df.text&&!df.error);
   const bad=distillFiles.filter(df=>df.error);
@@ -2122,19 +2133,31 @@ $("distillRun").addEventListener("click",async()=>{
   box.style.display="";
   runBtn.style.display="none";
   saveBtns.style.display="";
-  runBtn.textContent="蒸馏中…";
+  runBtn.textContent="重新蒸馏";
   distillRunAbort=new AbortController();
+  setDistillStatus("蒸馏中：正在把 "+texts.length+" 个文档（约 "+(doc.length/1000|0)+"KB）提炼为 SKILL.md，请稍候…",0);
+  let done=false;
   try{
     await streamChat(base,apiKey,payload,{
       onReasoning:t=>{},
       onDelta:t=>{box.value+=t;box.scrollTop=box.scrollHeight;}
     },distillRunAbort.signal);
+    done=true;
+    if(!box.value.trim()){
+      setDistillStatus("AI 未返回内容，请点击「重新蒸馏」重试，或检查模型配置",2);
+    }else{
+      setDistillStatus("蒸馏完成：已生成 SKILL.md 草稿，可编辑修改后点击「保存为技能」",1);
+    }
   }catch(err){
-    if(err.name!=="AbortError")toast("蒸馏失败："+(err.message||String(err)),true,5000);
+    if(err.name==="AbortError")setDistillStatus("已停止蒸馏",2);
+    else{
+      setDistillStatus("蒸馏失败："+(err.message||String(err)),2);
+      toast("蒸馏失败："+(err.message||String(err)),true,5000);
+    }
   }finally{
     distillRunAbort=null;
     runBtn.style.display="";
-    runBtn.textContent="重新蒸馏";
+    if(done)runBtn.textContent="重新蒸馏";
   }
 });
 $("distillRe").addEventListener("click",()=>{
@@ -2150,6 +2173,7 @@ $("distillSave").addEventListener("click",()=>{
     $("distillResult").style.display="none";
     $("distillResultBtns").style.display="none";
     $("distillRun").textContent="开始蒸馏";
+    setDistillStatus("已保存进技能库，可在上方「我的技能」中选用",1);
     toast("技能「"+sk.name+"」已保存进技能库");
     renderSkillList();
     renderSkillSide();
