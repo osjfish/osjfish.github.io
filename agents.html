@@ -412,6 +412,22 @@ textarea{resize:vertical}
         <input type="file" id="skillFile" accept=".md,.txt,text/markdown,text/plain" style="display:none">
       </div>
       <div class="field">
+        <label>蒸馏生成技能</label>
+        <div class="settings-note">上传 word / pdf / txt / md 等文档（可多选），AI 将内容蒸馏成技能说明书（SKILL.md），生成后可编辑并保存进技能库。</div>
+        <button class="btn-add" id="distillPick" style="justify-content:flex-start">＋ 选择文档文件…</button>
+        <input type="file" id="distillFile" accept=".doc,.docx,.pdf,.txt,.md,.log,.json,.csv,.js,.py,.html,.css,.xml,.yml,.yaml,.ts,.jsx,.tsx,text/markdown,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple style="display:none">
+        <div class="skill-list" id="distillFiles" style="max-height:130px;display:none"></div>
+        <div class="row2" style="margin-top:8px">
+          <button class="btn-add" id="distillRun">开始蒸馏</button>
+          <button class="btn-add" id="distillClear" style="display:none">清空文档</button>
+        </div>
+        <textarea id="distillResult" rows="9" placeholder="蒸馏生成的 SKILL.md 将显示在这里，可直接编辑修改…" style="display:none;font-family:Consolas,monospace;font-size:12.5px;margin-top:8px"></textarea>
+        <div class="row2" id="distillResultBtns" style="display:none;margin-top:8px">
+          <button class="btn-add" id="distillSave" style="border-color:var(--seal);color:var(--seal);background:var(--accent-soft)">保存为技能</button>
+          <button class="btn-add" id="distillRe">重新蒸馏</button>
+        </div>
+      </div>
+      <div class="field">
         <label>我的技能 <span id="skillBindHint" style="font-weight:400;color:var(--text2);font-size:12px"></span></label>
         <input id="skillSearch" placeholder="搜索名称或描述…" autocomplete="off">
         <div class="skill-list" id="skillList"></div>
@@ -1979,6 +1995,167 @@ $("skillFile").addEventListener("change",async e=>{
     renderSkillDetail();
   }catch(err){
     toast(err.message||"导入失败",true);
+  }
+});
+
+// ===== 蒸馏生成技能（上传 word/pdf/txt/md 等文档 → AI 蒸馏为 SKILL.md） =====
+const DISTILL_TEXT_EXT={txt:1,md:1,log:1,json:1,csv:1,js:1,py:1,html:1,css:1,xml:1,yml:1,yaml:1,ini:1,ts:1,jsx:1,tsx:1};
+let distillFiles=[]; // {name,text,size}
+let distillRunAbort=null;
+function loadScriptLib(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector('script[src="'+src+'"]')){res();return;}
+    const s=document.createElement("script");
+    s.src=src;
+    s.onload=res;
+    s.onerror=()=>rej(new Error("加载 "+src+" 失败，请检查网络"));
+    document.head.appendChild(s);
+  });
+}
+async function parseDistillFile(f){
+  const ext=(f.name.split(".").pop()||"").toLowerCase();
+  if(ext==="doc"){
+    return {ok:false,msg:"「"+f.name+"」是旧版 Word(.doc) 格式，暂无法解析，请另存为 .docx 后再导入"};
+  }
+  if(ext==="docx"){
+    await loadScriptLib("https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js");
+    const buf=await f.arrayBuffer();
+    const r=await window.mammoth.extractRawText({arrayBuffer:buf});
+    return {ok:true,text:r.value||""};
+  }
+  if(ext==="pdf"){
+    await loadScriptLib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
+    const WORKER="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    if(!window.__pdfWorkerUrl){
+      const blob=new Blob(["importScripts('"+WORKER+"');"],{type:"application/javascript"});
+      window.__pdfWorkerUrl=URL.createObjectURL(blob);
+    }
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc=window.__pdfWorkerUrl;
+    const buf=await f.arrayBuffer();
+    const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+    let out="";
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const tc=await page.getTextContent();
+      out+=(tc.items||[]).map(it=>it.str||"").join(" ")+"\n";
+    }
+    return {ok:true,text:out};
+  }
+  if(DISTILL_TEXT_EXT[ext]){
+    const t=await readFileAsText(f);
+    return {ok:true,text:t};
+  }
+  return {ok:false,msg:"不支持的文件格式："+(ext||"?")+"（支持 word/pdf/txt/md 等）"};
+}
+function renderDistillFiles(){
+  const box=$("distillFiles");
+  if(!distillFiles.length){
+    box.style.display="none";
+    $("distillClear").style.display="none";
+    return;
+  }
+  box.style.display="";
+  $("distillClear").style.display="";
+  box.innerHTML="";
+  distillFiles.forEach((df,i)=>{
+    const d=document.createElement("div");
+    d.className="skill-item";
+    d.innerHTML='<div class="si-main"><div class="si-name">'+esc(df.name)+'</div><div class="si-desc">'+(df.error?"<span style='color:var(--danger)'>"+esc(df.error)+"</span>":(df.text?"已解析 "+df.text.length+" 字":"解析中…"))+'</div></div>';
+    const rm=document.createElement("button");
+    rm.textContent="移除";
+    rm.addEventListener("click",()=>{
+      distillFiles.splice(i,1);
+      renderDistillFiles();
+    });
+    d.appendChild(rm);
+    box.appendChild(d);
+  });
+}
+$("distillPick").addEventListener("click",()=>$("distillFile").click());
+$("distillFile").addEventListener("change",async e=>{
+  const files=[...e.target.files];
+  e.target.value="";
+  if(!files.length)return;
+  for(const f of files){
+    const item={name:f.name,size:f.size,text:"",error:""};
+    distillFiles.push(item);
+    renderDistillFiles();
+    try{
+      const r=await parseDistillFile(f);
+      if(r.ok){item.text=(r.text||"").slice(0,40000);}
+      else item.error=r.msg;
+    }catch(err){
+      item.error=err.message||String(err);
+    }
+    renderDistillFiles();
+  }
+});
+$("distillClear").addEventListener("click",()=>{
+  distillFiles=[];
+  $("distillResult").value="";
+  $("distillResult").style.display="none";
+  $("distillResultBtns").style.display="none";
+  $("distillRun").style.display="";
+  $("distillRun").textContent="开始蒸馏";
+  renderDistillFiles();
+});
+$("distillRun").addEventListener("click",async()=>{
+  const texts=distillFiles.filter(df=>df.text&&!df.error);
+  const bad=distillFiles.filter(df=>df.error);
+  if(!texts.length){toast(bad.length?"所选文档均无法解析，请检查格式":"请先选择文档",true);return;}
+  const s=effectiveSettings(null);
+  const base=s.baseURL||PROVIDERS[s.provider].base;
+  const apiKey=s.apiKey||"";
+  const model=s.model||PROVIDERS[s.provider].model||"";
+  if(!base||!model||!apiKey){toast("请先在「设置」中配置 API Key 与模型",true,4000);return;}
+  let doc="";
+  for(const df of texts){
+    doc+="\n\n===== 文档："+df.name+" =====\n"+(df.text||"").slice(0,30000);
+    if(doc.length>90000)break;
+  }
+  const sys="你是文档蒸馏专家。请把用户提供的文档内容蒸馏成一份可直接使用的技能说明书，严格按以下 SKILL.md 格式输出：\n"+
+    "---\nname: 技能英文短名（小写、中横线连接）\ndescription: 一句话中文说明该技能适用场景\n---\n\n# 技能名\n\n"+
+    "正文需包含：【执行流程】分步骤说明、【要点与规范】关键注意事项；精炼可执行；保留关键数据、结论、步骤与代码示例；删除寒暄与冗余；正文用中文。";
+  const payload={model,messages:[{role:"system",content:sys},{role:"user",content:"以下是要蒸馏的文档内容（"+texts.length+" 个文件）：\n"+doc.slice(0,120000)}],stream:true,temperature:0.4};
+  const box=$("distillResult"),runBtn=$("distillRun"),saveBtns=$("distillResultBtns");
+  box.value="";
+  box.style.display="";
+  runBtn.style.display="none";
+  saveBtns.style.display="";
+  runBtn.textContent="蒸馏中…";
+  distillRunAbort=new AbortController();
+  try{
+    await streamChat(base,apiKey,payload,{
+      onReasoning:t=>{},
+      onDelta:t=>{box.value+=t;box.scrollTop=box.scrollHeight;}
+    },distillRunAbort.signal);
+  }catch(err){
+    if(err.name!=="AbortError")toast("蒸馏失败："+(err.message||String(err)),true,5000);
+  }finally{
+    distillRunAbort=null;
+    runBtn.style.display="";
+    runBtn.textContent="重新蒸馏";
+  }
+});
+$("distillRe").addEventListener("click",()=>{
+  $("distillResult").value="";
+  $("distillRun").click();
+});
+$("distillSave").addEventListener("click",()=>{
+  const text=$("distillResult").value.trim();
+  if(!text){toast("没有可保存的内容",true);return;}
+  try{
+    const sk=importSkillText(text);
+    $("distillResult").value="";
+    $("distillResult").style.display="none";
+    $("distillResultBtns").style.display="none";
+    $("distillRun").textContent="开始蒸馏";
+    toast("技能「"+sk.name+"」已保存进技能库");
+    renderSkillList();
+    renderSkillSide();
+    renderSkillDetail();
+  }catch(err){
+    toast(err.message||"保存失败",true,4000);
   }
 });
 
