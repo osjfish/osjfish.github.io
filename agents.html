@@ -417,6 +417,7 @@ textarea{resize:vertical}
         <button class="btn-add" id="distillPick" style="justify-content:flex-start">＋ 选择文档文件…</button>
         <input type="file" id="distillFile" accept=".doc,.docx,.pdf,.txt,.md,.log,.json,.csv,.js,.py,.html,.css,.xml,.yml,.yaml,.ts,.jsx,.tsx,text/markdown,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple style="display:none">
         <div class="skill-list" id="distillFiles" style="max-height:130px;display:none"></div>
+        <div id="distillScanTip" style="display:none;margin-top:8px;font-size:12px;color:var(--text2);line-height:1.6">扫描版 PDF 无文字层：可点「OCR 识别」内置识别（首次需下载中文语言包，较慢）；或用微信/QQ 截图识别、白描、WPS、Adobe Acrobat 等工具转成文字，导出 .txt/.md 再导入。</div>
         <input id="distillPrompt" placeholder="蒸馏要求（可选）：如「面向新手、重点保留操作步骤与代码示例」…" style="margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;width:100%;box-sizing:border-box;outline:none">
         <div class="row2" style="margin-top:8px">
           <button class="btn-add" id="distillRun">开始蒸馏</button>
@@ -2041,6 +2042,7 @@ async function parseDistillFile(f){
       const tc=await page.getTextContent();
       out+=(tc.items||[]).map(it=>it.str||"").join(" ")+"\n";
     }
+    if((out||"").replace(/\s/g,"").length<30)return {ok:true,text:"",scan:true};
     return {ok:true,text:out};
   }
   if(DISTILL_TEXT_EXT[ext]){
@@ -2048,6 +2050,49 @@ async function parseDistillFile(f){
     return {ok:true,text:t};
   }
   return {ok:false,msg:"不支持的文件格式："+(ext||"?")+"（支持 word/pdf/txt/md 等）"};
+}
+async function ocrDistillFile(item){
+  if(item.ocr==="running")return;
+  try{
+    await loadScriptLib("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
+    await loadScriptLib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
+    item.ocr="running";
+    renderDistillFiles();
+    setDistillStatus("OCR 识别中：「"+item.name+"」首次需下载中文语言包（约 20MB），请耐心等待…",0);
+    const worker=await window.Tesseract.createWorker("chi_sim+eng",1,{logger:m=>{
+      if(m.status==="recognizing text"&&typeof m.progress==="number"){
+        const pct=Math.round(m.progress*100);
+        if(pct%5===0)setDistillStatus("OCR 识别中：「"+item.name+"」第 "+(m.page||"?")+" 页，进度 "+pct+"%…",0);
+      }
+    }});
+    const buf=await item.file.arrayBuffer();
+    const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+    let out="";
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const viewport=page.getViewport({scale:2});
+      const canvas=document.createElement("canvas");
+      canvas.width=viewport.width;
+      canvas.height=viewport.height;
+      const ctx=canvas.getContext("2d");
+      await page.render({canvasContext:ctx,viewport}).promise;
+      setDistillStatus("OCR 识别中：「"+item.name+"」第 "+p+"/"+pdf.numPages+" 页…",0);
+      const {data}=await worker.recognize(canvas);
+      out+=(data.text||"")+"\n";
+    }
+    await worker.terminate();
+    item.text=(out||"").slice(0,1000000);
+    item.scan=false;
+    item.ocr="done";
+    renderDistillFiles();
+    setDistillStatus("OCR 完成：「"+item.name+"」已识别 "+(item.text||"").length+" 字，可开始蒸馏",1);
+    toast("OCR 完成："+item.name);
+  }catch(err){
+    item.ocr="fail";
+    item.error=err.message||String(err);
+    renderDistillFiles();
+    setDistillStatus("OCR 失败："+(err.message||String(err)),2);
+  }
 }
 function renderDistillFiles(){
   const box=$("distillFiles");
@@ -2058,11 +2103,24 @@ function renderDistillFiles(){
   }
   box.style.display="";
   $("distillClear").style.display="";
+  $("distillScanTip").style.display=distillFiles.some(df=>df.scan&&df.ocr!=="done")?"":"none";
   box.innerHTML="";
   distillFiles.forEach((df,i)=>{
     const d=document.createElement("div");
     d.className="skill-item";
-    d.innerHTML='<div class="si-main"><div class="si-name">'+esc(df.name)+'</div><div class="si-desc">'+(df.error?"<span style='color:var(--danger)'>"+esc(df.error)+"</span>":(df.text?"已解析 "+df.text.length+" 字":"解析中…"))+'</div></div>';
+    let desc;
+    if(df.error)desc="<span style='color:var(--danger)'>"+esc(df.error)+"</span>";
+    else if(df.ocr==="running")desc="<span style='color:var(--text2)'>OCR 识别中…</span>";
+    else if(df.scan)desc="<span style='color:#c78f2a'>扫描版 PDF（无文字层）</span>";
+    else if(df.text)desc="已解析 "+df.text.length+" 字";
+    else desc="解析中…";
+    d.innerHTML='<div class="si-main"><div class="si-name">'+esc(df.name)+'</div><div class="si-desc">'+desc+'</div></div>';
+    if(df.scan&&df.ocr!=="running"){
+      const ocr=document.createElement("button");
+      ocr.textContent=df.ocr==="done"?"已识别": "OCR 识别";
+      ocr.addEventListener("click",()=>ocrDistillFile(df));
+      d.appendChild(ocr);
+    }
     const rm=document.createElement("button");
     rm.textContent="移除";
     rm.addEventListener("click",()=>{
@@ -2084,7 +2142,7 @@ $("distillFile").addEventListener("change",async e=>{
     renderDistillFiles();
     try{
       const r=await parseDistillFile(f);
-      if(r.ok){item.text=(r.text||"").slice(0,1000000);}
+      if(r.ok){item.text=(r.text||"").slice(0,1000000);item.scan=!!r.scan;item.file=f;}
       else item.error=r.msg;
     }catch(err){
       item.error=err.message||String(err);
