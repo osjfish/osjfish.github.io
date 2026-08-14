@@ -417,6 +417,7 @@ textarea{resize:vertical}
         <button class="btn-add" id="distillPick" style="justify-content:flex-start">＋ 选择文档文件…</button>
         <input type="file" id="distillFile" accept=".doc,.docx,.pdf,.txt,.md,.log,.json,.csv,.js,.py,.html,.css,.xml,.yml,.yaml,.ts,.jsx,.tsx,text/markdown,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple style="display:none">
         <div class="skill-list" id="distillFiles" style="max-height:130px;display:none"></div>
+        <input id="distillPrompt" placeholder="蒸馏要求（可选）：如「面向新手、重点保留操作步骤与代码示例」…" style="margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;width:100%;box-sizing:border-box;outline:none">
         <div class="row2" style="margin-top:8px">
           <button class="btn-add" id="distillRun">开始蒸馏</button>
           <button class="btn-add" id="distillClear" style="display:none">清空文档</button>
@@ -2130,7 +2131,9 @@ $("distillRun").addEventListener("click",async()=>{
   const sys="你是文档蒸馏专家。请把用户提供的文档内容蒸馏成一份可直接使用的技能说明书，严格按以下 SKILL.md 格式输出：\n"+
     "---\nname: 技能英文短名（小写、中横线连接）\ndescription: 一句话中文说明该技能适用场景\n---\n\n# 技能名\n\n"+
     "正文需包含：【执行流程】分步骤说明、【要点与规范】关键注意事项；精炼可执行；保留关键数据、结论、步骤与代码示例；删除寒暄与冗余；正文用中文。";
-  const payload={model,messages:[{role:"system",content:sys},{role:"user",content:"以下是要蒸馏的文档内容（"+texts.length+" 个文件）：\n"+doc.slice(0,1000000)}],stream:true,temperature:0.4};
+  const want=$("distillPrompt").value.trim();
+  const userMsg=(want?"用户的额外蒸馏要求（必须优先满足）："+want+"\n\n":"")+"以下是要蒸馏的文档内容（"+texts.length+" 个文件）：\n"+doc.slice(0,1000000);
+  const payload={model,messages:[{role:"system",content:sys},{role:"user",content:userMsg}],stream:true,temperature:0.4};
   const box=$("distillResult"),runBtn=$("distillRun"),saveBtns=$("distillResultBtns");
   box.value="";
   box.style.display="";
