@@ -2083,7 +2083,7 @@ $("distillFile").addEventListener("change",async e=>{
     renderDistillFiles();
     try{
       const r=await parseDistillFile(f);
-      if(r.ok){item.text=(r.text||"").slice(0,40000);}
+      if(r.ok){item.text=(r.text||"").slice(0,1000000);}
       else item.error=r.msg;
     }catch(err){
       item.error=err.message||String(err);
@@ -2101,6 +2101,9 @@ $("distillClear").addEventListener("click",()=>{
   setDistillStatus("",0);
   renderDistillFiles();
 });
+function fmtSize(n){
+  return n>=1000000?(n/1000000).toFixed(1)+"MB":(n/1000|0)+"KB";
+}
 function setDistillStatus(msg,type){
   const st=$("distillStatus");
   if(!msg){st.style.display="none";return;}
@@ -2121,13 +2124,13 @@ $("distillRun").addEventListener("click",async()=>{
   if(!base||!model||!apiKey){toast("请先在「设置」中配置 API Key 与模型",true,4000);return;}
   let doc="";
   for(const df of texts){
-    doc+="\n\n===== 文档："+df.name+" =====\n"+(df.text||"").slice(0,30000);
-    if(doc.length>90000)break;
+    doc+="\n\n===== 文档："+df.name+" =====\n"+(df.text||"").slice(0,1000000);
+    if(doc.length>1000000)break;
   }
   const sys="你是文档蒸馏专家。请把用户提供的文档内容蒸馏成一份可直接使用的技能说明书，严格按以下 SKILL.md 格式输出：\n"+
     "---\nname: 技能英文短名（小写、中横线连接）\ndescription: 一句话中文说明该技能适用场景\n---\n\n# 技能名\n\n"+
     "正文需包含：【执行流程】分步骤说明、【要点与规范】关键注意事项；精炼可执行；保留关键数据、结论、步骤与代码示例；删除寒暄与冗余；正文用中文。";
-  const payload={model,messages:[{role:"system",content:sys},{role:"user",content:"以下是要蒸馏的文档内容（"+texts.length+" 个文件）：\n"+doc.slice(0,120000)}],stream:true,temperature:0.4};
+  const payload={model,messages:[{role:"system",content:sys},{role:"user",content:"以下是要蒸馏的文档内容（"+texts.length+" 个文件）：\n"+doc.slice(0,1000000)}],stream:true,temperature:0.4};
   const box=$("distillResult"),runBtn=$("distillRun"),saveBtns=$("distillResultBtns");
   box.value="";
   box.style.display="";
@@ -2135,7 +2138,7 @@ $("distillRun").addEventListener("click",async()=>{
   saveBtns.style.display="";
   runBtn.textContent="重新蒸馏";
   distillRunAbort=new AbortController();
-  setDistillStatus("蒸馏中：正在把 "+texts.length+" 个文档（约 "+(doc.length/1000|0)+"KB）提炼为 SKILL.md，请稍候…",0);
+  setDistillStatus("蒸馏中：正在把 "+texts.length+" 个文档（约 "+fmtSize(doc.length)+"）提炼为 SKILL.md，请稍候…",0);
   let done=false;
   try{
     await streamChat(base,apiKey,payload,{
