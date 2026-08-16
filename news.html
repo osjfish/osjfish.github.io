@@ -42,6 +42,7 @@
   .h-btn:disabled{opacity:.45;cursor:default}
   .h-btn .sp{width:12px;height:12px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot 1s linear infinite;display:none}
   .h-btn.loading .sp{display:inline-block}
+  .h-btn.on{background:var(--zhu-light);border-color:var(--zhu-light)}
   @keyframes rot{to{transform:rotate(360deg)}}
   .search-bar{padding:0}
   .search-bar input{
@@ -98,6 +99,7 @@
   .item:nth-child(3) .rank{background:linear-gradient(135deg,#f1c40f,#B8860B);color:#fff}
   .item-body{flex:1;min-width:0}
   .item-title{font-size:14px;line-height:1.5;color:#333A45;word-break:break-word}
+  .tr-badge{display:inline-block;font-size:9px;line-height:1;padding:2px 5px;border-radius:6px;background:var(--zhu-soft);color:var(--zhu);margin-left:7px;vertical-align:2px;letter-spacing:1px;font-weight:700}
   .item:hover .item-title{color:var(--zhu)}
   .item-sub{display:flex;align-items:center;gap:7px;margin-top:7px;flex-wrap:wrap}
   .src-badge{font-size:10px;padding:2px 9px;border-radius:10px;color:#fff;letter-spacing:.5px;flex-shrink:0}
@@ -130,6 +132,7 @@
           <div class="h-title">热点<span>聚合</span></div>
           <div class="h-time" id="updateTime">数据加载中…</div>
         </div>
+        <button class="h-btn" id="trBtn" title="把英文热点翻译成中文">翻译</button>
         <button class="h-btn" id="refreshBtn" title="刷新数据">刷新</button>
       </div>
       <div class="search-bar">
@@ -150,7 +153,7 @@
   </div>
 
   <div class="foot">
-    <div>数据由定时任务自动聚合自公开来源，每 30 分钟自动更新，仅供学习参考。来源：</div>
+    <div>数据由定时任务自动聚合自公开来源，每 30 分钟自动更新，仅供学习参考；英文热点可点顶部「翻译」一键转中文。来源：</div>
     <div id="srcTags"></div>
     <div style="margin-top:8px"><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鄂ICP备2026024789号</a> · <a href="https://beian.mps.gov.cn/#/query/webSearch?code=42010402001734" target="_blank" rel="noreferrer">鄂公网安备42010402001734号</a></div>
   </div>
@@ -162,6 +165,70 @@
   let data=null, cat='all', src=null, query='';
 
   const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const isZh = t => /[\u4e00-\u9fff]/.test(String(t||''));
+  let trOn = localStorage.getItem('news_tr_on')==='1';
+  let trFail = 0, translating = false;
+  let trCache = {};
+  try{ trCache = JSON.parse(localStorage.getItem('news_tr_cache')||'{}')||{}; }catch(e){}
+  function saveTrCache(){
+    try{
+      const keys=Object.keys(trCache);
+      if(keys.length>600){
+        keys.sort((a,b)=>(trCache[a].ts||0)-(trCache[b].ts||0));
+        keys.slice(0,keys.length-600).forEach(k=>delete trCache[k]);
+      }
+      localStorage.setItem('news_tr_cache',JSON.stringify(trCache));
+    }catch(e){}
+  }
+  function cachedTr(t){ const c=trCache['t:'+t]; return c&&c.t?c.t:null; }
+  async function translateOne(text){
+    if(cachedTr(text)) return true;
+    try{
+      const r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair=en%7Czh-CN');
+      const j=await r.json();
+      const tr=j&&j.responseData&&j.responseData.translatedText;
+      if(tr && tr!==text){
+        trCache['t:'+text]={t:tr,ts:Date.now()};
+        saveTrCache();
+        return true;
+      }
+    }catch(e){}
+    return false;
+  }
+  function currentTitles(){
+    if(!data) return [];
+    if(src) return data.items.filter(it=>it.source===src).map(it=>it.title);
+    const keys = cat==='all' ? null : srcsOf(cat);
+    return mergeAll(keys).map(o=>o.item.title);
+  }
+  async function translateVisible(){
+    if(!data || translating) return;
+    const titles=[...new Set(currentTitles().filter(t=>t&&!isZh(t)))];
+    const pending=titles.filter(t=>!cachedTr(t));
+    const btn=$('#trBtn');
+    if(!pending.length){ trFail=0; render(); return; }
+    translating=true; trFail=0;
+    btn.classList.add('loading'); btn.disabled=true;
+    let idx=0, fail=0;
+    const worker=async()=>{
+      while(idx<pending.length){
+        const t=pending[idx++];
+        if(!(await translateOne(t))) fail++;
+      }
+    };
+    await Promise.all([worker(),worker(),worker(),worker()]);
+    translating=false; trFail=fail;
+    btn.classList.remove('loading'); btn.disabled=false;
+    render();
+  }
+  function displayTitle(it){
+    if(trOn && it.title && !isZh(it.title)){
+      const tr=cachedTr(it.title);
+      if(tr) return tr;
+    }
+    return it.title;
+  }
 
   function normTitle(t){
     return String(t||'').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
@@ -274,7 +341,14 @@
     const scopeName = src ? getSrcInfo(src).name
       : (cat==='all' ? '全网' : cat);
     const srcCount = src ? 1 : (cat==='all' ? Object.keys(data.sources).length : srcsOf(cat).length);
-    $('#meta').innerHTML='<span class="dot"></span>'+esc(scopeName)+'热点 · '+items.length+' 条'+(merged?' · 聚合 '+srcCount+' 个来源':'');
+    let trNote='';
+    if(trOn){
+      const titles=[...new Set(items.map(o=>{const it=o.srcs?o.item:o;return it.title;}).filter(t=>t&&!isZh(t)))];
+      const done=titles.filter(t=>cachedTr(t)).length;
+      trNote=' · 译 '+done+'/'+titles.length;
+      if(trFail && done<titles.length) trNote+='（部分受接口限流，稍后重试）';
+    }
+    $('#meta').innerHTML='<span class="dot"></span>'+esc(scopeName)+'热点 · '+items.length+' 条'+(merged?' · 聚合 '+srcCount+' 个来源':'')+trNote;
     if(!items.length){
       $('#list').innerHTML='<div class="empty">'+(query?'没有匹配「'+esc(query)+'」的热点':'该分类暂无数据')+'</div>';
       return;
@@ -283,10 +357,12 @@
       const it = o.srcs ? o.item : o;
       const heat=fmtHot(o.hot!=null?o.hot:it.hot);
       const t=fmtTime(it.time);
+      const wantTr = trOn && it.title && !isZh(it.title);
+      const trText = wantTr ? cachedTr(it.title) : null;
       return '<a class="item" href="'+esc(it.url||'#')+'" target="_blank" rel="noopener">'+
         '<div class="rank">'+(i+1)+'</div>'+
         '<div class="item-body">'+
-          '<div class="item-title">'+esc(it.title)+'</div>'+
+          '<div class="item-title"'+(wantTr?' title="'+esc(it.title)+'"':'')+'>'+esc(trText||it.title)+(trText?'<span class="tr-badge">译</span>':'')+'</div>'+
           '<div class="item-sub">'+
             (o.srcs? badges(o) : '<span class="src-badge" style="background:'+esc(getSrcInfo(it.source).color)+'">'+esc(getSrcInfo(it.source).name)+'</span>')+
             (heat?'<span class="heat">热度 <b>'+heat+'</b></span>':'')+
@@ -315,7 +391,7 @@
     btn.classList.add('loading'); btn.disabled=true;
     fetch('./news_data.json?t='+Date.now())
       .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
-      .then(d=>{ data=d; setUpdated(); renderTags(); render(); })
+      .then(d=>{ data=d; setUpdated(); renderTags(); render(); if(trOn) translateVisible(); })
       .catch(()=>{ $('#list').innerHTML='<div class="empty">数据加载失败，请稍后重试</div>'; })
       .finally(()=>{ btn.classList.remove('loading'); btn.disabled=false; });
   }
@@ -330,6 +406,16 @@
 
   $('#refreshBtn').addEventListener('click',refresh);
   $('#searchInput').addEventListener('input',function(){ query=this.value.trim().toLowerCase(); render(); });
+
+  const trBtn=$('#trBtn');
+  if(trOn){ trBtn.classList.add('on'); trBtn.textContent='原文'; }
+  trBtn.addEventListener('click',function(){
+    trOn=!trOn;
+    localStorage.setItem('news_tr_on',trOn?'1':'0');
+    this.classList.toggle('on',trOn);
+    this.textContent=trOn?'原文':'翻译';
+    if(trOn) translateVisible(); else render();
+  });
 
   refresh();
   setInterval(refresh,5*60*1000);
