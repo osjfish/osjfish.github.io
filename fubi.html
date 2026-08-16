@@ -99,11 +99,12 @@ body{
 .mini .bu{font-size:13px;font-weight:700;font-family:"KaiTi","STKaiti","SimSun",serif}
 .mini .nm{font-size:11px;color:var(--ink2)}
 .badge{
-  position:absolute;top:6px;right:6px;font-size:9.5px;color:#fff;
+  font-size:9.5px;color:#fff;
   background:var(--gold);border-radius:3px;padding:1px 6px;letter-spacing:1px;
   font-family:"KaiTi","STKaiti","SimSun",serif;font-weight:700;
 }
 .badge.you{background:var(--zhu)}
+.tags{display:flex;gap:4px;margin-left:auto;align-items:center}
 .bar{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:10.5px;color:var(--ink2)}
 .bar .lab{width:22px;flex:none;letter-spacing:1px;font-weight:700}
 .bar .track{flex:1;height:7px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden}
@@ -581,7 +582,7 @@ function endGame(res,why){
 
 /* ---------- 渲染 ---------- */
 function renderTop(){
-  $('tbYear').textContent=S.year+'/'+S.maxYear;
+  $('tbYear').textContent='建文 '+S.year+'/'+S.maxYear+'年';
   $('tbGuo').textContent='◈'+S.guo;
   $('tbGuo').className='val '+(S.guo>=8?'good':S.guo<=2?'warn':'');
   const L=leader();
@@ -594,9 +595,9 @@ function renderCourt(){
   $('court').innerHTML=S.players.map(p=>{
     const menDots=Array.from({length:4},(_,i)=>`<span class="m ${i<p.men?'':'off'}"></span>`).join('');
     return `<div class="mini ${p.isLeader?'leader':''} ${p.dead?'dead':''} ${p.isPlayer?'you':''}">
-      ${p.isLeader?'<span class="badge">首辅</span>':''}${p.isPlayer?'<span class="badge you">你</span>':''}
       <div class="top"><div class="seal">${p.bu}</div>
-        <div class="who"><div class="bu">${DEPT[p.bu]}尚书</div><div class="nm">${p.name}${p.dead?'（罢官）':''}</div></div></div>
+        <div class="who"><div class="bu">${DEPT[p.bu]}尚书</div><div class="nm">${p.name}${p.dead?'（罢官）':''}</div></div>
+        ${p.isLeader||p.isPlayer?`<div class="tags">${p.isLeader?'<span class="badge">首辅</span>':''}${p.isPlayer?'<span class="badge you">你</span>':''}</div>`:''}</div>
       <div class="bar"><span class="lab">圣眷</span><div class="track"><div class="fill fav" style="width:${p.fav*10}%"></div></div><span class="num">${p.fav}</span></div>
       <div class="bar"><span class="lab">官声</span><div class="track"><div class="fill rep" style="width:${p.rep*10}%"></div></div><span class="num">${p.rep}</span></div>
       <div class="men">门生 ${menDots}${p.men>0?'<span style="margin-left:auto;color:var(--gold);font-weight:700">×'+p.men+'</span>':''}</div>
@@ -614,7 +615,7 @@ function renderHand(){
     if(!c)return;
     const deptCol = c.kind==='弹劾'?'red':'';
     html+=`<div class="card ${selCard===id?'sel':''}" onclick="pickCard('${id}')">
-      <span class="cdept ${deptCol}">${c.kind} · ${c.dept==='廷'?'通政':DEPT[c.dept]}${c.dept==='察'?'·都察院':''}</span>
+      <span class="cdept ${deptCol}">${c.kind} · ${c.dept==='廷'?'通政':c.dept==='察'?'都察院':DEPT[c.dept]}</span>
       <div class="cname">${c.name}</div>
       <div class="cdesc">${c.desc}</div>
       <div class="ceff">${c.eff}</div>
