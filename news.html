@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>热点聚合</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --zhu:#A93226;--zhu-light:#C0392B;
+    --xuan:#FDF6E3;--xuan-dark:#F5E6C8;
+    --shui:#2C3E50;--shui-light:#34495E;
+    --gold:#B8860B;--muted:#8a8279;
+  }
+  html{scrollbar-color:#c8bfa8 transparent}
+  body{
+    font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--xuan);color:var(--shui);min-height:100vh;
+  }
+  .header{
+    background:var(--shui);padding:14px 18px 12px;position:sticky;top:0;z-index:100;
+    box-shadow:0 2px 12px rgba(0,0,0,.18);
+  }
+  .h-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .back{
+    color:var(--xuan);text-decoration:none;font-size:20px;line-height:1;
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    border-radius:8px;flex-shrink:0;transition:background .2s;
+  }
+  .back:hover{background:rgba(255,255,255,.1)}
+  .h-title{font-size:17px;font-weight:700;color:var(--xuan);letter-spacing:2px;flex:1;white-space:nowrap;overflow:hidden}
+  .h-title span{color:var(--zhu-light)}
+  .h-time{font-size:11px;color:rgba(255,255,255,.55);font-weight:400;letter-spacing:0}
+  .h-btns{display:flex;gap:8px}
+  .h-btn{
+    border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);
+    color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;
+    display:flex;align-items:center;gap:5px;transition:all .2s;white-space:nowrap;
+  }
+  .h-btn:hover{background:rgba(255,255,255,.14)}
+  .h-btn.ai{border-color:var(--zhu-light);background:var(--zhu-light);color:#fff}
+  .h-btn.ai:hover{background:#C0392B}
+  .h-btn:disabled{opacity:.45;cursor:default}
+  .h-btn .sp{width:12px;height:12px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot 1s linear infinite;display:none}
+  .h-btn.loading .sp{display:inline-block}
+  @keyframes rot{to{transform:rotate(360deg)}}
+
+  .search-bar{padding:0 18px}
+  .search-bar input{
+    width:100%;padding:8px 12px;border:1px solid rgba(255,255,255,.15);border-radius:8px;
+    background:rgba(255,255,255,.08);color:#fff;font-size:13px;outline:none;transition:border-color .2s;
+  }
+  .search-bar input::placeholder{color:rgba(255,255,255,.35)}
+  .search-bar input:focus{border-color:var(--zhu)}
+
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 18px;position:sticky;top:96px;background:var(--xuan);z-index:50;
+    scrollbar-width:none;border-bottom:1px solid rgba(0,0,0,.05)}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;
+    border:1px solid var(--xuan-dark);background:#fff;color:var(--shui-light);
+    transition:all .2s;display:flex;align-items:center;gap:6px;
+  }
+  .tab:hover{border-color:var(--zhu)}
+  .tab.act{background:var(--shui);color:#fff;border-color:var(--shui)}
+  .tab .cnt{font-size:11px;opacity:.55}
+
+  .main{padding:6px 18px 48px;max-width:860px;margin:0 auto}
+  .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:12px 2px 4px;flex-wrap:wrap}
+  .meta .dot{width:4px;height:4px;border-radius:50%;background:var(--zhu);opacity:.6}
+
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{
+    display:flex;align-items:flex-start;gap:10px;background:#fff;border-radius:10px;
+    padding:11px 12px;cursor:pointer;text-decoration:none;color:inherit;
+    border:1px solid rgba(0,0,0,.04);box-shadow:0 1px 3px rgba(44,62,80,.05);
+    transition:transform .15s,box-shadow .2s,border-color .2s;position:relative;overflow:hidden;
+  }
+  .item:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(44,62,80,.1);border-color:rgba(44,62,80,.15)}
+  .rank{
+    width:26px;height:26px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:var(--muted);background:#f0ece0;margin-top:1px;
+  }
+  .item:nth-child(1) .rank{background:var(--zhu);color:#fff}
+  .item:nth-child(2) .rank{background:var(--zhu-light);color:#fff}
+  .item:nth-child(3) .rank{background:var(--gold);color:#fff}
+  .item-body{flex:1;min-width:0}
+  .item-title{font-size:14px;line-height:1.5;color:#333A45;word-break:break-all}
+  .item:hover .item-title{color:var(--zhu)}
+  .item-sub{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+  .src-badge{font-size:10px;padding:2px 8px;border-radius:10px;color:#fff;letter-spacing:.5px}
+  .heat{font-size:11px;color:var(--muted)}
+  .heat b{color:var(--zhu-light);font-weight:600}
+  .time{font-size:11px;color:#b6ad98}
+
+  .empty{text-align:center;color:var(--muted);padding:60px 0;font-size:13px}
+  .loading-box{text-align:center;color:var(--muted);padding:60px 0;font-size:13px}
+
+  .foot{padding:14px 18px;font-size:11px;color:#b6ad98;line-height:1.8;max-width:860px;margin:0 auto}
+  .foot a{color:var(--muted);text-decoration:none}
+
+  .modal-mask{position:fixed;inset:0;background:rgba(44,62,80,.55);z-index:200;display:none;align-items:flex-end;justify-content:center}
+  .modal-mask.show{display:flex}
+  .modal{
+    background:var(--xuan);width:100%;max-width:680px;max-height:90vh;border-radius:16px 16px 0 0;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,.25);
+  }
+  @media(min-width:720px){.modal-mask{align-items:center;padding:20px}.modal{border-radius:16px;max-height:85vh}}
+  .m-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(0,0,0,.06)}
+  .m-head h3{font-size:16px;color:var(--shui);letter-spacing:1px}
+  .m-close{width:30px;height:30px;border:none;background:var(--xuan-dark);color:var(--shui);border-radius:8px;cursor:pointer;font-size:15px;line-height:1}
+  .m-body{padding:16px 20px;overflow-y:auto;flex:1}
+  .m-foot{padding:14px 20px;border-top:1px solid rgba(0,0,0,.06);display:flex;gap:10px;align-items:center}
+
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--shui-light);margin-bottom:6px;font-weight:600}
+  .field input,.field select{
+    width:100%;padding:9px 12px;border:1px solid var(--xuan-dark);border-radius:8px;
+    background:#fff;font-size:13px;color:var(--shui);outline:none;
+  }
+  .field input:focus,.field select:focus{border-color:var(--zhu)}
+  .hint{font-size:11px;color:var(--muted);line-height:1.7}
+  .hint a{color:var(--zhu-light);text-decoration:none}
+
+  .btn-main{
+    background:var(--zhu);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;
+    cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s;letter-spacing:1px;
+  }
+  .btn-main:hover{background:var(--zhu-light)}
+  .btn-main:disabled{opacity:.5;cursor:default}
+  .btn-main .sp{width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot 1s linear infinite;display:none}
+  .btn-main.loading .sp{display:inline-block}
+
+  .digest{white-space:pre-wrap;font-size:13px;line-height:1.9;color:#333A45;word-break:break-word}
+  .digest h1,.digest h2,.digest h3{margin:14px 0 6px;color:var(--shui);font-size:15px;line-height:1.5}
+  .digest h2{border-left:3px solid var(--zhu);padding-left:8px}
+  .digest strong{color:var(--shui)}
+  .digest ul,.digest ol{margin:4px 0 8px;padding-left:20px}
+  .digest li{margin:3px 0}
+  .digest code{background:var(--xuan-dark);padding:1px 6px;border-radius:4px;font-size:12px}
+  .digest blockquote{border-left:3px solid var(--zhu-light);background:var(--xuan-dark);margin:8px 0;padding:6px 12px;color:var(--shui-light)}
+  .digest-error{color:var(--zhu);font-size:12px;padding:8px;background:#fbe9e7;border-radius:8px;margin-top:10px}
+
+  @media(max-width:480px){
+    .header{padding:12px 12px 10px}
+    .tabs{padding:10px 12px;top:88px}
+    .main{padding:4px 12px 40px}
+    .h-btn{font-size:11px;padding:6px 9px}
+    .h-title{font-size:15px}
+    .item{padding:10px}
+    .m-body,.m-head,.m-foot{padding-left:14px;padding-right:14px}
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="h-top">
+      <a class="back" href="./index.html" title="返回导航">&larr;</a>
+      <div style="flex:1;min-width:0">
+        <div class="h-title">热点<span>聚合</span></div>
+        <div class="h-time" id="updateTime">数据加载中…</div>
+      </div>
+      <div class="h-btns">
+        <button class="h-btn" id="refreshBtn" title="刷新数据">刷新</button>
+        <button class="h-btn ai" id="aiBtn" title="用千问模型解读今日热点">千问解读</button>
+      </div>
+    </div>
+    <div class="search-bar">
+      <input type="search" id="searchInput" placeholder="搜索热点…" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="main">
+    <div class="meta" id="meta"></div>
+    <div class="list" id="list">
+      <div class="loading-box">正在加载热点数据…</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div>数据由定时任务自动聚合自公开来源（百度热搜、头条热榜、B站、新浪新闻、IT之家、cnBeta、少数派、爱范儿等），每 30 分钟自动更新，仅供学习参考。</div>
+    <div><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">鄂ICP备2026024789号</a> · <a href="https://beian.mps.gov.cn/#/query/webSearch?code=42010402001734" target="_blank" rel="noreferrer">鄂公网安备42010402001734号</a></div>
+  </div>
+
+  <div class="modal-mask" id="aiModal">
+    <div class="modal">
+      <div class="m-head">
+        <h3>千问解读今日热点</h3>
+        <button class="m-close" id="aiClose">&times;</button>
+      </div>
+      <div class="m-body">
+        <div class="field">
+          <label>通义千问 API Key</label>
+          <input type="password" id="qwenKey" placeholder="sk-…" autocomplete="new-password">
+          <div class="hint" style="margin-top:5px">仅保存在本机浏览器，不会上传。没有 Key 可在 <a href="https://dashscope.console.aliyun.com/" target="_blank" rel="noopener">阿里云百炼控制台</a> 免费申请。</div>
+        </div>
+        <div class="field">
+          <label>模型</label>
+          <select id="qwenModel">
+            <option value="qwen-plus">qwen-plus（推荐，均衡）</option>
+            <option value="qwen-max">qwen-max（最强）</option>
+            <option value="qwen-turbo">qwen-turbo（最快）</option>
+            <option value="qwen-flash">qwen-flash（轻量）</option>
+            <option value="qwen-long">qwen-long（长文本）</option>
+          </select>
+        </div>
+        <div class="digest" id="digestArea"></div>
+      </div>
+      <div class="m-foot">
+        <button class="btn-main" id="digestBtn">生成解读</button>
+        <div class="hint">将聚合今日全网 Top 20 热点，由千问整理为分类解读与点评。</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const LS_KEY='news_qwen_key', LS_MODEL='news_qwen_model';
+  const QWEN_URL='https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+  let data=null, tab='all', query='';
+  const SRC_ORDER=[];
+
+  const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function normTitle(t){
+    return String(t||'').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu,'');
+  }
+
+  function fmtTime(iso){
+    if(!iso) return '';
+    const d=new Date(iso); if(isNaN(d)) return '';
+    const s=(Date.now()-d)/1000;
+    if(s<60) return '刚刚';
+    if(s<3600) return Math.floor(s/60)+' 分钟前';
+    if(s<86400) return Math.floor(s/3600)+' 小时前';
+    const p=n=>String(n).padStart(2,'0');
+    return (d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+  }
+
+  function fmtHot(h){
+    if(h==null||isNaN(h)) return '';
+    if(h>=1e8) return (h/1e8).toFixed(1)+'亿';
+    if(h>=1e4) return (h/1e4).toFixed(1)+'万';
+    return String(h);
+  }
+
+  function getSrcInfo(key){
+    return (data && data.sources && data.sources[key]) || {name:key,color:'#888',count:0};
+  }
+
+  function mergeAll(){
+    const seen=new Map();
+    for(const it of data.items){
+      const key=normTitle(it.title);
+      if(!key) continue;
+      if(seen.has(key)){
+        const old=seen.get(key);
+        old.srcs.push(getSrcInfo(it.source).name);
+        if((it.hot!=null&&(old.hot==null||it.hot>old.hot))){ old.hot=it.hot; old._item=it; }
+      }else{
+        seen.set(key,{_item:it,hot:it.hot,srcs:[getSrcInfo(it.source).name]});
+      }
+    }
+    const arr=[...seen.values()];
+    arr.sort((a,b)=>{
+      const ha=a.hot!=null?a.hot:-1, hb=b.hot!=null?b.hot:-1;
+      if(ha!==hb) return hb-ha;
+      const ta=a._item.time||'', tb=b._item.time||'';
+      return tb.localeCompare(ta);
+    });
+    return arr.map(o=>o._item);
+  }
+
+  function itemsForCurrent(){
+    if(!data) return [];
+    if(tab==='all'){
+      return mergeAll().filter(it=>query?normTitle(it.title).includes(query):true);
+    }
+    const key=tab;
+    return data.items.filter(it=>it.source===key)
+      .filter(it=>query?normTitle(it.title).includes(query):true)
+      .sort((a,b)=>((b.hot!=null?b.hot:-1)-(a.hot!=null?a.hot:-1))||String(b.time||'').localeCompare(String(a.time||'')));
+  }
+
+  function renderTabs(){
+    const keys=Object.keys(data.sources).sort((a,b)=>SRC_ORDER.indexOf(a)-SRC_ORDER.indexOf(b));
+    const h=['<div class="tab '+(tab==='all'?'act':'')+'" onclick="APP.tab(\'all\')">全部<span class="cnt">'+data.total+'</span></div>'];
+    for(const k of keys){
+      const s=data.sources[k];
+      h.push('<div class="tab '+(tab===k?'act':'')+'" onclick="APP.tab(\''+k+'\')">'+esc(s.name)+'<span class="cnt">'+s.count+'</span></div>');
+    }
+    $('#tabs').innerHTML=h.join('');
+  }
+
+  function render(){
+    if(!data){ $('#list').innerHTML='<div class="empty">暂无数据</div>'; return; }
+    renderTabs();
+    const items=itemsForCurrent();
+    const srcInfo=getSrcInfo(tab);
+    $('#meta').innerHTML = tab==='all'
+      ? '<span class="dot"></span>全网热点共 '+items.length+' 条 · 聚合 '+Object.keys(data.sources).length+' 个来源'
+      : '<span class="dot"></span>'+esc(srcInfo.name)+' · '+items.length+' 条';
+    if(!items.length){
+      $('#list').innerHTML='<div class="empty">'+esc(query?'没有匹配「'+query+'」的热点':'该来源暂无数据')+'</div>';
+      return;
+    }
+    $('#list').innerHTML=items.map((it,i)=>{
+      const src=tab==='all'?getSrcInfo(it.source):srcInfo;
+      const heat=fmtHot(it.hot);
+      const rank=tab==='all'?i+1:i+1;
+      const t=fmtTime(it.time);
+      return '<a class="item" href="'+esc(it.url||'#')+'" target="_blank" rel="noopener">'+
+        '<div class="rank">'+rank+'</div>'+
+        '<div class="item-body">'+
+          '<div class="item-title">'+esc(it.title)+'</div>'+
+          '<div class="item-sub">'+
+            '<span class="src-badge" style="background:'+esc(src.color)+'">'+esc(src.name)+'</span>'+
+            (heat?'<span class="heat">热度 <b>'+heat+'</b></span>':'')+
+            (t?'<span class="time">'+t+'</span>':'')+
+          '</div>'+
+        '</div>'+
+      '</a>';
+    }).join('');
+  }
+
+  function setUpdated(){
+    if(!data){ $('#updateTime').textContent='数据加载中…'; return; }
+    $('#updateTime').textContent='更新于 '+fmtTime(data.updated_at);
+  }
+
+  function refresh(){
+    const btn=$('#refreshBtn');
+    btn.classList.add('loading'); btn.disabled=true;
+    fetch('./news_data.json?t='+Date.now())
+      .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(d=>{ data=d; buildOrder(); setUpdated(); render(); })
+      .catch(()=>{ $('#list').innerHTML='<div class="empty">数据加载失败，请稍后重试</div>'; })
+      .finally(()=>{ btn.classList.remove('loading'); btn.disabled=false; });
+  }
+
+  function mdToHtml(md){
+    if(!md) return '';
+    const lines=String(md).split('\n');
+    const out=[]; let list=null;
+    const flush=()=>{ if(list){ out.push(list==='ul'?'</ul>':'</ol>'); list=null; } };
+    const inline=s=>esc(s)
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>')
+      .replace(/`(.+?)`/g,'<code>$1</code>');
+    for(const raw of lines){
+      const s=raw.replace(/\s+$/,'');
+      if(!s.trim()){ flush(); continue; }
+      const h=s.match(/^(#{1,4})\s+(.*)/);
+      if(h){ flush(); out.push('<h'+(h[1].length)+'>'+inline(h[2])+'</h'+(h[1].length)+'>'); continue; }
+      const q=s.match(/^>\s?(.*)/);
+      if(q){ flush(); out.push('<blockquote>'+inline(q[1])+'</blockquote>'); continue; }
+      const ul=s.match(/^[-*]\s+(.*)/);
+      const ol=s.match(/^\d+[.、)]\s+(.*)/);
+      if(ul||ol){
+        const type=ul?'ul':'ol';
+        if(list!==type){ flush(); out.push(type==='ul'?'<ul>':'<ol>'); list=type; }
+        out.push('<li>'+inline((ul?ul[1]:ol[1]))+'</li>');
+        continue;
+      }
+      flush(); out.push('<p>'+inline(s)+'</p>');
+    }
+    flush();
+    return out.join('');
+  }
+
+  function buildDigestInput(){
+    const top=mergeAll().slice(0,20);
+    if(!top.length) throw new Error('暂无热点数据');
+    return top.map((it,i)=>((i+1)+'. ['+getSrcInfo(it.source).name+'] '+it.title+(it.hot!=null?'（热度 '+fmtHot(it.hot)+'）':'')).join('\n'));
+  }
+
+  async function runDigest(){
+    const key=$('#qwenKey').value.trim();
+    if(!key){ $('#digestArea').innerHTML='<div class="digest-error">请先填写通义千问 API Key</div>'; return; }
+    const model=$('#qwenModel').value;
+    localStorage.setItem(LS_KEY,key); localStorage.setItem(LS_MODEL,model);
+    const btn=$('#digestBtn');
+    btn.classList.add('loading'); btn.disabled=true;
+    $('#digestArea').innerHTML='<div class="hint">正在调用千问模型整理今日热点…</div>';
+    const items=buildDigestInput();
+    const sys='你是一名资深新闻编辑与热点分析师。根据用户提供的今日全网热点条目，生成一份简洁专业的中文热点解读，使用 Markdown 格式，包含三个部分：'+
+      '### 今日舆论焦点（TOP 3，逐条给出标题加一句犀利点评）；'+
+      '### 热点综述（按 时政 / 财经 / 科技 / 社会 / 娱乐 等类别归并，每类一句话概括该类别最值得关注的点）；'+
+      '### 整体观察（用一句话点出今天的舆论主线）。'+
+      '要求：客观中立、信息密集、不编造条目中不存在的事实。';
+    const user='今天是 '+new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'})+'。以下是今日全网热点 TOP 20：\n\n'+items;
+    try{
+      const resp=await fetch(QWEN_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body:JSON.stringify({model:model,messages:[{role:'system',content:sys},{role:'user',content:user}],max_tokens:4096,temperature:0.7,stream:false})
+      });
+      if(!resp.ok){
+        let msg='接口返回 '+resp.status;
+        try{ const e=await resp.json(); msg=(e&&e.error&&e.error.message)||msg; }catch(_){}
+        throw new Error(msg);
+      }
+      const j=await resp.json();
+      const text=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
+      if(!text) throw new Error('模型未返回内容');
+      $('#digestArea').innerHTML=mdToHtml(text);
+    }catch(e){
+      $('#digestArea').innerHTML='<div class="digest-error">解读失败：'+esc(e.message)+'</div>';
+    }finally{
+      btn.classList.remove('loading'); btn.disabled=false;
+    }
+  }
+
+  function openAi(){
+    $('#qwenKey').value=localStorage.getItem(LS_KEY)||'';
+    $('#qwenModel').value=localStorage.getItem(LS_MODEL)||'qwen-plus';
+    $('#digestArea').innerHTML='';
+    $('#aiModal').classList.add('show');
+  }
+  function closeAi(){ $('#aiModal').classList.remove('show'); }
+
+  $('#refreshBtn').addEventListener('click',refresh);
+  $('#aiBtn').addEventListener('click',openAi);
+  $('#aiClose').addEventListener('click',closeAi);
+  $('#aiModal').addEventListener('click',e=>{ if(e.target.id==='aiModal') closeAi(); });
+  $('#digestBtn').addEventListener('click',runDigest);
+  $('#searchInput').addEventListener('input',function(){ query=this.value.trim().toLowerCase(); render(); });
+
+  window.APP={ tab:function(k){ tab=k; render(); } };
+
+  function buildOrder(){
+    const preferred=['baidu','toutiao','weibo','zhihu','bilibili','douyin','sina','ithome','cnbeta','sspai','ifanr','36kr'];
+    const keys=Object.keys(data.sources||{});
+    SRC_ORDER.length=0;
+    preferred.forEach(k=>{ if(keys.includes(k)) SRC_ORDER.push(k); });
+    keys.forEach(k=>{ if(!SRC_ORDER.includes(k)) SRC_ORDER.push(k); });
+  }
+
+  refresh();
+  setInterval(refresh,5*60*1000);
+})();
+</script>
+</body>
+</html>
