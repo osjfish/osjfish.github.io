@@ -10,7 +10,9 @@
 来源分类：
   综合热搜：百度、头条、微博、知乎、抖音
   财经资讯：东方财富、财联社、新浪
-  科技媒体：差评、IT之家、cnBeta、少数派、爱范儿
+  科技媒体：雷峰网、IT之家、cnBeta、少数派、爱范儿
+  海外科技：Hacker News、TechCrunch、The Verge、Ars Technica
+  国际资讯：BBC、卫报
   社区论坛：B站、吾爱破解
 """
 import hashlib
@@ -59,8 +61,8 @@ SOURCES = {
                   "kind": "eastmoney", "best_effort": True},
     "cls":       {"name": "财联社", "color": "#1E4B8F", "category": "财经",
                   "url": "https://www.cls.cn/v1/roll/get_roll_list", "kind": "cls", "best_effort": True},
-    "chaping":   {"name": "差评", "color": "#7C3AED", "category": "科技",
-                  "url": "https://www.thexpin.com/feed", "kind": "rss", "best_effort": True},
+    "leiphone":  {"name": "雷峰网", "color": "#00A862", "category": "科技",
+                  "url": "https://www.leiphone.com/feed", "kind": "rss", "best_effort": True},
     "ithome":    {"name": "IT之家", "color": "#FF7C00", "category": "科技",
                   "url": "https://www.ithome.com/rss/", "kind": "rss"},
     "cnbeta":    {"name": "cnBeta", "color": "#1F6AA5", "category": "科技",
@@ -69,10 +71,22 @@ SOURCES = {
                   "url": "https://sspai.com/feed", "kind": "rss", "best_effort": True},
     "ifanr":     {"name": "爱范儿", "color": "#07C160", "category": "科技",
                   "url": "https://www.ifanr.com/feed", "kind": "rss"},
+    "hackernews": {"name": "Hacker News", "color": "#FF6600", "category": "科技",
+                  "url": "https://hnrss.org/frontpage", "kind": "rss", "best_effort": True},
+    "techcrunch": {"name": "TechCrunch", "color": "#0C9E47", "category": "科技",
+                  "url": "https://techcrunch.com/feed/", "kind": "rss", "best_effort": True},
+    "theverge":  {"name": "The Verge", "color": "#1E1E1E", "category": "科技",
+                  "url": "https://www.theverge.com/rss/index.xml", "kind": "rss", "best_effort": True},
+    "arstechnica": {"name": "Ars Technica", "color": "#D95333", "category": "科技",
+                  "url": "https://feeds.arstechnica.com/arstechnica/index", "kind": "rss", "best_effort": True},
+    "bbc":       {"name": "BBC 国际", "color": "#BB1919", "category": "国际",
+                  "url": "https://feeds.bbci.co.uk/news/rss.xml", "kind": "rss", "best_effort": True},
+    "guardian":  {"name": "卫报", "color": "#052962", "category": "国际",
+                  "url": "https://www.theguardian.com/world/rss", "kind": "rss", "best_effort": True},
 }
 
 # 分类展示顺序
-CATEGORY_ORDER = ["综合", "财经", "科技", "社区"]
+CATEGORY_ORDER = ["综合", "财经", "科技", "社区", "国际"]
 
 BJ_TZ = timezone(timedelta(hours=8))
 
@@ -143,23 +157,31 @@ def parse_rss(raw, max_items=MAX_PER_RSS):
         return items
     ns_rss = "{http://www.w3.org/2005/Atom}"
     entries = root.findall("./channel/item") or root.findall("./item") or root.findall(ns_rss + "entry")
+    is_atom = bool(root.findall(ns_rss + "entry"))
     for e in entries:
         if len(items) >= max_items:
             break
-        if e.find("title") is None:
-            continue
-        title = clean(e.findtext("title"))
-        link = e.findtext("link") or ""
+        if is_atom:
+            t_el = e.find(ns_rss + "title")
+            if t_el is None or t_el.text is None:
+                continue
+            title = clean(t_el.text)
+            l_el = e.find(ns_rss + "link")
+            link = (l_el.attrib.get("href") or "") if l_el is not None else ""
+            date_raw = e.findtext(ns_rss + "updated") or e.findtext(ns_rss + "published")
+        else:
+            title = clean(e.findtext("title"))
+            link = e.findtext("link") or ""
+            date_raw = e.findtext("pubDate") or e.findtext("dc:date")
         if not title or not link:
             continue
-        date_raw = e.findtext("pubDate") or e.findtext("dc:date") or e.findtext(ns_rss + "updated")
         t = None
         if date_raw:
             try:
-                if e.findtext("pubDate") or e.findtext("dc:date"):
-                    dt = parsedate_to_datetime(date_raw.strip())
+                if is_atom:
+                    dt = datetime.fromisoformat(date_raw.strip().replace("Z", "+00:00"))
                 else:
-                    dt = datetime.fromisoformat(date_raw.replace("Z", "+00:00"))
+                    dt = parsedate_to_datetime(date_raw.strip())
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=timezone.utc)
                 t = dt.astimezone(timezone.utc).isoformat()
