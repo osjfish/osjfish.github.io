@@ -15,7 +15,7 @@
   html{scrollbar-color:#c8bfa8 transparent}
   body{
     font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
-    background:var(--xuan);color:var(--shui);min-height:100vh;
+    background:var(--xuan);color:var(--shui);min-height:100vh;min-height:100dvh;
   }
 
   .top{position:sticky;top:0;z-index:100;background:var(--xuan);box-shadow:0 2px 14px rgba(0,0,0,.10)}
@@ -102,6 +102,24 @@
   .sec-title .more:hover{background:var(--zhu-soft)}
   .sec-items{display:flex;flex-direction:column;gap:9px}
 
+  .cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding-top:4px}
+  @media(max-width:420px){.cat-grid{grid-template-columns:1fr}}
+  .cat-card{
+    position:relative;display:flex;flex-direction:column;gap:10px;
+    background:#fff;border-radius:14px;padding:15px 15px 13px;cursor:pointer;
+    border:1px solid rgba(0,0,0,.05);box-shadow:0 1px 4px rgba(44,62,80,.06);
+    transition:transform .15s,box-shadow .2s,border-color .2s;overflow:hidden;text-decoration:none;color:inherit;
+  }
+  .cat-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(44,62,80,.12);border-color:var(--shui-light)}
+  .cat-card .cc-bar{position:absolute;left:0;top:0;bottom:0;width:5px}
+  .cat-card .cc-top{display:flex;align-items:center;gap:10px}
+  .cat-card .cc-ic{width:38px;height:38px;border-radius:12px;color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cat-card .cc-name{font-size:15px;font-weight:700;color:var(--shui);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cat-card .cc-cnt{font-size:11px;color:var(--muted);flex-shrink:0}
+  .cat-card .cc-arrow{font-size:13px;color:var(--muted);opacity:.45;flex-shrink:0;transition:all .2s}
+  .cat-card:hover .cc-arrow{opacity:1;color:var(--zhu);transform:translateX(3px)}
+  .cat-card .cc-srcs{font-size:11px;color:var(--muted);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
   .morebtn{display:block;margin:16px auto 4px;padding:9px 24px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--shui-light);font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .2s}
   .morebtn:hover{border-color:var(--zhu);color:var(--zhu);box-shadow:0 4px 12px rgba(44,62,80,.08)}
 
@@ -150,7 +168,7 @@
   <div class="top">
     <div class="header">
       <div class="h-top">
-        <a class="back" href="./index.html" title="返回导航">&larr;</a>
+        <a class="back" id="backBtn" href="./index.html" title="返回导航">&larr;</a>
         <div style="flex:1;min-width:0">
           <div class="h-title">热点<span>聚合</span></div>
           <div class="h-time" id="updateTime">数据加载中…</div>
@@ -164,15 +182,15 @@
     </div>
     <div class="nav">
       <div class="cats" id="cats"></div>
-      <div class="srcs-head" id="srcsHead">
-        <span class="srcs-title">来源</span>
-        <button class="src-toggle" id="srcToggle" onclick="APP.toggleSrcs()"></button>
-      </div>
-      <div class="srcs" id="srcs"></div>
     </div>
   </div>
 
   <div class="main">
+    <div class="srcs-head" id="srcsHead">
+      <span class="srcs-title">来源</span>
+      <button class="src-toggle" id="srcToggle" onclick="APP.toggleSrcs()"></button>
+    </div>
+    <div class="srcs" id="srcs"></div>
     <div class="meta" id="meta"></div>
     <div class="list" id="list">
       <div class="empty">正在加载热点数据…</div>
@@ -191,7 +209,6 @@
   const CAT_ORDER=['综合','财经','科技','社区','国际'];
   let data=null, cat='all', query='', limit=40, sortBy='hot';
   let srcCollapsed = localStorage.getItem('news_src_collapsed')==='1';
-  const DIGEST_PER_SEC=6;
 
   function parseHash(){
     const parts=(location.hash||'').replace(/^#\/?/,'').split('/').filter(Boolean);
@@ -409,27 +426,35 @@
     if(all.length>limit) h+='<button class="morebtn" onclick="APP.more()">加载更多（剩余 '+(all.length-limit)+' 条）</button>';
     $('#list').innerHTML=h;
   }
-  function renderDigest(){
-    const cats=catsOf();
-    let h='';
-    for(const c of cats){
-      const arr=sortItems(mergeAll(srcsOf(c)));
-      if(!arr.length) continue;
-      const top=arr.slice(0,DIGEST_PER_SEC);
-      h+='<div class="sec"><div class="sec-title"><span class="bar"></span>'+esc(c)+
-        '<span class="cnt">'+arr.length+' 条</span>'+
-        '<button class="more" onclick="APP.go(\'cat\',\''+esc(c)+'\')">查看全部 →</button></div>'+
-        '<div class="sec-items">'+top.map(o=>anchor(o,bodyHTML(o))).join('')+'</div></div>';
-    }
-    $('#list').innerHTML=h||'<div class="empty">暂无数据，请稍后刷新</div>';
+  function renderCatCards(){
+    const cs=catsOf();
+    const grid = cs.map(c=>{
+      const keys=srcsOf(c);
+      const n=keys.reduce((s,k)=>s+(data.sources[k].count||0),0);
+      const color=esc(getSrcInfo(keys[0]).color);
+      const srcNames=keys.map(k=>data.sources[k].name);
+      return '<a class="cat-card" href="#/cat/'+encodeURIComponent(c)+'">'+
+        '<span class="cc-bar" style="background:'+color+'"></span>'+
+        '<div class="cc-top">'+
+          '<span class="cc-ic" style="background:'+color+'">'+esc(c.charAt(0))+'</span>'+
+          '<span class="cc-name">'+esc(c)+'</span>'+
+          '<span class="cc-cnt">'+n+' 条</span>'+
+          '<span class="cc-arrow">→</span>'+
+        '</div>'+
+        '<div class="cc-srcs">'+srcNames.map(esc).join(' · ')+(keys.length>3?' …'+keys.length+'个来源':'')+'</div>'+
+      '</a>';
+    }).join('');
+    $('#list').innerHTML='<div class="cat-grid">'+grid+'</div>'
+      || '<div class="empty">暂无数据，请稍后刷新</div>';
   }
+
   function render(){
     if(!data){ $('#list').innerHTML='<div class="empty">暂无数据，请稍后刷新</div>'; return; }
     renderCats();
     renderSrcs();
     const digest = cat==='all' && !query;
     const items=itemsForCurrent();
-    const scopeName = cat==='all' ? '全网' : cat;
+    const scopeName = cat==='all' ? '分类总览' : cat;
     const srcCount = cat==='all' ? Object.keys(data.sources).length : srcsOf(cat).length;
     let trNote='';
     if(trOn){
@@ -438,12 +463,15 @@
       trNote=' · 译 '+done+'/'+titles.length;
       if(trFail && done<titles.length) trNote+='（部分受接口限流，稍后重试）';
     }
-    $('#meta').innerHTML='<span class="dot"></span>'+esc(scopeName)+'热点 · '+items.length+' 条'+(items.length&&items[0]&&items[0].srcs?' · 聚合 '+srcCount+' 个来源':'')+trNote+
-      '<span class="sort-grp">'+
+    $('#meta').innerHTML='<span class="dot"></span>'+esc(scopeName)+(digest?'':'热点 · '+items.length+' 条')+(items.length&&items[0]&&items[0].srcs?' · 聚合 '+srcCount+' 个来源':'')+trNote+
+      (digest?'':'<span class="sort-grp">'+
         '<button class="pill'+(sortBy==='hot'?' on':'')+'" onclick="APP.sort(\'hot\')">热度</button>'+
         '<button class="pill'+(sortBy==='time'?' on':'')+'" onclick="APP.sort(\'time\')">最新</button>'+
-      '</span>';
-    if(digest) renderDigest(); else renderList();
+      '</span>');
+    $('#srcsHead').style.display = digest ? 'none' : '';
+        $('#srcs').style.display = digest ? 'none' : '';
+        $('#meta').style.display = digest ? 'none' : '';
+        if(digest) renderCatCards(); else renderList();
   }
 
   function setUpdated(){
@@ -496,6 +524,11 @@
   });
 
   $('#refreshBtn').addEventListener('click',refresh);
+  $('#backBtn').addEventListener('click',function(){
+    const pv=parseHash();
+    if(pv.cat!=='all'){ this.href='#/'; }
+    else{ this.href='./index.html'; }
+  });
   $('#searchInput').addEventListener('input',function(){ query=this.value.trim().toLowerCase(); limit=40; render(); });
 
   const trBtn=$('#trBtn');
