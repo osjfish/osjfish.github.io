@@ -81,6 +81,24 @@
   .main{padding:4px 18px 48px;max-width:860px;margin:0 auto}
   .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:12px 2px 8px;flex-wrap:wrap}
   .meta .dot{width:4px;height:4px;border-radius:50%;background:var(--zhu);opacity:.6}
+  .sort-grp{margin-left:auto;display:flex;gap:6px}
+  .pill{font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;transition:all .18s;letter-spacing:1px}
+  .pill:hover{color:var(--zhu);border-color:var(--zhu)}
+  .pill.on{background:var(--zhu-light);border-color:var(--zhu-light);color:#fff}
+
+  .sec{margin-bottom:20px}
+  .sec-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--shui);padding:2px 2px 0}
+  .sec-title .bar{width:4px;height:14px;border-radius:2px;background:var(--zhu);flex-shrink:0}
+  .sec-title .cnt{font-size:11px;color:var(--muted);font-weight:400;flex:1}
+  .sec-title .more{font-size:11px;color:var(--zhu-light);border:none;background:none;cursor:pointer;padding:4px 8px;border-radius:8px;font-weight:500;letter-spacing:1px}
+  .sec-title .more:hover{background:var(--zhu-soft)}
+  .sec-items{display:flex;flex-direction:column;gap:9px}
+
+  .morebtn{display:block;margin:16px auto 4px;padding:9px 24px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--shui-light);font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .2s}
+  .morebtn:hover{border-color:var(--zhu);color:var(--zhu);box-shadow:0 4px 12px rgba(44,62,80,.08)}
+
+  #srcs.closed .src:not(.toggle){display:none}
+  .src.toggle{background:#f3ecdb;font-weight:600}
 
   .list{display:flex;flex-direction:column;gap:9px}
   .item{
@@ -162,7 +180,9 @@
 (function(){
   const $ = s => document.querySelector(s);
   const CAT_ORDER=['综合','财经','科技','社区','国际'];
-  let data=null, cat='all', src=null, query='';
+  let data=null, cat='all', src=null, query='', limit=40, sortBy='hot';
+  let srcCollapsed = localStorage.getItem('news_src_collapsed')==='1';
+  const DIGEST_PER_SEC=6;
 
   const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -280,25 +300,32 @@
         seen.set(k,{item:it,hot:it.hot,srcs:[it.source]});
       }
     }
-    const arr=[...seen.values()];
+    return [...seen.values()];
+  }
+
+  function sortItems(arr){
+    const merged = arr.length && arr[0] && arr[0].srcs;
     arr.sort((a,b)=>{
-      const ha=a.hot!=null?a.hot:-1, hb=b.hot!=null?b.hot:-1;
+      const ta=merged?a.item.time:a.time, tb=merged?b.item.time:b.time;
+      if(sortBy==='time') return String(tb||'').localeCompare(String(ta||''));
+      const ha=merged?(a.hot!=null?a.hot:-1):(a.hot!=null?a.hot:-1);
+      const hb=merged?(b.hot!=null?b.hot:-1):(b.hot!=null?b.hot:-1);
       if(ha!==hb) return hb-ha;
-      return String(b.item.time||'').localeCompare(String(a.item.time||''));
+      return String(tb||'').localeCompare(String(ta||''));
     });
     return arr;
   }
-
   function itemsForCurrent(){
     if(!data) return [];
     if(src){
-      return data.items.filter(it=>it.source===src)
-        .filter(it=>query?normTitle(it.title).includes(query):true)
-        .sort((a,b)=>((b.hot!=null?b.hot:-1)-(a.hot!=null?a.hot:-1))||String(b.time||'').localeCompare(String(a.time||'')));
+      let arr=data.items.filter(it=>it.source===src);
+      if(query) arr=arr.filter(it=>normTitle(it.title).includes(query));
+      return sortItems(arr);
     }
     const keys = cat==='all' ? null : srcsOf(cat);
-    return mergeAll(keys)
-      .filter(o=>query?normTitle(o.item.title).includes(query):true);
+    let arr=mergeAll(keys);
+    if(query) arr=arr.filter(o=>normTitle(o.item.title).includes(query));
+    return sortItems(arr);
   }
 
   function renderCats(){
@@ -315,15 +342,16 @@
   function renderSrcs(){
     const scope = cat==='all' ? 'all' : cat;
     const keys=srcsOf(scope);
-    const h=keys.map(k=>{
-      const s=data.sources[k];
-      const active = src===k;
-      const bg = active? s.color : '';
-      return '<div class="src'+(active?' act':'')+'" style="'+(active?'background:'+s.color:'')+'" onclick="APP.go(\'src\',\''+k+'\')">'+
-        '<span class="dot" style="background:'+(active?'rgba(255,255,255,.85)':s.color)+'"></span>'+
-        esc(s.name)+'<span class="cnt" style="'+(active?'color:rgba(255,255,255,.8)':'')+'">'+s.count+'</span></div>';
-    }).join('');
+    const h='<div class="src toggle" title="折叠/展开来源标签" onclick="APP.toggleSrcs()">来源 '+(srcCollapsed?'▸':'▾')+'<span class="cnt">'+keys.length+'</span></div>'+
+      keys.map(k=>{
+        const s=data.sources[k];
+        const active = src===k;
+        return '<div class="src'+(active?' act':'')+'" style="'+(active?'background:'+s.color:'')+'" onclick="APP.go(\'src\',\''+k+'\')">'+
+          '<span class="dot" style="background:'+(active?'rgba(255,255,255,.85)':s.color)+'"></span>'+
+          esc(s.name)+'<span class="cnt" style="'+(active?'color:rgba(255,255,255,.8)':'')+'">'+s.count+'</span></div>';
+      }).join('');
     $('#srcs').innerHTML=h;
+    $('#srcs').classList.toggle('closed',srcCollapsed);
   }
 
   function badges(o){
@@ -333,44 +361,68 @@
     return h;
   }
 
+  function bodyHTML(o){
+    const it = o.srcs ? o.item : o;
+    const heat=fmtHot(o.hot!=null?o.hot:it.hot);
+    const t=fmtTime(it.time);
+    const wantTr = trOn && it.title && !isZh(it.title);
+    const trText = wantTr ? cachedTr(it.title) : null;
+    let sub = o.srcs ? badges(o)
+      : '<span class="src-badge" style="background:'+esc(getSrcInfo(it.source).color)+'">'+esc(getSrcInfo(it.source).name)+'</span>';
+    sub += (heat?'<span class="heat">热度 <b>'+heat+'</b></span>':'')+(t?'<span class="time">'+t+'</span>':'');
+    return '<div class="item-body">'+
+      '<div class="item-title"'+(wantTr?' title="'+esc(it.title)+'"':'')+'>'+esc(trText||it.title)+(trText?'<span class="tr-badge">译</span>':'')+'</div>'+
+      '<div class="item-sub">'+sub+'</div></div>';
+  }
+  function anchor(o,inner){
+    const it = o.srcs ? o.item : o;
+    return '<a class="item" href="'+esc(it.url||'#')+'" target="_blank" rel="noopener">'+inner+'</a>';
+  }
+  function renderList(){
+    const all=itemsForCurrent();
+    if(!all.length){
+      $('#list').innerHTML='<div class="empty">'+(query?'没有匹配「'+esc(query)+'」的热点':'该分类暂无数据')+'</div>';
+      return;
+    }
+    const shown=all.slice(0,limit);
+    let h=shown.map((o,i)=>anchor(o,'<div class="rank">'+(i+1)+'</div>'+bodyHTML(o))).join('');
+    if(all.length>limit) h+='<button class="morebtn" onclick="APP.more()">加载更多（剩余 '+(all.length-limit)+' 条）</button>';
+    $('#list').innerHTML=h;
+  }
+  function renderDigest(){
+    const cats=catsOf();
+    let h='';
+    for(const c of cats){
+      const arr=sortItems(mergeAll(srcsOf(c)));
+      if(!arr.length) continue;
+      const top=arr.slice(0,DIGEST_PER_SEC);
+      h+='<div class="sec"><div class="sec-title"><span class="bar"></span>'+esc(c)+
+        '<span class="cnt">'+arr.length+' 条</span>'+
+        '<button class="more" onclick="APP.go(\'cat\',\''+esc(c)+'\')">查看全部 →</button></div>'+
+        '<div class="sec-items">'+top.map(o=>anchor(o,bodyHTML(o))).join('')+'</div></div>';
+    }
+    $('#list').innerHTML=h||'<div class="empty">暂无数据，请稍后刷新</div>';
+  }
   function render(){
     if(!data){ $('#list').innerHTML='<div class="empty">暂无数据，请稍后刷新</div>'; return; }
     renderCats(); renderSrcs();
+    const digest = !src && cat==='all' && !query;
     const items=itemsForCurrent();
-    const merged = !src && items.length && items[0] && items[0].srcs;
-    const scopeName = src ? getSrcInfo(src).name
-      : (cat==='all' ? '全网' : cat);
+    const scopeName = src ? getSrcInfo(src).name : (cat==='all' ? '全网' : cat);
     const srcCount = src ? 1 : (cat==='all' ? Object.keys(data.sources).length : srcsOf(cat).length);
     let trNote='';
     if(trOn){
-      const titles=[...new Set(items.map(o=>{const it=o.srcs?o.item:o;return it.title;}).filter(t=>t&&!isZh(t)))];
+      const titles=[...new Set(data.items.filter(it=>it.title&&!isZh(it.title)).map(it=>it.title))];
       const done=titles.filter(t=>cachedTr(t)).length;
       trNote=' · 译 '+done+'/'+titles.length;
       if(trFail && done<titles.length) trNote+='（部分受接口限流，稍后重试）';
     }
-    $('#meta').innerHTML='<span class="dot"></span>'+esc(scopeName)+'热点 · '+items.length+' 条'+(merged?' · 聚合 '+srcCount+' 个来源':'')+trNote;
-    if(!items.length){
-      $('#list').innerHTML='<div class="empty">'+(query?'没有匹配「'+esc(query)+'」的热点':'该分类暂无数据')+'</div>';
-      return;
-    }
-    $('#list').innerHTML=items.map((o,i)=>{
-      const it = o.srcs ? o.item : o;
-      const heat=fmtHot(o.hot!=null?o.hot:it.hot);
-      const t=fmtTime(it.time);
-      const wantTr = trOn && it.title && !isZh(it.title);
-      const trText = wantTr ? cachedTr(it.title) : null;
-      return '<a class="item" href="'+esc(it.url||'#')+'" target="_blank" rel="noopener">'+
-        '<div class="rank">'+(i+1)+'</div>'+
-        '<div class="item-body">'+
-          '<div class="item-title"'+(wantTr?' title="'+esc(it.title)+'"':'')+'>'+esc(trText||it.title)+(trText?'<span class="tr-badge">译</span>':'')+'</div>'+
-          '<div class="item-sub">'+
-            (o.srcs? badges(o) : '<span class="src-badge" style="background:'+esc(getSrcInfo(it.source).color)+'">'+esc(getSrcInfo(it.source).name)+'</span>')+
-            (heat?'<span class="heat">热度 <b>'+heat+'</b></span>':'')+
-            (t?'<span class="time">'+t+'</span>':'')+
-          '</div>'+
-        '</div>'+
-      '</a>';
-    }).join('');
+    $('#meta').innerHTML='<span class="dot"></span>'+esc(scopeName)+'热点 · '+items.length+' 条'+(items.length&&items[0]&&items[0].srcs&&!src?' · 聚合 '+srcCount+' 个来源':'')+trNote+
+      '<span class="sort-grp">'+
+        '<button class="pill'+(sortBy==='hot'?' on':'')+'" onclick="APP.sort(\'hot\')">热度</button>'+
+        '<button class="pill'+(sortBy==='time'?' on':'')+'" onclick="APP.sort(\'time\')">最新</button>'+
+      '</span>';
+    if(digest) renderDigest(); else renderList();
   }
 
   function setUpdated(){
@@ -400,12 +452,19 @@
     go:function(scope,k){
       if(scope==='cat'){ cat=k; src=null; }
       else { src = (src===k ? null : k); }
-      render();
+      limit=40; render();
+    },
+    more:function(){ limit+=40; render(); },
+    sort:function(s){ sortBy=s; limit=40; render(); },
+    toggleSrcs:function(){
+      srcCollapsed=!srcCollapsed;
+      localStorage.setItem('news_src_collapsed',srcCollapsed?'1':'0');
+      renderSrcs();
     }
   };
 
   $('#refreshBtn').addEventListener('click',refresh);
-  $('#searchInput').addEventListener('input',function(){ query=this.value.trim().toLowerCase(); render(); });
+  $('#searchInput').addEventListener('input',function(){ query=this.value.trim().toLowerCase(); limit=40; render(); });
 
   const trBtn=$('#trBtn');
   if(trOn){ trBtn.classList.add('on'); trBtn.textContent='原文'; }
