@@ -74,7 +74,7 @@
     position:relative;display:flex;align-items:center;gap:12px;min-width:0;
     border-radius:12px;cursor:pointer;overflow:hidden;
     background:#fff;border:1px solid var(--line);transition:all .2s;
-    padding:11px 14px 11px 19px;
+    padding:11px 14px 11px 19px;text-decoration:none;color:inherit;
   }
   .src:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(44,62,80,.12);border-color:var(--shui-light)}
   .src .bar{position:absolute;left:0;top:0;bottom:0;width:5px}
@@ -85,13 +85,6 @@
   .src:hover .sc-arrow{opacity:1;color:var(--zhu);transform:translateX(3px)}
   .src.act{border-color:var(--shui);box-shadow:0 4px 12px rgba(44,62,80,.14)}
   #srcs.closed{display:none}
-
-  .src-page{display:flex;align-items:center;gap:11px;padding-top:10px;border-top:1px dashed var(--line)}
-  .src-back{font-size:12px;font-weight:600;color:var(--zhu-light);text-decoration:none;padding:5px 10px;border-radius:8px;flex-shrink:0;transition:background .2s}
-  .src-back:hover{background:var(--zhu-soft)}
-  .src-page .src-ic{width:36px;height:36px;border-radius:10px;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  .src-page-name{font-size:15px;font-weight:700;color:var(--shui);letter-spacing:1px}
-  .src-page-note{font-size:11px;color:var(--muted);margin-top:2px}
 
   .main{padding:4px 18px 48px;max-width:860px;margin:0 auto}
   .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:12px 2px 8px;flex-wrap:wrap}
@@ -176,7 +169,6 @@
         <button class="src-toggle" id="srcToggle" onclick="APP.toggleSrcs()"></button>
       </div>
       <div class="srcs" id="srcs"></div>
-      <div class="src-page" id="srcPage" style="display:none"></div>
     </div>
   </div>
 
@@ -197,21 +189,23 @@
 (function(){
   const $ = s => document.querySelector(s);
   const CAT_ORDER=['综合','财经','科技','社区','国际'];
-  let data=null, cat='all', src=null, query='', limit=40, sortBy='hot';
+  let data=null, cat='all', query='', limit=40, sortBy='hot';
   let srcCollapsed = localStorage.getItem('news_src_collapsed')==='1';
   const DIGEST_PER_SEC=6;
 
   function parseHash(){
     const parts=(location.hash||'').replace(/^#\/?/,'').split('/').filter(Boolean);
-    let c='all', s=null;
-    if(parts[0]==='src'){ s=parts[1]||null; }
-    else if(parts[0]==='cat'){ c=parts[1]||'all'; }
+    let c='all';
+    if(parts[0]==='src' && parts[1]){
+      location.replace('news-src.html?src='+encodeURIComponent(parts[1]));
+      return {cat:'all'};
+    }
+    if(parts[0]==='cat'){ c=parts[1]||'all'; }
     else if(parts.length){ c=parts[0]; }
-    try{ s = s?decodeURIComponent(s):null; if(c!=='all') c=decodeURIComponent(c); }catch(e){}
-    if(s && data && data.sources[s]) c=data.sources[s].category;
-    return {cat:c, src:s};
+    try{ if(c!=='all') c=decodeURIComponent(c); }catch(e){}
+    return {cat:c};
   }
-  { const pv=parseHash(); cat=pv.cat; src=pv.src; }
+  { const pv=parseHash(); cat=pv.cat; }
 
   const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -247,7 +241,6 @@
   }
   function currentTitles(){
     if(!data) return [];
-    if(src) return data.items.filter(it=>it.source===src).map(it=>it.title);
     const keys = cat==='all' ? null : srcsOf(cat);
     return mergeAll(keys).map(o=>o.item.title);
   }
@@ -346,11 +339,6 @@
   }
   function itemsForCurrent(){
     if(!data) return [];
-    if(src){
-      let arr=data.items.filter(it=>it.source===src);
-      if(query) arr=arr.filter(it=>normTitle(it.title).includes(query));
-      return sortItems(arr);
-    }
     const keys = cat==='all' ? null : srcsOf(cat);
     let arr=mergeAll(keys);
     if(query) arr=arr.filter(o=>normTitle(o.item.title).includes(query));
@@ -376,21 +364,14 @@
       const s=data.sources[k];
       const ic = String(s.name||'源').trim().charAt(0)||'源';
       const c = esc(s.color||'#888');
-      return '<div class="src" style="border-color:'+c+'" title="点击查看「'+esc(s.name)+'」热点" onclick="APP.go(\'src\',\''+k+'\')">'+
+      return '<a class="src" style="border-color:'+c+'" href="news-src.html?src='+encodeURIComponent(k)+'" title="进入「'+esc(s.name)+'」热点详情页">'+
         '<span class="bar" style="background:'+c+'"></span>'+
         '<span class="ic" style="background:'+c+'">'+esc(ic)+'</span>'+
         '<span class="sc-name">'+esc(s.name)+'</span>'+
         '<span class="sc-cnt">'+s.count+' 条</span>'+
-        '<span class="sc-arrow">→</span></div>';
+        '<span class="sc-arrow">→</span></a>';
     }).join('');
     $('#srcs').classList.toggle('closed',srcCollapsed);
-  }
-  function renderSrcPage(s){
-    $('#srcPage').innerHTML =
-      '<a class="src-back" href="#/cat/'+encodeURIComponent(s.category)+'">&larr; 返回目录</a>'+
-      '<span class="src-ic" style="background:'+esc(s.color||'#888')+'">'+esc(String(s.name||'源').trim().charAt(0)||'源')+'</span>'+
-      '<div style="flex:1;min-width:0"><div class="src-page-name">'+esc(s.name)+'</div>'+
-      '<div class="src-page-note">'+s.count+' 条热点</div></div>';
   }
 
   function badges(o){
@@ -445,15 +426,11 @@
   function render(){
     if(!data){ $('#list').innerHTML='<div class="empty">暂无数据，请稍后刷新</div>'; return; }
     renderCats();
-    const pageSrc = src && data.sources[src];
-    $('#srcsHead').style.display = pageSrc?'none':'';
-    $('#srcPage').style.display = pageSrc?'':'none';
-    $('#srcs').classList.toggle('closed', srcCollapsed || !!pageSrc);
-    if(pageSrc) renderSrcPage(pageSrc); else renderSrcs();
-    const digest = !src && cat==='all' && !query;
+    renderSrcs();
+    const digest = cat==='all' && !query;
     const items=itemsForCurrent();
-    const scopeName = src ? getSrcInfo(src).name : (cat==='all' ? '全网' : cat);
-    const srcCount = src ? 1 : (cat==='all' ? Object.keys(data.sources).length : srcsOf(cat).length);
+    const scopeName = cat==='all' ? '全网' : cat;
+    const srcCount = cat==='all' ? Object.keys(data.sources).length : srcsOf(cat).length;
     let trNote='';
     if(trOn){
       const titles=[...new Set(data.items.filter(it=>it.title&&!isZh(it.title)).map(it=>it.title))];
@@ -461,7 +438,7 @@
       trNote=' · 译 '+done+'/'+titles.length;
       if(trFail && done<titles.length) trNote+='（部分受接口限流，稍后重试）';
     }
-    $('#meta').innerHTML='<span class="dot"></span>'+esc(scopeName)+'热点 · '+items.length+' 条'+(items.length&&items[0]&&items[0].srcs&&!src?' · 聚合 '+srcCount+' 个来源':'')+trNote+
+    $('#meta').innerHTML='<span class="dot"></span>'+esc(scopeName)+'热点 · '+items.length+' 条'+(items.length&&items[0]&&items[0].srcs?' · 聚合 '+srcCount+' 个来源':'')+trNote+
       '<span class="sort-grp">'+
         '<button class="pill'+(sortBy==='hot'?' on':'')+'" onclick="APP.sort(\'hot\')">热度</button>'+
         '<button class="pill'+(sortBy==='time'?' on':'')+'" onclick="APP.sort(\'time\')">最新</button>'+
@@ -488,7 +465,7 @@
     fetch('./news_data.json?t='+Date.now())
       .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
       .then(d=>{
-        const pv=parseHash(); cat=pv.cat; src=pv.src;
+        const pv=parseHash(); cat=pv.cat;
         data=d; setUpdated(); renderTags(); render(); if(trOn) translateVisible();
       })
       .catch(()=>{ $('#list').innerHTML='<div class="empty">数据加载失败，请稍后重试</div>'; })
@@ -501,8 +478,6 @@
         const target = k==='all' ? '#/' : '#/cat/'+encodeURIComponent(k);
         if(location.hash===target) return;
         location.hash=target;
-      }else{
-        location.hash='#/src/'+encodeURIComponent(k);
       }
     },
     more:function(){ limit+=40; render(); },
@@ -516,7 +491,7 @@
 
   window.addEventListener('hashchange',function(){
     const pv=parseHash();
-    cat=pv.cat; src=pv.src;
+    cat=pv.cat;
     limit=40; render();
   });
 
