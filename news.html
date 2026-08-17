@@ -65,18 +65,23 @@
   .cat .cnt{font-size:11px;opacity:.55}
   .cat.act .cnt{opacity:.65}
 
-  .srcs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-top:10px;border-top:1px dashed var(--line)}
-  .srcs::-webkit-scrollbar{display:none}
+  .srcs-head{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px dashed var(--line)}
+  .srcs-title{font-size:12px;font-weight:700;color:var(--shui-light);letter-spacing:1px}
+  .src-toggle{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;letter-spacing:1px;transition:all .18s}
+  .src-toggle:hover{color:var(--zhu);border-color:var(--zhu)}
+  .srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding-top:10px}
   .src{
-    flex-shrink:0;padding:6px 12px;border-radius:16px;font-size:12px;cursor:pointer;
-    background:#fff;color:var(--shui-light);border:1px solid var(--line);
-    transition:all .18s;display:flex;align-items:center;gap:6px;
+    position:relative;border-radius:12px;cursor:pointer;overflow:hidden;min-width:0;
+    background:#fff;border:1px solid var(--line);transition:all .2s;
   }
-  .src:hover{border-color:var(--shui-light);transform:translateY(-1px)}
-  .src .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-  .src .cnt{font-size:11px;opacity:.5}
-  .src.act{color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(0,0,0,.16)}
-  .src.act .cnt{opacity:.8}
+  .src:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(44,62,80,.12);border-color:var(--shui-light)}
+  .src .bar{display:block;height:5px;width:100%}
+  .src .body{display:flex;align-items:center;gap:10px;padding:10px 12px}
+  .src .ic{width:30px;height:30px;border-radius:9px;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .src .sc-name{font-size:12.5px;font-weight:600;color:var(--shui-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .src .sc-cnt{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .src.act{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.22)}
+  #srcs.closed{display:none}
 
   .main{padding:4px 18px 48px;max-width:860px;margin:0 auto}
   .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:12px 2px 8px;flex-wrap:wrap}
@@ -96,9 +101,6 @@
 
   .morebtn{display:block;margin:16px auto 4px;padding:9px 24px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--shui-light);font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .2s}
   .morebtn:hover{border-color:var(--zhu);color:var(--zhu);box-shadow:0 4px 12px rgba(44,62,80,.08)}
-
-  #srcs.closed .src:not(.toggle){display:none}
-  .src.toggle{background:#f3ecdb;font-weight:600}
 
   .list{display:flex;flex-direction:column;gap:9px}
   .item{
@@ -159,6 +161,10 @@
     </div>
     <div class="nav">
       <div class="cats" id="cats"></div>
+      <div class="srcs-head">
+        <span class="srcs-title">来源</span>
+        <button class="src-toggle" id="srcToggle" onclick="APP.toggleSrcs()"></button>
+      </div>
       <div class="srcs" id="srcs"></div>
     </div>
   </div>
@@ -342,15 +348,24 @@
   function renderSrcs(){
     const scope = cat==='all' ? 'all' : cat;
     const keys=srcsOf(scope);
-    const h='<div class="src toggle" title="折叠/展开来源标签" onclick="APP.toggleSrcs()">来源 '+(srcCollapsed?'▸':'▾')+'<span class="cnt">'+keys.length+'</span></div>'+
-      keys.map(k=>{
-        const s=data.sources[k];
-        const active = src===k;
-        return '<div class="src'+(active?' act':'')+'" style="'+(active?'background:'+s.color:'')+'" onclick="APP.go(\'src\',\''+k+'\')">'+
-          '<span class="dot" style="background:'+(active?'rgba(255,255,255,.85)':s.color)+'"></span>'+
-          esc(s.name)+'<span class="cnt" style="'+(active?'color:rgba(255,255,255,.8)':'')+'">'+s.count+'</span></div>';
-      }).join('');
-    $('#srcs').innerHTML=h;
+    $('#srcToggle').innerHTML = (srcCollapsed?'展开 ▸':'收起 ▾')+' '+keys.length;
+    $('#srcs').innerHTML = keys.map(k=>{
+      const s=data.sources[k];
+      const active = src===k;
+      const ic = String(s.name||'源').trim().charAt(0)||'源';
+      const c = esc(s.color||'#888');
+      const cardStyle = active ? 'style="border-color:'+c+';background:'+c+'"' : '';
+      const icStyle = active ? 'background:rgba(255,255,255,.22)' : 'background:'+c;
+      return '<div class="src'+(active?' act':'')+'" '+cardStyle+' title="点击查看「'+esc(s.name)+'」热点" onclick="APP.go(\'src\',\''+k+'\')">'+
+        '<span class="bar" style="background:'+c+'"></span>'+
+        '<span class="body">'+
+          '<span class="ic" style="'+icStyle+'">'+esc(ic)+'</span>'+
+          '<span style="flex:1;min-width:0">'+
+            '<div class="sc-name" style="'+(active?'color:#fff':'')+'">'+esc(s.name)+'</div>'+
+            '<div class="sc-cnt" style="'+(active?'color:rgba(255,255,255,.8)':'')+'">'+s.count+' 条</div>'+
+          '</span>'+
+        '</span></div>';
+    }).join('');
     $('#srcs').classList.toggle('closed',srcCollapsed);
   }
 
