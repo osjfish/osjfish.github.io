@@ -327,7 +327,7 @@ textarea{resize:vertical}
         <textarea id="input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
         <div class="input-bar">
           <button class="attach-btn" id="attachBtn" title="上传图片或文件">＋</button>
-          <div class="input-hint">支持图片、文本文件，视频（需豆包视觉模型或支持视频的接口）</div>
+          <div class="input-hint">支持图片、Word 文档（doc/docx）、文本文件，视频（需豆包视觉模型或支持视频的接口）</div>
           <button class="send-btn" id="sendBtn">发送</button>
         </div>
       </div>
@@ -504,6 +504,7 @@ textarea{resize:vertical}
 
 <div class="toast" id="toast"></div>
 
+<script src="lib/word-extractor.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -1438,7 +1439,7 @@ function plainText(s){
     .trim();
 }
 
-const ATTACH_TEXT_EXT={txt:1,md:1,json:1,csv:1,log:1,js:1,py:1,html:1,css:1,xml:1,yml:1,yaml:1,ini:1,ts:1,jsx:1,tsx:1};
+const ATTACH_TEXT_EXT={txt:1,md:1,json:1,csv:1,log:1,js:1,py:1,html:1,css:1,xml:1,yml:1,yaml:1,ini:1,ts:1,jsx:1,tsx:1,doc:1,docx:1};
 const ATTACH_VIDEO_EXT={mp4:1,mov:1,avi:1,mkv:1,wmv:1};
 const VIDEO_PROVIDERS={doubao:1,custom:1};
 function readFileAsDataUrl(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});}
@@ -1490,7 +1491,8 @@ async function handleAttachFiles(files){
       }
       if(f.size>20*1024*1024){toast(name+" 超过 20MB，已跳过",true);continue;}
     }
-    if(!isImg&&!isVideo&&f.size>2*1024*1024){toast(name+" 超过 2MB，已跳过",true);continue;}
+    const isWord=ext==="doc"||ext==="docx";
+    if(!isImg&&!isVideo&&f.size>(isWord?20*1024*1024:2*1024*1024)){toast(name+" 超过 "+(isWord?"20":"2")+"MB，已跳过",true);continue;}
     try{
       if(isImg){
         const raw=await readFileAsDataUrl(f);
@@ -1499,6 +1501,15 @@ async function handleAttachFiles(files){
       }else if(isVideo){
         const data=await readFileAsDataUrl(f);
         state.pendingFiles.push({name,type:"video",data});
+      }else if(ext==="docx"){
+        await loadScriptLib("https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js");
+        const buf=await f.arrayBuffer();
+        const r=await window.mammoth.extractRawText({arrayBuffer:buf});
+        state.pendingFiles.push({name,type:"text",data:String(r.value||"").slice(0,60000)});
+      }else if(ext==="doc"){
+        const buf=await f.arrayBuffer();
+        const doc=await new window.WordExtractor().extract(new Uint8Array(buf));
+        state.pendingFiles.push({name,type:"text",data:String(doc.getBody()||"").slice(0,60000)});
       }else{
         const data=await readFileAsText(f);
         state.pendingFiles.push({name,type:"text",data:String(data).slice(0,60000)});
@@ -2018,7 +2029,13 @@ function loadScriptLib(src){
 async function parseDistillFile(f){
   const ext=(f.name.split(".").pop()||"").toLowerCase();
   if(ext==="doc"){
-    return {ok:false,msg:"「"+f.name+"」是旧版 Word(.doc) 格式，暂无法解析，请另存为 .docx 后再导入"};
+    try{
+      const buf=await f.arrayBuffer();
+      const doc=await new window.WordExtractor().extract(new Uint8Array(buf));
+      return {ok:true,text:doc.getBody()||""};
+    }catch(e){
+      return {ok:false,msg:"「"+f.name+"」解析失败："+(e.message||"未知错误")};
+    }
   }
   if(ext==="docx"){
     await loadScriptLib("https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js");
