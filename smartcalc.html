@@ -217,6 +217,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
 
   let expr='';
   let lastResult=null;
+  let afterEquals=false;
   let history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
 
   const units={
@@ -318,6 +319,10 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
     return tokens;
   }
 
+  function numToStr(v){
+    return parseFloat(v.toPrecision(12)).toString();
+  }
+
   function formatResult(v){
     if(!isFinite(v))throw new Error('结果无效');
     if(Math.abs(v)>=1e15||(Math.abs(v)<1e-9&&v!==0))return v.toExponential(8).replace(/e\+?/,'e');
@@ -343,6 +348,11 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
   }
 
   function addSym(sym){
+    if(afterEquals){
+      afterEquals=false;
+      expr='+-*/%^'.includes(sym)?numToStr(lastResult)+sym:sym;
+      renderExpr();return;
+    }
     expr+=sym;renderExpr();
   }
 
@@ -351,7 +361,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
   }
 
   function clearAll(){
-    expr='';resultEl.classList.remove('error','ok');
+    expr='';afterEquals=false;resultEl.classList.remove('error','ok');
     if(lastResult!==null){resultEl.textContent=formatResult(lastResult);}
     else resultEl.textContent='0';
     renderExpr();
@@ -373,6 +383,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
       localStorage.setItem(HISTORY_KEY,JSON.stringify(history));
       renderHistory();
       lastResult=v;
+      afterEquals=true;
       expr='';
       resultEl.classList.remove('ok','error');
       resultEl.textContent=disp;
@@ -387,6 +398,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
   function backspace(){del()}
 
   function addFn(fn){
+    afterEquals=false;
     if(fn==='^2')expr+='^2';
     else if(fn==='^')expr+='^';
     else if(fn==='!')expr+='!';
@@ -430,6 +442,7 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
       const idx=parseInt(hi.dataset.idx);
       if(!isNaN(idx)&&history[idx]){
         expr=history[idx].expr;
+        afterEquals=false;
         lastResult=history[idx].val;
         resultEl.classList.remove('ok','error');
         resultEl.textContent=history[idx].display;
