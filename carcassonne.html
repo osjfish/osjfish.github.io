@@ -422,12 +422,12 @@ var TYPES=[
        {t:'field',half:['N1','E0'],hot:[72,28]},
        {t:'field',half:['N0','E1','S0','S1','W0','W1'],hot:[32,64]}]},
 {id:'t',edges:['F','R','R','R'],count:4,desc:'三岔',
- regs:[{t:'road',dirs:[1,2,3]},
+ regs:[{t:'road',dirs:[1]},{t:'road',dirs:[2]},{t:'road',dirs:[3]},
        {t:'field',half:['N0','N1'],hot:[50,22]},
        {t:'field',half:['S0','W1'],hot:[27,73]},
        {t:'field',half:['S1','E1'],hot:[73,73]}]},
 {id:'x',edges:['R','R','R','R'],count:1,desc:'十字',
- regs:[{t:'road',dirs:[0,1,2,3]},
+ regs:[{t:'road',dirs:[0]},{t:'road',dirs:[1]},{t:'road',dirs:[2]},{t:'road',dirs:[3]},
        {t:'field',half:['N0','W0'],hot:[25,25]},
        {t:'field',half:['N1','E0'],hot:[75,25]},
        {t:'field',half:['E1','S1'],hot:[75,75]},
@@ -972,11 +972,14 @@ function monCompleted(x,y){
   }
   return true;
 }
-/* 区域统计 */
+/* 区域统计：count/shield 均按"瓦片数"计（官方规则），同瓦片多段合并后只算一次 */
 function regionStat(tile,ri){
   var members=regionMembers(tile,ri);
-  var count=0,shield=0;
+  var seen={},count=0,shield=0;
   members.forEach(function(m){
+    var k=m.tile.x+','+m.tile.y;
+    if(seen[k])return;
+    seen[k]=1;
     count++;
     if(m.tile.shield&&m.reg.t==='city')shield+=m.tile.shield;
   });
@@ -1206,6 +1209,14 @@ function popGains(gains,x,y){
     showScorePop(x,y+gi*0.3,'+'+g.pts,(pl?pl.color:'#ffe9a0'));
   });
 }
+/* 洗牌：Fisher-Yates 均匀洗牌（sort(random) 分布有偏） */
+function shuffleArr(a){
+  for(var i=a.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var t=a[i];a[i]=a[j];a[j]=t;
+  }
+  return a;
+}
 /* 构建牌堆 */
 function buildDeck(mode){
   var list=[];
@@ -1214,17 +1225,17 @@ function buildDeck(mode){
     var c=mode==='2'?Math.max(1,Math.round(T.count/2)):mode==='1'?Math.max(1,Math.round(T.count/3)):T.count;
     for(var i=0;i<c;i++)list.push(T.id);
   });
-  /* 起始瓦片固定第一张（启用河流时替换为源头，不放起始瓦片） */
+  /* 起始瓦片固定第一张；启用河流时由源头替代，起始瓦片必须移出牌堆（官方规则） */
+  var startIdx=list.indexOf('start');
+  if(startIdx>=0)list.splice(startIdx,1);
   if(!SETTINGS.river){
-    var startIdx=list.indexOf('start');
-    list.splice(startIdx,1);
-    deck=list.sort(function(){return Math.random()-0.5});
+    deck=shuffleArr(list);
     var start=makeTile('start',0);
     start.x=0;start.y=0;
     boardMap['0,0']=start;
     totalTiles=deck.length+1;
   }else{
-    deck=list.sort(function(){return Math.random()-0.5});
+    deck=shuffleArr(list);
     totalTiles=deck.length+12;/* 源头+10 河段+湖泊 */
   }
   return deck.length;
@@ -1232,7 +1243,7 @@ function buildDeck(mode){
 /* 河牌堆：10 张河段洗牌 + 湖泊垫底 */
 function buildRiverDeck(){
   var ids=['rvs','rvs','rvc','rvc','rvc','rvc','rvbs','rvbc','rvm','rvcity'];
-  ids=ids.sort(function(){return Math.random()-0.5});
+  ids=shuffleArr(ids);
   ids.unshift('lake');
   return ids;
 }
@@ -2007,7 +2018,7 @@ function renderCurTile(){
   $id('curLabel').textContent=label;
 }
 /* ================= 交互 ================= */
-var dragging=false,lastX=0,lastY=0,downX=0,downY=0,pinchDist=0,pinchZoom=1;
+var dragging=false,lastX=0,lastY=0,downX=0,downY=0,pinchDist=0,pinchZoom=1,downOnCanvas=false;
 var renderPending=false;
 function requestRender(){
   if(renderPending)return;
@@ -2019,6 +2030,7 @@ function requestRender(){
 }
 function onDown(e){
   var pt=eventPos(e);
+  downOnCanvas=true;
   lastX=pt.x;lastY=pt.y;
   downX=pt.x;downY=pt.y;
   dragging=true;
@@ -2056,6 +2068,9 @@ function touchDist(e){
   return Math.sqrt(dx*dx+dy*dy);
 }
 function onUp(e){
+  /* 只有按下动作发生在棋盘上才处理，防止点击顶栏按钮时误放瓦片 */
+  if(!downOnCanvas)return;
+  downOnCanvas=false;
   var pt=eventPos(e);
   var moved=Math.abs(pt.x-downX)+Math.abs(pt.y-downY);
   dragging=false;
