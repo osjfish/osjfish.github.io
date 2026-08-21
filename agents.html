@@ -1502,7 +1502,7 @@ async function handleAttachFiles(files){
         const data=await readFileAsDataUrl(f);
         state.pendingFiles.push({name,type:"video",data});
       }else if(ext==="docx"){
-        await loadScriptLib("https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js");
+        await loadScriptLib("./lib/mammoth.browser.min.js");
         const buf=await f.arrayBuffer();
         const r=await window.mammoth.extractRawText({arrayBuffer:buf});
         state.pendingFiles.push({name,type:"text",data:String(r.value||"").slice(0,60000)});
@@ -2038,14 +2038,14 @@ async function parseDistillFile(f){
     }
   }
   if(ext==="docx"){
-    await loadScriptLib("https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js");
+    await loadScriptLib("./lib/mammoth.browser.min.js");
     const buf=await f.arrayBuffer();
     const r=await window.mammoth.extractRawText({arrayBuffer:buf});
     return {ok:true,text:r.value||""};
   }
   if(ext==="pdf"){
-    await loadScriptLib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
-    const WORKER="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+    await loadScriptLib("./lib/pdf.min.js");
+    const WORKER="./lib/pdf.worker.min.js";
     if(!window.__pdfWorkerUrl){
       const blob=new Blob(["importScripts('"+WORKER+"');"],{type:"application/javascript"});
       window.__pdfWorkerUrl=URL.createObjectURL(blob);
@@ -2072,7 +2072,7 @@ async function ocrDistillFile(item){
   if(item.ocr==="running")return;
   try{
     await loadScriptLib("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
-    await loadScriptLib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js");
+    await loadScriptLib("./lib/pdf.min.js");
     item.ocr="running";
     renderDistillFiles();
     setDistillStatus("OCR 识别中：「"+item.name+"」首次需下载中文语言包（约 20MB），请耐心等待…",0);

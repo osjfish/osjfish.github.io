@@ -2,8 +2,9 @@
 cd /www/wwwroot/apps
 echo '{"apps":[' > _list.json
 first=1
-for f in *; do
-  [ "$f" = "_list.json" ] || [ "$f" = "index.html" ] || [ "$f" = "build.sh" ] && continue
+# 只处理 *.html 文件，跳过 lib/ 等目录与辅助文件
+for f in *.html; do
+  [ "$f" = "index.html" ] && continue
   name=$(grep '<title>' "$f" 2>/dev/null | sed 's/.*<title>\([^<]*\)<\/title>.*/\1/' | head -1)
   [ -z "$name" ] && name="${f%.*}"
   [ $first -eq 1 ] && first=0 || echo ',' >> _list.json

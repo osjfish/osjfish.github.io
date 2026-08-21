@@ -995,14 +995,14 @@ function parseFile(file,cb){
     return;
   }
   if(ext==='docx'){
-    loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js').then(function(){
+    loadScript('./lib/mammoth.browser.min.js').then(function(){
       return mammoth.extractRawText({arrayBuffer:file.arrayBuffer()});
     }).then(function(res){cb(res.value||'')}).catch(function(e){toast('解析 docx 失败：'+e.message)});
     return;
   }
   if(ext==='pdf'){
-    loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js').then(function(){
-      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    loadScript('./lib/pdf.min.js').then(function(){
+      pdfjsLib.GlobalWorkerOptions.workerSrc='./lib/pdf.worker.min.js';
       return file.arrayBuffer().then(function(buf){
         return pdfjsLib.getDocument({data:buf}).promise;
       });
