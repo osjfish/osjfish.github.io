@@ -217,6 +217,7 @@ body{
   · <b style="color:#ffd857">红中、发财是杠</b>：轮到你时，手中的红中/发财随时可杠（每张杠后从牌尾补一张）<br>
   · <b style="color:#ffd857">赖子</b>：开局翻一张牌，它的下一张是赖子；若下一张是红中或发财，则白板是赖子。赖子可代替任何牌<br>
   · 和牌：4副（顺子/刻子）+ 1对将，或七对。赖子可当任意牌<br>
+  · <b style="color:#ffd857">开口规则</b>：屁和必须先吃/碰/明杠至少一次；清一色、碰碰胡、七对等大和无需开口<br>
   · <b style="color:#ffd857">计分（五轮零和）</b>：大和（清一色/碰碰胡/七对）30分 · 杠上开20分 · 屁和10分<br>
   · 每轮每人最多 <b>吃1次、碰1次</b>；明杠/暗杠不限次数<br>
   · 赖子不能被吃、碰、杠；吃碰需真实牌张（赖子只在自己手中当万能牌）<br>
@@ -406,8 +407,9 @@ function isQingYiSe(tiles,jokerId){
   }
   return suit!==null;
 }
-/* 综合和牌判定：返回 null 或 {type:'win',pattern} */
-function checkWin(hand,meldCount,jokerId,fromKong){
+/* 综合和牌判定：返回 null 或 {pattern,big,kong,pts}
+   openCount=开口数（吃/碰/明杠）；武汉规则：屁和必须开口，大和免 */
+function checkWin(hand,meldCount,jokerId,fromKong,openCount){
   var needSets=4-meldCount;
   var std=canWinStd(hand,jokerId,needSets);
   var seven=(meldCount===0)&&canSevenPairs(hand,jokerId);
@@ -418,8 +420,42 @@ function checkWin(hand,meldCount,jokerId,fromKong){
   else if(checkPengPeng(hand,jokerId))pattern='碰碰胡';
   else pattern='平胡';
   var big=(pattern==='清一色'||pattern==='碰碰胡'||pattern==='七对');
+  /* 开口门槛：屁和必须至少开口一次（吃/碰/明杠），大和不受限 */
+  if(pattern==='平胡'&&(openCount||0)<1)return null;
   var pts=big?30:(fromKong?20:10);
   return {pattern:pattern,big:big,kong:fromKong&&!big,pts:pts};
+}
+/* 开口数：吃/碰/明杠算，暗杠类不算 */
+function countOpens(melds){
+  var n=0;
+  melds.forEach(function(m){
+    if(m.type==='吃'||m.type==='碰')n++;
+    else if(m.type==='杠'&&!m.concealed)n++;
+  });
+  return n;
+}
+var ALL_CODES=(function(){
+  var a=[];
+  ['m','t','d'].forEach(function(s){for(var n=1;n<=9;n++)a.push(s+n);});
+  a.push('hz','fc','bb');
+  return a;
+})();
+/* 听牌提示：对每张可打牌，枚举全部进牌看是否成和 */
+function tenpaiHints(hand,meldCount,jokerId,openCount){
+  var out=[],seen={};
+  for(var i=0;i<hand.length;i++){
+    var c=hand[i];
+    if(seen[c])continue;seen[c]=1;
+    var rest=hand.slice();rest.splice(i,1);
+    var wins=[];
+    for(var j=0;j<ALL_CODES.length;j++){
+      var w=ALL_CODES[j];
+      if(checkWin(rest.concat([w]),meldCount,jokerId,false,openCount))wins.push(w);
+    }
+    if(wins.length)out.push({discard:c,wins:wins});
+  }
+  out.sort(function(a,b){return b.wins.length-a.wins.length;});
+  return out.slice(0,3);
 }
 /* 吃/碰/杠候选（真实牌，不含赖子） */
 function handCounts(hand,jokerId){
@@ -460,56 +496,88 @@ function selfGangOpts(hand,jokerId,melds){
   return opts;
 }
 /* ================= AI 评估 ================= */
-function evalHandScore(hand,jokerId){
-  var cm=countMap(hand,jokerId),cnt=cm.cnt,J=cm.jokers,score=J*8;
-  var suits={m:{},t:{},d:{}},honors=[];
-  for(var k in cnt){
-    if(isHonor(k)){honors.push({k:k,n:cnt[k]});continue;}
-    suits[k[0]][k[1]]=cnt[k];
-  }
-  honors.forEach(function(h){
-    score+= h.n===1? -2 : h.n===2? 5 : 10;
-  });
-  Object.keys(suits).forEach(function(s){
-    var m=suits[s],local=0,used={},maxRun=0;
-    for(var n=1;n<=9;n++){
-      var c=m[n]||0;
-      if(c>=3){local+=10;used[n]=(used[n]||0);}
-      else if(c===2){local+=5;}
-      if(c>0)maxRun++;
-      else maxRun=0;
+/* 结构化评估：贪心提取已完成/半完成组合，衡量手牌向和牌的收敛度 */
+function structureScore(hand,jokerId){
+  var cm=countMap(hand,jokerId),m=copyCnt(cm.cnt),J=cm.jokers,score=0;
+  var numKeys=['m','t','d'];
+  function dec(c,n){m[c]-=n;}
+  /* 1) 已成刻子 */
+  for(var k in m){while(m[k]>=3){score+=100;dec(k,3);}}
+  /* 2) 赖子补刻子（差1张） */
+  for(k in m){if(m[k]===2&&J>=1){score+=85;dec(k,2);J--;}}
+  /* 3) 同花顺子 */
+  ['m','t','d'].forEach(function(s){
+    for(var n=1;n<=7;n++){
+      while((m[s+n]||0)>0&&(m[s+(n+1)]||0)>0&&(m[s+(n+2)]||0)>0){score+=80;dec(s+n,1);dec(s+(n+1),1);dec(s+(n+2),1);}
     }
-    for(n=1;n<=8;n++){
-      var a=m[n]||0,b=m[n+1]||0;
-      if(a>0&&b>0)local+=4;
+    /* 赖子补顺子（缺第3张） */
+    for(n=1;n<=7;n++){
+      if(J>=1&&((m[s+n]||0)>0&&(m[s+(n+1)]||0)>0)){score+=65;dec(s+n,1);dec(s+(n+1),1);dec(s+(n+2),1);J--;}
+    }
+  });
+  /* 4) 对子 */
+  for(k in m){while(m[k]>=2){score+=40;dec(k,2);}}
+  if(J>=1){for(k in m){if(m[k]===1){score+=30;dec(k,1);J--;break;}}}
+  /* 5) 相邻/跳张半搭（数牌） */
+  ['m','t','d'].forEach(function(s){
+    for(var n=1;n<=8;n++){
+      if((m[s+n]||0)>0&&(m[s+(n+1)]||0)>0){score+=22;dec(s+n,1);dec(s+(n+1),1);}
     }
     for(n=1;n<=7;n++){
-      a=m[n]||0;b=m[n+2]||0;
-      if(a>0&&b>0)local+=2;
+      if((m[s+n]||0)>0&&(m[s+(n+2)]||0)>0){score+=14;dec(s+n,1);dec(s+(n+2),1);}
     }
-    var tot=0;for(n=1;n<=9;n++)tot+=(m[n]||0);
-    local+=Math.min(tot,9)*0.4;
-    score+=local;
   });
+  /* 6) 剩余孤张惩罚、剩余赖子奖励 */
+  for(k in m){score-=(m[k]>0?10*m[k]:0);}
+  score+=J*55;
   return score;
 }
-function aiPickDiscard(hand,jokerId,oppRiver){
+function evalHandScore(hand,jokerId){
+  return structureScore(hand,jokerId);
+}
+/* 精确听牌检测：打出 drop 后是否听牌。
+   返回 {legal:合法等待数, shape:纯形状等待数(可能需开口)} */
+function tenpaiWaitsAfter(hand,dropIdx,meldCount,jokerId,opens){
+  var rest=hand.slice();rest.splice(dropIdx,1);
+  var legal=0,shape=0;
+  for(var j=0;j<ALL_CODES.length;j++){
+    var w=ALL_CODES[j];
+    var effOpen=Math.max(opens||0,1);/* 形状模式：绕过开口门槛 */
+    if(checkWin(rest.concat([w]),meldCount,jokerId,false,opens))legal++;
+    else if(checkWin(rest.concat([w]),meldCount,jokerId,false,effOpen))shape++;
+  }
+  return {legal:legal,shape:shape,total:legal+shape};
+}
+function aiPickDiscard(hand,jokerId,oppRiver,meldCount,opens){
+  meldCount=meldCount||0;opens=opens||0;
   var best=null,bestV=-1e9;
   var tried={};
   for(var i=0;i<hand.length;i++){
     var c=hand[i];
     if(tried[c])continue;tried[c]=1;
-    if(c===jokerId&&hand.length>2)continue;/* AI 不轻易打赖子 */
-    var rest=hand.slice();rest.splice(i,1);
-    var v=evalHandScore(rest,jokerId);
-    /* 防守：终局阶段优先打对手打过的牌 */
+    if(c===jokerId&&hand.length>2)continue;/* 不轻易打赖子 */
+    var rest=hand.slice();
+    var ix=rest.indexOf(c);if(ix>=0)rest.splice(ix,1);
+    var wt=tenpaiWaitsAfter(hand,i,meldCount,jokerId,opens);
+    var v;
+    if(wt.legal>0){
+      /* 打出即合法听牌：最强优先，等多面张 */
+      v=100000+wt.legal*50+structureScore(rest,jokerId);
+    }else if(wt.shape>0&&opens<1){
+      /* 打出后是“需开口”的听牌：中等偏上价值，促使 AI 后续积极开口 */
+      v=50000+wt.shape*30+structureScore(rest,jokerId);
+    }else{
+      v=structureScore(rest,jokerId);
+    }
+    /* 防守：中后期优先打对手打过的牌 */
     if(oppRiver&&oppRiver.length>14){
-      var seen=0;oppRiver.forEach(function(r){if(r.t===c)seen++;});
-      v+=seen*1.5;
+      var seenN=0;oppRiver.forEach(function(r){if(r.t===c)seenN++;});
+      v+=seenN*2;
     }
     v+=Math.random()*0.5;
     if(v>bestV){bestV=v;best=c;}
   }
+  if(best===null&&hand.length)return hand[0];
   return best;
 }
 </script>
@@ -575,7 +643,7 @@ function beginTurn(first){
 /* 当前玩家行动评估（人和 AI 共用入口） */
 function proceedTurn(){
   var t=G.turn,hand=G.hands[t];
-  var winRes=checkWin(hand,G.melds[t].length,G.joker,G.justKang);
+  var winRes=checkWin(hand,G.melds[t].length,G.joker,G.justKang,countOpens(G.melds[t]));
   var gangs=selfGangOpts(hand,G.joker,G.melds[t]).filter(function(o){
     return G.wall.length>0;
   });
@@ -593,10 +661,16 @@ function humanTurnUI(winRes,gangs){
     setHint('');
     if(winRes){
       addBtn(bar,'自摸和！'+winRes.pattern+' +'+winRes.pts,'win',function(){doWin(G.turn,null,winRes);});
+      setHint('你可以自摸和牌，也可以继续打');
     }
     gangs.forEach(function(o,i){
       addBtn(bar,(o.type==='红中发财杠'?'杠 ':o.type+' ')+tileName(o.tile),'gang',function(){doGang(o);});
     });
+    /* 听牌提示 */
+    var hints=tenpaiHints(G.hands[G.turn],G.melds[G.turn].length,G.joker,countOpens(G.melds[G.turn]));
+    if(hints.length&&!winRes){
+      setHint('听牌建议：'+hints.map(function(h){return '打「'+tileName(h.discard)+'」听'+h.wins.length+'张';}).join('　'));
+    }
     if(G.selected>=0){
       addBtn(bar,'打出 '+tileName(G.hands[G.turn][G.selected]),'go',doDiscardSelected);
     }else{
@@ -609,11 +683,14 @@ function humanTurnUI(winRes,gangs){
 }
 function doDiscardSelected(){
   if(G.selected<0)return;
-  var t=G.turn,tile=G.hands[t].splice(G.selected,1)[0];
+  var t=G.turn,tile=G.hands[t][G.selected];
   G.selected=-1;
   discardTile(t,tile);
 }
+/* 统一出口：负责把手牌中的这张牌移除（防御式查找），再进牌河并开启响应窗口 */
 function discardTile(byWhom,tile){
+  var ix=G.hands[byWhom].indexOf(tile);
+  if(ix>=0)G.hands[byWhom].splice(ix,1);
   G.river.push({t:tile,by:byWhom});
   G.lastDiscard={tile:tile,by:byWhom};
   G.phase='claim';
@@ -624,7 +701,7 @@ function discardTile(byWhom,tile){
 function resolveClaims(){
   var d=G.lastDiscard,cl=opp(),hand=G.hands[cl];
   var claims={win:null,gangs:[],pong:false,chis:[]};
-  var w=checkWin(hand.concat([d.tile]),G.melds[cl].length,G.joker,false);
+  var w=checkWin(hand.concat([d.tile]),G.melds[cl].length,G.joker,false,countOpens(G.melds[cl]));
   if(w)claims.win=w;
   if(gangOptsOnDiscard(hand,G.joker,d.tile))claims.gangs.push(d.tile);
   if(!G.pongUsed[cl]&&pongOpts(hand,G.joker,d.tile))claims.pong=true;
@@ -643,8 +720,9 @@ function resolveClaims(){
 function showClaimUI(claims){
   renderAll();
   var bar=$('actBar');bar.innerHTML='';
-  setHint('对方打出 '+tileName(G.lastDiscard.tile)+'，你可以：');
-  if(claims.win)addBtn(bar,'和！'+claims.win.pattern+' +'+claims.win.pts,'win',function(){doWin(cur()===0?1:0,G.lastDiscard.tile,claims.win);});
+  var claimer=opp();
+  setHint(G.names[G.turn]+' 打出 '+tileName(G.lastDiscard.tile)+'，你可以：');
+  if(claims.win)addBtn(bar,'和！'+claims.win.pattern+' +'+claims.win.pts,'win',function(){doWin(claimer,G.lastDiscard.tile,claims.win);});
   claims.gangs.forEach(function(tc){
     addBtn(bar,'杠 '+tileName(tc),'gang',function(){doClaimGang(tc);});
   });
@@ -685,7 +763,7 @@ function doGang(opt){
 }
 function doClaimGang(tileCode){
   var cl=opp(),hand=G.hands[cl];
-  for(var i=0;i<3;i++){hand.splice(hand.indexOf(tileCode),1);}
+  for(var i=0;i<3;i++){var ix=hand.indexOf(tileCode);if(ix>=0)hand.splice(ix,1);}
   G.melds[cl].push({type:'杠',tile:tileCode,from:G.turn});
   G.river.pop();
   G.lastDiscard=null;
@@ -701,7 +779,7 @@ function doClaimGang(tileCode){
 }
 function doPong(){
   var cl=opp(),hand=G.hands[cl],tc=G.lastDiscard.tile;
-  for(var i=0;i<2;i++){hand.splice(hand.indexOf(tc),1);}
+  for(var i=0;i<2;i++){var ix=hand.indexOf(tc);if(ix>=0)hand.splice(ix,1);}
   G.melds[cl].push({type:'碰',tile:tc,from:G.turn});
   G.river.pop();
   G.pongUsed[cl]=true;
@@ -714,7 +792,7 @@ function doPong(){
 }
 function doChi(combo){
   var cl=opp(),hand=G.hands[cl],tc=G.lastDiscard.tile;
-  combo.forEach(function(c){hand.splice(hand.indexOf(c),1);});
+  combo.forEach(function(c){var ix=hand.indexOf(c);if(ix>=0)hand.splice(ix,1);});
   G.melds[cl].push({type:'吃',tile:tc,with:combo,from:G.turn});
   G.river.pop();
   G.chiUsed[cl]=true;
@@ -730,16 +808,16 @@ function afterMeldClaim(){
   if(G.mode==='ai'&&t===1){
     renderAll();
     setTimeout(function(){
-      var c=aiPickDiscard(G.hands[1],G.joker,G.river.filter(function(r){return r.by===0;}));
+      var c=aiPickDiscard(G.hands[1],G.joker,G.river.filter(function(r){return r.by===0;}),G.melds[1].length,countOpens(G.melds[1]));
       discardTile(1,c);
     },600);
     return;
   }
-  requestView(t,'请出牌',function(){
+  requestView(t,'吃/碰成功，请出牌',function(){
     renderAll();
     var bar=$('actBar');bar.innerHTML='';
-    setHint('吃/碰后请选择一张牌打出');
-    G.pendingMustDiscard=true;
+    G.selected=-1;
+    setHint('吃/碰后请点击一张手牌打出');
     refreshDiscardBtn();
   });
 }
@@ -747,7 +825,7 @@ function afterMeldClaim(){
 function aiAct(winRes,gangs){
   if(winRes){doWin(1,null,winRes);return;}
   if(gangs.length){doGang(gangs[0]);return;}
-  var c=aiPickDiscard(G.hands[1],G.joker,G.river.filter(function(r){return r.by===0;}));
+  var c=aiPickDiscard(G.hands[1],G.joker,G.river.filter(function(r){return r.by===0;}),G.melds[1].length,countOpens(G.melds[1]));
   discardTile(1,c);
 }
 function aiClaim(claims){
@@ -755,18 +833,21 @@ function aiClaim(claims){
   if(claims.win){doWin(1,d.tile,claims.win);return;}
   if(claims.gangs.length){doClaimGang(claims.gangs[0]);return;}
   var hand=G.hands[1];
-  var curScore=evalHandScore(hand,G.joker);
+  var opensNow=countOpens(G.melds[1]);
+  /* 未开口时碰/吃能解锁屁和资格，放宽门槛；已开口则要求足够结构收益 */
+  var curScore=structureScore(hand,G.joker)+(opensNow<1?-5:+40);
   if(claims.pong){
-    var sim=hand.slice();sim.splice(sim.indexOf(d.tile),1);sim.splice(sim.indexOf(d.tile),1);
-    var v=evalHandScore(sim,G.joker)+8;
-    if(v>=curScore){doPong();return;}
+    var sim=hand.slice();
+    var ix=sim.indexOf(d.tile);if(ix>=0)sim.splice(ix,1);
+    var ix2=sim.indexOf(d.tile);if(ix2>=0)sim.splice(ix2,1);
+    if(structureScore(sim,G.joker)>=curScore){doPong();return;}
   }
   if(claims.chis.length){
     var best=null,bestV=-1e9;
     claims.chis.forEach(function(combo){
       var sim2=hand.slice();
-      combo.forEach(function(c){sim2.splice(sim2.indexOf(c),1);});
-      var v2=evalHandScore(sim2,G.joker)+5;
+      combo.forEach(function(cc){var ix=sim2.indexOf(cc);if(ix>=0)sim2.splice(ix,1);});
+      var v2=structureScore(sim2,G.joker);
       if(v2>bestV){bestV=v2;best=combo;}
     });
     if(best&&bestV>=curScore){doChi(best);return;}
