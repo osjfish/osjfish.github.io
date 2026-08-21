@@ -318,7 +318,8 @@ input:checked+.slider:before{transform:translateX(16px)}
 <script>
 (function(){
 var lastTimeString="";
-var state={theme:localStorage.getItem('theme')||'light',alarms:JSON.parse(localStorage.getItem('alarms'))||[],ringtone:localStorage.getItem('ringtone')||'ding',volume:parseFloat(localStorage.getItem('volume'))||0.5,isRinging:false};
+var _savedAlarms=(function(){try{var v=JSON.parse(localStorage.getItem('alarms'));return Array.isArray(v)?v:[]}catch(e){return[]}})();
+var state={theme:localStorage.getItem('theme')||'light',alarms:_savedAlarms,ringtone:localStorage.getItem('ringtone')||'ding',volume:parseFloat(localStorage.getItem('volume'))||0.5,isRinging:false};
 var timer={totalSeconds:0,remainingSeconds:0,elapsedSeconds:0,interval:null,running:false,finished:false};
 var pom={totalSeconds:0,remainingSeconds:0,interval:null,running:false,phase:'work',workMin:25,breakMin:5,longBreakMin:15,sessions:0,setCount:0,finished:false,_fsInterval:null,endTime:0,autoStartBreak:true};
 var exam={running:false,interval:null,endTime:0,startTime:0,warningMin:15,warningSent:false,duration:0};
@@ -500,13 +501,15 @@ function addAlarm(){var li=document.getElementById('alarmLabel'),t=alarmTimeValu
 function toggleAlarm(id){var a=state.alarms.find(function(x){return x.id===id});if(a){a.enabled=!a.enabled;saveAlarms()}}
 function deleteAlarm(id){state.alarms=state.alarms.filter(function(x){return x.id!==id});saveAlarms();renderAlarms()}
 function saveAlarms(){localStorage.setItem('alarms',JSON.stringify(state.alarms))}
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]})}
 function renderAlarms(){
     var list=document.getElementById('alarmList');
     if(state.alarms.length===0){list.innerHTML='<div class="empty-state">暂无闹钟，点击上方添加</div>';return}
     var now=new Date(),cs=now.getHours()*3600+now.getMinutes()*60+now.getSeconds();
-    var awd=state.alarms.filter(function(a){return!a.isSnooze}).map(function(a){var p=a.time.split(':').map(Number),as_=p[0]*3600+p[1]*60+(p[2]||0),d=as_-cs;if(d<=0)d+=86400;var c={};for(var k in a)c[k]=a[k];c.diff=d;return c});
+    var awd=state.alarms.filter(function(a){return!a.isSnooze}).map(function(a){var p=String(a.time||'0:0').split(':').map(Number),as_=(p[0]||0)*3600+(p[1]||0)*60+(p[2]||0),d=as_-cs;if(d<=0)d+=86400;var c={};for(var k in a)c[k]=a[k];c.diff=d;return c});
     awd.sort(function(a,b){return a.diff-b.diff});
-    list.innerHTML=awd.map(function(a){var h=Math.floor(a.diff/3600),mi=Math.floor((a.diff%3600)/60);var ct_=a.enabled?'还有 '+(h>0?h+'小时':'')+mi+'分钟响铃':'已暂停';return '<div class="alarm-item '+(a.enabled?'':'disabled')+'"><div class="alarm-info"><span class="alarm-time">'+a.time+'</span><span class="alarm-label">'+a.label+'</span><span class="alarm-countdown">'+ct_+'</span></div><div class="alarm-controls"><label class="switch"><input type="checkbox" '+(a.enabled?'checked':'')+' onchange="toggleAlarm('+a.id+')"><span class="slider"></span></label><button class="danger" onclick="deleteAlarm('+a.id+')" style="padding:4px 7px;font-size:.68rem">删除</button></div></div>'}).join('');
+    // label 为用户输入，必须转义；id 为数字，parseInt 兜底
+    list.innerHTML=awd.map(function(a){var h=Math.floor(a.diff/3600),mi=Math.floor((a.diff%3600)/60);var ct_=a.enabled?'还有 '+(h>0?h+'小时':'')+mi+'分钟响铃':'已暂停';var aid=parseInt(a.id,10)||0;return '<div class="alarm-item '+(a.enabled?'':'disabled')+'"><div class="alarm-info"><span class="alarm-time">'+escHtml(a.time)+'</span><span class="alarm-label">'+escHtml(a.label)+'</span><span class="alarm-countdown">'+ct_+'</span></div><div class="alarm-controls"><label class="switch"><input type="checkbox" '+(a.enabled?'checked':'')+' onchange="toggleAlarm('+aid+')"><span class="slider"></span></label><button class="danger" onclick="deleteAlarm('+aid+')" style="padding:4px 7px;font-size:.68rem">删除</button></div></div>'}).join('');
 }
 function ring(label,time,maxMs){state.isRinging=true;document.getElementById('overlayLabel').textContent=label;document.getElementById('ringingTime').textContent=time||'';document.getElementById('ringingOverlay').classList.add('active');if('vibrate' in navigator)navigator.vibrate([500,300,500,300,500]);startBeep();if(ringTimer)clearTimeout(ringTimer);if(maxMs)ringTimer=setTimeout(function(){if(state.isRinging)stopRinging()},maxMs)}
 function stopRinging(){state.isRinging=false;document.getElementById('ringingOverlay').classList.remove('active');stopBeep();if('vibrate' in navigator)navigator.vibrate(0);if(ringTimer){clearTimeout(ringTimer);ringTimer=null}updateTabIndicators()}

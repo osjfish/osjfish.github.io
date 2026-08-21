@@ -492,6 +492,30 @@
             requestAnimationFrame(render);
         }
 
+        // ===== 导出备份（供按钮与存储告警横幅共用） =====
+        function exportData() {
+            const data = JSON.stringify({
+                boards: state.boards.map(b => ({ ...b, elements: (b.elements || []).map(el => el._img ? { ...el, _img: undefined } : el) })),
+                currentBoardId: state.currentBoardId,
+                settings: {
+                    penColor: state.penColor,
+                    penSize: state.penSize,
+                    eraserMode: state.eraserMode,
+                    eraserSize: state.eraserSize,
+                    textBgColor: state.textBgColor,
+                    textBgOpacity: state.textBgOpacity,
+                    textColor: state.textColor
+                }
+            });
+            const blob = new Blob([data], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `zenboard_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
         function saveToLocalStorage() {
             try {
                 // 同步当前桌布数据到 boards 数组
@@ -501,7 +525,7 @@
                     state.boards[idx].camera = state.camera;
                     state.boards[idx].bgColor = state.bgColor;
                 }
-                
+
                 const data = {
                     boards: state.boards.map(b => ({ ...b, elements: (b.elements || []).map(el => el._img ? { ...el, _img: undefined } : el) })),
                     currentBoardId: state.currentBoardId,
@@ -516,9 +540,72 @@
                     }
                 };
                 localStorage.setItem('zenboard_pro_data', JSON.stringify(data));
+                dismissStorageWarning(true);
             } catch (e) {
                 console.warn("Storage limited: Data might not be saved.", e);
+                showStorageWarning();
             }
+        }
+
+        // ===== 存储空间不足：页面内醒目横幅提醒（30秒节流，避免连续弹） =====
+        let _lastWarnAt = 0;
+        function showStorageWarning() {
+            const now = Date.now();
+            if (now - _lastWarnAt < 30000) return;
+            _lastWarnAt = now;
+            let bar = document.getElementById('storage-warn-bar');
+            if (!bar) {
+                bar = document.createElement('div');
+                bar.id = 'storage-warn-bar';
+                bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:10px 14px;font-size:13px;line-height:1.6;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;';
+                bar.innerHTML = '<span>⚠ 浏览器存储空间已满，<b>本次修改没有保存成功</b>！刷新后可能丢失。请删除部分图片/桌布，或立即导出备份。</span>';
+                const btn = document.createElement('button');
+                btn.textContent = '导出备份';
+                btn.style.cssText = 'background:#fff;color:#dc2626;border:none;border-radius:6px;padding:4px 12px;font-size:13px;cursor:pointer;font-weight:bold;';
+                btn.onclick = () => { exportData(); };
+                bar.appendChild(btn);
+                const close = document.createElement('span');
+                close.textContent = '✕';
+                close.style.cssText = 'cursor:pointer;opacity:.8;font-size:15px;';
+                close.onclick = () => bar.remove();
+                bar.appendChild(close);
+                document.body.appendChild(bar);
+            }
+            bar.style.display = 'flex';
+        }
+        function dismissStorageWarning(silent) {
+            const bar = document.getElementById('storage-warn-bar');
+            if (bar && silent !== true) bar.remove();
+            else if (bar) bar.remove();
+        }
+
+        // ===== 导入图片压缩：超过阈值时等比缩小并转 JPEG，降低 localStorage 触顶概率 =====
+        function compressImageFile(file, maxDim = 1400, quality = 0.82) {
+            return new Promise((resolve) => {
+                const r = new FileReader();
+                r.onload = (ex) => {
+                    const original = ex.target.result;
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            const longSide = Math.max(img.width, img.height);
+                            const needResize = longSide > maxDim;
+                            const tooBig = file.size > 250 * 1024;
+                            if (!needResize && !tooBig) { resolve(original); return; }
+                            const scale = needResize ? maxDim / longSide : 1;
+                            const cv = document.createElement('canvas');
+                            cv.width = Math.max(1, Math.round(img.width * scale));
+                            cv.height = Math.max(1, Math.round(img.height * scale));
+                            cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+                            resolve(cv.toDataURL('image/jpeg', quality));
+                        } catch (err) { resolve(original); }
+                    };
+                    img.onerror = () => resolve(original);
+                    img.src = original;
+                };
+                r.onerror = () => resolve(null);
+                r.readAsDataURL(file);
+            });
         }
 
         function loadFromLocalStorage() {
@@ -2156,28 +2243,7 @@
             bindColors('pen-swatches', 'penColor');
             bindColors('bg-swatches', 'bgColor');
 
-            document.getElementById('export-data-btn').onclick = () => {
-                const data = JSON.stringify({
-                    boards: state.boards.map(b => ({ ...b, elements: (b.elements || []).map(el => el._img ? { ...el, _img: undefined } : el) })),
-                    currentBoardId: state.currentBoardId,
-                    settings: {
-                        penColor: state.penColor,
-                        penSize: state.penSize,
-                        eraserMode: state.eraserMode,
-                        eraserSize: state.eraserSize,
-                        textBgColor: state.textBgColor,
-                        textBgOpacity: state.textBgOpacity,
-                        textColor: state.textColor
-                    }
-                });
-                const blob = new Blob([data], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `zenboard_${new Date().toISOString().slice(0,10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-            };
+            document.getElementById('export-data-btn').onclick = () => exportData();
 
             document.getElementById('import-data-btn').onclick = () => {
                 const i = document.createElement('input'); i.type='file'; i.accept='.json';
@@ -2236,33 +2302,31 @@
 
             document.getElementById('import-img').onclick = () => {
                 const i = document.createElement('input'); i.type='file'; i.accept='image/*';
-                i.onchange = (e) => {
+                i.onchange = async (e) => {
                     const file = e.target.files[0];
                     if(!file) return;
-                    const r = new FileReader();
-                    r.onload = (ex) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            saveHistory(true);
-                            const pos = toCanvasCoord(window.innerWidth / 2, window.innerHeight / 2);
-                            const maxWidth = 500 / state.camera.zoom;
-                            const w = Math.min(img.width, maxWidth);
-                            const h = img.height * (w / img.width);
-                            state.elements.push({
-                                type: 'image',
-                                src: ex.target.result,
-                                x: pos.x - w / 2,
-                                y: pos.y - h / 2,
-                                w: w,
-                                h: h
-                            });
-                            state.selected = [state.elements[state.elements.length - 1]]; // 导入后自动选中，双指可直接缩放图片本体
-                            syncDOMElements(); // 尽管渲染在 canvas，但也调用一次同步以防万一
-                            requestRender();
-                        };
-                        img.src = ex.target.result;
+                    const dataUrl = await compressImageFile(file);
+                    if (!dataUrl) return;
+                    const img = new Image();
+                    img.onload = () => {
+                        saveHistory(true);
+                        const pos = toCanvasCoord(window.innerWidth / 2, window.innerHeight / 2);
+                        const maxWidth = 500 / state.camera.zoom;
+                        const w = Math.min(img.width, maxWidth);
+                        const h = img.height * (w / img.width);
+                        state.elements.push({
+                            type: 'image',
+                            src: dataUrl,
+                            x: pos.x - w / 2,
+                            y: pos.y - h / 2,
+                            w: w,
+                            h: h
+                        });
+                        state.selected = [state.elements[state.elements.length - 1]]; // 导入后自动选中，双指可直接缩放图片本体
+                        syncDOMElements(); // 尽管渲染在 canvas，但也调用一次同步以防万一
+                        requestRender();
                     };
-                    r.readAsDataURL(file);
+                    img.src = dataUrl;
                 };
                 i.click();
             };

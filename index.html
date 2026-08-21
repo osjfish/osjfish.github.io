@@ -180,9 +180,11 @@
     <div><a href="https://beian.mps.gov.cn/#/query/webSearch?code=42010402001734" target="_blank" rel="noreferrer"><img src="https://beian.mps.gov.cn/web/assets/logo01.6189a29f.png" alt="公安备案"> 鄂公网安备42010402001734号</a> <span class="sep">|</span> <a href="https://beian.mps.gov.cn/#/query/webSearch?code=42010402001801" target="_blank" rel="noreferrer"><img src="https://beian.mps.gov.cn/web/assets/logo01.6189a29f.png" alt="公安备案"> 鄂公网安备42010402001801号</a></div>
   </div>
 
+  <script src="./lib/common.js"></script>
   <script>
     const LS_KEY_FAV='nav_favorites';
     const LS_KEY_HIST='nav_history';
+    const { esc } = window.AppUtils;
     let apps=[], favs=getLS(LS_KEY_FAV), history=getLS(LS_KEY_HIST);
     let searchQuery='';
 
@@ -193,11 +195,18 @@
       const bar=document.getElementById('historyBar');
       if(!history.length||searchQuery){bar.style.display='none';return}
       bar.style.display='flex';
+      // 用户输入经 esc() 转义，参数走 data-value + 事件委托，杜绝注入
       bar.innerHTML=history.map(h=>
-        `<span class="history-tag" onclick="doSearch('${h}')">${h}<span class="del" onclick="event.stopPropagation();delHistory('${h}')">&times;</span></span>`
-      ).join('')+(history.length?`<span class="history-clear" onclick="clearHistory()">清空</span>`:'');
+        `<span class="history-tag" data-value="${esc(h)}">${esc(h)}<span class="del" data-value="${esc(h)}">&times;</span></span>`
+      ).join('')+(history.length?`<span class="history-clear" onclick="clearHistory()">清</span>`:'');
     }
 
+    document.getElementById('historyBar').addEventListener('click',function(e){
+      const tag=e.target.closest('.history-tag');
+      if(!tag)return;
+      if(e.target.classList.contains('del')){delHistory(e.target.dataset.value);}
+      else{doSearch(tag.dataset.value||'');}
+    });
     function doSearch(q){document.getElementById('searchInput').value=q;searchQuery=q;renderApps()}
     function delHistory(h){history=history.filter(i=>i!==h);setLS(LS_KEY_HIST,history);renderHistory()}
     function clearHistory(){history=[];setLS(LS_KEY_HIST,history);renderHistory()}
@@ -227,12 +236,20 @@
 
     function cardHTML(a){
       const isFav=favs.includes(a.path);
-      const cat=a.category||'其他';
-      return `<div class="card cat-${cat}" onclick="window.location.href='${a.path}'">
-        <button class="fav-btn ${isFav?'active':''}" onclick="event.stopPropagation();toggleFav('${a.path}')">${isFav?'&#9733;':'&#9734;'}</button>
-        <div class="name">${a.name}</div>
+      const cat=a.category||'工具';
+      // name/path 来自 _list.json，仍统一转义防患未然
+      return `<div class="card cat-${esc(cat)}" data-path="${esc(a.path)}">
+        <button class="fav-btn ${isFav?'active':''}" data-path="${esc(a.path)}">${isFav?'&#9733;':'&#9734;'}</button>
+        <div class="name">${esc(a.name)}</div>
       </div>`;
     }
+
+    document.getElementById('content').addEventListener('click',function(e){
+      const fav=e.target.closest('.fav-btn');
+      if(fav){e.stopPropagation();toggleFav(fav.dataset.path);return;}
+      const card=e.target.closest('.card');
+      if(card&&card.dataset.path){window.location.href=card.dataset.path;}
+    });
 
     function toggleFav(p){
       if(favs.includes(p))favs=favs.filter(i=>i!==p);else favs.push(p);

@@ -215,7 +215,9 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
   let expr='';
   let lastResult=null;
   let afterEquals=false;
-  let history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+  let history;
+  try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');}catch(e){history=[];}
+  if(!Array.isArray(history))history=[];
 
   const units={
     length:{m:1,km:1000,cm:0.01,mm:0.001,mi:1609.344,ft:0.3048,in:0.0254},
@@ -406,10 +408,12 @@ body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;justif
   function renderHistory(){
     const list=document.getElementById('historyList');
     if(!history.length){list.innerHTML='<div class="history-empty">暂无记录</div>';return;}
-    list.innerHTML=history.map(h=>`
-      <div class="history-item" data-idx="${history.indexOf(h)}">
-        <div class="history-expr">${h.expr}</div>
-        <div class="history-val">= ${h.display}</div>
+    // 历史表达式为用户输入，必须转义后渲染
+    const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    list.innerHTML=history.map((h,i)=>`
+      <div class="history-item" data-idx="${i}">
+        <div class="history-expr">${esc(h.expr)}</div>
+        <div class="history-val">= ${esc(h.display)}</div>
       </div>`).join('');
   }
 
