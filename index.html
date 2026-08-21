@@ -198,22 +198,45 @@
     const LS_KEY_FAV='nav_favorites';
     const LS_KEY_HIST='nav_history';
     const LS_KEY_UNLOCK='nav_hidden_unlock';
-    const HIDDEN_CATS=['教育','游戏'];
     const UNLOCK_MS=7*24*60*60*1000;
     const { esc } = window.AppUtils;
-    let apps=[], favs=getLS(LS_KEY_FAV), history=getLS(LS_KEY_HIST);
+    let apps=[], hiddenApps=[], favs=getLS(LS_KEY_FAV), history=getLS(LS_KEY_HIST);
     let searchQuery='';
+    let hiddenPayload=null;
 
     function getLS(k){try{return JSON.parse(localStorage.getItem(k))||[]}catch(e){return[]}}
     function setLS(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
     function isUnlocked(){
       try{
-        const exp=JSON.parse(localStorage.getItem(LS_KEY_UNLOCK));
-        if(typeof exp==='number'&&Date.now()<exp)return true;
-        if(exp!=null)localStorage.removeItem(LS_KEY_UNLOCK);
+        const d=JSON.parse(localStorage.getItem(LS_KEY_UNLOCK));
+        if(d&&typeof d.exp==='number'&&d.exp>Date.now())return true;
+        if(d)localStorage.removeItem(LS_KEY_UNLOCK);
       }catch(e){localStorage.removeItem(LS_KEY_UNLOCK)}
       return false;
+    }
+    function loadHiddenCache(){
+      if(!isUnlocked())return;
+      try{
+        const d=JSON.parse(localStorage.getItem(LS_KEY_UNLOCK));
+        if(Array.isArray(d.apps))hiddenApps=d.apps;
+      }catch(e){}
+    }
+    function b64u8(b){try{return Uint8Array.from(atob(b),c=>c.charCodeAt(0))}catch(e){return null}}
+    async function tryUnlock(word){
+      if(!hiddenPayload||!crypto||!crypto.subtle||!word)return false;
+      try{
+        const salt=b64u8(hiddenPayload.salt), iv=b64u8(hiddenPayload.iv), data=b64u8(hiddenPayload.data);
+        if(!salt||!iv||!data)return false;
+        const baseKey=await crypto.subtle.importKey('raw',new TextEncoder().encode(word),'PBKDF2',false,['deriveKey']);
+        const key=await crypto.subtle.deriveKey(
+          {name:'PBKDF2',salt:salt,iterations:hiddenPayload.iter,hash:'SHA-256'},
+          baseKey,{name:'AES-GCM',length:256},false,['decrypt']);
+        const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},key,data);
+        hiddenApps=JSON.parse(new TextDecoder().decode(pt));
+        setLS(LS_KEY_UNLOCK,{exp:Date.now()+UNLOCK_MS,apps:hiddenApps});
+        return true;
+      }catch(e){return false}
     }
 
     function renderHistory(){
@@ -240,7 +263,7 @@
       const c=document.getElementById('content');
       renderHistory();
       const unlocked=isUnlocked();
-      let list=apps.filter(a=>unlocked||!HIDDEN_CATS.includes(a.category||''));
+      let list=unlocked?apps.concat(hiddenApps):apps;
       if(searchQuery){
         const q=searchQuery.toLowerCase();
         list=list.filter(a=>a.name.toLowerCase().includes(q)||a.path.toLowerCase().includes(q));
@@ -292,16 +315,20 @@
 
     document.getElementById('searchInput').addEventListener('input',function(){
       const val=this.value.trim();
-      if(val.toLowerCase()==='apps'){
-        setLS(LS_KEY_UNLOCK,Date.now()+UNLOCK_MS);
-        this.value='';searchQuery='';
-        document.getElementById('searchClear').classList.remove('show');
-        renderApps();showToast('已解锁隐藏板块，7 天内有效');
-        return;
-      }
       searchQuery=val;
       document.getElementById('searchClear').classList.toggle('show',!!searchQuery);
       renderApps();
+      if(val.length>=3){
+        clearTimeout(tryUnlock._t);
+        tryUnlock._t=setTimeout(()=>tryUnlock(val).then(ok=>{
+          if(ok){
+            const inp=document.getElementById('searchInput');
+            inp.value='';searchQuery='';
+            document.getElementById('searchClear').classList.remove('show');
+            renderApps();showToast('已解锁隐藏板块，7 天内有效');
+          }
+        }),300);
+      }
     });
     document.getElementById('searchInput').addEventListener('keydown',function(e){
       if(e.key==='Enter'&&searchQuery){
@@ -316,7 +343,9 @@
     });
 
     fetch('./_list.json').then(r=>r.json()).then(d=>{
-      apps=d.apps||[];renderApps();
+      apps=d.apps||[];hiddenPayload=d.hidden||null;
+      if(hiddenPayload){hiddenApps=[];loadHiddenCache();}
+      renderApps();
     }).catch(()=>{document.getElementById('content').innerHTML='<div class="empty">暂无应用</div>'});
   </script>
 </body>
