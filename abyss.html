@@ -1317,15 +1317,22 @@ function enemyAttackPlayer(e,mult){
   checkPlayerDeath();
 }
 function onPlayerDamage(d){
-  if(d<=0) return;
-  if(player.activeSets&&player.activeSets['tide']>=4) d=Math.round(d*0.85);
+  if(d<=0) return d;
+  var real=d;
+  /* 潮汐4件套减伤15%：调用方已先扣血，这里返还多扣的部分（修正结算顺序） */
+  if(player.activeSets&&player.activeSets['tide']>=4) real=Math.round(d*0.85);
+  if(real<d){
+    player.hp+=d-real;
+    addFloat(player.x*TILE+TILE/2,player.y*TILE-TILE/2,'潮汐 -'+(d-real),'#57c8ff',12);
+  }
   stats.hitsTaken=(stats.hitsTaken||0)+1;
   player.combo=0;
   if(quest&&quest.type==='untouched'&&!quest.failed&&!quest.done){
     quest.failed=true;
-    addLog('契约失败：本层受到了伤害',true);
+    addLog('契约失败：你受到了伤害',true);
     updateQuestBar();
   }
+  return real;
 }
 function comboMult(){
   var cap=20, unit=0.05;
@@ -2119,7 +2126,15 @@ function continueEndless(){
 // ================= 行动流程 =================
 function endTurn(){
   computeFOV();
-  enemiesAct();
+  // 速度属性生效：身法远超常人时，有概率抢先行动（跳过敌人回合，每点+2%，上限20%）
+  var _spdAdv=Math.max(0,(player.curSpd||0)-6);
+  var _haste=player.hp>0&&_spdAdv>0&&Math.random()<Math.min(0.2,_spdAdv*0.02);
+  if(_haste){
+    addLog('⚡ 你身形如风，抢得先机，敌人来不及反应！',true);
+    addFloat(player.x*TILE+TILE/2,player.y*TILE-TILE/2,'⚡先手','#ffd857',13);
+  } else {
+    enemiesAct();
+  }
   if(scene!=='play') return;
   var fs=getFloorSteps();
   if(fs>0) player.floorSteps=fs-1;

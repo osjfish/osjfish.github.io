@@ -826,6 +826,7 @@ var actCd={retreat:0,physio:0,feast:0,camp:0,birthday:0,christmas:0,psyche:0,bon
 var actThisWeek=null; // 本轮已举办的活动
 // ===== 意外事件系统（每轮结束后 0~3 个）=====
 var nextHomeBonus=0, oppDebuff=0, gateBoostRounds=0, sponsorExtra=0, youthBonus=0;
+var trainStopRounds=0, youthBoostRounds=0; // 事件：训练停滞 / 青训小将成长加速
 var negRounds=0; // 连续负资产轮数
 var crisisMsgs=[]; // 本轮财务危机消息（进经理简讯）
 var EVENTS=[
@@ -860,23 +861,23 @@ var EVENTS=[
   {id:25,name:'球员心猿意马',type:'bad',desc:'有球员向经纪人表达了离队意愿。',eff:{mor:-8},fix:{cost:60,desc:'花60万承诺主力位置与奖金',fixEff:{mor:2}}},
   {id:26,name:'自由球员',type:'good',desc:'一名实力派自由球员主动上门求职！',eff:{marketStrong:true},fix:null},
   {id:27,name:'对手减员',type:'good',desc:'下轮对手的主力门将意外受伤！',eff:{oppDebuff:5},fix:null},
-  {id:28,name:'战术泄露',type:'bad',desc:'有报道分析了你队战术，下轮对手针对性布置。',eff:{oppDebuff:-4},fix:{cost:20,desc:'花20万临时调整战术迷惑对手',fixEff:{}}},
+  {id:28,name:'战术泄露',type:'bad',desc:'有报道分析了你队战术，下轮对手针对性布置。',eff:{oppDebuff:-4},fix:{cost:20,desc:'花20万临时调整战术迷惑对手',fixEff:{oppDebuff:4}}},
   {id:29,name:'经纪人推荐',type:'good',desc:'相熟的经纪人推荐了一批物美价廉的球员。',eff:{marketStrong:true},fix:null},
   // —— 设施 ——
-  {id:30,name:'训练设施故障',type:'bad',desc:'训练基地的健身器材故障，训练计划受阻。',eff:{trainStop:1},fix:{cost:30,desc:'花30万紧急更换设备',fixEff:{}}},
+  {id:30,name:'训练设施故障',type:'bad',desc:'训练基地的健身器材故障，训练计划受阻。',eff:{trainStop:1},fix:{cost:30,desc:'花30万紧急更换设备',fixEff:{trainStopClear:true}}},
   {id:31,name:'草皮维护',type:'bad',desc:'主场草皮质量下滑，影响传控。',eff:{homeBonus:-2},fix:{cost:40,desc:'花40万铺设新草皮',fixEff:{homeBonus:2}}},
   {id:32,name:'赞助商参观',type:'good',desc:'潜在赞助商下周参观俱乐部！',eff:{sponsorExtra:20},fix:{cost:30,desc:'花30万布置参观接待，合同金额更高',fixEff:{sponsorExtra:30}}},
   {id:33,name:'青训扩建提议',type:'good',desc:'专家建议扩建青训设施培养更多新秀。',eff:{youthBonus:1},fix:{cost:100,desc:'花100万扩建青训基地，新秀+2',fixEff:{youthBonus:2}}},
   {id:34,name:'更衣室翻新',type:'good',desc:'新更衣室落成，设施一流！',eff:{mor:5},fix:{cost:50,desc:'花50万升级豪华配置，效果翻倍',fixEff:{mor:5}}},
-  {id:35,name:'夜赛停电',type:'bad',desc:'主场照明系统故障，夜场赛事受影响。',eff:{homeBonus:-3},fix:{cost:25,desc:'花25万租用应急照明',fixEff:{}}},
+  {id:35,name:'夜赛停电',type:'bad',desc:'主场照明系统故障，夜场赛事受影响。',eff:{homeBonus:-3},fix:{cost:25,desc:'花25万租用应急照明',fixEff:{homeBonus:3}}},
   // —— 球迷 ——
   {id:36,name:'球迷嘉年华',type:'good',desc:'俱乐部举办球迷嘉年华，人气爆棚！',eff:{mor:6},fix:{cost:40,desc:'花40万扩大活动规模，效果翻倍',fixEff:{mor:6}}},
-  {id:37,name:'极端天气',type:'bad',desc:'周末将迎来暴风雨，观赛人数锐减。',eff:{gateBoost:-2},fix:{cost:20,desc:'花20万发放球票补贴稳住上座',fixEff:{gateBoost:-1}}},
+  {id:37,name:'极端天气',type:'bad',desc:'周末将迎来暴风雨，观赛人数锐减。',eff:{gateBoost:-2},fix:{cost:20,desc:'花20万发放球票补贴稳住上座',fixEff:{gateBoostClear:true}}},
   {id:38,name:'球迷组织声援',type:'good',desc:'死忠球迷组织宣布全力支持球队！',eff:{homeBonus:3},fix:null},
-  {id:39,name:'横幅风波',type:'bad',desc:'看台横幅引发争议，外界议论纷纷。',eff:{mor:-4},fix:{cost:15,desc:'花15万引导球迷情绪',fixEff:{}}},
+  {id:39,name:'横幅风波',type:'bad',desc:'看台横幅引发争议，外界议论纷纷。',eff:{mor:-4},fix:{cost:15,desc:'花15万引导球迷情绪',fixEff:{mor:4}}},
   {id:40,name:'海外球迷',type:'good',desc:'海外球迷数量激增，品牌价值提升。',eff:{sponsorExtra:15},fix:null},
   // —— 青训 ——
-  {id:41,name:'青训教练被挖',type:'bad',desc:'青训总监收到其他俱乐部高薪邀请。',eff:{youthBonus:-1},fix:{cost:45,desc:'花45万加薪挽留青训团队',fixEff:{}}},
+  {id:41,name:'青训教练被挖',type:'bad',desc:'青训总监收到其他俱乐部高薪邀请。',eff:{youthBonus:-1},fix:{cost:45,desc:'花45万加薪挽留青训团队',fixEff:{youthBonus:1}}},
   {id:42,name:'天才少年',type:'good',desc:'青训营冒出一名天赋异禀的少年！',eff:{youthBonus:1},fix:null},
   {id:43,name:'小将外租',type:'good',desc:'青训球员外租练级，收获租借费。',eff:{cash:20},fix:null},
   {id:44,name:'青训赞助',type:'good',desc:'本地企业赞助青训营。',eff:{cash:30},fix:null},
@@ -929,7 +930,7 @@ function buildBriefs(){
     briefs.push('🎯 下轮对手：'+opp.name+'（'+(isHome?'主场':'客场')+' · 实力'+Math.round(teamAbility(opp.eleven))+'）');
   }
   var n=tableOf(myTier).length;
-  if(myRow.winStreak>=3) briefs.push('🔥 已取得 '+myRow.winStreak+' 连胜！');
+  if(ach.winStreak>=3) briefs.push('🔥 已取得 '+ach.winStreak+' 连胜！');
   if(curRank<=3&&myTier==='A') briefs.push('🏆 目前身处冠军争夺区！');
   if(curRank>=n-1&&myTier==='A') briefs.push('⚠️ 目前身处降级区，需要抢分！');
   if(myTier==='B'&&curRank<=2) briefs.push('⬆️ 目前身处升级区！');
@@ -1055,10 +1056,12 @@ function applyEvent(ev,fix){
   if(eff.homeBonus){ nextHomeBonus+=eff.homeBonus*mul; msgs.push('下轮主场加成'+(eff.homeBonus*mul>=0?'+':'')+eff.homeBonus*mul); }
   if(eff.oppDebuff){ oppDebuff+=eff.oppDebuff*mul; msgs.push('下轮对手实力'+(eff.oppDebuff*mul>=0?'-':'+')+Math.abs(eff.oppDebuff*mul)); }
   if(eff.gateBoost){ gateBoostRounds=Math.max(gateBoostRounds,eff.gateBoost*mul); msgs.push('门票收入'+(eff.gateBoost*mul>=0?'提升':'下降')); }
+  if(eff.gateBoostClear){ gateBoostRounds=0; msgs.push('球票销售恢复正常'); }
+  if(eff.trainStopClear){ trainStopRounds=0; msgs.push('训练设施已修复，恢复训练'); }
   if(eff.sponsorExtra){ sponsorExtra+=eff.sponsorExtra*mul; msgs.push('赞助合同金额+'+(eff.sponsorExtra*mul)+'万/轮'); }
   if(eff.youthBonus){ youthBonus+=eff.youthBonus*mul; msgs.push('赛季末青训新秀'+(eff.youthBonus*mul>=0?'+':'')+eff.youthBonus*mul+'名'); }
-  if(eff.trainStop){ msgs.push('本周训练停滞'); }
-  if(eff.youthBoost){ msgs.push('青训小将成长加速'); }
+  if(eff.trainStop){ trainStopRounds=1; msgs.push('本周训练停滞'); }
+  if(eff.youthBoost){ youthBoostRounds=1; msgs.push('青训小将成长加速'); }
   if(eff.marketStrong){
     var pos=['gk','df','mf','fw'][(Math.random()*4)|0];
     var pool2=genSquad('event_'+Math.random(),80+((Math.random()*10)|0)).filter(function(q){ return q.pos===pos; });
@@ -1191,10 +1194,16 @@ function settleSpon(){
       weekFin.spon+=ct.perWeek;
       ct.remain--;
       if(ct.remain<=0){
-        showMsg('🤝 与「'+ct.name+'」的赞助合同到期');
+        showMsg('💰 与「'+ct.name+'」的赞助合同到期');
         contracts.splice(c,1);
       }
     }
+  }
+  // 事件带来的额外赞助收入（赞助商参观/海外球迷等）真正到账
+  if(sponsorExtra>0){
+    myClub.cash+=sponsorExtra;
+    fin.sponsor+=sponsorExtra;
+    weekFin.spon+=sponsorExtra;
   }
   refreshSponCandidates();
 }
@@ -1475,6 +1484,7 @@ function saveGame(){
       resultsByRound:resultsByRound, champHistory:champHistory, ach:ach, fin:fin, facilities:facilities,
       invest:invest, actCd:actCd, contracts:contracts, sponCandidates:sponCandidates,
       market:market, names:NAMES_CACHE, sfx:SFX_ON,
+      season:season, negRounds:negRounds, youthBonus:youthBonus, sponsorExtra:sponsorExtra,
       matchActive:!!(match&&!match.over)
     };
     localStorage.setItem(SAVE_KEY,JSON.stringify(d));
@@ -1508,6 +1518,9 @@ function loadGame(){
       round=1; resultsByRound={}; market=[]; refreshMarket();
     }
     round=d.round||1; ROT_A=d.ROT_A||[]; ROT_B=d.ROT_B||[];
+    // 恢复赛季号与跨周状态（旧档缺省时回退默认值）
+    season=d.season||1; negRounds=d.negRounds||0;
+    youthBonus=d.youthBonus||0; sponsorExtra=d.sponsorExtra||0;
     // 统一 myClub 与 aiClubs 中玩家球队的引用：否则新赛季重置（体力/伤病/进球清零）只作用于 aiClubs 拷贝，玩家数据不同步
     {
       var _mi3=-1;
@@ -1682,20 +1695,20 @@ var oppIdx=opponentOf(round);
     }
   }
   var homeAdd=facHomeAdd(facilities.analysis); // 主场优势（战术分析室增强）
-  var myAb=teamAbility(myClub.eleven)+(isHome?homeAdd+nextHomeBonus:0)+oppDebuff;
-  var oppAb=teamAbility(opp.eleven)+(isHome?0:homeAdd);
+  var myAb=teamAbility(myClub.eleven)+(isHome?homeAdd+nextHomeBonus:0);
+  var oppAb=teamAbility(opp.eleven)+(isHome?0:2)-oppDebuff;
   if(isHome){
-    match={ home:myClub, away:opp, awayIdx:oppIdx, isHome:true, score:[0,0], clock:0, half:1, speed:1,
+    match={ home:myClub, away:opp, awayIdx:oppIdx, isHome:true, trueHome:myClub, score:[0,0], clock:0, half:1, speed:1,
       over:false, poss:[0,0], shots:[0,0], onTarget:[0,0], rating:{}, assists:{},
       events:[], lastTouch:1, setPiece:null, phase:'kickoff', phaseT:1.2, players:[], ball:null,
       confetti:[], camShake:0, goalCeleb:0, injury:null, counterT:0, counterTeam:null,
-      paramsHome:params(myClub,true), paramsAway:params(opp,false) };
+      paramsHome:params(myClub,true,homeAdd+nextHomeBonus,0), paramsAway:params(opp,false,undefined,oppDebuff) };
   } else {
-    match={ home:opp, away:myClub, awayIdx:myIdx, isHome:false, score:[0,0], clock:0, half:1, speed:1,
+    match={ home:opp, away:myClub, awayIdx:myIdx, isHome:false, trueHome:opp, score:[0,0], clock:0, half:1, speed:1,
       over:false, poss:[0,0], shots:[0,0], onTarget:[0,0], rating:{}, assists:{},
       events:[], lastTouch:1, setPiece:null, phase:'kickoff', phaseT:1.2, players:[], ball:null,
       confetti:[], camShake:0, goalCeleb:0, injury:null, counterT:0, counterTeam:null,
-      paramsHome:params(opp,true), paramsAway:params(myClub,false) };
+      paramsHome:params(opp,true,undefined,oppDebuff), paramsAway:params(myClub,false,0,0) };
   }
   spawnMatch(match);
   var mu=document.getElementById('matchUI');
@@ -1720,13 +1733,14 @@ var oppIdx=opponentOf(round);
   }
   saveGame();
 }
-function params(team,home){
+function params(team,home,homeBonus,debuff){
   var tac=team.tactic?tacticById(team.tactic):null;
   var att=tac?tac.mentality==='att':team.mentality==='att';
   var def=tac?tac.mentality==='def':team.mentality==='def';
   var pressV=tac?tac.press:team.press;
   var lineV=tac?tac.line:team.line;
-  var ab=teamAbility(team.eleven)+(home?2:0);
+  // 主场加成：可传入分析室等级+事件加成；debuff 为事件对球队的削弱（对手减员等）
+  var ab=teamAbility(team.eleven)+(home?(homeBonus!==undefined?homeBonus:2):0)-(debuff||0);
   var hotN=0;
   for(var hk=0;hk<team.eleven.length;hk++){ if(team.eleven[hk]&&team.eleven[hk].hot) hotN++; }
   ab+=hotN*0.35;
@@ -2748,8 +2762,8 @@ function updateMatch(m,dt){
       else if(_diff>=2&&m.clock>55*60){ _at.tactic='bus'; }   // 领先2球：低位防守守住
       else if(_diff>=1&&m.clock>65*60){ _at.tactic='counter'; } // 领先：防反
       else { _at.tactic=randTactic(); }                // 正常：随机调整
-      if(_at===m.home) m.paramsHome=params(_at,true);
-      else m.paramsAway=params(_at,false);
+      if(_at===m.home) m.paramsHome=params(_at,_at===m.trueHome);
+      else m.paramsAway=params(_at,_at===m.trueHome);
     }
   }
   if(m.clock>=90*60){ endMatch(); return; }
@@ -2836,11 +2850,15 @@ function endMatch(){
     if(played){ p.played++; p.rating=Math.round((m.rating[p.name]||6)*10)/10; }
     p.hot=(p.played>=2&&p.rating>=7.5);
     // 成长/老化作用于六维（随机1-2项±1），总评自动重算
+    // 事件：训练停滞时暂停成长；小将蜕变时成长概率翻倍
     var growMul=facGrowth(facilities.training);
-    if(played&&p.age<=23&&Math.random()<0.5*growMul) growAttrs(p);
-    else if(!played&&p.age<=21&&facilities.training>=2&&Math.random()<0.15*growMul) growAttrs(p);
+    var _gMul=(trainStopRounds>0)?0:(youthBoostRounds>0?2:1);
+    if(_gMul>0&&played&&p.age<=23&&Math.random()<0.5*growMul*_gMul) growAttrs(p);
+    else if(_gMul>0&&!played&&p.age<=21&&facilities.training>=2&&Math.random()<0.15*growMul*_gMul) growAttrs(p);
     if(played&&p.age>=30&&Math.random()<0.35) ageAttrs(p);
   }
+  if(trainStopRounds>0) trainStopRounds--;
+  if(youthBoostRounds>0) youthBoostRounds--;
   // 随机伤病（医疗中心降低概率、缩短停赛、加速复出）
   var injRate=facInjRate(facilities.medical);
   var fitBack=facFitBack(facilities.medical);
@@ -2955,7 +2973,10 @@ function showFinal(m){
   var _mu2=document.getElementById('matchUI');
   if(_mu2){ _mu2.classList.add('hide'); _mu2.classList.remove('show'); }
   document.getElementById('report').classList.add('show');
-  document.getElementById('btnNext').onclick=function(){
+  document.getElementById('btnNext').onclick=advanceRound;
+}
+// 推进到下一轮（赛后报告按钮与比赛面板共用，防止赛后刷新导致软锁）
+function advanceRound(){
     round++;
     if(round>TOTAL_ROUNDS){ showChampion(); return; }
     var evTxt='';
@@ -2996,7 +3017,6 @@ function showFinal(m){
     document.getElementById('report').classList.remove('show');
     showRoundEndCards(evts,briefs);
     showMsg((evTxt?evTxt+' ｜ ':'')+(evTxt2?evTxt2+' ｜ ':'')+window.headline());
-  };
 }
 function showChampion(){
   // A级(34轮)比B级(30轮)多4轮：玩家在B级赛季结束时A级尚有剩余轮次，
@@ -3547,8 +3567,10 @@ function renderPanMatch(){
     '</div>'+
     '<div class="opp-info">'+(isHome?'<span class="home-tag">主</span>':'<span class="away-tag">客</span>')+
       ' 我的战术 <b>'+tacName+'</b></div>'+
-    (played?'<div style="text-align:center;font-size:11px;color:#8fa3bd">✅ 本轮已完成，请进入下一轮</div>':
+    (played?'<div style="text-align:center"><div style="font-size:11px;color:#8fa3bd;margin-bottom:8px">✅ 本轮已完成</div><button class="btn btn-start" id="btnAdvance">▶ 进入下一轮</button></div>':
     '<button class="btn btn-start" id="btnStartMatch2">🏟 开始比赛</button>');
+  var _ab=document.getElementById('btnAdvance');
+  if(_ab) _ab.onclick=advanceRound;
   var b2=document.getElementById('btnStartMatch2');
   if(b2) b2.onclick=function(){
     if(round>TOTAL_ROUNDS) return;
@@ -4099,8 +4121,10 @@ function updateControls(){
       tb.title=t.desc;
       tb.onclick=(function(tc){ return function(){
         myClub.tactic=tc.id; myClub.mentality=tc.mentality; myClub.press=tc.press; myClub.line=tc.line;
-        if(match.home===myClub) match.paramsHome=params(myClub,true);
-        else match.paramsAway=params(myClub,false);
+        // 以真实主客场重建参数（下半场换边后 m.home 不再代表真正主队）
+        var _myHb=(match.iAmHome||match.trueHome===myClub)?(facHomeAdd(facilities.analysis)+nextHomeBonus):0;
+        if(match.home===myClub) match.paramsHome=params(myClub,match.trueHome===myClub,_myHb,0);
+        else match.paramsAway=params(myClub,match.trueHome===myClub,_myHb,0);
         showMsg('战术：'+tc.name+' —— '+tc.desc);
         document.getElementById('mtTxt').textContent='我的战术：'+tc.name;
         tl.style.display='none';
