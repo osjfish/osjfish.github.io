@@ -95,6 +95,11 @@
     border-color:rgba(94,74,112,.44);
   }
   .cat-游戏:hover{border-color:#5E4A70;box-shadow:0 8px 22px rgba(94,74,112,.22)}
+  .cat-教育{
+    background:linear-gradient(180deg,#FCFDFE,#E1EEEC);
+    border-color:rgba(46,110,101,.44);
+  }
+  .cat-教育:hover{border-color:#2E6E65;box-shadow:0 8px 22px rgba(46,110,101,.22)}
   .cat-其他{
     background:linear-gradient(180deg,#FEFEFE,#EAEDEF);
     border-color:rgba(80,84,92,.42);
@@ -117,6 +122,7 @@
   .cat-工作 .name{color:#33507A}
   .cat-生活 .name{color:#3B6A52}
   .cat-游戏 .name{color:#5E4A70}
+  .cat-教育 .name{color:#2E6E65}
   .cat-其他 .name{color:#50545C}
 
   .history-bar{
@@ -140,6 +146,13 @@
   .history-clear:hover{color:var(--zhu);border-color:var(--zhu)}
 
   .empty{text-align:center;color:var(--shui-light);padding:60px 0;font-size:14px;opacity:.5}
+  #toast{
+    position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(8px);
+    background:var(--shui);color:#fff;font-size:12px;letter-spacing:1px;
+    padding:8px 18px;border-radius:20px;box-shadow:0 4px 14px rgba(0,0,0,.2);
+    opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:200;
+  }
+  #toast.show{opacity:.95;transform:translateX(-50%) translateY(0)}
   .footer{text-align:center;padding:20px 0 12px;font-size:11px;color:#999;line-height:2.2}
   .footer div{display:flex;justify-content:center;align-items:center;gap:0;flex-wrap:wrap}
   .footer a{color:#999;text-decoration:none;display:inline-flex;align-items:center;gap:3px;flex-wrap:nowrap}
@@ -184,12 +197,24 @@
   <script>
     const LS_KEY_FAV='nav_favorites';
     const LS_KEY_HIST='nav_history';
+    const LS_KEY_UNLOCK='nav_hidden_unlock';
+    const HIDDEN_CATS=['教育','游戏'];
+    const UNLOCK_MS=7*24*60*60*1000;
     const { esc } = window.AppUtils;
     let apps=[], favs=getLS(LS_KEY_FAV), history=getLS(LS_KEY_HIST);
     let searchQuery='';
 
     function getLS(k){try{return JSON.parse(localStorage.getItem(k))||[]}catch(e){return[]}}
     function setLS(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+    function isUnlocked(){
+      try{
+        const exp=JSON.parse(localStorage.getItem(LS_KEY_UNLOCK));
+        if(typeof exp==='number'&&Date.now()<exp)return true;
+        if(exp!=null)localStorage.removeItem(LS_KEY_UNLOCK);
+      }catch(e){localStorage.removeItem(LS_KEY_UNLOCK)}
+      return false;
+    }
 
     function renderHistory(){
       const bar=document.getElementById('historyBar');
@@ -214,13 +239,14 @@
     function renderApps(){
       const c=document.getElementById('content');
       renderHistory();
-      let list=apps;
+      const unlocked=isUnlocked();
+      let list=apps.filter(a=>unlocked||!HIDDEN_CATS.includes(a.category||''));
       if(searchQuery){
         const q=searchQuery.toLowerCase();
         list=list.filter(a=>a.name.toLowerCase().includes(q)||a.path.toLowerCase().includes(q));
       }
       if(!list.length){c.innerHTML='<div class="empty">暂无应用</div>';return}
-      const catOrder=['工作','生活','游戏','其他'];
+      const catOrder=unlocked?['工作','生活','教育','游戏','其他']:['工作','生活','其他'];
       let html='';
       const favsList=list.filter(a=>favs.includes(a.path));
       if(favsList.length&&!searchQuery){
@@ -256,8 +282,24 @@
       setLS(LS_KEY_FAV,favs);renderApps();
     }
 
+    function showToast(msg){
+      let t=document.getElementById('toast');
+      if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t)}
+      t.textContent=msg;t.classList.add('show');
+      clearTimeout(showToast._timer);
+      showToast._timer=setTimeout(()=>t.classList.remove('show'),2200);
+    }
+
     document.getElementById('searchInput').addEventListener('input',function(){
-      searchQuery=this.value.trim();
+      const val=this.value.trim();
+      if(val.toLowerCase()==='apps'){
+        setLS(LS_KEY_UNLOCK,Date.now()+UNLOCK_MS);
+        this.value='';searchQuery='';
+        document.getElementById('searchClear').classList.remove('show');
+        renderApps();showToast('已解锁隐藏板块，7 天内有效');
+        return;
+      }
+      searchQuery=val;
       document.getElementById('searchClear').classList.toggle('show',!!searchQuery);
       renderApps();
     });
