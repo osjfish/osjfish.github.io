@@ -610,7 +610,8 @@ function startGame(mode){
     names:['玩家一',mode==='ai'?'电脑':'玩家二'],
     scores:[0,0],
     round:0,
-    viewer:0
+    viewer:0,
+    dealer:0
   };
   nextRound();
 }
@@ -632,7 +633,7 @@ function nextRound(){
   }
   G.flip=G.wall.pop();
   G.joker=calcJoker(G.flip);
-  G.turn=G.round%2===1?0:1;
+  G.turn=G.dealer;
   G.phase='turn';
   G.justKang=false;
   G.selected=-1;
@@ -902,6 +903,7 @@ function aiClaim(claims){
 }
 /* ---- 回合结束 ---- */
 function endRound(result){
+  if(result) G.dealer=result.winner;
   G.phase='roundEnd';
   renderAll(true);
   var ov=$('ovRound'),title=$('rTitle'),body=$('rBody'),next=$('rNext');
@@ -972,10 +974,10 @@ function renderAll(redacted){
   var me=VIEWER,op=1-VIEWER;
   $('scoreMe').textContent=G.scores[me];
   $('scoreOpp').textContent=G.scores[op];
-  $('myName').textContent=G.names[me];
-  $('oppName').textContent=G.names[op];
-  var nmMe=document.getElementById('nameMe'); if(nmMe) nmMe.textContent=G.names[me];
-  var nmOpp=document.getElementById('nameOpp'); if(nmOpp) nmOpp.textContent=G.names[op];
+  $('myName').textContent=G.names[me]+(G.dealer===me?' 庄':'');
+  $('oppName').textContent=G.names[op]+(G.dealer===op?' 庄':'');
+  var nmMe=document.getElementById('nameMe'); if(nmMe) nmMe.textContent=G.names[me]+(G.dealer===me?' 庄':'');
+  var nmOpp=document.getElementById('nameOpp'); if(nmOpp) nmOpp.textContent=G.names[op]+(G.dealer===op?' 庄':'');
   $('oppRole').textContent=(G.mode==='ai'&&op===1)?'AI':(G.turn===op?'思考中…':'等待');
   /* 对手手牌（背面） */
   var oh=$('oppHand');oh.innerHTML='';
