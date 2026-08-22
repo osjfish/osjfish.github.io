@@ -435,6 +435,19 @@ function countOpens(melds){
   });
   return n;
 }
+/* 和牌计数的副露数：红中/发财/赖子单张杠不计入（它们是奖励杠，不占面子） */
+function winMeldCount(melds){
+  var n=0;
+  melds.forEach(function(m){
+    if(m.type==='吃'||m.type==='碰')n++;
+    else if(m.type==='杠'){
+      if(m.tiles && m.tiles.length===1) return;
+      if(!m.tiles && (m.tile==='hz'||m.tile==='fc')) return;
+      n++;
+    }
+  });
+  return n;
+}
 var ALL_CODES=(function(){
   var a=[];
   ['m','t','d'].forEach(function(s){for(var n=1;n<=9;n++)a.push(s+n);});
@@ -644,7 +657,7 @@ function beginTurn(first){
 /* 当前玩家行动评估（人和 AI 共用入口） */
 function proceedTurn(){
   var t=G.turn,hand=G.hands[t];
-  var winRes=checkWin(hand,G.melds[t].length,G.joker,G.justKang,countOpens(G.melds[t]));
+  var winRes=checkWin(hand,winMeldCount(G.melds[t]),G.joker,G.justKang,countOpens(G.melds[t]));
   var gangs=selfGangOpts(hand,G.joker,G.melds[t]).filter(function(o){
     return G.wall.length>0;
   });
@@ -664,7 +677,7 @@ function humanTurnUI(winRes,gangs){
       addBtn(bar,'自摸和！'+winRes.pattern+' +'+winRes.pts,'win',function(){doWin(G.turn,null,winRes);});
       setHint('你可以自摸和牌，也可以继续打');
     }else{
-      var winShape=checkWin(G.hands[G.turn],G.melds[G.turn].length,G.joker,G.justKang,Math.max(1,countOpens(G.melds[G.turn])));
+      var winShape=checkWin(G.hands[G.turn],winMeldCount(G.melds[G.turn]),G.joker,G.justKang,Math.max(1,countOpens(G.melds[G.turn])));
       if(winShape && winShape.pattern==='平胡'){
         setHint('已成牌型，但屁和需要先吃/碰/明杠一次');
       }
@@ -723,7 +736,7 @@ function discardTile(byWhom,tile){
 function resolveClaims(){
   var d=G.lastDiscard,cl=opp(),hand=G.hands[cl];
   var claims={win:null,gangs:[],pong:false,chis:[]};
-  var w=checkWin(hand.concat([d.tile]),G.melds[cl].length,G.joker,false,countOpens(G.melds[cl]));
+  var w=checkWin(hand.concat([d.tile]),winMeldCount(G.melds[cl]),G.joker,false,countOpens(G.melds[cl]));
   if(w)claims.win=w;
   if(gangOptsOnDiscard(hand,G.joker,d.tile))claims.gangs.push(d.tile);
   if(!G.pongUsed[cl]&&pongOpts(hand,G.joker,d.tile))claims.pong=true;
