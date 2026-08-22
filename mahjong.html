@@ -673,7 +673,13 @@ function humanTurnUI(winRes,gangs){
       addBtn(bar,(o.type==='红中发财杠'?'杠 ':o.type+' ')+tileName(o.tile),'gang',function(){doGang(o);});
     });
     if(G.selected>=0){
-      addBtn(bar,'打出 '+tileName(G.hands[G.turn][G.selected]),'go',doDiscardSelected);
+      var _c=G.hands[G.turn][G.selected];
+      var _isGang=(_c==='hz'||_c==='fc'||_c===G.joker);
+      if(_isGang){
+        addBtn(bar,'杠 '+tileName(_c),'gang',doDiscardSelected);
+      }else{
+        addBtn(bar,'打出 '+tileName(_c),'go',doDiscardSelected);
+      }
     }else{
       var sp=document.createElement('span');
       sp.style.cssText='font-size:12px;color:#cfe3d5';
@@ -1015,7 +1021,12 @@ function refreshDiscardBtn(){
   var old=$('btnDiscard');
   if(old)old.remove();
   if(G.selected>=0){
-    addBtn(bar,'打出 '+tileName(G.hands[G.turn][G.selected]),'go',doDiscardSelected,'btnDiscard');
+    var _cc=G.hands[G.turn][G.selected];
+    if(_cc==='hz'||_cc==='fc'||_cc===G.joker){
+      addBtn(bar,'杠 '+tileName(_cc),'gang',doDiscardSelected,'btnDiscard');
+    }else{
+      addBtn(bar,'打出 '+tileName(_cc),'go',doDiscardSelected,'btnDiscard');
+    }
   }
 }
 function renderMelds(el,melds){
