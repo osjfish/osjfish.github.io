@@ -85,6 +85,7 @@ body{
   content:'赖';position:absolute;top:-1px;right:0;font-size:9px;
   background:#ffd857;color:#7a5b00;border-radius:0 6px 0 6px;padding:0 3px;font-weight:900;
 }
+.tile.drawn{outline:3px solid #ff6b35;outline-offset:-1px;box-shadow:0 0 8px rgba(255,107,53,.6),0 2px 4px rgba(0,0,0,.35),inset 0 -3px 0 rgba(0,0,0,.08)}
 .tile.back{
   background:repeating-linear-gradient(45deg,#2e7d54,#2e7d54 4px,#256a47 4px,#256a47 8px);
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.15),0 2px 4px rgba(0,0,0,.35);
@@ -155,9 +156,9 @@ body{
 
 <div id="topbar">
   <span>第<b class="rd" id="roundNo">-</b>/5轮</span>
-  <span>🧢我方 <b class="sc" id="scoreMe">0</b></span>
+  <span>我方 <b class="sc" id="scoreMe">0</b></span>
   <span>牌墙 <b class="rd" id="wallCnt">-</b></span>
-  <span><b class="sc" id="scoreOpp">0</b> 对手🧢</span>
+  <span><b class="sc" id="scoreOpp">0</b> 对手</span>
 </div>
 
 <div id="oppZone">
@@ -199,13 +200,13 @@ body{
   <h2>麻将对战</h2>
   <p style="margin-top:-8px">红中赖子杠 · 双人对战 · 五轮积分</p>
   <div class="mode-card" onclick="startGame('ai')">
-    <h3>🤖 人机对战</h3><p>与 AI 对战，AI 自动摸打吃碰杠</p>
+    <h3>人机对战</h3><p>与 AI 对战，AI 自动摸打吃碰杠</p>
   </div>
   <div class="mode-card" onclick="startGame('2p')">
-    <h3>👥 双人同屏</h3><p>两人共用一台设备，换人时自动遮挡手牌防偷看</p>
+    <h3>双人同屏</h3><p>两人共用一台设备，换人时自动遮挡手牌防偷看</p>
   </div>
   <div class="mode-card" onclick="showRules()">
-    <h3>📖 游戏规则</h3><p>红中赖子杠玩法说明</p>
+    <h3>游戏规则</h3><p>红中赖子杠玩法说明</p>
   </div>
 </div>
 
@@ -666,11 +667,6 @@ function humanTurnUI(winRes,gangs){
     gangs.forEach(function(o,i){
       addBtn(bar,(o.type==='红中发财杠'?'杠 ':o.type+' ')+tileName(o.tile),'gang',function(){doGang(o);});
     });
-    /* 听牌提示 */
-    var hints=tenpaiHints(G.hands[G.turn],G.melds[G.turn].length,G.joker,countOpens(G.melds[G.turn]));
-    if(hints.length&&!winRes){
-      setHint('听牌建议：'+hints.map(function(h){return '打「'+tileName(h.discard)+'」听'+h.wins.length+'张';}).join('　'));
-    }
     if(G.selected>=0){
       addBtn(bar,'打出 '+tileName(G.hands[G.turn][G.selected]),'go',doDiscardSelected);
     }else{
@@ -705,7 +701,8 @@ function resolveClaims(){
   if(w)claims.win=w;
   if(gangOptsOnDiscard(hand,G.joker,d.tile))claims.gangs.push(d.tile);
   if(!G.pongUsed[cl]&&pongOpts(hand,G.joker,d.tile))claims.pong=true;
-  claims.chis=chiOptions(hand,G.joker,d.tile);
+  if(G.chiUsed[cl]) claims.chis=[];
+  else claims.chis=chiOptions(hand,G.joker,d.tile);
   var any=claims.win||claims.gangs.length||claims.pong||claims.chis.length;
   if(!any){passTurn();return;}
   if(G.mode==='ai'&&cl===1){
@@ -928,7 +925,7 @@ function renderAll(redacted){
   $('myName').textContent=G.names[me];
   $('oppName').textContent=G.names[op];
   $('oppRole').textContent=(G.mode==='ai'&&op===1)?'AI':(G.turn===op?'思考中…':'等待');
-  $('turnTag').textContent='▶ '+G.names[G.turn];
+  $('turnTag').textContent=G.names[G.turn]+' 出牌';
   /* 赖子指示 */
   $('flipTile').innerHTML=tileHTML(G.flip);
   $('jokerTile').innerHTML=tileHTML(G.joker);
@@ -964,6 +961,7 @@ function renderAll(redacted){
     hr.innerHTML='<span style="font-size:12px;color:#7fa892;padding:8px">（手牌已遮挡）</span>';
   }else{
     var sorted=sortTiles(G.hands[me]);
+    var drawnDone=false;
     sorted.forEach(function(c){
       var wrap=document.createElement('div');
       wrap.innerHTML=tileHTML(c);
@@ -971,6 +969,10 @@ function renderAll(redacted){
       if(G.selected>=0&&G.hands[me][G.selected]===c&&!el.__taken){
         /* 同名牌取第一张高亮 */
         if(hr.querySelector('.sel')===null)el.classList.add('sel');
+      }
+      if(!drawnDone&&G.drawnTile&&c===G.drawnTile&&G.phase==='turn'&&G.turn===me){
+        el.classList.add('drawn');
+        drawnDone=true;
       }
       el.onclick=function(){
         if(G.phase!=='turn'||G.turn!==me)return;
