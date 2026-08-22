@@ -157,7 +157,7 @@ body>*{position:relative;z-index:1}
   overflow-y:auto;-webkit-overflow-scrolling:touch;
 }
 .overlay.show{display:flex}
-.overlay>*{margin:auto 0}
+.overlay .ov-inner{margin:auto 0;display:flex;flex-direction:column;gap:16px;align-items:center}
 .overlay h2{font-size:26px;color:#ffd857;letter-spacing:4px;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,.5)}
 .overlay h2::after{content:'';display:block;width:60%;margin:8px auto 0;height:1px;background:linear-gradient(90deg,transparent,#b08a4a,transparent)}
 .overlay p{font-size:14px;color:#cfe3d5;line-height:1.9;max-width:420px;letter-spacing:.5px}
@@ -242,6 +242,7 @@ body>*{position:relative;z-index:1}
 
 <!-- 模式选择 -->
 <div class="overlay show" id="ovMode">
+  <div class="ov-inner">
   <h2>麻将对战</h2>
   <p style="margin-top:-8px">红中赖子杠</p>
   <div class="mode-card" onclick="startGame('ai')">
@@ -253,10 +254,12 @@ body>*{position:relative;z-index:1}
   <div class="mode-card" onclick="showRules()">
     <h3>游戏规则</h3><p>玩法说明</p>
   </div>
+  </div>
 </div>
 
 <!-- 规则 -->
 <div class="overlay" id="ovRules">
+  <div class="ov-inner">
   <h2>游戏规则</h2>
   <p style="text-align:left;font-size:13px;line-height:2.0">
   · 牌型：万条筒1-9各4张 + 红中发财白板东南西北各4张，共136张<br>
@@ -270,27 +273,34 @@ body>*{position:relative;z-index:1}
   · 牌墙摸完无人胡牌则流局，双方不得分；庄家不变
   </p>
   <button class="btn go" onclick="hideOv('ovRules')">返回</button>
+  </div>
 </div>
 
 <!-- 换手遮挡 -->
 <div class="overlay" id="ovHand">
+  <div class="ov-inner">
   <h2 id="handTitle">请交接设备</h2>
   <p id="handDesc"></p>
   <button class="btn win" id="handBtn" style="font-size:18px;padding:12px 34px">我准备好了</button>
+  </div>
 </div>
 
 <!-- 回合结算 -->
 <div class="overlay" id="ovRound">
+  <div class="ov-inner">
   <h2 id="rTitle">回合结束</h2>
   <div class="result-panel" id="rBody"></div>
   <button class="btn go" id="rNext">下一轮</button>
+  </div>
 </div>
 
 <!-- 总结算 -->
 <div class="overlay" id="ovFinal">
+  <div class="ov-inner">
   <h2 id="fTitle">比赛结束</h2>
   <div class="result-panel" id="fBody"></div>
   <button class="btn win" onclick="location.reload()">再来五轮</button>
+  </div>
 </div>
 
 <script>
@@ -992,35 +1002,30 @@ function aiClaim(claims){
   passTurn();
 }
 /* ---- 回合结束 ---- */
-function buildRoundReview(winner){
+function buildRoundReview(winner,winTile){
   var html='<div style="margin-top:12px;border-top:1px solid rgba(176,152,88,.3);padding-top:10px">';
   html+='<div style="font-size:11px;color:#a8c8b0;margin-bottom:6px;letter-spacing:1px">牌局回放</div>';
-  /* 和牌者手牌 */
-  if(winner>=0){
-    html+='<div style="font-size:12px;color:#ffd857;margin:4px 0">'+G.names[winner]+' 手牌</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">';
-    sortTiles(G.hands[winner]).forEach(function(c){html+=tileHTML(c);});
-    G.melds[winner].forEach(function(m){
+  function handBlock(pi,labelColor){
+    var h=G.hands[pi].slice();
+    if(pi===winner&&winTile)h.push(winTile);
+    var s='<div style="font-size:12px;color:'+labelColor+';margin:6px 0 4px">'+G.names[pi]+' 手牌（'+h.length+'张）</div>';
+    s+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">';
+    sortTiles(h).forEach(function(c){s+=tileHTML(c);});
+    G.melds[pi].forEach(function(m){
       var tiles=m.tiles||[];
-      html+='<span style="display:inline-flex;gap:1px;margin-left:4px;vertical-align:top">';
-      tiles.forEach(function(tc){html+=tileHTML(tc);});
-      html+='</span>';
+      s+='<span style="display:inline-flex;gap:1px;margin-left:4px;vertical-align:top">';
+      tiles.forEach(function(tc){s+=tileHTML(tc);});
+      s+='</span>';
     });
-    html+='</div>';
+    s+='</div>';
+    return s;
   }
-  /* 对方手牌（非和牌方） */
-  var loser=1-winner;
-  if(loser>=0&&winner>=0){
-    html+='<div style="font-size:12px;color:#9fbfa8;margin:6px 0 4px">'+G.names[loser]+' 手牌</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">';
-    sortTiles(G.hands[loser]).forEach(function(c){html+=tileHTML(c);});
-    G.melds[loser].forEach(function(m){
-      var tiles=m.tiles||[];
-      html+='<span style="display:inline-flex;gap:1px;margin-left:4px;vertical-align:top">';
-      tiles.forEach(function(tc){html+=tileHTML(tc);});
-      html+='</span>';
-    });
-    html+='</div>';
+  if(winner>=0){
+    html+=handBlock(winner,'#ffd857');
+    html+=handBlock(1-winner,'#9fbfa8');
+  }else{
+    html+=handBlock(0,'#9fbfa8');
+    html+=handBlock(1,'#9fbfa8');
   }
   /* 牌河 */
   if(G.river.length>0){
@@ -1055,13 +1060,15 @@ function endRound(result){
     title.style.color='#ffd857';
     var res=result.res;
     var pat=res.pattern+(res.big?'（大和）':(res.kong?'（杠上开）':''));
+    /* 点炮时和牌张在牌河，补进赢家展示（自摸时手牌已含14张） */
+    var winTile=(result.via==='点炮'&&G.lastDiscard)?G.lastDiscard.tile:null;
     body.innerHTML=
       '<div class="row"><span>和牌方式</span><b>'+(result.via)+'</b></div>'+
       '<div class="row"><span>牌型</span><b>'+pat+'</b></div>'+
       '<div class="row"><span>得分</span><b style="color:#ffd857">'+res.pts+' 分</b></div>'+
       '<div class="row"><span>'+G.names[0]+'</span><b>'+G.scores[0]+'</b></div>'+
       '<div class="row"><span>'+G.names[1]+'</span><b>'+G.scores[1]+'</b></div>'+
-      buildRoundReview(w);
+      buildRoundReview(w,winTile);
     if(G.mode==='2p'){
       next.textContent='下一轮（请交接设备）';
     }
