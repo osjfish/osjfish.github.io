@@ -750,7 +750,17 @@ function doGang(opt){
     var idx=hand.indexOf(c);
     if(idx>=0)hand.splice(idx,1);
   });
-  G.melds[t].push({type:'杠',tile:opt.tile,concealed:opt.type==='暗杠'||opt.type==='红中发财杠'});
+  /* 补杠合并去原碰，吴则会同名排 3+4 张重叠 */
+  if(opt.type==='补杠'){
+    for(var pi=0;pi<G.melds[t].length;pi++){
+      if(G.melds[t][pi].type==='碰'&&G.melds[t][pi].tile===opt.tile){
+        G.melds[t].splice(pi,1);break;
+      }
+    }
+    G.melds[t].push({type:'杠',tiles:[opt.tile,opt.tile,opt.tile,opt.tile],tile:opt.tile,concealed:false});
+  }else{
+    G.melds[t].push({type:'杠',tiles:opt.tiles.slice(),tile:opt.tile,concealed:opt.type==='暗杠'||opt.type==='红中发财杠'});
+  }
   /* 牌尾补牌 */
   if(G.wall.length===0){endRound(null);return;}
   var rep=G.wall.pop();
@@ -764,7 +774,7 @@ function doGang(opt){
 function doClaimGang(tileCode){
   var cl=opp(),hand=G.hands[cl];
   for(var i=0;i<3;i++){var ix=hand.indexOf(tileCode);if(ix>=0)hand.splice(ix,1);}
-  G.melds[cl].push({type:'杠',tile:tileCode,from:G.turn});
+  G.melds[cl].push({type:'杠',tiles:[tileCode,tileCode,tileCode,tileCode],tile:tileCode,from:G.turn});
   G.river.pop();
   G.lastDiscard=null;
   G.turn=cl;
@@ -988,7 +998,8 @@ function renderMelds(el,melds){
     var d=document.createElement('div');d.className='meld';
     var tag=document.createElement('span');tag.className='tag';tag.textContent=m.type;d.appendChild(tag);
     var tiles=[];
-    if(m.type==='吃'){tiles=[m.with[0],m.tile,m.with[1]];}
+    if(m.tiles)tiles=m.tiles.slice();
+    else if(m.type==='吃'){tiles=[m.with[0],m.tile,m.with[1]];}
     else if(m.type==='碰'){tiles=[m.tile,m.tile,m.tile];}
     else{tiles=[m.tile,m.tile,m.tile,m.tile];}
     tiles.forEach(function(c){
