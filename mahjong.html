@@ -193,6 +193,7 @@ body>*{position:relative;z-index:1}
   <span><span id="nameMe">我方</span> <b class="sc" id="scoreMe">0</b></span>
   <span>牌墙 <b class="rd" id="wallCnt">-</b></span>
   <span><b class="sc" id="scoreOpp">0</b> <span id="nameOpp">对手</span></span>
+  <button class="btn small pass" id="btnRestart" style="display:none;padding:2px 10px;font-size:11px;min-height:22px;box-shadow:none" onclick="confirmRestart()">重开</button>
 </div>
 
 <div id="oppZone">
@@ -232,7 +233,7 @@ body>*{position:relative;z-index:1}
 <!-- 模式选择 -->
 <div class="overlay show" id="ovMode">
   <h2>麻将对战</h2>
-  <p style="margin-top:-8px">红中赖子杠 · 双人对战 · 五轮积分</p>
+  <p style="margin-top:-8px">红中赖子杠</p>
   <div class="mode-card" onclick="startGame('ai')">
     <h3>人机对战</h3><p>与 AI 对战，AI 自动摸打吃碰杠</p>
   </div>
@@ -248,15 +249,12 @@ body>*{position:relative;z-index:1}
 <div class="overlay" id="ovRules">
   <h2>游戏规则</h2>
   <p style="text-align:left;font-size:13px">
-  · 牌型：万条筒 1-9 各4张 + 红中发财白板各4张，共120张<br>
-  · <b style="color:#ffd857">红中、发财是杠</b>：轮到你时，手中的红中/发财随时可杠（每张杠后从牌尾补一张）<br>
-  · <b style="color:#ffd857">赖子</b>：开局翻一张牌，它的下一张是赖子；若下一张是红中或发财，则白板是赖子。赖子可代替任何牌<br>
-  · 和牌：4副（顺子/刻子）+ 1对将，或七对。赖子可当任意牌<br>
-  · <b style="color:#ffd857">开口规则</b>：屁和必须先吃/碰/明杠至少一次；清一色、碰碰胡、七对等大和无需开口<br>
-  · <b style="color:#ffd857">计分（五轮零和）</b>：大和（清一色/碰碰胡/七对）30分 · 杠上开20分 · 屁和10分<br>
-  · 每轮每人最多 <b>吃1次、碰1次</b>；明杠/暗杠不限次数<br>
-  · 赖子不能被吃、碰、杠；吃碰需真实牌张（赖子只在自己手中当万能牌）<br>
-  · 牌墙摸完流局，双方不得分
+  · 红中、发财随时可杠（杠后从牌尾补一张）<br>
+  · 开局翻一张牌，下一张是赖子（万能牌）<br>
+  · 和牌：4副面子 + 一对将，或七对<br>
+  · 屁和须先开口（吃/碰/明杠），大和免<br>
+  · 计分：大和30分 · 杠上开20分 · 屁和10分<br>
+  · 每局限吃一次碰一次；五轮零和
   </p>
   <button class="btn go" onclick="hideOv('ovRules')">返回</button>
 </div>
@@ -286,7 +284,8 @@ body>*{position:relative;z-index:1}
 'use strict';
 /* ================= 纯逻辑层 ================= */
 var SUIT_NAME={m:'万',t:'条',d:'筒'};
-var HONOR_NAME={hz:'红中',fc:'发财',bb:'白板'};
+var HONOR_NAME={hz:'红中',fc:'发财',bb:'白板',df:'东风',nf:'南风',xf:'西风',bf:'北风'};
+var WIND_CHAR={df:'东',nf:'南',xf:'西',bf:'北'};
 var CN_NUM=['','一','二','三','四','五','六','七','八','九'];
 function tileName(c){
   if(HONOR_NAME[c])return HONOR_NAME[c];
@@ -295,7 +294,7 @@ function tileName(c){
 function isHonor(c){return !!HONOR_NAME[c];}
 function tileSortKey(c){
   if(!isHonor(c))return {m:0,t:1,d:2}[c[0]]*10+(+c[1]);
-  return 100+{hz:0,fc:1,bb:2}[c];
+  return 100+{hz:0,fc:1,bb:2,df:3,nf:4,xf:5,bf:6}[c];
 }
 function sortTiles(arr){
   return arr.slice().sort(function(a,b){return tileSortKey(a)-tileSortKey(b)|| (a<b?-1:a>b?1:0);});
@@ -316,6 +315,7 @@ function buildDeck(){
   var d=[],suits=['m','t','d'];
   for(var si=0;si<3;si++)for(var n=1;n<=9;n++)for(var k=0;k<4;k++)d.push(suits[si]+n);
   ['hz','fc','bb'].forEach(function(h){for(var k=0;k<4;k++)d.push(h);});
+  ['df','nf','xf','bf'].forEach(function(w){for(var k=0;k<4;k++)d.push(w);});
   return d;
 }
 function shuffleArr(a){
@@ -643,6 +643,8 @@ var $=function(id){return document.getElementById(id);};
 
 function startGame(mode){
   hideOv('ovMode');
+  localStorage.removeItem('mahjong_save');
+  document.getElementById('btnRestart').style.display='';
   G={
     mode:mode,
     names:['玩家一',mode==='ai'?'电脑':'玩家二'],
@@ -676,7 +678,27 @@ function nextRound(){
   G.justKang=false;
   G.selected=-1;
   G.lastDiscard=null;
+  saveState();
   beginTurn(true);
+}
+function saveState(){
+  try{localStorage.setItem('mahjong_save',JSON.stringify(G));}catch(e){}
+}
+function loadSaved(){
+  try{
+    var raw=localStorage.getItem('mahjong_save');
+    if(!raw)return false;
+    var s=JSON.parse(raw);
+    if(!s||!s.hands||!s.wall)return false;
+    G=s;
+    return true;
+  }catch(e){return false;}
+}
+function confirmRestart(){
+  if(confirm('确定重新开始？当前对局将丢弃。')){
+    localStorage.removeItem('mahjong_save');
+    location.reload();
+  }
 }
 function cur(){return G.turn;}
 function opp(){return 1-G.turn;}
@@ -942,6 +964,7 @@ function aiClaim(claims){
 /* ---- 回合结束 ---- */
 function endRound(result){
   if(result) G.dealer=result.winner;
+  saveState();
   G.phase='roundEnd';
   renderAll(true);
   var ov=$('ovRound'),title=$('rTitle'),body=$('rBody'),next=$('rNext');
@@ -974,6 +997,7 @@ function endRound(result){
   };
 }
 function showFinal(){
+  try{localStorage.removeItem('mahjong_save');}catch(e){}
   var s0=G.scores[0],s1=G.scores[1];
   $('fTitle').textContent=s0===s1?'平局！':(s0>s1?G.names[0]+' 获胜！':G.names[1]+' 获胜！');
   $('fTitle').style.color='#ffd857';
@@ -989,6 +1013,7 @@ function tileHTML(c,extraCls){
   if(c==='hz')inner='<span class="big">中</span>';
   else if(c==='fc')inner='<span class="big">发</span>';
   else if(c==='bb')inner='<span class="big">白</span>';
+  else if(WIND_CHAR[c])inner='<span class="big" style="color:#333">'+WIND_CHAR[c]+'</span>';
   else inner='<span class="big">'+CN_NUM[+c[1]]+'</span><span class="sm" style="color:'+
     ({m:'#c0392b',t:'#1e8449',d:'#2471a3'})[c[0]]+'">'+SUIT_NAME[c[0]]+'</span>';
   var jk=(G&&G.joker===c)?' joker':'';
@@ -1142,6 +1167,15 @@ function requestView(playerIdx,reason,cb){
     cb();
   };
 }
+/* ================= 启动恢复 ================= */
+(function(){
+  if(loadSaved()){
+    hideOv('ovMode');
+    document.getElementById('btnRestart').style.display='';
+    renderAll();
+    proceedTurn();
+  }
+})();
 /* ================= 工具 ================= */
 function hideOv(id){$(id).classList.remove('show');}
 function showRules(){$('ovRules').classList.add('show');}
