@@ -179,6 +179,10 @@ body>*{position:relative;z-index:1}
 }
 .result-panel .row{display:flex;justify-content:space-between;font-size:14px;margin:5px 0;letter-spacing:.5px}
 .score-big{font-size:30px;font-weight:900;color:#ffd857;margin:8px 0;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+.result-panel .tile{width:26px;height:36px;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.result-panel .tile .big{font-size:13px}
+.result-panel .tile .sm{font-size:8px}
+.result-panel .tile.joker::after{font-size:7px;padding:0 2px}
 @media (max-width:380px){
   .tile{width:34px;height:46px}
   .tile .big{font-size:17px}.tile .sm{font-size:10px}
@@ -978,6 +982,57 @@ function aiClaim(claims){
   passTurn();
 }
 /* ---- 回合结束 ---- */
+function buildRoundReview(winner){
+  var html='<div style="margin-top:12px;border-top:1px solid rgba(176,152,88,.3);padding-top:10px">';
+  html+='<div style="font-size:11px;color:#a8c8b0;margin-bottom:6px;letter-spacing:1px">牌局回放</div>';
+  /* 和牌者手牌 */
+  if(winner>=0){
+    html+='<div style="font-size:12px;color:#ffd857;margin:4px 0">'+G.names[winner]+' 手牌</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">';
+    sortTiles(G.hands[winner]).forEach(function(c){html+=tileHTML(c);});
+    G.melds[winner].forEach(function(m){
+      var tiles=m.tiles||[];
+      html+='<span style="display:inline-flex;gap:1px;margin-left:4px;vertical-align:top">';
+      tiles.forEach(function(tc){html+=tileHTML(tc);});
+      html+='</span>';
+    });
+    html+='</div>';
+  }
+  /* 对方手牌（非和牌方） */
+  var loser=1-winner;
+  if(loser>=0&&winner>=0){
+    html+='<div style="font-size:12px;color:#9fbfa8;margin:6px 0 4px">'+G.names[loser]+' 手牌</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">';
+    sortTiles(G.hands[loser]).forEach(function(c){html+=tileHTML(c);});
+    G.melds[loser].forEach(function(m){
+      var tiles=m.tiles||[];
+      html+='<span style="display:inline-flex;gap:1px;margin-left:4px;vertical-align:top">';
+      tiles.forEach(function(tc){html+=tileHTML(tc);});
+      html+='</span>';
+    });
+    html+='</div>';
+  }
+  /* 牌河 */
+  if(G.river.length>0){
+    html+='<div style="font-size:12px;color:#9fbfa8;margin:6px 0 4px">牌河（'+G.river.length+'张）</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:2px">';
+    G.river.forEach(function(r,idx){
+      var who=r.by===0?G.names[0]:G.names[1];
+      html+='<span title="'+who+'" style="position:relative">'+tileHTML(r.t);
+      html+='<span style="position:absolute;top:-3px;right:-2px;font-size:7px;background:'+(r.by===0?'#2471a3':'#c0392b')+';color:#fff;border-radius:50%;width:11px;height:11px;line-height:11px;text-align:center">'+who.slice(-1)+'</span></span>';
+    });
+    html+='</div>';
+  }
+  /* 剩余牌墙 */
+  if(G.wall.length>0){
+    html+='<div style="font-size:12px;color:#9fbfa8;margin:6px 0 4px">剩余牌墙（'+G.wall.length+'张）</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:2px;opacity:.5">';
+    sortTiles(G.wall).forEach(function(c){html+=tileHTML(c);});
+    html+='</div>';
+  }
+  html+='</div>';
+  return html;
+}
 function endRound(result){
   if(result) G.dealer=result.winner;
   saveState();
@@ -995,7 +1050,8 @@ function endRound(result){
       '<div class="row"><span>牌型</span><b>'+pat+'</b></div>'+
       '<div class="row"><span>得分</span><b style="color:#ffd857">'+res.pts+' 分</b></div>'+
       '<div class="row"><span>'+G.names[0]+'</span><b>'+G.scores[0]+'</b></div>'+
-      '<div class="row"><span>'+G.names[1]+'</span><b>'+G.scores[1]+'</b></div>';
+      '<div class="row"><span>'+G.names[1]+'</span><b>'+G.scores[1]+'</b></div>'+
+      buildRoundReview(w);
     if(G.mode==='2p'){
       next.textContent='下一轮（请交接设备）';
     }
@@ -1004,7 +1060,8 @@ function endRound(result){
     title.style.color='#9fd8b5';
     body.innerHTML='<div class="row"><span>牌墙已摸完，无人和牌</span><b>双方不得分</b></div>'+
       '<div class="row"><span>'+G.names[0]+'</span><b>'+G.scores[0]+'</b></div>'+
-      '<div class="row"><span>'+G.names[1]+'</span><b>'+G.scores[1]+'</b></div>';
+      '<div class="row"><span>'+G.names[1]+'</span><b>'+G.scores[1]+'</b></div>'+
+      buildRoundReview(-1);
   }
   ov.classList.add('show');
   next.onclick=function(){
