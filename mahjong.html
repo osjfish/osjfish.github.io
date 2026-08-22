@@ -156,9 +156,9 @@ body{
 
 <div id="topbar">
   <span>第<b class="rd" id="roundNo">-</b>/5轮</span>
-  <span>我方 <b class="sc" id="scoreMe">0</b></span>
+  <span><span id="nameMe">我方</span> <b class="sc" id="scoreMe">0</b></span>
   <span>牌墙 <b class="rd" id="wallCnt">-</b></span>
-  <span><b class="sc" id="scoreOpp">0</b> 对手</span>
+  <span><b class="sc" id="scoreOpp">0</b> <span id="nameOpp">对手</span></span>
 </div>
 
 <div id="oppZone">
@@ -556,7 +556,7 @@ function aiPickDiscard(hand,jokerId,oppRiver,meldCount,opens){
   for(var i=0;i<hand.length;i++){
     var c=hand[i];
     if(tried[c])continue;tried[c]=1;
-    if(c===jokerId&&hand.length>2)continue;/* 不轻易打赖子 */
+    if((c===jokerId||c==='hz'||c==='fc')&&hand.length>2)continue;/* 杠牌不打出 */
     var rest=hand.slice();
     var ix=rest.indexOf(c);if(ix>=0)rest.splice(ix,1);
     var wt=tenpaiWaitsAfter(hand,i,meldCount,jokerId,opens);
@@ -663,6 +663,11 @@ function humanTurnUI(winRes,gangs){
     if(winRes){
       addBtn(bar,'自摸和！'+winRes.pattern+' +'+winRes.pts,'win',function(){doWin(G.turn,null,winRes);});
       setHint('你可以自摸和牌，也可以继续打');
+    }else{
+      var winShape=checkWin(G.hands[G.turn],G.melds[G.turn].length,G.joker,G.justKang,Math.max(1,countOpens(G.melds[G.turn])));
+      if(winShape && winShape.pattern==='平胡'){
+        setHint('已成牌型，但屁和需要先吃/碰/明杠一次');
+      }
     }
     gangs.forEach(function(o,i){
       addBtn(bar,(o.type==='红中发财杠'?'杠 ':o.type+' ')+tileName(o.tile),'gang',function(){doGang(o);});
@@ -680,6 +685,22 @@ function humanTurnUI(winRes,gangs){
 function doDiscardSelected(){
   if(G.selected<0)return;
   var t=G.turn,tile=G.hands[t][G.selected];
+  if(tile==='hz'||tile==='fc'||tile===G.joker){
+    var opts=selfGangOpts(G.hands[t],G.joker,G.melds[t]);
+    var found=null;
+    for(var i=0;i<opts.length;i++) if(opts[i].tile===tile){found=opts[i];break;}
+    if(found && G.wall.length>0){
+      G.selected=-1;
+      doGang(found);
+      return;
+    }
+    var hasOther=false;
+    for(var k=0;k<G.hands[t].length;k++){var cc=G.hands[t][k]; if(cc!=='hz'&&cc!=='fc'&&cc!==G.joker){hasOther=true;break;}}
+    if(hasOther){
+      toastMsg('该牌不能直接打出，请先杠');
+      return;
+    }
+  }
   G.selected=-1;
   discardTile(t,tile);
 }
@@ -924,6 +945,8 @@ function renderAll(redacted){
   $('wallCnt').textContent=G.wall.length;
   $('myName').textContent=G.names[me];
   $('oppName').textContent=G.names[op];
+  var nmMe=document.getElementById('nameMe'); if(nmMe) nmMe.textContent=G.names[me];
+  var nmOpp=document.getElementById('nameOpp'); if(nmOpp) nmOpp.textContent=G.names[op];
   $('oppRole').textContent=(G.mode==='ai'&&op===1)?'AI':(G.turn===op?'思考中…':'等待');
   $('turnTag').textContent=G.names[G.turn]+' 出牌';
   /* 赖子指示 */
@@ -951,7 +974,8 @@ function renderAll(redacted){
   G.river.forEach(function(r,idx){
     var d=document.createElement('div');
     d.className='riv-item'+(idx===G.river.length-1?' last':'');
-    d.innerHTML=tileHTML(r.t)+'<span class="riv-by">'+(r.by===0?'甲':'乙')+'</span>';
+    var who=r.by===0?G.names[0]:G.names[1];
+    d.innerHTML=tileHTML(r.t)+'<span class="riv-by" title="'+who+'">'+who.slice(-1)+'</span>';
     rv.appendChild(d);
   });
   rv.parentElement.scrollTop=rv.parentElement.scrollHeight;
