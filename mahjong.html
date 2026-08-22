@@ -38,15 +38,14 @@ body{
 }
 .melds{display:flex;gap:6px;flex-wrap:wrap}
 .meld{
-  background:rgba(255,255,255,.12);border-radius:6px;padding:2px 4px;
-  display:flex;gap:1px;align-items:center;position:relative;
+  background:rgba(255,255,255,.12);border-radius:6px;padding:2px 5px;
+  display:flex;flex-direction:column;gap:2px;align-items:center;position:relative;
 }
+.meld-row{display:flex;gap:1px;align-items:center;}
 .meld .tag{
-  position:absolute;top:-9px;left:50%;transform:translateX(-50%);
-  font-size:9px;background:#c0392b;color:#fff;border-radius:4px;padding:0 4px;line-height:13px;
-  z-index:1;
+  font-size:9px;background:#c0392b;color:#fff;border-radius:4px;
+  padding:0 3px;line-height:14px;align-self:flex-start;margin-top:-2px;
 }
-.melds{padding-top:9px}
 .lim-badge{font-size:10px;background:rgba(0,0,0,.3);border-radius:8px;padding:1px 6px;color:#bbb}
 .lim-badge.used{color:#ff9a76;text-decoration:line-through}
 /* ===== 中央信息 ===== */
@@ -1060,6 +1059,7 @@ function renderMelds(el,melds){
   melds.forEach(function(m){
     var d=document.createElement('div');d.className='meld';
     var tag=document.createElement('span');tag.className='tag';tag.textContent=m.type;d.appendChild(tag);
+    var row=document.createElement('div');row.className='meld-row';d.appendChild(row);
     var tiles=[];
     if(m.tiles)tiles=m.tiles.slice();
     else if(m.type==='吃'){tiles=[m.with[0],m.tile,m.with[1]];}
@@ -1073,7 +1073,7 @@ function renderMelds(el,melds){
       tt.style.boxShadow='0 1px 2px rgba(0,0,0,.3)';
       var b=tt.querySelector('.big');if(b)b.style.fontSize='13px';
       var s=tt.querySelector('.sm');if(s)s.style.fontSize='8px';
-      d.appendChild(tt);
+      row.appendChild(tt);
     });
     el.appendChild(d);
   });
