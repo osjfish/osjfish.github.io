@@ -256,7 +256,7 @@ body>*{position:relative;z-index:1}
   · <b style="color:#ffd857">开口</b>：屁胡必须先有吃、碰或明杠至少一次才能胡牌；清一色、碰碰胡、七对等大和不需要开口<br>
   · <b style="color:#ffd857">计分（五轮累计零和）</b>：大和30分 · 杠上开花20分 · 屁胡10分<br>
   · 每局每人最多吃1次、碰1次；杠不限次数；赢方坐庄下局先出<br>
-  · 赖子不能被别人吃、碰、杠；吃碰需要真实牌张<br>
+  · 赖子不能被别人吃碰杠；普通胡时手中最多1张赖子，杠上开不限<br>
   · 牌墙摸完无人胡牌则流局，双方不得分；庄家不变
   </p>
   <button class="btn go" onclick="hideOv('ovRules')">返回</button>
@@ -446,9 +446,14 @@ function isQingYiSe(tiles,jokerId){
   return suit!==null;
 }
 /* 综合和牌判定：返回 null 或 {pattern,big,kong,pts}
-   openCount=开口数（吃/碰/明杠）；武汉规则：屁和必须开口，大和免 */
+   openCount=开口数（吃/碰/明杠）；武汉规则：屁和必须开口，大和免
+   赖子限制：非杠上开时，手中最多1张赖子；杠上开不限 */
 function checkWin(hand,meldCount,jokerId,fromKong,openCount){
   var needSets=4-meldCount;
+  /* 赖子数量限制：非杠上开时最多1张赖子 */
+  var jokerCount=0;
+  if(jokerId){for(var ji=0;ji<hand.length;ji++)if(hand[ji]===jokerId)jokerCount++;}
+  if(!fromKong&&jokerCount>1)return null;
   var std=canWinStd(hand,jokerId,needSets);
   var seven=(meldCount===0)&&canSevenPairs(hand,jokerId);
   if(!std&&!seven)return null;
