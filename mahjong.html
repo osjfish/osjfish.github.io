@@ -669,13 +669,12 @@ function humanTurnUI(winRes,gangs){
         setHint('已成牌型，但屁和需要先吃/碰/明杠一次');
       }
     }
-    gangs.forEach(function(o,i){
-      addBtn(bar,(o.type==='红中发财杠'?'杠 ':o.type+' ')+tileName(o.tile),'gang',function(){doGang(o);});
-    });
     if(G.selected>=0){
       var _c=G.hands[G.turn][G.selected];
-      var _isGang=(_c==='hz'||_c==='fc'||_c===G.joker);
-      if(_isGang){
+      var _opts=selfGangOpts(G.hands[G.turn],G.joker,G.melds[G.turn]);
+      var _found=null;
+      for(var _gi=0;_gi<_opts.length;_gi++) if(_opts[_gi].tile===_c){_found=_opts[_gi];break;}
+      if(_found && G.wall.length>0){
         addBtn(bar,'杠 '+tileName(_c),'gang',doDiscardSelected);
       }else{
         addBtn(bar,'打出 '+tileName(_c),'go',doDiscardSelected);
@@ -1022,7 +1021,9 @@ function refreshDiscardBtn(){
   if(old)old.remove();
   if(G.selected>=0){
     var _cc=G.hands[G.turn][G.selected];
-    if(_cc==='hz'||_cc==='fc'||_cc===G.joker){
+    var _o=selfGangOpts(G.hands[G.turn],G.joker,G.melds[G.turn]);
+    var _fg=null; for(var _gi=0;_gi<_o.length;_gi++) if(_o[_gi].tile===_cc){_fg=_o[_gi];break;}
+    if(_fg && G.wall.length>0){
       addBtn(bar,'杠 '+tileName(_cc),'gang',doDiscardSelected,'btnDiscard');
     }else{
       addBtn(bar,'打出 '+tileName(_cc),'go',doDiscardSelected,'btnDiscard');
