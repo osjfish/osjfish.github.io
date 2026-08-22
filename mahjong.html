@@ -956,28 +956,31 @@ function tileHTML(c,extraCls){
 }
 function renderAll(redacted){
   if(!G)return;
-  var me=VIEWER,op=1-VIEWER;
   $('roundNo').textContent=G.round;
+  $('wallCnt').textContent=G.wall.length;
+  $('turnTag').textContent=G.names[G.turn]+' 出牌';
+  /* 赖子指示 */
+  $('flipTile').innerHTML=tileHTML(G.flip);
+  $('jokerTile').innerHTML=tileHTML(G.joker);
+  if(redacted){
+    var oh=$('oppHand');oh.innerHTML='<span style="font-size:11px;color:#7fa892">（已遮挡）</span>';
+    var hr2=$('handRow');hr2.innerHTML='<span style="font-size:12px;color:#7fa892;padding:8px">（手牌已遮挡）</span>';
+    $('myMelds').innerHTML='';
+    $('oppMelds').innerHTML='';
+    return;
+  }
+  var me=VIEWER,op=1-VIEWER;
   $('scoreMe').textContent=G.scores[me];
   $('scoreOpp').textContent=G.scores[op];
-  $('wallCnt').textContent=G.wall.length;
   $('myName').textContent=G.names[me];
   $('oppName').textContent=G.names[op];
   var nmMe=document.getElementById('nameMe'); if(nmMe) nmMe.textContent=G.names[me];
   var nmOpp=document.getElementById('nameOpp'); if(nmOpp) nmOpp.textContent=G.names[op];
   $('oppRole').textContent=(G.mode==='ai'&&op===1)?'AI':(G.turn===op?'思考中…':'等待');
-  $('turnTag').textContent=G.names[G.turn]+' 出牌';
-  /* 赖子指示 */
-  $('flipTile').innerHTML=tileHTML(G.flip);
-  $('jokerTile').innerHTML=tileHTML(G.joker);
   /* 对手手牌（背面） */
   var oh=$('oppHand');oh.innerHTML='';
-  if(redacted){
-    oh.innerHTML='<span style="font-size:11px;color:#7fa892">（已遮挡）</span>';
-  }else{
-    for(var i=0;i<G.hands[op].length;i++){
-      var b=document.createElement('div');b.className='minitile';oh.appendChild(b);
-    }
+  for(var i=0;i<G.hands[op].length;i++){
+    var b=document.createElement('div');b.className='minitile';oh.appendChild(b);
   }
   /* 限制徽章 */
   setLim($('myChiLim'),'吃',(G.chiUsed[me]?1:0));
@@ -1045,6 +1048,7 @@ function refreshDiscardBtn(){
 }
 function renderMelds(el,melds){
   el.innerHTML='';
+  if(!melds||!melds.forEach) return;
   melds.forEach(function(m){
     var d=document.createElement('div');d.className='meld';
     var tag=document.createElement('span');tag.className='tag';tag.textContent=m.type;d.appendChild(tag);
