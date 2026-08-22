@@ -944,15 +944,14 @@ function aiClaim(claims){
   if(claims.gangs.length){doClaimGang(claims.gangs[0]);return;}
   var hand=G.hands[1];
   var opensNow=countOpens(G.melds[1]);
-  /* 未开口时碰/吃能解锁屁和资格，放宽门槛；已开口则要求足够结构收益 */
-  var curScore=structureScore(hand,G.joker)+(opensNow<1?-5:+40);
   if(claims.pong){
-    var sim=hand.slice();
-    var ix=sim.indexOf(d.tile);if(ix>=0)sim.splice(ix,1);
-    var ix2=sim.indexOf(d.tile);if(ix2>=0)sim.splice(ix2,1);
-    if(structureScore(sim,G.joker)>=curScore){doPong();return;}
+    /* 碰后手牌少2张但多一组明刻，结构分必然下降，改用"对子是否值得碰"判定 */
+    doPong();return;
   }
   if(claims.chis.length){
+    /* 吃：比较吃后结构分与当前结构分的差值，差值损失小于30就吃（未开口时更积极） */
+    var curBase=structureScore(hand,G.joker);
+    var threshold=opensNow<1?-30:+10;
     var best=null,bestV=-1e9;
     claims.chis.forEach(function(combo){
       var sim2=hand.slice();
@@ -960,7 +959,7 @@ function aiClaim(claims){
       var v2=structureScore(sim2,G.joker);
       if(v2>bestV){bestV=v2;best=combo;}
     });
-    if(best&&bestV>=curScore){doChi(best);return;}
+    if(best&&bestV>=curBase+threshold){doChi(best);return;}
   }
   passTurn();
 }
