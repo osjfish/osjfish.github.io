@@ -610,7 +610,11 @@ function aiPickDiscard(hand,jokerId,oppRiver,meldCount,opens){
   for(var i=0;i<hand.length;i++){
     var c=hand[i];
     if(tried[c])continue;tried[c]=1;
-    if((c===jokerId||c==='hz'||c==='fc')&&hand.length>2)continue;/* 杠牌不打出 */
+    if(c===jokerId&&hand.length>2)continue;/* 赖子不打出 */
+    if((c==='hz'||c==='fc')&&cnt[c]<2&&hand.length>2){
+      /* 单张红中发财有杠价值，除非手里很多 */
+      continue;
+    }
     var rest=hand.slice();
     var ix=rest.indexOf(c);if(ix>=0)rest.splice(ix,1);
     var wt=tenpaiWaitsAfter(hand,i,meldCount,jokerId,opens);
@@ -716,6 +720,7 @@ function beginTurn(first){
   G.drawnTile=tile;
   G.phase='turn';
   G.selected=-1;
+  saveState();
   proceedTurn();
 }
 /* 当前玩家行动评估（人和 AI 共用入口） */
@@ -794,6 +799,7 @@ function discardTile(byWhom,tile){
   G.lastDiscard={tile:tile,by:byWhom};
   G.phase='claim';
   G.drawnTile=null;
+  saveState();
   resolveClaims();
 }
 /* 弃牌后的对方权利判定 */
@@ -869,6 +875,7 @@ function doGang(opt){
   G.drawnTile=rep;
   toastMsg(G.names[t]+' 杠 '+tileName(opt.tile)+'，补牌 '+tileName(rep));
   G.phase='turn';
+  saveState();
   proceedTurn();
 }
 function doClaimGang(tileCode){
@@ -898,6 +905,7 @@ function doPong(){
   G.phase='turn';
   G.drawnTile=null;
   toastMsg(G.names[cl]+' 碰 '+tileName(tc));
+  saveState();
   afterMeldClaim();
 }
 function doChi(combo){
@@ -911,6 +919,7 @@ function doChi(combo){
   G.phase='turn';
   G.drawnTile=null;
   toastMsg(G.names[cl]+' 吃 '+tileName(tc));
+  saveState();
   afterMeldClaim();
 }
 function afterMeldClaim(){
@@ -1171,17 +1180,30 @@ function requestView(playerIdx,reason,cb){
 }
 /* ================= 启动恢复 ================= */
 (function(){
-  if(loadSaved() && G.hands && G.hands[0].length>0 && G.phase!=='roundEnd' && G.phase!=='seriesEnd'){
+  if(loadSaved() && G.hands && G.hands[0].length>0 && G.phase && G.phase!=='roundEnd'){
     document.getElementById('ovMode').classList.remove('show');
     document.getElementById('btnRestart').style.display='';
-    if(VIEWER<0)VIEWER=0;
+    VIEWER=0;
     renderAll();
-    if(G.phase==='turn'&&G.turn===1&&G.mode==='ai'){
-      var winRes=checkWin(G.hands[1],winMeldCount(G.melds[1]),G.joker,G.justKang,countOpens(G.melds[1]));
-      var gangs=selfGangOpts(G.hands[1],G.joker,G.melds[1]).filter(function(o){return G.wall.length>0;});
-      setTimeout(function(){aiAct(winRes,gangs);},650);
-    }else if(G.phase==='claim'){
-      showClaimUI({win:null,gangs:[],pong:false,chis:[]});
+    /* 恢复后如果轮到 AI，触发 AI 行动 */
+    if(G.mode==='ai'&&G.turn===1&&(G.phase==='turn'||G.phase==='claim')){
+      setTimeout(function(){
+        if(!G||!G.hands)return;
+        if(G.phase==='turn'){
+          var winRes=checkWin(G.hands[1],winMeldCount(G.melds[1]),G.joker,G.justKang,countOpens(G.melds[1]));
+          var gangs=selfGangOpts(G.hands[1],G.joker,G.melds[1]).filter(function(o){return G.wall.length>0;});
+          aiAct(winRes,gangs);
+        }else if(G.phase==='claim'&&G.lastDiscard){
+          var cl=opp(),hand=G.hands[cl];
+          var claims={
+            win:checkWin(hand.concat([G.lastDiscard.tile]),winMeldCount(G.melds[cl]),G.joker,false,countOpens(G.melds[cl])),
+            gangs:gangOptsOnDiscard(hand,G.joker,G.lastDiscard.tile)?[G.lastDiscard.tile]:[],
+            pong:!G.pongUsed[cl]&&pongOpts(hand,G.joker,G.lastDiscard.tile),
+            chis:!G.chiUsed[cl]?chiOptions(hand,G.joker,G.lastDiscard.tile):[]
+          };
+          aiClaim(claims);
+        }
+      },800);
     }
   }
 })();
