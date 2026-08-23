@@ -324,6 +324,7 @@ function sortTiles(arr){
 }
 function nextTileCode(c){
   if(isHonor(c)){
+    if(WIND_CHAR[c])return {df:'nf',nf:'xf',xf:'bf',bf:'df'}[c];
     return {hz:'fc',fc:'bb',bb:'hz'}[c];
   }
   var n=+c[1];
@@ -540,7 +541,8 @@ function handCounts(hand,jokerId){
   return cnt;
 }
 function pongOpts(hand,jokerId,discard){
-  if(discard===jokerId||isHonor(discard))return false;
+  if(discard===jokerId)return false;
+  if(discard==='hz'||discard==='fc')return false;
   return (handCounts(hand,jokerId)[discard]||0)>=2;
 }
 function gangOptsOnDiscard(hand,jokerId,discard){
@@ -636,7 +638,8 @@ function aiPickDiscard(hand,jokerId,oppRiver,meldCount,opens){
     var c=hand[i];
     if(tried[c])continue;tried[c]=1;
     if(c===jokerId&&hand.length>2)continue;/* 赖子不打出 */
-    if((c==='hz'||c==='fc')&&cnt[c]<2&&hand.length>2){
+    var sameN=0;for(var q=0;q<hand.length;q++)if(hand[q]===c)sameN++;
+    if((c==='hz'||c==='fc')&&sameN<2&&hand.length>2){
       /* 单张红中发财有杠价值，除非手里很多 */
       continue;
     }
@@ -1050,8 +1053,8 @@ function buildRoundReview(winner,winTile){
 }
 function endRound(result){
   if(result) G.dealer=result.winner;
-  saveState();
   G.phase='roundEnd';
+  saveState();
   renderAll(true);
   var ov=$('ovRound'),title=$('rTitle'),body=$('rBody'),next=$('rNext');
   if(result){
