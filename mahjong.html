@@ -1008,19 +1008,29 @@ function aiClaim(claims){
 function buildRoundReview(winner,winTile){
   var html='<div style="margin-top:12px;border-top:1px solid rgba(176,152,88,.3);padding-top:10px">';
   html+='<div style="font-size:11px;color:#a8c8b0;margin-bottom:6px;letter-spacing:1px">牌局回放</div>';
+  function meldTag(t){
+    var col=t==='吃'?'#5b9bd5':(t==='碰'?'#d68910':'#8e44ad');
+    return '<span style="font-size:10px;color:'+col+';border:1px solid '+col+';border-radius:3px;padding:0 3px;margin-right:2px;vertical-align:middle">'+t+'</span>';
+  }
   function handBlock(pi,labelColor){
     var h=G.hands[pi].slice();
     if(pi===winner&&winTile)h.push(winTile);
-    var s='<div style="font-size:12px;color:'+labelColor+';margin:6px 0 4px">'+G.names[pi]+' 手牌（'+h.length+'张）</div>';
+    var s='<div style="font-size:12px;color:'+labelColor+';margin:6px 0 4px">'+G.names[pi]+(pi===winner?'（和牌）':'')+' 手牌（'+h.length+'张）</div>';
     s+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">';
     sortTiles(h).forEach(function(c){s+=tileHTML(c);});
-    G.melds[pi].forEach(function(m){
-      var tiles=m.tiles||[];
-      s+='<span style="display:inline-flex;gap:1px;margin-left:4px;vertical-align:top">';
-      tiles.forEach(function(tc){s+=tileHTML(tc);});
-      s+='</span>';
-    });
     s+='</div>';
+    /* 副露：吃/碰/杠 分组带标签 */
+    if(G.melds[pi].length){
+      s+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">';
+      G.melds[pi].forEach(function(m){
+        var tiles=m.tiles||[];
+        s+='<span style="display:inline-flex;align-items:center;gap:1px">';
+        s+=meldTag(m.type);
+        tiles.forEach(function(tc){s+=tileHTML(tc);});
+        s+='</span>';
+      });
+      s+='</div>';
+    }
     return s;
   }
   if(winner>=0){
@@ -1030,22 +1040,15 @@ function buildRoundReview(winner,winTile){
     html+=handBlock(0,'#9fbfa8');
     html+=handBlock(1,'#9fbfa8');
   }
-  /* 牌河 */
+  /* 牌池 */
   if(G.river.length>0){
-    html+='<div style="font-size:12px;color:#9fbfa8;margin:6px 0 4px">牌河（'+G.river.length+'张）</div>';
+    html+='<div style="font-size:12px;color:#9fbfa8;margin:6px 0 4px">牌池（'+G.river.length+'张）</div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:2px">';
     G.river.forEach(function(r,idx){
       var who=r.by===0?G.names[0]:G.names[1];
       html+='<span title="'+who+'" style="position:relative">'+tileHTML(r.t);
       html+='<span style="position:absolute;top:-3px;right:-2px;font-size:7px;background:'+(r.by===0?'#2471a3':'#c0392b')+';color:#fff;border-radius:50%;width:11px;height:11px;line-height:11px;text-align:center">'+who.slice(-1)+'</span></span>';
     });
-    html+='</div>';
-  }
-  /* 剩余牌墙 */
-  if(G.wall.length>0){
-    html+='<div style="font-size:12px;color:#9fbfa8;margin:6px 0 4px">剩余牌墙（'+G.wall.length+'张）</div>';
-    html+='<div style="display:flex;flex-wrap:wrap;gap:2px;opacity:.5">';
-    sortTiles(G.wall).forEach(function(c){html+=tileHTML(c);});
     html+='</div>';
   }
   html+='</div>';
