@@ -855,32 +855,38 @@ function renderAll(deal){
 /* ==================== 音效 / 主题 ==================== */
 let actx=null;
 let soundOn=(localStorage.getItem('gd_sound')!=='0');
+function ensureAudio(){
+  try{
+    if(!actx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;actx=new AC();}
+    if(actx.state==='suspended')actx.resume();
+  }catch(e){}
+}
+function tone(f,d,type,g,dt){
+  if(!actx)return;
+  try{
+    const t=actx.currentTime+0.03;   /* 略微滞后到未来，避免用“已过去”的时间点导致音符被跳过 */
+    const o=actx.createOscillator(),gnd=actx.createGain();
+    o.type=type||'sine';o.frequency.value=f;
+    gnd.gain.setValueAtTime(0.0001,t+dt);
+    gnd.gain.exponentialRampToValueAtTime(g||0.15,t+dt+0.012);
+    gnd.gain.exponentialRampToValueAtTime(0.0001,t+dt+d);
+    o.connect(gnd);gnd.connect(actx.destination);
+    o.start(t+dt);o.stop(t+dt+d+0.03);
+  }catch(e){}
+}
 function sfx(name){
   if(!soundOn||!name)return;
-  try{
-    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-    if(actx.state==='suspended')actx.resume();
-    const t=actx.currentTime;
-    const tone=(f,d,type,g,dt)=>{
-      const o=actx.createOscillator(),gnd=actx.createGain();
-      o.type=type||'sine';o.frequency.value=f;
-      gnd.gain.setValueAtTime(0.0001,t+dt);
-      gnd.gain.exponentialRampToValueAtTime(g||0.15,t+dt+0.012);
-      gnd.gain.exponentialRampToValueAtTime(0.0001,t+dt+d);
-      o.connect(gnd);gnd.connect(actx.destination);
-      o.start(t+dt);o.stop(t+dt+d+0.03);
-    };
-    switch(name){
-      case'play':tone(220,.09,'triangle',.2);tone(150,.06,'sine',.12,.02);break;
-      case'pass':tone(120,.08,'sine',.12);break;
-      case'click':tone(340,.05,'sine',.08);break;
-      case'bomb':tone(70,.32,'sawtooth',.26);tone(48,.38,'square',.14,.05);break;
-      case'sf':tone(330,.12,'triangle',.2);tone(440,.12,'triangle',.2,.1);tone(560,.18,'triangle',.2,.2);break;
-      case'joker':tone(196,.2,'sawtooth',.22);tone(262,.2,'sawtooth',.18,.12);tone(392,.3,'sawtooth',.2,.24);break;
-      case'win':[523,659,784,1047].forEach((f,i)=>tone(f,.16,'triangle',.18,i*.12));break;
-      case'loss':[392,330,262].forEach((f,i)=>tone(f,.2,'sine',.15,i*.15));break;
-    }
-  }catch(e){}
+  ensureAudio();   /* 每次播放前确保已创建/已恢复，兼容自动播放限制 */
+  switch(name){
+    case'play':tone(220,.09,'triangle',.22);tone(150,.06,'sine',.14,.02);break;
+    case'pass':tone(120,.08,'sine',.14);break;
+    case'click':tone(340,.06,'sine',.16);break;
+    case'bomb':tone(70,.32,'sawtooth',.28);tone(48,.38,'square',.16,.05);break;
+    case'sf':tone(330,.12,'triangle',.22);tone(440,.12,'triangle',.22,.1);tone(560,.18,'triangle',.22,.2);break;
+    case'joker':tone(196,.2,'sawtooth',.24);tone(262,.2,'sawtooth',.2,.12);tone(392,.3,'sawtooth',.22,.24);break;
+    case'win':[523,659,784,1047].forEach((f,i)=>tone(f,.16,'triangle',.2,i*.12));break;
+    case'loss':[392,330,262].forEach((f,i)=>tone(f,.2,'sine',.16,i*.15));break;
+  }
 }
 
 let skinIdx=SKINS.indexOf(localStorage.getItem('gd_skin')||'green');if(skinIdx<0)skinIdx=0;
@@ -918,8 +924,10 @@ document.getElementById('skinBtn').onclick=()=>{
 };
 document.getElementById('soundBtn').onclick=()=>{
   soundOn=!soundOn;localStorage.setItem('gd_sound',soundOn?'1':'0');
-  document.getElementById('soundBtn').textContent=soundOn?'🔊':'🔇';
-  document.getElementById('soundBtn').classList.toggle('on',soundOn);
+  const b=document.getElementById('soundBtn');
+  b.textContent=soundOn?'🔊':'🔇';
+  b.classList.toggle('on',!soundOn);   /* 开启时不高亮；静音时高亮提示 */
+  ensureAudio();
   if(soundOn)sfx('click');
 };
 let restartArmed=false;
@@ -945,10 +953,13 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('load',()=>{
   applySkin();
-  document.getElementById('soundBtn').textContent=soundOn?'🔊':'🔇';
-  document.getElementById('soundBtn').classList.toggle('on',soundOn);
+  const b=document.getElementById('soundBtn');
+  b.textContent=soundOn?'🔊':'🔇';
+  b.classList.toggle('on',!soundOn);   /* 默认开启=不高亮 */
   startGame();
 });
+/* 首次点击/触摸即解锁音频，解决浏览器自动播放限制导致“开了没声音” */
+window.addEventListener('pointerdown',ensureAudio,{passive:true});
 </script>
 </body>
 </html>
