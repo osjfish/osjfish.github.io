@@ -47,22 +47,26 @@
   #stage{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;}
   #table{
     position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);
-    width:min(92%,440px);max-height:82%;min-height:70px;
-    display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+    width:min(94%,460px);max-height:82%;min-height:70px;
+    display:flex;flex-direction:column;justify-content:flex-start;gap:4px;
     padding:10px;border-radius:16px;background:rgba(0,0,0,.18);
     border:1px dashed rgba(255,255,255,.25);overflow:auto;scrollbar-width:none;
   }
   #table::-webkit-scrollbar{display:none;}
-  #table .empty{opacity:.6;font-size:13px;}
-  .table-entry{display:flex;flex-direction:column;align-items:center;gap:2px;animation:cardIn .25s ease;}
-  .table-entry .combo-label{font-size:clamp(9px,2.2vw,11px);color:var(--gold);font-weight:700;white-space:nowrap;}
-  .table-entry .cards-row{display:flex;gap:2px;align-items:center;flex-wrap:wrap;justify-content:center;}
-  .table-entry .player-label{font-size:clamp(9px,2.2vw,11px);opacity:.7;}
-  .table-entry.bomb .combo-label{color:#fff;text-shadow:0 0 8px var(--gold);}
-  .table-entry.fresh .cards-row{animation:bombRow .6s;}
-  .table-entry.pass .combo-label{color:#bbb;}
-  @keyframes cardIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
-  @keyframes bombRow{0%{filter:brightness(2.0);transform:scale(1.18);}100%{filter:none;transform:none;}}
+  #table .empty{opacity:.6;font-size:13px;align-self:center;}
+  .p-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;background:rgba(0,0,0,.12);animation:cardIn .25s ease;min-width:0;}
+  .p-player{flex:0 0 auto;min-width:clamp(54px,16vw,84px);font-size:clamp(9px,2.3vw,12px);font-weight:700;opacity:.85;white-space:nowrap;}
+  .p-combo{flex:0 0 auto;font-size:clamp(9px,2.3vw,12px);color:var(--gold);font-weight:800;white-space:nowrap;}
+  .p-cards{display:flex;gap:2px;align-items:center;flex-wrap:wrap;min-width:0;}
+  .p-action{font-size:clamp(9px,2.3vw,12px);opacity:.9;}
+  .p-action.empty{opacity:.35;}
+  .p-action.done{opacity:.55;}
+  .p-row.pass .p-action{color:#ccc;opacity:.6;}
+  .p-row.lead{outline:2px solid var(--gold);outline-offset:-2px;background:rgba(241,196,15,.10);}
+  .p-row.bomb .p-combo{color:#fff;text-shadow:0 0 8px var(--gold);}
+  .p-row.fresh .p-cards .card{animation:bombPulse .5s;}
+  .p-row.out{opacity:.5;}
+  @keyframes cardIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 
   #message{
     position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
@@ -93,7 +97,8 @@
     background:#9fd356;color:#1d3a12;font-size:clamp(7px,2vw,9px);font-weight:800;
     padding:1px 2px;border-radius:3px;}
   .card.jokerbg{background:linear-gradient(160deg,#fff 62%,#ffe3e3);}
-  #hand .card.sel{transform:translateY(-14px);outline:3px solid var(--gold);box-shadow:0 4px 12px rgba(0,0,0,.5);}
+  #hand .card.sel{transform:translateY(-18px);outline:3px solid var(--gold);box-shadow:0 6px 14px rgba(0,0,0,.55);}
+  #hand .card:not(.sel):hover{transform:translateY(-8px);}
   .card.hint-glow{animation:hintPulse .8s infinite alternate;}
   .card.flash-bomb{animation:bombPulse .5s;}
   @keyframes bombPulse{0%{transform:scale(1)}45%{transform:scale(1.28);box-shadow:0 0 18px var(--gold)}100%{transform:scale(1)}}
@@ -108,10 +113,9 @@
 
   #hand{
     width:100%;display:flex;align-items:center;overflow-x:auto;justify-content:safe center;
-    padding:8px 8px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
+    padding:24px 8px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
   #hand::-webkit-scrollbar{display:none;}
   #hand .card{margin:0 2px;flex:0 0 auto;cursor:pointer;transition:transform .12s,box-shadow .12s;}
-  #hand .card:hover{transform:translateY(-8px);}
 
   #controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
     padding:4px 8px calc(8px + env(safe-area-inset-bottom));flex-shrink:0;position:relative;z-index:10;}
@@ -195,7 +199,8 @@
     #p1{top:10%;}#p3{top:10%;}
     .card{width:32px;height:47px;}
     #hand .card{width:30px;height:44px;}
-    #hand{padding-top:4px;padding-bottom:2px;}
+    #hand{padding-top:22px;padding-bottom:2px;}
+    #hand .card.sel{transform:translateY(-14px);}
     #controls{padding-bottom:4px;}
   }
   /* 横屏/平板横放：强化左右对手 + 居中牌桌 */
@@ -203,9 +208,10 @@
     #p1{right:2px;top:50%;transform:translateY(-50%);flex-direction:column;}
     #p3{left:2px;top:50%;transform:translateY(-50%);flex-direction:column-reverse;}
     #p2{top:2px;}
-    #table{width:min(60%,420px);top:50%;}
-    #hand{padding:2px 4px;overflow-x:auto;}
+    #table{width:min(62%,440px);top:50%;}
+    #hand{padding:20px 4px 4px;overflow-x:auto;}
     #hand .card{width:clamp(30px,4.5vw,44px);height:clamp(46px,6.8vw,66px);}
+    #hand .card.sel{transform:translateY(-14px);}
     #controls{padding-top:0;padding-bottom:2px;}
   }
 </style>
@@ -640,7 +646,7 @@ async function gameLoop(){
     if(state.roundOver||state.gameOver)break;
     await sleep(500);
     if(state.passStreak>=activeCount()-1){
-      state.lastCombo=null;state.passStreak=0;
+      state.lastCombo=null;state.passStreak=0;state.roundComboLog={};
       let leader=state.lastLeader;
       if(state.hands[leader].length===0)leader=nextActive(leader);
       state.current=leader;
@@ -795,20 +801,25 @@ function renderHand(deal){
 function renderTable(){
   const log=state.roundComboLog||{};
   const tableEl=document.getElementById('table');
-  let parts=[];
+  const anyLog=Object.keys(log).length>0;
+  if(!anyLog){tableEl.innerHTML='<div class="empty">等待出牌…</div>';state.freshBombIdx=-1;return;}
+  const rows=[];
   for(let i=0;i<4;i++){
+    const out=state.hands[i].length===0;
     const v=log[i];
-    if(!v){continue;}
-    if(v==='pass'){
-      parts.push('<div class="table-entry pass"><span class="player-label">'+NAMES[i]+'</span><span class="combo-label" style="opacity:.75">不要</span></div>');
-    }else{
+    let content;
+    if(out)content='<span class="p-action done">已出完</span>';
+    else if(v==='pass')content='<span class="p-action">不要</span>';
+    else if(v){
       const cn=comboName(v);
-      const cls='table-entry'+(v.tier>=1?' bomb':'')+(i===state.freshBombIdx?' fresh':'');
-      parts.push('<div class="'+cls+'"><span class="combo-label">'+cn+'</span>'+
-        '<div class="cards-row"><span class="player-label">'+NAMES[i]+'</span>'+v.cards.map(c=>cardHTML(c,true)).join('')+'</div></div>');
-    }
+      content='<span class="p-combo">'+cn+'</span><span class="p-cards">'+v.cards.map(c=>cardHTML(c,true)).join('')+'</span>';
+    }else content='<span class="p-action empty">…</span>';
+    const isLead=!!v&&v!=='pass'&&i===state.lastLeader&&!!state.lastCombo;
+    const cls='p-row'+(v&&v!=='pass'&&v.tier>=1?' bomb':'')+(i===state.freshBombIdx?' fresh':'')+
+      (isLead?' lead':'')+(v==='pass'?' pass':'')+(out?' out':'');
+    rows.push('<div class="'+cls+'"><span class="p-player">'+NAMES[i]+'</span>'+content+'</div>');
   }
-  tableEl.innerHTML=parts.length?parts.join(''):'<div class="empty">等待出牌…</div>';
+  tableEl.innerHTML=rows.length?rows.join(''):'<div class="empty">等待出牌…</div>';
   state.freshBombIdx=-1;
 }
 function renderLvlTrack(){
