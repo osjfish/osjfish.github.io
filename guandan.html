@@ -43,8 +43,8 @@
   #p3{left:4px;top:50%;transform:translateY(-50%);flex-direction:row-reverse;align-items:center;}
   #p1 .avatar,#p3 .avatar{margin:0;}
   @media (max-width:480px){
-    #p1{right:2px;top:25%;}
-    #p3{left:2px;top:25%;}
+    #p1{right:2px;top:18%;}
+    #p3{left:2px;top:18%;}
     #p2{top:4px;}
   }
 
@@ -61,10 +61,11 @@
   .table-entry .cards-row{display:flex;gap:3px;align-items:center;}
   .table-entry .player-label{font-size:10px;opacity:.7;}
   @media (max-width:480px){
-    #table{width:min(90vw,360px);min-height:80px;padding:6px;top:38%;gap:2px;}
+    #table{width:min(90vw,360px);min-height:80px;padding:6px;top:32%;gap:2px;}
     .table-entry .combo-label{font-size:9px;}
     .table-entry .player-label{font-size:9px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .table-entry .cards-row{flex-wrap:wrap;justify-content:center;}
+    #message{top:calc(32% + 80px);}
   }
 
   #message{
@@ -92,7 +93,7 @@
   .card.wild::after{content:"配";position:absolute;top:3px;right:3px;
     background:var(--gold);color:#333;font-size:clamp(7px,2vw,9px);font-weight:800;
     padding:1px 2px;border-radius:3px;}
-  .card.sel{transform:translateY(-12px);outline:3px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);}
+  #hand .card.sel{transform:scale(var(--s,1)) translateY(-12px);outline:3px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);}
   .card.hint-glow{animation:hintPulse .8s infinite alternate;}
   @keyframes hintPulse{from{box-shadow:0 0 6px #f1c40f;}to{box-shadow:0 0 18px #f1c40f;outline:2px solid var(--gold);}}
   .card.mini{width:clamp(24px,7vw,36px);height:clamp(36px,10vw,52px);}
@@ -106,8 +107,8 @@
     padding:20px 4px 6px;z-index:5;overflow-x:auto;overflow-y:visible;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;}
   #hand::-webkit-scrollbar{display:none;}
-  #hand .card{margin:0 -clamp(4px,1.2vw,8px);cursor:pointer;transition:transform .12s,box-shadow .12s;}
-  #hand .card:hover{transform:translateY(-10px);}
+  #hand .card{margin:0 -clamp(4px,1.2vw,8px);cursor:pointer;transition:transform .12s,box-shadow .12s;--s:1;transform:scale(var(--s));transform-origin:bottom center;}
+  #hand .card:hover{transform:scale(var(--s)) translateY(-10px);}
 
   #controls{
     position:absolute;left:50%;bottom:calc(clamp(120px,26vh,190px) - 30px);
@@ -126,7 +127,7 @@
     #controls{bottom:calc(clamp(100px,24vh,160px) - 44px);gap:6px;}
     .btn{padding:clamp(8px,2vh,12px) clamp(14px,4vw,24px);min-width:clamp(50px,16vw,80px);}
     #hand .card{margin:0 -clamp(6px,2vw,12px);}
-    #hand{padding:20px 4px 6px;justify-content:flex-start;padding-left:12px;}
+    #hand{padding:16px 4px 4px;justify-content:flex-start;padding-left:12px;}
   }
   @media (max-width:360px){
     .card{width:34px;height:50px;}
@@ -138,7 +139,7 @@
     .card.mini .ts{font-size:7px;top:11px;left:2px;}
     .card.mini .big{font-size:8px;right:2px;bottom:1px;}
     #hand .card{margin:0 -8px;}
-    #hand{padding:18px 4px 6px;padding-left:8px;}
+    #hand{padding:14px 4px 4px;padding-left:8px;}
     .player .avatar{width:28px;height:28px;font-size:11px;}
     .player .label{font-size:8px;padding:1px 4px;}
     .player .count{font-size:7px;}
@@ -675,8 +676,15 @@ function cardHTML(c,mini,sel){
 function renderHand(){
   const hand=document.getElementById('hand');
   const cards=[...state.hands[0]].sort(sortHand);
+  const n=cards.length;
   hand.innerHTML=cards.map(c=>cardHTML(c,false,selected.includes(c.id))).join('');
-  hand.querySelectorAll('.card[data-id]').forEach(el=>el.onclick=()=>toggleCard(el.dataset.id));
+  const cardEls=hand.querySelectorAll('.card[data-id]');
+  cardEls.forEach((el,i)=>{
+    const t=n>1?i/(n-1):0.5;
+    const scale=0.7+0.3*t;
+    el.style.setProperty('--s',scale);
+    el.onclick=()=>toggleCard(el.dataset.id);
+  });
 }
 function sortHand(a,b){
   const w1=isWild(a),w2=isWild(b);
