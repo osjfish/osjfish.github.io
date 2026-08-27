@@ -10,16 +10,15 @@
     --felt2:#0a5540;
     --gold:#f1c40f;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
   html,body{margin:0;height:100%;}
   body{
     font-family:"Segoe UI",system-ui,"PingFang SC","Microsoft Yahei",sans-serif;
     background:radial-gradient(circle at 50% 30%,var(--felt) 0%,var(--felt2) 70%,#073b2c 100%);
-    overflow:hidden; color:#fff;
+    overflow:hidden;color:#fff;
   }
   #game{position:relative;width:100vw;height:100vh;height:100dvh;}
 
-  /* ---- Players ---- */
   .player{position:absolute;display:flex;flex-direction:column;align-items:center;gap:4px;z-index:2;}
   .player .avatar{
     width:clamp(34px,9vw,60px);height:clamp(34px,9vw,60px);border-radius:12px;
@@ -44,7 +43,6 @@
   #p3{left:8px;top:50%;transform:translateY(-50%);flex-direction:row-reverse;align-items:center;}
   #p1 .avatar,#p3 .avatar{margin:0;}
 
-  /* ---- Center table ---- */
   #table{
     position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);
     width:min(70vw,420px);min-height:130px;
@@ -53,12 +51,16 @@
     border:1px dashed rgba(255,255,255,.2);
   }
   #table .empty{opacity:.6;font-size:14px;}
+  .table-entry{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .table-entry .combo-label{font-size:11px;color:var(--gold);font-weight:700;}
+  .table-entry .cards-row{display:flex;gap:4px;align-items:center;}
+  .table-entry .player-label{font-size:11px;opacity:.7;}
+
   #message{
     position:absolute;left:50%;top:calc(42% + 92px);transform:translateX(-50%);
     font-size:clamp(12px,3vw,16px);font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.6);
     white-space:nowrap;z-index:3;}
 
-  /* ---- Cards ---- */
   .card{
     position:relative;display:inline-block;
     width:clamp(38px,11vw,58px);height:clamp(56px,16vw,84px);
@@ -80,10 +82,11 @@
     background:var(--gold);color:#333;font-size:9px;font-weight:800;
     padding:1px 3px;border-radius:4px;}
   .card.sel{transform:translateY(-14px);outline:3px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);}
+  .card.hint-glow{animation:hintPulse .8s infinite alternate;}
+  @keyframes hintPulse{from{box-shadow:0 0 6px #f1c40f;}to{box-shadow:0 0 18px #f1c40f;outline:2px solid var(--gold);}}
   .card.mini{width:clamp(28px,8vw,40px);height:clamp(40px,12vw,60px);}
   .card.mini .tl{font-size:11px;} .card.mini .ts{font-size:10px;} .card.mini .big{font-size:13px;}
 
-  /* ---- Hand ---- */
   #hand{
     position:absolute;left:0;right:0;bottom:6px;
     display:flex;justify-content:center;align-items:flex-end;
@@ -91,7 +94,6 @@
   #hand .card{margin:0 -clamp(6px,1.6vw,12px);cursor:pointer;transition:transform .12s,box-shadow .12s;}
   #hand .card:hover{transform:translateY(-10px);}
 
-  /* ---- Buttons ---- */
   #controls{
     position:absolute;left:50%;bottom:calc(clamp(120px,26vh,190px) - 44px);
     transform:translateX(-50%);display:flex;gap:10px;z-index:6;}
@@ -103,10 +105,9 @@
   .btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.3);}
   .btn.play{background:#e0862f;}
   .btn.pass{background:#5b6b7a;}
+  .btn.hint{background:#2e7d32;}
   .btn.disabled{opacity:.45;pointer-events:none;}
-  .btn.small{padding:8px 14px;font-size:12px;border-radius:20px;}
 
-  /* ---- Top bar ---- */
   #topbar{
     position:absolute;top:6px;left:6px;display:flex;gap:8px;z-index:8;flex-wrap:wrap;}
   .chip{background:rgba(0,0,0,.4);padding:4px 10px;border-radius:14px;
@@ -114,9 +115,7 @@
   .chip b{color:var(--gold);}
   #levelbar{top:auto;bottom:6px;right:8px;left:auto;flex-direction:column;align-items:flex-end;}
   #levelbar .chip b{font-size:14px;}
-  #help{max-width:220px;line-height:1.4;font-weight:400;opacity:.9;}
 
-  /* ---- Toast / result ---- */
   .toast{
     position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);
     background:rgba(0,0,0,.85);padding:14px 26px;border-radius:14px;font-size:20px;
@@ -162,45 +161,44 @@
   <div id="message"></div>
   <div id="controls">
     <button class="btn pass" id="passBtn">不要</button>
+    <button class="btn hint" id="hintBtn">提示</button>
     <button class="btn play" id="playBtn">出牌</button>
   </div>
   <div id="hand"></div>
-
   <div id="result" class="hidden"></div>
 </div>
 
 <script>
 "use strict";
-/* ================= 基础数据 ================= */
 const RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 const SUITS=['S','H','D','C'];
 const SUIT_CHAR={S:'♠',H:'♥',D:'♦',C:'♣'};
-const RANKMAP={};RANKS.forEach((r,i)=>RANKMAP[r]=i+2); // 2..14
-function rankOf(c){ if(c.rank==='SJ')return 15; if(c.rank==='BJ')return 16; return RANKMAP[c.rank]; }
+const RANKMAP={};RANKS.forEach((r,i)=>RANKMAP[r]=i+2);
+function rankOf(c){if(c.rank==='SJ')return 15;if(c.rank==='BJ')return 16;return RANKMAP[c.rank];}
 const rankLabel={11:'J',12:'Q',13:'K',14:'A',15:'小王',16:'大王'};
 const NAMES=['你','右家·对方','上方·队友','左家·对方'];
-const TEAM=['A','B','A','B']; // 0,2 = A(我+队友)  1,3 = B(对方)
+const TEAM=['A','B','A','B'];
+const COMBO_CN={
+  single:'单张',pair:'对子',triple:'三张',triple1:'三带一',
+  straight:'顺子',fullhouse:'三带二',pairs:'三连对',
+  bomb4:'炸弹',bomb5:'炸弹',bomb6:'炸弹',bomb7:'炸弹',bomb8:'炸弹',
+  straightflush:'同花顺',triplebomb:'三连炸',jokerbomb:'天王炸'
+};
+function bombLabel(type){const m={bomb4:4,bomb5:5,bomb6:6,bomb7:7,bomb8:8};return(m[type]||4)+'张炸弹';}
 
 const state={
-  level:2,          // 当前级数 2..14
-  levelA:2, levelB:2, // 各队级数
-  hands:[[],[],[],[]],
-  current:0,
-  lastCombo:null,   // 当前墩最大花色
-  lastLeader:0,
-  passStreak:0,
-  finishes:[],       // 出完牌的顺序
-  roundOver:false,
-  gameOver:false,
-  turnLock:true
+  level:2,levelA:2,levelB:2,
+  hands:[[],[],[],[]],current:0,
+  lastCombo:null,lastLeader:0,passStreak:0,
+  finishes:[],roundOver:false,gameOver:false,turnLock:true,
+  roundComboLog:{},leadIdx:0
 };
 
-/* ================= 牌堆 ================= */
-function isWild(c){ return c.rank!=='SJ'&&c.rank!=='BJ'&&c.suit==='H' && RANKMAP[c.rank]===state.level; }
+function isWild(c){return c.rank!=='SJ'&&c.rank!=='BJ'&&c.suit==='H'&&RANKMAP[c.rank]===state.level;}
 function buildDeck(){
   const d=[];
   for(let k=0;k<2;k++){
-    for(const r of RANKS) for(const s of SUITS) d.push({id:k+'-'+r+s,rank:r,suit:s});
+    for(const r of RANKS)for(const s of SUITS)d.push({id:k+'-'+r+s,rank:r,suit:s});
     d.push({id:k+'-SJ',rank:'SJ',suit:'J'});
     d.push({id:k+'-BJ',rank:'BJ',suit:'J'});
   }
@@ -208,27 +206,27 @@ function buildDeck(){
 }
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-/* ================= 组合判定 ================= */
+/* ==================== 组合判定 ==================== */
 function tryStraight(cnt,wilds,len){
-  if(cnt[15]||cnt[16])return null;
+  for(const r of[15,16])if(cnt[r])return null;
   for(let top=14;top-len+1>=2;top--){
     const start=top-len+1;let missing=0;
-    for(let r=start;r<=top;r++){ if(!(cnt[r])) missing++; }
+    for(let r=start;r<=top;r++)if(!(cnt[r]))missing++;
     if(missing<=wilds)return top;
   }
   return null;
 }
 function tryPairs(cnt,wilds){
-  if(cnt[15]||cnt[16])return null;
+  for(const r of[15,16])if(cnt[r])return null;
   for(let top=14;top-2>=2;top--){
     const start=top-2;let need=0;
-    for(let r=start;r<=top;r++) need+=Math.max(0,2-(cnt[r]||0));
+    for(let r=start;r<=top;r++)need+=Math.max(0,2-(cnt[r]||0));
     if(need<=wilds)return top;
   }
   return null;
 }
 function tryFullHouse(cnt,wilds){
-  if(cnt[15]||cnt[16])return null;
+  for(const r of[15,16])if(cnt[r])return null;
   const rs=Object.keys(cnt).map(Number).sort((a,b)=>b-a);
   for(const t of rs){
     if(t>=15||t<2)continue;
@@ -246,77 +244,163 @@ function tryStraightFlush(cards,wilds){
   const nonw=cards.filter(c=>!isWild(c));
   if(nonw.some(c=>c.rank==='SJ'||c.rank==='BJ'))return null;
   if(nonw.length===0)return null;
-  const suit=nonw[0].suit;
-  if(nonw.some(c=>c.suit!==suit))return null;
-  const c={};nonw.forEach(x=>{const r=rankOf(x);c[r]=(c[r]||0)+1;});
-  for(let top=14;top-4>=2;top--){
-    const start=top-4;let missing=0;
-    for(let r=start;r<=top;r++){ if(!(c[r]))missing++; }
-    if(missing<=wilds)return {type:'straightflush',rank:top,tier:2,cards};
+  for(const suit of SUITS){
+    const sc=nonw.filter(c=>c.suit===suit);
+    const c={};sc.forEach(x=>{const r=rankOf(x);c[r]=(c[r]||0)+1;});
+    for(let top=14;top-4>=2;top--){
+      const start=top-4;let missing=0;
+      for(let r=start;r<=top;r++)if(!(c[r]))missing++;
+      if(missing<=wilds)return{type:'straightflush',rank:top,tier:2,cards};
+    }
   }
   return null;
 }
 function detect(cards){
-  const n=cards.length; if(!n)return null;
+  const n=cards.length;if(!n)return null;
   const wilds=cards.filter(isWild).length;
   const nonw=cards.filter(c=>!isWild(c));
   const cnt={};nonw.forEach(c=>{cnt[rankOf(c)]=(cnt[rankOf(c)]||0)+1;});
+  const jokerN=cards.filter(c=>c.rank==='SJ'||c.rank==='BJ').length;
 
-  if(n===1)return {type:'single',rank:rankOf(cards[0]),tier:0,cards};
+  if(n===1)return{type:'single',rank:rankOf(cards[0]),tier:0,cards};
   if(n===2){
     for(let r=16;r>=2;r--){
       const c=cnt[r]||0;
-      if(c>=2)return {type:'pair',rank:r,tier:0,cards};
-      if(c===1&&wilds>=1)return {type:'pair',rank:r,tier:0,cards};
-    }return null;
+      if(c>=2)return{type:'pair',rank:r,tier:0,cards};
+      if(c===1&&wilds>=1)return{type:'pair',rank:r,tier:0,cards};
+    }
+    return null;
   }
   if(n===3){
-    for(let r=16;r>=2;r--){const c=cnt[r]||0; if(c===0){if(wilds>=3)return{type:'triple',rank:r,tier:0,cards};} else if(c+wilds>=3)return{type:'triple',rank:r,tier:0,cards};}
+    for(let r=16;r>=2;r--){
+      const c=cnt[r]||0;
+      if(c>=3)return{type:'triple',rank:r,tier:0,cards};
+      if(c===2&&wilds>=1)return{type:'triple',rank:r,tier:0,cards};
+      if(c===1&&wilds>=2)return{type:'triple',rank:r,tier:0,cards};
+      if(c===0&&wilds>=3)return{type:'triple',rank:r,tier:0,cards};
+    }
     return null;
   }
   if(n===4){
-    if(nonw.every(c=>rankOf(c)>=15))return {type:'jokerbomb',rank:99,tier:3,cards};
-    for(let r=16;r>=2;r--){const c=cnt[r]||0;if(c===0){if(wilds>=4)return{type:'bomb',rank:r,tier:1,cards};}else if(c+wilds>=4)return{type:'bomb',rank:r,tier:1,cards};}
+    if(jokerN===4)return{type:'jokerbomb',rank:99,tier:8,cards};
+    for(let r=14;r>=2;r--){
+      const c=cnt[r]||0;
+      if(c>=4)return{type:'bomb4',rank:r,tier:1,cards};
+      if(c>=1&&c+wilds>=4)return{type:'bomb4',rank:r,tier:1,cards};
+    }
     return null;
   }
   if(n===5){
-    const sf=tryStraightFlush(cards,wilds); if(sf)return sf;
-    const fh=tryFullHouse(cnt,wilds); if(fh!==null)return {type:'fullhouse',rank:fh,tier:0,cards};
-    const st=tryStraight(cnt,wilds,5); if(st!==null)return {type:'straight',rank:st,tier:0,cards};
+    const sf=tryStraightFlush(cards,wilds);if(sf)return sf;
+    for(let r=14;r>=2;r--){
+      const c=cnt[r]||0;
+      if(c>=5)return{type:'bomb5',rank:r,tier:3,cards};
+      if(c>=1&&c+wilds>=5)return{type:'bomb5',rank:r,tier:3,cards};
+    }
+    const fh=tryFullHouse(cnt,wilds);if(fh!==null)return{type:'fullhouse',rank:fh,tier:0,cards};
+    const st=tryStraight(cnt,wilds,5);if(st!==null)return{type:'straight',rank:st,tier:0,cards};
     return null;
   }
   if(n===6){
-    const ps=tryPairs(cnt,wilds); if(ps!==null)return {type:'pairs',rank:ps,tier:0,cards};
+    for(let r=14;r>=2;r--){
+      const c=cnt[r]||0;
+      if(c>=6)return{type:'bomb6',rank:r,tier:4,cards};
+      if(c>=1&&c+wilds>=6)return{type:'bomb6',rank:r,tier:4,cards};
+    }
+    const ps=tryPairs(cnt,wilds);if(ps!==null)return{type:'pairs',rank:ps,tier:0,cards};
     return null;
+  }
+  if(n===7){
+    for(let r=14;r>=2;r--){
+      const c=cnt[r]||0;
+      if(c>=7)return{type:'bomb7',rank:r,tier:5,cards};
+      if(c>=1&&c+wilds>=7)return{type:'bomb7',rank:r,tier:5,cards};
+    }
+    return null;
+  }
+  if(n===8){
+    for(let r=14;r>=2;r--){
+      const c=cnt[r]||0;
+      if(c>=8)return{type:'bomb8',rank:r,tier:6,cards};
+      if(c>=1&&c+wilds>=8)return{type:'bomb8',rank:r,tier:6,cards};
+    }
+    const tb=tryTripleBomb(cnt,wilds);if(tb)return tb;
+    return null;
+  }
+  if(n===12){
+    const tb=tryTripleBomb(cnt,wilds);if(tb)return tb;
+    return null;
+  }
+  return null;
+}
+function tryTripleBomb(cnt,wilds){
+  const br=[];
+  for(let r=14;r>=2;r--){
+    const c=cnt[r]||0;
+    if(c>=4)br.push({r,n:c});
+    else if(c>=1&&c+wilds>=4)br.push({r,n:c});
+  }
+  br.sort((a,b)=>a.r-b.r);
+  for(let i=0;i<=br.length-3;i++){
+    if(br[i+2].r-br[i].r===2){
+      return{type:'triplebomb',rank:br[i+2].r,tier:7,cards:[]};
+    }
   }
   return null;
 }
 function beats(a,b){
   if(!b)return true;
-  if(a.tier>b.tier)return true;
-  if(a.tier<b.tier)return false;
-  if(a.tier>0)return a.rank>b.rank;
-  return a.type===b.type && a.rank>b.rank;
+  if(a.tier!==b.tier)return a.tier>b.tier;
+  if(a.tier>=1)return a.rank!==b.rank?a.rank>b.rank:a.cards.length>=b.cards.length;
+  if(a.type!==b.type)return false;
+  return a.rank>b.rank;
 }
 
-/* ================= AI ================= */
+/* ==================== AI ==================== */
 function genCombos(hand){
-  const out=[];const byRank={};
-  hand.forEach(c=>{const r=rankOf(c);(byRank[r]=byRank[r]||[]).push(c);});
+  const out=[];
+  const wilds=hand.filter(isWild);
+  const nonw=hand.filter(c=>!isWild(c));
+  const byRank={};
+  nonw.forEach(c=>{const r=rankOf(c);(byRank[r]=byRank[r]||[]).push(c);});
+
   hand.forEach(c=>out.push({type:'single',rank:rankOf(c),tier:0,cards:[c]}));
+  if(wilds.length>0)out.push({type:'single',rank:rankOf(wilds[0]),tier:0,cards:[wilds[0]]});
+
   for(let r=14;r>=2;r--){
     const b=byRank[r]||[];
     if(b.length>=2)out.push({type:'pair',rank:r,tier:0,cards:b.slice(0,2)});
+    else if(b.length===1&&wilds.length>=1)out.push({type:'pair',rank:r,tier:0,cards:[b[0],wilds[0]]});
     if(b.length>=3)out.push({type:'triple',rank:r,tier:0,cards:b.slice(0,3)});
-    if(b.length>=4)out.push({type:'bomb',rank:r,tier:1,cards:b.slice(0,4)});
+    else if(b.length>=1){
+      const need=3-b.length;
+      if(need<=wilds.length)out.push({type:'triple',rank:r,tier:0,cards:[...b,...wilds.slice(0,need)]});
+    }
+    if(b.length>=4)out.push({type:'bomb4',rank:r,tier:1,cards:b.slice(0,4)});
+    else if(b.length>=1){
+      const need=4-b.length;
+      if(need<=wilds.length)out.push({type:'bomb4',rank:r,tier:1,cards:[...b,...wilds.slice(0,need)]});
+    }
+    if(b.length>=5)out.push({type:'bomb5',rank:r,tier:3,cards:b.slice(0,5)});
+    else if(b.length>=1){
+      const need=5-b.length;
+      if(need<=wilds.length)out.push({type:'bomb5',rank:r,tier:3,cards:[...b,...wilds.slice(0,need)]});
+    }
   }
+
   const jokers=hand.filter(c=>rankOf(c)>=15);
-  if(jokers.length===4)out.push({type:'jokerbomb',rank:99,tier:3,cards:jokers});
+  if(jokers.length>=4)out.push({type:'jokerbomb',rank:99,tier:8,cards:jokers.slice(0,4)});
+
   const triRs=[],pairRs=[];
-  for(let r=14;r>=2;r--){const b=byRank[r]||[];if(b.length>=3)triRs.push(r);if(b.length>=2)pairRs.push(r);}
+  for(let r=14;r>=2;r--){
+    const b=byRank[r]||[];
+    if(b.length>=3)triRs.push(r);
+    if(b.length>=2)pairRs.push(r);
+  }
   triRs.forEach(t=>pairRs.filter(p=>p!==t).forEach(p=>{
     out.push({type:'fullhouse',rank:t,tier:0,cards:byRank[t].slice(0,3).concat(byRank[p].slice(0,2))});
   }));
+
   for(let top=14;top-4>=2;top--){
     const cards=[];let ok=true;
     for(let r=top-4;r<=top;r++){if((byRank[r]||[]).length>=1)cards.push(byRank[r][0]);else{ok=false;break;}}
@@ -327,30 +411,74 @@ function genCombos(hand){
     for(let r=top-2;r<=top;r++){if((byRank[r]||[]).length>=2)cards.push(byRank[r][0],byRank[r][1]);else{ok=false;break;}}
     if(ok)out.push({type:'pairs',rank:top,tier:0,cards});
   }
+
+  for(const suit of SUITS){
+    const sc=nonw.filter(c=>c.suit===suit);
+    const c={};sc.forEach(x=>{const r=rankOf(x);c[r]=(c[r]||0)+1;});
+    for(let top=14;top-4>=2;top--){
+      const cards=[];let missing=0;
+      for(let r=top-4;r<=top;r++){
+        if((c[r]||0)>=1)cards.push(sc.find(x=>rankOf(x)===r));
+        else{missing++;if(missing<=wilds.length)cards.push(wilds[missing-1]);else{cards.length=0;break;}}
+      }
+      if(cards.length===5)out.push({type:'straightflush',rank:top,tier:2,cards});
+    }
+  }
+
+  const brList=[];
+  for(let r=14;r>=2;r--){
+    const b=byRank[r]||[];
+    if(b.length>=4)brList.push({r,n:b.length,cards:b.slice(0,4)});
+  }
+  brList.sort((a,b)=>a.r-b.r);
+  for(let i=0;i<=brList.length-3;i++){
+    if(brList[i+2].r-brList[i].r===2){
+      const allCards=[...brList[i].cards,...brList[i+1].cards,...brList[i+2].cards];
+      out.push({type:'triplebomb',rank:brList[i+2].r,tier:7,cards:allCards});
+    }
+  }
+
   return out;
 }
 function aiChoose(idx){
   const hand=state.hands[idx];
   const opts=genCombos(hand).filter(o=>beats(o,state.lastCombo));
   if(!opts.length)return null;
+  const isPartner=(t)=>TEAM[idx]===t;
+  const partnerFinished=state.finishes.some(f=>TEAM[f]===TEAM[idx]);
+
   if(!state.lastCombo){
-    const singles=opts.filter(o=>o.type==='single').sort((a,b)=>a.rank-b.rank);
-    if(singles.length)return singles[0];
+    const noBombs=opts.filter(o=>o.tier===0);
+    if(noBombs.length){
+      noBombs.sort((a,b)=>{
+        const pa=isPartner(TEAM[state.lastLeader])?1:0;
+        const pb=isPartner(TEAM[state.lastLeader])?1:0;
+        if(pa!==pb)return pb-pa;
+        return a.rank-b.rank;
+      });
+      return noBombs[0];
+    }
     return opts.sort((a,b)=>a.rank-b.rank)[0];
   }
   const t0=opts.filter(o=>o.tier===0).sort((a,b)=>a.rank-b.rank);
-  if(t0.length)return t0[0];
+  if(t0.length){
+    if(isPartner(TEAM[state.lastLeader])&&t0.length>1)return t0[t0.length-1];
+    return t0[0];
+  }
   const bombs=opts.filter(o=>o.tier>0).sort((a,b)=>(a.tier-b.tier)||(a.rank-b.rank));
-  return bombs[0]||null;
+  if(bombs.length){
+    if(isPartner(TEAM[state.lastLeader]))return null;
+    return bombs[0]||null;
+  }
+  return null;
 }
 
-/* ================= 出牌逻辑 ================= */
+/* ==================== 出牌逻辑 ==================== */
 function activeCount(){return state.hands.filter(h=>h.length>0).length;}
 function nextActive(i){for(let k=0;k<4;k++){const c=(i+k)%4;if(state.hands[c].length>0)return c;}return i;}
 
 function doPlay(idx,combo){
-  const cards=combo.cards;
-  const set=new Set(cards.map(c=>c.id));
+  const set=new Set(combo.cards.map(c=>c.id));
   state.hands[idx]=state.hands[idx].filter(c=>!set.has(c.id));
   state.lastCombo=combo;state.lastLeader=idx;state.passStreak=0;
   state.roundComboLog[idx]=combo;
@@ -358,7 +486,7 @@ function doPlay(idx,combo){
   if(state.hands[idx].length===0){
     state.finishes.push(idx);
     showFlash(NAMES[idx]+' 出完牌 → '+roundName(state.finishes.length-1));
-    if(state.finishes.length>=2) endRound();
+    if(state.finishes.length>=2)endRound();
   }
 }
 function doPass(idx){
@@ -371,16 +499,16 @@ function hasAnyMove(idx){
   return genCombos(state.hands[idx]).some(o=>beats(o,state.lastCombo));
 }
 
-/* ================= 回合循环 ================= */
+/* ==================== 回合循环 ==================== */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function gameLoop(){
   state.gameOver=false;
   while(!state.roundOver&&!state.gameOver){
     const idx=state.current;
-    if(state.hands[idx].length===0){ state.current=nextActive(idx); continue; }
+    if(state.hands[idx].length===0){state.current=nextActive(idx);continue;}
     state.turnLock=false;
-    if(idx===0) await humanWait();
-    else { await sleep(700); const mv=aiChoose(idx); if(mv) doPlay(idx,mv); else doPass(idx); }
+    if(idx===0)await humanWait();
+    else{await sleep(700);const mv=aiChoose(idx);if(mv)doPlay(idx,mv);else doPass(idx);}
     state.turnLock=true;
     if(state.roundOver||state.gameOver)break;
     await sleep(500);
@@ -391,96 +519,99 @@ async function gameLoop(){
       state.current=leader;
     }else{
       state.current=nextActive((idx+1)%4);
-      while(state.hands[state.current].length===0 && activeCount()>1)
+      while(state.hands[state.current].length===0&&activeCount()>1)
         state.current=nextActive((state.current+1)%4);
     }
     renderAll();
     await sleep(300);
   }
 }
-function humanWait(){
-  return new Promise(res=>{
-    resolveHuman=res;
-    updateControls();
-  });
-}
+function humanWait(){return new Promise(res=>{resolveHuman=res;updateControls();});}
 let resolveHuman=null;
 
-/* ================= 人手操作 ================= */
+/* ==================== 人手操作 ==================== */
 let selected=[];
 function toggleCard(id){
   const i=selected.indexOf(id);
   if(i>=0)selected.splice(i,1);else selected.push(id);
-  renderHand();updateControls();
+  clearHints();renderHand();updateControls();
 }
 function tryHumanPlay(){
   const cards=state.hands[0].filter(c=>selected.includes(c.id));
   const combo=detect(cards);
-  if(!combo){ showFlash('手牌不构成有效组合'); return; }
-  if(state.lastCombo && !beats(combo,state.lastCombo)){ showFlash('打不过当前牌 / 花色不符'); return; }
-  doPlay(0,combo); selected=[];
+  if(!combo){showFlash('手牌不构成有效组合');return;}
+  if(state.lastCombo&&!beats(combo,state.lastCombo)){showFlash('打不过当前牌 / 花色不符');return;}
+  doPlay(0,combo);selected=[];clearHints();
   if(resolveHuman){const f=resolveHuman;resolveHuman=null;f();}
 }
 function tryHumanPass(){
-  if(state.lastCombo===null){ showFlash('你必须先出牌'); return; }
-  doPass(0); selected=[];
+  if(state.lastCombo===null){showFlash('你必须先出牌');return;}
+  doPass(0);selected=[];clearHints();
   if(resolveHuman){const f=resolveHuman;resolveHuman=null;f();}
 }
+let hintCombos=[];let hintIdx=0;
+function giveHint(){
+  if(state.current!==0||state.turnLock)return;
+  if(!hintCombos.length){
+    const hand=state.hands[0];
+    hintCombos=genCombos(hand).filter(o=>!state.lastCombo||beats(o,state.lastCombo));
+    hintCombos.sort((a,b)=>(a.tier-b.tier)||(a.rank-b.rank));
+    hintIdx=0;
+  }
+  if(!hintCombos.length){showFlash('没有可出的牌');return;}
+  const c=hintCombos[hintIdx%hintCombos.length];
+  selected=c.cards.map(x=>x.id);
+  hintIdx++;
+  renderHand();updateControls();
+}
+function clearHints(){hintCombos=[];hintIdx=0;document.querySelectorAll('.card.hint-glow').forEach(el=>el.classList.remove('hint-glow'));}
 function updateControls(){
   const my=state.current===0&&!state.turnLock;
   const anyMove=hasAnyMove(0);
-  const playBtn=document.getElementById('playBtn');
-  const passBtn=document.getElementById('passBtn');
-  playBtn.classList.toggle('disabled', !my || !anyMove);
-  passBtn.classList.toggle('disabled', !my || state.lastCombo===null);
+  document.getElementById('playBtn').classList.toggle('disabled',!my||!anyMove);
+  document.getElementById('passBtn').classList.toggle('disabled',!my||state.lastCombo===null);
+  document.getElementById('hintBtn').classList.toggle('disabled',!my);
 }
 
-/* ================= 一轮结束/级数 ================= */
-function roundName(i){return ['头游','二游','三游','脚游'][i];}
+/* ==================== 一轮结束/级数 ==================== */
+function roundName(i){return['头游','二游','三游','脚游'][i];}
 function endRound(){
   state.roundOver=true;
   const first=state.finishes[0];
   const second=state.finishes[1];
   const wTeam=TEAM[first];
   const gain=(TEAM[first]===TEAM[second])?3:1;
-  state.leadIdx=first; // 头游下轮先出
-  document.getElementById('lvlTxt').textContent=nameOf(state.level);
-  // 升级
-  if(wTeam==='A')state.levelA+=gain; else state.levelB+=gain;
-  state.level=state.levelA>state.levelB?state.levelA:state.levelB; // 用较高者作级数
-  // 判定胜负
+  state.leadIdx=first;
+  if(wTeam==='A')state.levelA+=gain;else state.levelB+=gain;
+  state.level=Math.max(state.levelA,state.levelB);
   if((wTeam==='A'&&state.levelA>=14)||(wTeam==='B'&&state.levelB>=14)){
-    state.gameOver=true;
-    showResult(wTeam);
-    return;
+    state.gameOver=true;showResult(wTeam);return;
   }
-  const winTxt = wTeam==='A'?'我方':'对方';
-  const head=`本轮 ${winTxt} 获胜（${roundName(0)}:${NAMES[first]}）`;
-  const detail=`升 ${gain} 级 → ${nameOf(state.level)}`;
-  showRoundResult(head,gain,detail,wTeam);
+  const winTxt=wTeam==='A'?'我方':'对方';
+  showRoundResult('本轮 '+winTxt+' 获胜（'+roundName(0)+':'+NAMES[first]+'）',gain,'升 '+gain+' 级 → '+nameOf(state.level),wTeam);
 }
-function nameOf(n){return RANKS[n-2];}
+function nameOf(n){return RANKS[Math.min(Math.max(n-2,0),12)];}
 function showRoundResult(title,gain,detail,team){
   const el=document.getElementById('result');
   el.classList.remove('hidden');
   el.innerHTML=
-    `<h1>${title}</h1>`+
-    `<p>${detail} ${gain>1?'（双上 +3）':''}</p>`+
-    `<p style="font-size:14px;opacity:.8">我方级数 ${state.levelA} · 对方级数 ${state.levelB}</p>`+
-    `<button class="btn play" id="nextRound">继续下一轮 →</button>`;
+    '<h1>'+title+'</h1>'+
+    '<p>'+detail+(gain>1?' （双上 +3）':'')+'</p>'+
+    '<p style="font-size:14px;opacity:.8">我方级数 '+state.levelA+' · 对方级数 '+state.levelB+'</p>'+
+    '<button class="btn play" id="nextRound">继续下一轮 →</button>';
   document.getElementById('nextRound').onclick=()=>{el.classList.add('hidden');startRound();};
 }
 function showResult(wTeam){
   const el=document.getElementById('result');
   el.classList.remove('hidden');
   const win=wTeam==='A';
-  el.innerHTML=`<h1>${win?'🎉 你方获胜！':'😞 对方获胜'}</h1>
-    <p>${win?'恭喜夺得掼蛋冠军！':'再接再厉！'}</p>
-    <button class="btn play" id="restart">重新开始</button>`;
+  el.innerHTML='<h1>'+(win?'🎉 你方获胜！':'😞 对方获胜')+'</h1>'+
+    '<p>'+(win?'恭喜夺得掼蛋冠军！':'再接再厉！')+'</p>'+
+    '<button class="btn play" id="restart">重新开始</button>';
   document.getElementById('restart').onclick=()=>{el.classList.add('hidden');startGame();};
 }
 
-/* ================= 渲染 ================= */
+/* ==================== 渲染 ==================== */
 function showFlash(text){
   const t=document.createElement('div');t.className='toast';
   t.textContent=text;
@@ -491,16 +622,13 @@ function cardHTML(c,mini,sel){
   const red=(c.suit==='H'||c.suit==='D');
   const r=rankOf(c);
   const rl=rankLabel[r]||r;
-  const suit=c.rank==='SJ'||c.rank==='BJ'?'':'';
-  let big= suit? SUIT_CHAR[c.suit]: (c.rank==='BJ'?'🃏':'🂿');
-  if(c.rank==='SJ')big='🂩';
-  const cls=['card',red?'red':'',(mini?'mini':''),(sel?'sel':''),(isWild(c)&&!mini?'wild':'')].filter(Boolean).join(' ');
+  const cls=['card',red?'red':'',mini?'mini':'',sel?'sel':'',isWild(c)&&!mini?'wild':''].filter(Boolean).join(' ');
   if(c.rank==='SJ'||c.rank==='BJ'){
-    return `<div class="${cls}"><div class="tl" style="font-size:10px">${c.rank==='BJ'?'BIG':'SMALL'}</div></div>`;
+    return '<div class="'+cls+'"><div class="tl" style="font-size:10px">'+(c.rank==='BJ'?'BIG':'SMALL')+'</div></div>';
   }
-  return `<div class="${cls}" data-id="${c.id}">
-    <div class="tl">${rl}</div><div class="ts">${SUIT_CHAR[c.suit]}</div>
-    <div class="big">${SUIT_CHAR[c.suit]}</div></div>`;
+  return '<div class="'+cls+'" data-id="'+c.id+'">'+
+    '<div class="tl">'+rl+'</div><div class="ts">'+SUIT_CHAR[c.suit]+'</div>'+
+    '<div class="big">'+SUIT_CHAR[c.suit]+'</div></div>';
 }
 function renderHand(){
   const hand=document.getElementById('hand');
@@ -511,47 +639,45 @@ function renderHand(){
 function sortHand(a,b){
   const w1=isWild(a),w2=isWild(b);
   if(w1!==w2)return w2-w1;
-  const d=rankOf(b)-rankOf(a); if(d)return d;
+  const d=rankOf(b)-rankOf(a);if(d)return d;
   return SUITS.indexOf(a.suit)-SUITS.indexOf(b.suit);
 }
-function showPlayed(combo){
-  if(!combo)return '<div class="empty">等待出牌…</div>';
-  return combo.cards.map(c=>cardHTML(c,true)).join('');
+function comboName(combo){
+  if(!combo)return'';
+  if(combo.type==='bomb4'||combo.type==='bomb5'||combo.type==='bomb6'||combo.type==='bomb7'||combo.type==='bomb8')
+    return bombLabel(combo.type);
+  return COMBO_CN[combo.type]||combo.type;
 }
 function renderAll(){
   renderHand();
-  ['1','2','3'].forEach(i=>{
-    document.getElementById('cnt'+i).textContent=state.hands[i].length;
-  });
-  document.getElementById('cnt2').textContent=state.hands[2].length;
   for(let i=1;i<4;i++)document.getElementById('cnt'+i).textContent=state.hands[i].length;
   document.querySelectorAll('.player').forEach(p=>p.classList.remove('active'));
   if(!state.turnLock||state.current===0){
     document.getElementById('p'+state.current).classList.add('active');
   }
-  // 桌面已出牌
   const log=state.roundComboLog||{};
   const tableEl=document.getElementById('table');
   let parts=[];
   for(let i=0;i<4;i++){
     const v=log[i];
-    if(v==='pass')parts.push(`<div style="opacity:.7;font-size:12px">${NAMES[i]} 不要</div>`);
-    else if(v)parts.push(`<div style="display:flex;gap:4px;align-items:center"><span style="font-size:11px;opacity:.7">${NAMES[i]}</span>${v.cards.map(c=>cardHTML(c,true)).join('')}</div>`);
+    if(v==='pass')parts.push('<div class="table-entry"><span class="player-label">'+NAMES[i]+'</span><span style="opacity:.7;font-size:13px">不要</span></div>');
+    else if(v){
+      const cn=comboName(v);
+      parts.push('<div class="table-entry"><span class="combo-label">'+cn+'</span><div class="cards-row"><span class="player-label">'+NAMES[i]+'</span>'+v.cards.map(c=>cardHTML(c,true)).join('')+'</div></div>');
+    }
   }
   tableEl.innerHTML=parts.length?parts.join(''):'<div class="empty">等待出牌…</div>';
-  // 顶栏
   document.getElementById('scoreA').textContent=state.levelA;
   document.getElementById('scoreB').textContent=state.levelB;
   document.getElementById('lvlTxt').textContent=nameOf(state.level);
   const tc=document.getElementById('turnChip');
-  tc.textContent= state.gameOver?'结束中…' :
-    (state.current===0?'▶ 轮到你出牌':'等待 '+NAMES[state.current]);
+  tc.textContent=state.gameOver?'结束中…':(state.current===0?'▶ 轮到你出牌':'等待 '+NAMES[state.current]);
   document.getElementById('lbl1').textContent='对方·右';
   document.getElementById('lbl3').textContent='对方·左';
   updateControls();
 }
 
-/* ================= 开始 ================= */
+/* ==================== 开始 ==================== */
 function startRound(){
   const deck=shuffle(buildDeck());
   const hands=[[],[],[],[]];
@@ -559,9 +685,8 @@ function startRound(){
   state.hands=hands;
   state.current=(state.leadIdx!==undefined)?state.leadIdx:0;
   state.lastCombo=null;state.passStreak=0;state.finishes=[];
-  state.roundOver=false;state.roundComboLog={};selected=[];
-  renderAll();
-  gameLoop();
+  state.roundOver=false;state.roundComboLog={};selected=[];hintCombos=[];
+  renderAll();gameLoop();
 }
 function startGame(){
   state.level=2;state.levelA=2;state.levelB=2;
@@ -571,8 +696,8 @@ function startGame(){
 }
 document.getElementById('playBtn').onclick=tryHumanPlay;
 document.getElementById('passBtn').onclick=tryHumanPass;
-
-window.addEventListener('load',()=>{ startGame(); });
+document.getElementById('hintBtn').onclick=giveHint;
+window.addEventListener('load',()=>{startGame();});
 </script>
 </body>
 </html>
