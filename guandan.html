@@ -776,8 +776,8 @@ function cardHTML(c,mini,sel){
   if(isJoker(c))cls+=' jokerbg';
   if(c.rank==='SJ'||c.rank==='BJ'){
     const big=c.rank==='BJ';
-    const m=mini?'mini':'';
-    return '<div class="card '+m+' jokerbg" data-id="'+(c.id||'')+'">'+
+    const jcls=['card',mini?'mini':'',sel?'sel':''].filter(Boolean).join(' ')+' jokerbg';
+    return '<div class="'+jcls+'" data-id="'+(c.id||'')+'">'+
       '<div class="tl" style="font-size:clamp(8px,2.2vw,10px);top:3px;left:3px;line-height:1.05;color:'+(big?'#c0392b':'#333')+'">'+(big?'大王':'小王')+'</div>'+
       '<div class="big" style="font-size:clamp(10px,3vw,14px)">'+(big?'🂱':'🃏')+'</div></div>';
   }
@@ -853,39 +853,50 @@ function renderAll(deal){
 }
 
 /* ==================== 音效 / 主题 ==================== */
-let actx=null;
+let actx=null, master=null, comp=null;
 let soundOn=(localStorage.getItem('gd_sound')!=='0');
 function ensureAudio(){
   try{
     if(!actx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;actx=new AC();}
     if(actx.state==='suspended')actx.resume();
+    if(!master){
+      comp=actx.createDynamicsCompressor();
+      comp.threshold.value=-14;comp.knee.value=18;comp.ratio.value=8;comp.attack.value=0.002;comp.release.value=0.16;
+      master=actx.createGain();master.gain.value=1.0;
+      master.connect(comp);comp.connect(actx.destination);
+    }
   }catch(e){}
 }
-function tone(f,d,type,g,dt){
+function tone(f0,dur,shape,gain,at,f1){
   if(!actx)return;
   try{
-    const t=actx.currentTime+0.03;   /* 略微滞后到未来，避免用“已过去”的时间点导致音符被跳过 */
-    const o=actx.createOscillator(),gnd=actx.createGain();
-    o.type=type||'sine';o.frequency.value=f;
-    gnd.gain.setValueAtTime(0.0001,t+dt);
-    gnd.gain.exponentialRampToValueAtTime(g||0.15,t+dt+0.012);
-    gnd.gain.exponentialRampToValueAtTime(0.0001,t+dt+d);
-    o.connect(gnd);gnd.connect(actx.destination);
-    o.start(t+dt);o.stop(t+dt+d+0.03);
+    const t=actx.currentTime+0.03+(at||0);
+    const o=actx.createOscillator();
+    o.type=shape||'sine';
+    o.frequency.setValueAtTime(Math.max(20,f0),t);
+    if(f1&&f1!==f0)o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
+    const g=actx.createGain();
+    const gp=gain||0.22;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(gp,t+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    const filt=actx.createBiquadFilter();filt.type='lowpass';filt.frequency.value=2400;filt.Q.value=0.3;
+    o.connect(filt);filt.connect(g);g.connect(master||actx.destination);
+    o.start(t);o.stop(t+dur+0.04);
   }catch(e){}
 }
 function sfx(name){
   if(!soundOn||!name)return;
-  ensureAudio();   /* 每次播放前确保已创建/已恢复，兼容自动播放限制 */
+  ensureAudio();
   switch(name){
-    case'play':tone(220,.09,'triangle',.22);tone(150,.06,'sine',.14,.02);break;
-    case'pass':tone(120,.08,'sine',.14);break;
-    case'click':tone(340,.06,'sine',.16);break;
-    case'bomb':tone(70,.32,'sawtooth',.28);tone(48,.38,'square',.16,.05);break;
-    case'sf':tone(330,.12,'triangle',.22);tone(440,.12,'triangle',.22,.1);tone(560,.18,'triangle',.22,.2);break;
-    case'joker':tone(196,.2,'sawtooth',.24);tone(262,.2,'sawtooth',.2,.12);tone(392,.3,'sawtooth',.22,.24);break;
-    case'win':[523,659,784,1047].forEach((f,i)=>tone(f,.16,'triangle',.2,i*.12));break;
-    case'loss':[392,330,262].forEach((f,i)=>tone(f,.2,'sine',.16,i*.15));break;
+    case'play':tone(620,.09,'triangle',.30);tone(430,.07,'sine',.2,.02);break;
+    case'pass':tone(250,.11,'sine',.22);break;
+    case'click':tone(520,.06,'triangle',.22);break;
+    case'bomb':tone(150,.42,'triangle',.36,.0,55);tone(90,.5,'sine',.24,.05,45);break;
+    case'sf':tone(392,.12,'triangle',.26);tone(494,.12,'triangle',.26,.09);tone(587,.16,'triangle',.26,.18);break;
+    case'joker':tone(233,.16,'triangle',.26);tone(311,.16,'triangle',.26,.10);tone(415,.2,'triangle',.26,.20);tone(466,.26,'triangle',.26,.32);break;
+    case'win':[523,659,784,1047].forEach((f,i)=>tone(f,.14,'triangle',.26,i*.11));break;
+    case'loss':[392,330,262,208].forEach((f,i)=>tone(f,.18,'sine',.22,i*.14));break;
   }
 }
 
