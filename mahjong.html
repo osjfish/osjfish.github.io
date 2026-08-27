@@ -456,32 +456,61 @@ function checkPengPeng(tiles,jokerId){
   }
   return false;
 }
-function isQingYiSe(tiles,jokerId){
-  var suit=null;
-  for(var i=0;i<tiles.length;i++){
-    if(jokerId&&tiles[i]===jokerId)continue;
-    if(isHonor(tiles[i]))return false;
-    var s=tiles[i][0];
-    if(suit===null)suit=s;else if(s!==suit)return false;
+/* 副露是否算作“面子”（吃/碰/普通杠），红中发财杠与赖子杠为奖励杠，不计入 */
+function isStructuralMeld(m){
+  if(m.type==='吃'||m.type==='碰')return true;
+  if(m.type==='杠'){
+    if(m.tiles&&m.tiles.length===1)return false;      /* 红中/发财/赖子单张杠 */
+    if(!m.tiles&&(m.tile==='hz'||m.tile==='fc'))return false;
+    return true;
   }
+  return false;
+}
+/* 汇总副露中的真实牌与是否含顺子（吃），供清一色/碰碰胡判定使用 */
+function structuralMeldTiles(melds){
+  var tiles=[],hasSeq=false;
+  (melds||[]).forEach(function(m){
+    if(!isStructuralMeld(m))return;
+    if(m.type==='吃'){hasSeq=true;if(m.with&&m.with.length===2)tiles.push(m.with[0],m.tile,m.with[1]);}
+    else if(m.type==='碰'){tiles.push(m.tile,m.tile,m.tile);}
+    else if(m.tiles&&m.tiles.length)tiles=tiles.concat(m.tiles);
+  });
+  return {tiles:tiles,hasSeq:hasSeq};
+}
+function isQingYiSe(tiles,jokerId,meldTiles){
+  var suit=null;
+  /* 赖子可当任意牌，不破坏清一色；副露中的字牌/异花色会破坏清一色 */
+  function check(t){
+    if(jokerId&&t===jokerId)return true;
+    if(isHonor(t))return false;
+    var s=t[0];
+    if(suit===null)suit=s;else if(s!==suit)return false;
+    return true;
+  }
+  for(var i=0;i<tiles.length;i++)if(!check(tiles[i]))return false;
+  if(meldTiles)for(i=0;i<meldTiles.length;i++)if(!check(meldTiles[i]))return false;
   return suit!==null;
 }
 /* 综合和牌判定：返回 null 或 {pattern,big,kong,pts}
    openCount=开口数（吃/碰/明杠）；武汉规则：屁和必须开口，大和免
+   meldInfo 传副露数组以正确判定清一色/碰碰胡（也兼容传副露数）
    赖子限制：非杠上开时，手中最多1张赖子；杠上开不限 */
-function checkWin(hand,meldCount,jokerId,fromKong,openCount){
+function checkWin(hand,meldInfo,jokerId,fromKong,openCount){
+  var melds=Array.isArray(meldInfo)?meldInfo:null;
+  var st=melds?structuralMeldTiles(melds):{tiles:[],hasSeq:false};
+  var meldCount=melds?winMeldCount(melds):(meldInfo||0);
   var needSets=4-meldCount;
   /* 赖子数量限制：非杠上开时最多1张赖子 */
   var jokerCount=0;
   if(jokerId){for(var ji=0;ji<hand.length;ji++)if(hand[ji]===jokerId)jokerCount++;}
   if(!fromKong&&jokerCount>1)return null;
   var std=canWinStd(hand,jokerId,needSets);
-  var seven=(meldCount===0)&&canSevenPairs(hand,jokerId);
+  var seven=(needSets===4)&&canSevenPairs(hand,jokerId);
   if(!std&&!seven)return null;
   var pattern;
   if(seven)pattern='七对';
-  else if(isQingYiSe(hand,jokerId))pattern='清一色';
-  else if(checkPengPeng(hand,jokerId))pattern='碰碰胡';
+  else if(isQingYiSe(hand,jokerId,st.tiles))pattern='清一色';
+  else if(!st.hasSeq&&checkPengPeng(hand,jokerId))pattern='碰碰胡';
   else pattern='平胡';
   var big=(pattern==='清一色'||pattern==='碰碰胡'||pattern==='七对');
   /* 开口门槛：屁和必须至少开口一次（吃/碰/明杠），大和不受限 */
@@ -754,7 +783,7 @@ function beginTurn(first){
 /* 当前玩家行动评估（人和 AI 共用入口） */
 function proceedTurn(){
   var t=G.turn,hand=G.hands[t];
-  var winRes=checkWin(hand,winMeldCount(G.melds[t]),G.joker,G.justKang,countOpens(G.melds[t]));
+  var winRes=checkWin(hand,G.melds[t],G.joker,G.justKang,countOpens(G.melds[t]));
   var gangs=selfGangOpts(hand,G.joker,G.melds[t]).filter(function(o){
     return G.wall.length>0;
   });
@@ -774,7 +803,7 @@ function humanTurnUI(winRes,gangs){
       addBtn(bar,'自摸和！'+winRes.pattern+' +'+winRes.pts,'win',function(){doWin(G.turn,null,winRes);});
       setHint('你可以自摸和牌，也可以继续打');
     }else{
-      var winShape=checkWin(G.hands[G.turn],winMeldCount(G.melds[G.turn]),G.joker,G.justKang,Math.max(1,countOpens(G.melds[G.turn])));
+      var winShape=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,countOpens(G.melds[G.turn])));
       if(winShape && winShape.pattern==='平胡'){
         setHint('已成牌型，但屁和需要先吃/碰/明杠一次');
       }
@@ -834,7 +863,7 @@ function discardTile(byWhom,tile){
 function resolveClaims(){
   var d=G.lastDiscard,cl=opp(),hand=G.hands[cl];
   var claims={win:null,gangs:[],pong:false,chis:[]};
-  var w=checkWin(hand.concat([d.tile]),winMeldCount(G.melds[cl]),G.joker,false,countOpens(G.melds[cl]));
+  var w=checkWin(hand.concat([d.tile]),G.melds[cl],G.joker,false,countOpens(G.melds[cl]));
   if(w)claims.win=w;
   if(gangOptsOnDiscard(hand,G.joker,d.tile))claims.gangs.push(d.tile);
   if(!G.pongUsed[cl]&&pongOpts(hand,G.joker,d.tile))claims.pong=true;
@@ -1015,15 +1044,17 @@ function buildRoundReview(winner,winTile){
   function handBlock(pi,labelColor){
     var h=G.hands[pi].slice();
     if(pi===winner&&winTile)h.push(winTile);
-    var s='<div style="font-size:12px;color:'+labelColor+';margin:6px 0 4px">'+G.names[pi]+(pi===winner?'（和牌）':'')+' 手牌（'+h.length+'张）</div>';
+    var s='<div style="font-size:12px;color:'+labelColor+';margin:6px 0 4px">'+G.names[pi]+(pi===winner?'（和牌）':'')+' 手牌</div>';
     s+='<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">';
     sortTiles(h).forEach(function(c){s+=tileHTML(c);});
     s+='</div>';
-    /* 副露：吃/碰/杠 分组带标签 */
+    /* 副露：吃/碰/杠 分组带标签（吃/碰用 with/tile 还原真实牌） */
     if(G.melds[pi].length){
       s+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">';
       G.melds[pi].forEach(function(m){
-        var tiles=m.tiles||[];
+        var tiles=(m.tiles&&m.tiles.length)?m.tiles.slice()
+          :((m.type==='吃'&&m.with)?[m.with[0],m.tile,m.with[1]]
+            :(m.type==='碰'?[m.tile,m.tile,m.tile]:[m.tile,m.tile,m.tile,m.tile]));
         s+='<span style="display:inline-flex;align-items:center;gap:1px">';
         s+=meldTag(m.type);
         tiles.forEach(function(tc){s+=tileHTML(tc);});
@@ -1275,13 +1306,13 @@ function requestView(playerIdx,reason,cb){
       setTimeout(function(){
         if(!G||!G.hands)return;
         if(G.phase==='turn'){
-          var winRes=checkWin(G.hands[1],winMeldCount(G.melds[1]),G.joker,G.justKang,countOpens(G.melds[1]));
+          var winRes=checkWin(G.hands[1],G.melds[1],G.joker,G.justKang,countOpens(G.melds[1]));
           var gangs=selfGangOpts(G.hands[1],G.joker,G.melds[1]).filter(function(o){return G.wall.length>0;});
           aiAct(winRes,gangs);
         }else if(G.phase==='claim'&&G.lastDiscard){
           var cl=opp(),hand=G.hands[cl];
           var claims={
-            win:checkWin(hand.concat([G.lastDiscard.tile]),winMeldCount(G.melds[cl]),G.joker,false,countOpens(G.melds[cl])),
+            win:checkWin(hand.concat([G.lastDiscard.tile]),G.melds[cl],G.joker,false,countOpens(G.melds[cl])),
             gangs:gangOptsOnDiscard(hand,G.joker,G.lastDiscard.tile)?[G.lastDiscard.tile]:[],
             pong:!G.pongUsed[cl]&&pongOpts(hand,G.joker,G.lastDiscard.tile),
             chis:!G.chiUsed[cl]?chiOptions(hand,G.joker,G.lastDiscard.tile):[]
