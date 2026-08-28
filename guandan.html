@@ -308,6 +308,31 @@ const comboCache=new Map();
 let selected=[],hintCombos=[],hintIdx=0;
 let resolveHuman=null;
 
+/* ==================== 持久化进度（浏览器刷新后恢复） ==================== */
+const SAVE_KEY='gd_save_v1';
+let sessionActive=false;
+function saveState(){
+  if(!sessionActive)return;
+  try{
+    localStorage.setItem(SAVE_KEY,JSON.stringify({
+      v:1,
+      state:JSON.parse(JSON.stringify(state)),
+      selected:[...selected],
+      hintCombos:JSON.parse(JSON.stringify(hintCombos)),
+      hintIdx:hintIdx
+    }));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return null;
+    const d=JSON.parse(raw);
+    if(!d||d.v!==1||!d.state)return null;
+    return d;
+  }catch(e){return null;}
+}
+
 /* ==================== 牌力工具 ==================== */
 function natOf(c){ if(c.rank==='SJ'||c.rank==='BJ')return 0; return RANKMAP[c.rank]; }
 function rankOf(c){ /* 比较值：王>级牌>A>... ；级牌=15，小王16，大王17 */
@@ -657,16 +682,18 @@ async function gameLoop(){
         state.current=nextActive((state.current+1)%4);
     }
     renderAll();
+    saveState();
     await sleep(300);
   }
 }
-function humanWait(){return new Promise(res=>{resolveHuman=res;renderAll();});}
+function humanWait(){return new Promise(res=>{resolveHuman=res;renderAll();saveState();});}
 
 /* ==================== 人手操作 ==================== */
 function toggleCard(id){
   const i=selected.indexOf(id);
   if(i>=0)selected.splice(i,1);else selected.push(id);
   clearHints();renderHand();updateControls();sfx('click');
+  saveState();
 }
 function tryHumanPlay(){
   const cards=state.hands[0].filter(c=>selected.includes(c.id));
@@ -692,6 +719,7 @@ function giveHint(){
   const c=hintCombos[hintIdx%hintCombos.length];hintIdx++;
   selected=c.cards.map(x=>x.id);
   renderHand();applyHintGlow();updateControls();sfx('click');
+  saveState();
 }
 function clearHints(){hintCombos=[];hintIdx=0;document.querySelectorAll('.card.hint-glow').forEach(el=>el.classList.remove('hint-glow'));}
 function applyHintGlow(){
@@ -708,6 +736,12 @@ function updateControls(){
 
 /* ==================== 一轮结束/级数 ==================== */
 function roundName(i){return['头游','二游','三游','脚游'][i];}
+function computeRoundOutcome(){
+  const first=state.finishes[0]||0,second=state.finishes[1]||0;
+  const wTeam=TEAM[first];
+  const gain=(TEAM[first]===TEAM[second])?3:1;
+  return {wTeam,gain};
+}
 function endRound(){
   state.roundOver=true;
   const first=state.finishes[0],second=state.finishes[1];
@@ -723,6 +757,7 @@ function endRound(){
 }
 function nameOf(n){return RANKS[Math.min(Math.max(n-2,0),12)];}
 function showRoundResult(wTeam,gain){
+  saveState();
   const el=document.getElementById('result');
   const order=state.finishes.map((p,i)=>roundName(i)+'·'+NAMES[p]);
   el.classList.remove('hidden');
@@ -736,6 +771,7 @@ function showRoundResult(wTeam,gain){
   sfx(wTeam==='A'?'win':'loss');
 }
 function showResult(wTeam){
+  saveState();
   const el=document.getElementById('result');
   el.classList.remove('hidden');
   const win=wTeam==='A';
@@ -909,18 +945,49 @@ function startRound(){
   const deck=shuffle(buildDeck());
   const hands=[[],[],[],[]];
   for(let i=0;i<108;i++)hands[i%4].push(deck[i]);
-  state.hands=hands;state.current=(state.leadIdx!==undefined)?state.leadIdx:0;
+  state.hands=hands;state.current=(state.leadIdx!==undefined)?state.leadIdx:0;sessionActive=true;
   state.lastCombo=null;state.passStreak=0;state.finishes=[];
   state.roundOver=false;state.roundComboLog={};state.freshBombIdx=-1;
   selected=[];hintCombos=[];hintIdx=0;
   document.getElementById('table').innerHTML='<div class="empty">等待出牌…</div>';
   renderAll(true);
+  saveState();
   gameLoop();
 }
 function startGame(){
   state.level=2;state.levelA=2;state.levelB=2;state.leadIdx=0;
   document.getElementById('result').classList.add('hidden');
   startRound();
+}
+function restoreOrStart(){
+  const saved=loadState();
+  if(!saved){startGame();return;}
+  const s=saved.state;
+  state.level=s.level|0;
+  state.levelA=s.levelA|0;
+  state.levelB=s.levelB|0;
+  state.hands=[[],[],[],[]];
+  (Array.isArray(s.hands)?s.hands:[]).forEach((h,i)=>{if(i<4&&Array.isArray(h))state.hands[i]=h.slice();});
+  state.current=((((s.current|0)%4)+4)%4);
+  state.lastCombo=s.lastCombo||null;
+  state.lastLeader=((((s.lastLeader|0)%4)+4)%4);
+  state.passStreak=s.passStreak|0;
+  state.finishes=Array.isArray(s.finishes)?s.finishes.filter(i=>i>=0&&i<4):[];
+  state.roundOver=!!s.roundOver;
+  state.gameOver=!!s.gameOver;
+  state.roundComboLog=s.roundComboLog||{};
+  state.leadIdx=((((s.leadIdx|0)%4)+4)%4);
+  state.turnLock=true;
+  state.freshBombIdx=-1;
+  selected=Array.isArray(saved.selected)?saved.selected.filter(id=>state.hands[0].some(c=>c.id===id)):[];
+  hintCombos=Array.isArray(saved.hintCombos)?saved.hintCombos:[];
+  hintIdx=saved.hintIdx|0;
+  sessionActive=true;
+  renderAll();
+  if(hintCombos.length)applyHintGlow();
+  if(state.gameOver){const oc=computeRoundOutcome();showResult(oc.wTeam);}
+  else if(state.roundOver){const oc=computeRoundOutcome();showRoundResult(oc.wTeam,oc.gain);}
+  else{showFlash('已恢复上次游戏进度');gameLoop();}
 }
 
 /* ==================== 控件绑定 ==================== */
@@ -967,7 +1034,7 @@ window.addEventListener('load',()=>{
   const b=document.getElementById('soundBtn');
   b.textContent=soundOn?'🔊':'🔇';
   b.classList.toggle('on',!soundOn);   /* 默认开启=不高亮 */
-  startGame();
+  restoreOrStart();
 });
 /* 首次点击/触摸即解锁音频，解决浏览器自动播放限制导致“开了没声音” */
 window.addEventListener('pointerdown',ensureAudio,{passive:true});
