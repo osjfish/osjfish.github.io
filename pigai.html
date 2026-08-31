@@ -142,6 +142,43 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
 .spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(200,169,81,.35);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:4px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* 统计条 */
+.stats-strip{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.stat-pill{font-size:12px;padding:6px 12px;background:#F4EDD3;border:1px solid var(--border-light);border-radius:18px;color:#8A650D}
+.stat-pill b{font-weight:700}
+
+/* 实时预览 */
+.preview-box{width:100%;min-height:110px;border:1px dashed var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.7;font-family:Consolas,monospace;background:#FCFAF4;color:var(--text-light);white-space:pre-wrap;word-break:break-all;margin-bottom:8px}
+
+/* 逐题批注 */
+.items-box{width:100%;min-height:80px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.8;font-family:inherit;background:#fff;resize:vertical;outline:none;color:var(--text);margin-bottom:4px}
+.items-box:focus{border-color:var(--primary)}
+
+/* 轮转按钮 */
+.rotate-btn{position:absolute;bottom:4px;right:4px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(44,36,32,.72);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s;z-index:2}
+.rotate-btn:hover{background:var(--primary)}
+.rotate-tag{position:absolute;bottom:4px;left:4px;background:rgba(44,36,32,.72);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;display:none}
+.rotate-tag.show{display:block}
+
+/* 复选框行 */
+.ck-row{display:flex;align-items:center;gap:8px;margin:4px 0 12px;font-size:13px;color:var(--text-light);cursor:pointer;user-select:none}
+.ck-row input{accent-color:var(--primary);width:15px;height:15px;cursor:pointer}
+
+/* 模板卡片 */
+.tpl-card{border:1.5px solid var(--border);border-radius:10px;background:#fff;padding:12px 14px;margin-bottom:8px}
+.tpl-card .tpl-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.tpl-card .tpl-name{font-size:14px;font-weight:700}
+.tpl-card .tpl-builtin{font-size:10.5px;color:#fff;background:var(--accent);border-radius:8px;padding:1px 7px}
+.tpl-card .tpl-desc{font-size:12px;color:var(--text-light);line-height:1.7}
+.tpl-card .tpl-ops{margin-left:auto;display:flex;gap:6px}
+
+/* 总结卡片 */
+.summary-card{border:1.5px solid var(--accent);border-radius:12px;background:#FEFBF0;padding:14px;margin-bottom:14px}
+.summary-card .sc-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.summary-card .sc-title{font-size:14px;font-weight:700;color:#8A650D}
+.summary-card .sc-ops{margin-left:auto;display:flex;gap:6px}
+.summary-card .sc-fields{display:grid;gap:10px}
+
 /* 弹窗 */
 .modal-mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(44,36,32,.55);display:none;justify-content:center;align-items:center;z-index:1000}
 .modal-mask.show{display:flex}
@@ -210,7 +247,9 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
 
 <!-- ③ 设置 -->
 <div class="card">
-    <div class="card-title"><span class="step">3</span>作业要求与评价设置 <small>全局统一，生成时应用于每一份</small></div>
+    <div class="card-title"><span class="step">3</span>作业要求与评价设置 <small>全局统一，生成时应用于每一份</small>
+        <button class="icon-btn" id="tplBtn" style="margin-left:auto">🧰 模板</button>
+    </div></div>
 
     <div class="field">
         <label>作业要求 <span class="tip">（本作业是什么、做了哪些题/任务，供 AI 对照批改）</span></label>
@@ -221,6 +260,13 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
         <label>评价标准 <span class="tip">（评分维度，每行一条，可含分值）</span> <span class="link" id="fillCriteria">填入示例</span></label>
         <textarea id="cfgCriteria" class="medium" placeholder="例：&#10;1. 书写规范、卷面整洁：20 分&#10;2. 计算正确、步骤完整：40 分&#10;3. 解题思路清晰、格式规范：30 分&#10;4. 有检查与订正痕迹：10 分"></textarea>
     </div>
+
+    <div class="field">
+        <label>参考答案 / 评分要点 <span class="tip">（选填，建议填写：会显著提升批改准确度）</span></label>
+        <textarea id="cfgAnswer" class="medium" placeholder="例：&#10;第1题 23×14=322（列竖式）；&#10;第2题 x=65（检验过程）；&#10;第3题 3+5=8 个，答：一共 8 个水果；&#10;第4题 12,36,48 为偶数。&#10;评分要点：应用题单位与答语各 2 分，缺一扣 2 分。"></textarea>
+    </div>
+
+    <label class="ck-row"><input type="checkbox" id="cfgItemized">  逐题批注（让 AI 逐题给 对/错/半对 ＋ 说明，导出报告更直观）</label>
 
     <div class="sub-head">评分与评语</div>
     <div class="row3">
@@ -275,12 +321,16 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
     <div class="gen-actions">
         <button class="btn btn-accent" id="genAllBtn">⚡ 一键生成全部</button>
         <button class="btn btn-danger" id="genStopBtn" style="display:none">■ 停止</button>
+        <button class="btn btn-primary" id="summarizeBtn" disabled>📣 共性问题总结</button>
         <span style="flex:1"></span>
+        <button class="btn btn-outline" id="exportCsvBtn" disabled>导出成绩册</button>
         <button class="btn btn-outline" id="exportMdBtn" disabled>导出 Markdown</button>
         <button class="btn btn-outline" id="exportWordBtn" disabled>导出 Word</button>
         <button class="btn btn-outline" id="exportJsonBtn" disabled>导出 JSON</button>
         <button class="btn btn-outline" id="copyAllBtn" disabled>复制全部</button>
     </div>
+    <div class="stats-strip" id="statsStrip" style="display:none"></div>
+    <div id="summaryBox"></div>
     <div id="results"></div>
 </div>
 
@@ -318,6 +368,15 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
                 <input type="text" class="setting-input" id="customUrlInput" placeholder="https://example.com/v1/chat/completions">
             </div>
             <div class="setting-group">
+                <label class="setting-label">图片清晰度（费用与识别的权衡）</label>
+                <select class="setting-input" id="imgLevelSelect">
+                    <option value="lite">省流（1100px · 较模糊扫描件慎用）</option>
+                    <option value="std">标准（1500px）</option>
+                    <option value="hd">高清（1900px · 更费 token）</option>
+                </select>
+            </div>
+            <label class="ck-row" style="margin-top:12px"><input type="checkbox" id="enhanceCk"> 增强对比度 + 裁掉白边（推荐：手机拍照扫描常需要）</label>
+            <div class="setting-group">
                 <button class="btn btn-outline" id="testBtn">🔌 测试连接</button>
                 <span id="testResult" style="font-size:12px;margin-left:8px"></span>
             </div>
@@ -331,6 +390,26 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
 </div>
 
 <div id="toast"></div>
+
+<!-- 模板管理弹窗 -->
+<div class="modal-mask" id="tplModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">批改模板</span>
+            <button class="close-btn" onclick="closeTpl()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="setting-group" style="display:flex;gap:8px">
+                <input type="text" class="setting-input" id="tplNameInput" placeholder="模板名称，如：数学计算 / 语文作文">
+                <button class="btn btn-primary" id="tplSaveBtn" style="flex-shrink:0">保存当前设置</button>
+            </div>
+            <div id="tplList"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeTpl()">关闭</button>
+        </div>
+    </div>
+</div>
 
 <script src="./lib/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='./lib/pdf.worker.min.js';</script>
@@ -347,14 +426,15 @@ const PROVIDERS={
   glm:{label:'GLM（智谱）',url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',models:['glm-4.5v','glm-4v-plus-0111','glm-4v-flash-241112'],keyUrl:'open.bigmodel.cn'},
   custom:{label:'自定义（OpenAI 兼容）',url:'',models:[],keyUrl:'使用支持图片输入的任一 OpenAI 兼容接口'}
 };
-const LS_STATE='pigai_state',LS_AI='pigai_ai';
-const IMG_MAXW=1500, IMG_QUALITY=0.82;
+const LS_STATE='pigai_state',LS_AI='pigai_ai',LS_TPL='pigai_templates';
+const IMG_LEVELS={lite:{w:1100,q:0.72,label:'省流'},std:{w:1500,q:0.82,label:'标准'},hd:{w:1900,q:0.9,label:'高清'}};
 
 function defaultConfig(){
   return {
-    requirement:'',criteria:'',
+    requirement:'',criteria:'',answer:'',
     scoreMode:'both',fullScore:100,levels:'优秀/良好/合格/待改进',
     scoreNote:'',style:'中肯型',len:'中等（3-5 句）',commentNote:'',
+    itemized:false,enhance:false,
     custom:[
       {id:'c1',name:'学生信息',key:'student',enabled:true,prompt:'提取作业上的姓名、班级（或学号），识别不到则填「未识别」。'},
       {id:'c2',name:'改进建议',key:'improvement',enabled:true,prompt:'指出主要错误与薄弱点，给出 2-4 条具体、可操作的改进建议。'},
@@ -364,7 +444,7 @@ function defaultConfig(){
   };
 }
 function defaultAI(){
-  return {provider:'deepseek',keys:{},models:{},customUrl:'',temp:0.35,maxTokens:4096};
+  return {provider:'deepseek',keys:{},models:{},customUrl:'',temp:0.35,maxTokens:4096,imgLevel:'std'};
 }
 
 /* ============ 状态 ============ */
@@ -374,6 +454,9 @@ let config=loadJSON(LS_STATE,'config')||defaultConfig();
 let ai=loadJSON(LS_AI,null)||defaultAI();
 let selected=new Set();
 let pageThumbs={};
+let rotations={};          // pageNo -> 90度旋转次数
+let stateSummary=null;     // {common,highlights,teaching,status,time}
+let tplDirty=false;
 let abortCtl=null;
 
 function loadJSON(key,sub){
@@ -383,6 +466,7 @@ function saveState(){
   try{
     localStorage.setItem(LS_STATE,JSON.stringify({
       fileName:fileName,numPages:numPages,config:config,
+      summary:stateSummary,
       groups:groups.map(g=>({id:g.id,name:g.name,pages:g.pages.slice(),extra:g.extra,result:g.result}))
     }));
   }catch(e){}
@@ -471,18 +555,24 @@ async function renderPageGrid(){
 }
 async function renderThumb(p,grid,cards){
   try{
+    const old=grid.querySelector(`.page-card[data-page="${p}"]`);
+    if(old)old.remove();
     const page=await pdfDoc.getPage(p);
     const vp0=page.getViewport({scale:1});
     const scale=Math.min(1.2,240/vp0.width);
-    const vp=page.getViewport({scale});
+    const rot=((page.rotate||0)+(rotations[p]||0)*90)%360;
+    const vp=page.getViewport({scale,rotation:rot});
     const cv=document.createElement('canvas');cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
     await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
     pageThumbs[p]=cv;
     const card=document.createElement('div');
     card.className='page-card';card.dataset.page=p;card.draggable=true;
-    card.innerHTML=`<div class="pno">${p}</div><div class="pbadge" style="background:#999">…</div>`;
+    card.innerHTML=`<div class="pno">${p}</div><div class="pbadge" style="background:#999">…</div>`+
+      `<button class="rotate-btn" title="旋转 90°" data-rot="${p}">↻</button>`+
+      `<div class="rotate-tag ${rotations[p]?'show':''}">${rotations[p]?((rotations[p]*90)%360)+'°':''}</div>`;
     card.appendChild(cv);
     card.addEventListener('click',e=>{
+      if(e.target.closest('.rotate-btn'))return;
       if(e.target.classList.contains('pno')||e.target.classList.contains('pbadge'))return;
       toggleSelect(p);
     });
@@ -497,6 +587,17 @@ async function renderThumb(p,grid,cards){
     updatePageBadges();
   }catch(e){console.warn('渲染第'+p+'页失败',e)}
 }
+$('pageGrid').addEventListener('click',e=>{
+  const btn=e.target.closest('.rotate-btn');
+  if(!btn)return;
+  const p=+btn.dataset.rot;
+  rotations[p]=((rotations[p]||0)+1)%4;
+  const cv=pageThumbs[p];
+  if(cv){const card=btn.closest('.page-card');const pno=+card.dataset.page;
+    renderThumb(pno,document.getElementById('pageGrid'),[]) // 重新渲染该页
+      .then(()=>{const nc=document.querySelector(`.page-card[data-page="${pno}"]`);if(nc)nc.scrollIntoView({block:'nearest'})});
+  }
+});
 function updatePageBadges(){
   document.querySelectorAll('.page-card').forEach(card=>{
     const p=+card.dataset.page;const g=ownerOf(p);
@@ -592,28 +693,69 @@ function renderGroups(){
       </div>
     </div>`).join('');
 }
+function statsHTML(){
+  const ok=groups.filter(g=>g.result&&g.result.status==='ok');
+  const scores=ok.map(g=>parseFloat(g.result.score)).filter(n=>Number.isFinite(n));
+  if(!scores.length)return '';
+  const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+  const pills=[`批改 ${ok.length} 份`,`平均分 <b>${avg}</b>`,`最高 <b>${Math.max(...scores)}</b>`,`最低 <b>${Math.min(...scores)}</b>`];
+  const levels={};
+  ok.forEach(g=>{const l=String(g.result.level||'').trim().slice(0,4);if(l)levels[l]=(levels[l]||0)+1});
+  Object.keys(levels).forEach(l=>pills.push(`${esc(l)} <b>${levels[l]}</b> 人`));
+  return pills.map(p=>`<span class="stat-pill">${p}</span>`).join('');
+}
+function summaryHTML(){
+  if(!stateSummary)return '';
+  if(stateSummary.status==='running')return `<div class="summary-card"><div class="sc-head"><span class="spinner"></span><span class="sc-title">共性问题总结生成中…</span></div></div>`;
+  if(stateSummary.status==='error')return `<div class="summary-card"><div class="sc-head"><span class="sc-title">总结失败</span><span class="sc-ops"><button class="btn btn-outline small" id="sumRetryBtn">重试</button></span></div><div class="result-err">${esc(stateSummary.error||'')}</div></div>`;
+  return `<div class="summary-card">
+    <div class="sc-head">
+      <span style="font-size:16px">📣</span><span class="sc-title">全班讲评要点 · 共性问题总结</span>
+      <span class="result-done-tip">${esc(stateSummary.time||'')}</span>
+      <span class="sc-ops">
+        <button class="btn btn-outline small" id="sumCopyBtn">📋 复制</button>
+        <button class="btn btn-outline small" id="sumRegenBtn">♻ 重新总结</button>
+      </span>
+    </div>
+    <div class="sc-fields">
+      <div class="rfield-title">共性问题（常见错误 / 薄弱点）</div>
+      <textarea class="items-box" data-summary="common">${esc(stateSummary.common||'')}</textarea>
+      <div class="rfield-title">值得表扬的亮点</div>
+      <textarea class="items-box" data-summary="highlights">${esc(stateSummary.highlights||'')}</textarea>
+      <div class="rfield-title">上课讲评要点</div>
+      <textarea class="items-box" data-summary="teaching">${esc(stateSummary.teaching||'')}</textarea>
+    </div>
+  </div>`;
+}
 function renderResults(){
   const box=$('results');
   const total=groups.length,done=groups.filter(g=>g.result&&g.result.status==='ok').length;
   $('genStat').textContent=`共 ${total} 份 · 已生成 ${done} 份`;
-  const hasAny=groups.some(g=>g.result&&g.result.status==='ok');
-  ['exportMdBtn','exportWordBtn','exportJsonBtn','copyAllBtn'].forEach(id=>$(id).disabled=!hasAny);
+  const hasAny=done>0;
+  ['exportMdBtn','exportWordBtn','exportJsonBtn','copyAllBtn','exportCsvBtn'].forEach(id=>$(id).disabled=!hasAny);
+  $('summarizeBtn').disabled=done<2;
+  const strip=$('statsStrip');
+  const st=statsHTML();
+  strip.style.display=st?'flex':'none';strip.innerHTML=st;
+  $('summaryBox').innerHTML=summaryHTML();
   box.innerHTML=groups.map((g,i)=>{
-    const st=g.result||{status:'idle'};
+    const r=g.result||{status:'idle'};
     const statusMap={idle:'未生成',running:'生成中',ok:'已完成',error:'失败'};
+    const preview= r.status==='running'?`<textarea class="preview-box" readonly placeholder="AI 正在生成，回复内容将实时显示…">${esc(r.preview||'')}</textarea>`:'';
     return `
     <div class="result-card" data-gid="${g.id}">
       <div class="result-head">
         <span style="width:22px;height:22px;border-radius:6px;background:${colorOf(g.id)};color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">${i+1}</span>
         <span class="rname">${esc(g.name)}</span>
         <span class="rpages">${pageRange(g)}</span>
-        <span class="rstatus ${st.status}">${st.status==='running'?'<span class="spinner"></span>':''}${statusMap[st.status]||st.status}</span>
+        <span class="rstatus ${r.status}">${r.status==='running'?'<span class="spinner"></span>':''}${statusMap[r.status]||r.status}</span>
       </div>
-      ${st.status==='error'?`<div class="result-err">${esc(st.error||'生成失败')}</div>`:''}
-      ${st.status==='ok'?renderResultBody(g):''}
+      ${r.status==='error'?`<div class="result-err">${esc(r.error||'生成失败')}</div>`:''}
+      ${preview}
+      ${r.status==='ok'?renderResultBody(g):''}
       <div class="result-ops">
-        <button class="btn btn-accent small" data-gen="${g.id}">${st.status==='ok'?'♻ 重新生成':'⚡ 生成'}</button>
-        ${st.status==='ok'?`<button class="btn btn-outline small" data-copy="${g.id}">📋 复制本份</button><span class="result-done-tip">${esc(st.time||'')} · ${esc(st.elapsed||'')}</span>`:''}
+        <button class="btn btn-accent small" data-gen="${g.id}">${r.status==='ok'?'♻ 重新生成':'⚡ 生成'}</button>
+        ${r.status==='ok'?`<button class="btn btn-outline small" data-copy="${g.id}">📋 复制本份</button><span class="result-done-tip">${esc(r.time||'')} · ${esc(r.elapsed||'')}</span>`:''}
       </div>
     </div>`;
   }).join('');
@@ -628,11 +770,15 @@ function renderResultBody(g){
     rows+=`<div class="field"><label>等级</label><input type="text" list="levelList" data-r="level" value="${esc(r.level??'')}">`;
     rows+=`<datalist id="levelList">${esc(config.levels||'').split(/[\/、,，]/).map(l=>l.trim()).filter(Boolean).map(l=>`<option value="${esc(l)}">`).join('')}</datalist></div>`;
   }
-  rows+=`<div class="field" style="grid-column:${config.scoreMode==='both'?'1/-1':'1/-1'}"><label>评语</label><textarea data-r="comment">${esc(r.comment??'')}</textarea></div>`;
+  rows+=`<div class="field" style="grid-column:1/-1"><label>评语</label><textarea data-r="comment">${esc(r.comment??'')}</textarea></div>`;
   rows+=`</div>`;
   rows+=enabled.map(c=>`
     <div class="rfield-title">${esc(c.name)}</div>
-    <textarea data-f="${esc(c.key)}">${esc(r.fields&&r.fields[c.key]||'')}</textarea>`).join('');
+    <textarea class="items-box" data-f="${esc(c.key)}">${esc(r.fields&&r.fields[c.key]||'')}</textarea>`).join('');
+  if(config.itemized){
+    rows+=`<div class="rfield-title">逐题批注 <span style="font-weight:400;opacity:.7">（每行一题：第N题 [对/错/半对] 说明）</span></div>
+      <textarea class="items-box" data-f="items" placeholder="第1题 [对] 计算正确&#10;第2题 [半对] 过程不完整，缺检验&#10;…">${esc(r.itemsText||'')}</textarea>`;
+  }
   return rows;
 }
 
@@ -708,6 +854,8 @@ $('groups').addEventListener('drop',e=>{
 function renderConfig(){
   $('cfgReq').value=config.requirement||'';
   $('cfgCriteria').value=config.criteria||'';
+  $('cfgAnswer').value=config.answer||'';
+  $('cfgItemized').checked=!!config.itemized;
   $('cfgMode').value=config.scoreMode||'both';
   $('cfgFullScore').value=config.fullScore||100;
   $('cfgLevels').value=config.levels||'优秀/良好/合格/待改进';
@@ -730,10 +878,13 @@ $('cfgScoreNote').addEventListener('input',()=>{config.scoreNote=$('cfgScoreNote
 $('cfgStyle').addEventListener('change',()=>{config.style=$('cfgStyle').value;scheduleSave()});
 $('cfgLen').addEventListener('change',()=>{config.len=$('cfgLen').value;scheduleSave()});
 $('cfgCommentNote').addEventListener('input',()=>{config.commentNote=$('cfgCommentNote').value;scheduleSave()});
-['cfgReq','cfgCriteria'].forEach(id=>$(id).addEventListener('input',()=>{
-  if(id==='cfgReq')config.requirement=$('cfgReq').value;else config.criteria=$('cfgCriteria').value;
+['cfgReq','cfgCriteria','cfgAnswer'].forEach(id=>$(id).addEventListener('input',()=>{
+  if(id==='cfgReq')config.requirement=$('cfgReq').value;
+  else if(id==='cfgCriteria')config.criteria=$('cfgCriteria').value;
+  else config.answer=$('cfgAnswer').value;
   scheduleSave();
 }));
+$('cfgItemized').addEventListener('change',()=>{config.itemized=$('cfgItemized').checked;scheduleSave()});
 $('fillCriteria').addEventListener('click',()=>{
   $('cfgCriteria').value='1. 书写规范、卷面整洁：20 分\n2. 内容正确、步骤完整：40 分\n3. 思路清晰、格式规范：30 分\n4. 有检查与订正痕迹：10 分';
   config.criteria=$('cfgCriteria').value;scheduleSave();toast('已填入示例评价标准');
@@ -787,10 +938,42 @@ $('results').addEventListener('input',e=>{
   if(t.dataset.r==='score')g.result.score=t.value;
   else if(t.dataset.r==='level')g.result.level=t.value;
   else if(t.dataset.r==='comment')g.result.comment=t.value;
-  else if(t.dataset.f!==undefined)g.result.fields[t.dataset.f]=t.value;
+  else if(t.dataset.f!==undefined){
+    if(t.dataset.f==='items')g.result.itemsText=t.value;else g.result.fields[t.dataset.f]=t.value;
+  }
   scheduleSave();
 });
+$('summaryBox').addEventListener('click',e=>{
+  if(e.target.id==='sumCopyBtn'){
+    const txt=[['共性问题',stateSummary.common],['亮点',stateSummary.highlights],['讲评要点',stateSummary.teaching]]
+      .filter(x=>x[1]&&x[1].trim()).map(x=>`【${x[0]}】\n${x[1]}`).join('\n\n');
+    copyText('📣 全班讲评要点\n\n'+txt);
+  }
+  if(e.target.id==='sumRegenBtn'||e.target.id==='sumRetryBtn')generateSummary();
+  if(e.target.closest('button'))e.stopPropagation();
+});
+$('summaryBox').addEventListener('input',e=>{
+  const t=e.target;if(!t.dataset.summary||!stateSummary)return;
+  stateSummary[t.dataset.summary]=t.value;scheduleSave();
+});
 
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function withRetry(fn){
+  let last=null;
+  for(let attempt=1;attempt<=2;attempt++){
+    if(abortCtl&&abortCtl.signal.aborted)throw new DOMException('已停止','AbortError');
+    try{return await fn()}
+    catch(e){
+      last=e;
+      if(e.name==='AbortError')throw e;
+      const msg=String(e.message||'');
+      const retriable=/429|5\d\d|Failed to fetch|network error|timeout|ECONN|socket|abort/i.test(msg);
+      if(!retriable||attempt>=2)throw e;
+      await sleep(2000*attempt);
+    }
+  }
+  throw last;
+}
 function generateAll(){
   const todo=groups.slice();
   if(!todo.length){toast('请先分份');return}
@@ -798,20 +981,27 @@ function generateAll(){
   const noPages=todo.filter(g=>!g.pages.length);
   if(noPages.length&&!confirm(`以下份没有页面：${noPages.map(g=>g.name).join('、')}，仍继续？`))return;
   abortCtl=new AbortController();
+  const ctl=abortCtl;
   $('genAllBtn').disabled=true;$('genStopBtn').style.display='inline-flex';
+  $('genAllBtn').textContent=`生成中 0/${todo.length}…`;
   (async()=>{
-    let i=0;
-    for(const g of todo){
-      if(!g.pages.length){g.result={status:'error',error:'该份无页面',fields:{}};renderResults();continue}
-      if(abortCtl.signal.aborted)break;
-      i++;
-      $('genAllBtn').textContent=`生成中 ${i}/${todo.length}…`;
-      await generateOne(g,true);
+    let idx=0,done=0;
+    async function worker(){
+      while(idx<todo.length){
+        if(ctl.signal.aborted)break;
+        const g=todo[idx++];
+        if(!g.pages.length){g.result={status:'error',error:'该份无页面',fields:{}};renderResults();done++;continue}
+        await generateOne(g,true);
+        done++;
+        $('genAllBtn').textContent=`生成中 ${done}/${todo.length}…`;
+      }
     }
+    await Promise.all([worker(),worker()]);   // 2 路并发
     $('genAllBtn').disabled=false;$('genAllBtn').textContent='⚡ 一键生成全部';
     $('genStopBtn').style.display='none';
     abortCtl=null;
-    if(!abortCtl||!abortCtl.signal.aborted)toast('全部生成完成');
+    renderResults();
+    if(!ctl.signal.aborted)toast('全部生成完成');
   })();
 }
 function ensureAI(){
@@ -824,26 +1014,30 @@ function ensureAI(){
 }
 async function generateOne(g,fromAll){
   if(!ensureAI())return;
-  const running=g.result&&g.result.status==='running';
-  if(running)return;
-  g.result={status:'running',score:'',level:'',comment:'',fields:{},error:'',elapsed:'',time:''};
+  if(g.result&&g.result.status==='running')return;
+  g.result={status:'running',score:'',level:'',comment:'',fields:{},itemsText:'',preview:'',error:'',elapsed:'',time:''};
   renderResults();
   const cardEl=document.querySelector(`.result-card[data-gid="${g.id}"]`);
   const start=Date.now();
   try{
-    const {prompt,images}=await buildRequest(g,el=>{
-      if(fromAll&&el){
-        const sEl=cardEl&&cardEl.querySelector('.rstatus');
-        if(sEl)sEl.textContent='渲染图片 '+el;
-      }
+    const {prompt,images}=await buildRequest(g,msg=>{
+      const sEl=cardEl&&cardEl.querySelector('.rstatus');
+      if(sEl)sEl.innerHTML='<span class="spinner"></span>渲染 '+esc(msg);
     });
-    const content=await callVision(prompt,images);
+    const content=await withRetry(()=>callVision(prompt,images,full=>{
+      g.result.preview=full;
+      const pv=cardEl&&cardEl.querySelector('.preview-box');
+      if(pv)pv.value=full;
+    }));
     const data=parseResult(content);
     g.result.score=(data.score!=null&&data.score!=='')?data.score:'';
     g.result.level=data.level||'';
     g.result.comment=data.comment||'';
     g.result.fields={};
     config.custom.filter(c=>c.enabled).forEach(c=>{if(data[c.key]!=null)g.result.fields[c.key]=data[c.key]});
+    if(Array.isArray(data.items)){
+      g.result.itemsText=data.items.map(it=>`第${it.no??'?'}题 [${it.verdict||''}] ${(it.note||it.comment||'').trim()}`.trim()).join('\n');
+    }else if(typeof data.items==='string'){g.result.itemsText=data.items.trim()}
     g.result.status='ok';
     g.result.elapsed=`耗时 ${((Date.now()-start)/1000).toFixed(1)}s`;
     g.result.time=timestamp();
@@ -856,13 +1050,45 @@ async function generateOne(g,fromAll){
   }
   renderResults();scheduleSave();
 }
-
+/* 增强：对比度拉伸 + 裁白边 */
+function enhanceImage(cv){
+  try{
+    const ctx=cv.getContext('2d');const w=cv.width,h=cv.height;
+    const img=ctx.getImageData(0,0,w,h);const d=img.data;
+    let minX=w,minY=h,maxX=-1,maxY=-1;
+    for(let y=0;y<h;y++){
+      const row=y*w*4;
+      for(let x=0;x<w;x++){
+        const i=row+x*4;
+        const r=d[i],g=d[i+1],b=d[i+2];
+        const lum=(r*299+g*587+b*114)/1000;
+        if(lum<235){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y}
+        const nr=((r-135)*1.25+135),ng=((g-135)*1.25+135),nb=((b-135)*1.25+135);
+        d[i]=nr<0?0:nr>255?255:nr;d[i+1]=ng<0?0:ng>255?255:ng;d[i+2]=nb<0?0:nb>255?255:nb;
+      }
+    }
+    ctx.putImageData(img,0,0);
+    if(minX<maxX&&minY<maxY&&(maxX-minX+1)*(maxY-minY+1)<w*h*0.96){
+      const m=10,x0=Math.max(0,minX-m),y0=Math.max(0,minY-m);
+      const x1=Math.min(w,maxX+m+1),y1=Math.min(h,maxY+m+1);
+      if(x1-x0>=60&&y1-y0>=60){
+        const out=document.createElement('canvas');
+        out.width=x1-x0;out.height=y1-y0;
+        out.getContext('2d').drawImage(cv,x0,y0,x1-x0,y1-y0,0,0,x1-x0,y1-y0);
+        cv.width=out.width;cv.height=out.height;
+        cv.getContext('2d').drawImage(out,0,0);
+      }
+    }
+  }catch(e){/* 增强失败不影响生成 */}
+}
 async function buildRequest(g,onProgress){
   const enabled=config.custom.filter(c=>c.enabled);
   const parts=[];
   parts.push(`这是学生作业的扫描图片，按顺序共 ${g.pages.length} 页。请逐页仔细查看，批改这一份作业。`);
+  parts.push('请对照【参考答案 / 评分要点】逐条核对，标注对错与得分。');
   if((config.requirement||'').trim())parts.push('【作业要求】\n'+config.requirement.trim());
   if((config.criteria||'').trim())parts.push('【评价标准】\n'+config.criteria.trim());
+  if((config.answer||'').trim())parts.push('【参考答案 / 评分要点】\n'+config.answer.trim());
   const sc=[];
   if(config.scoreMode!=='level')sc.push(`按满分 ${config.fullScore} 分给出具体得分`);
   if(config.scoreMode!=='score')sc.push(`给出等级（可参考：${config.levels||'优秀/良好/合格/待改进'}）`);
@@ -874,39 +1100,43 @@ async function buildRequest(g,onProgress){
   if(config.scoreMode!=='level')keys.push('"score": 数字得分');
   if(config.scoreMode!=='score')keys.push('"level": "等级字符串"');
   keys.push('"comment": "评语字符串"');
+  if(config.itemized)keys.push('"items": [{"no": 题号数字, "verdict": "对|错|半对", "note": "简短说明"}]');
   enabled.forEach(c=>keys.push(`"${c.key}": "${c.name}内容字符串"`));
   parts.push('【输出要求】只输出一个 JSON 对象，不要输出任何其他文字、不要使用 Markdown 代码块。对象格式：{'+
     keys.join(', ')+
     '}。评语与各项内容必须具体、结合卷面实际，指出具体题目或知识点的对错；所有值用字符串或数字，不要出现换行转义问题。');
   const prompt=parts.join('\n');
+  const lv=IMG_LEVELS[ai.imgLevel]||IMG_LEVELS.std;
   const images=[];
   for(let i=0;i<g.pages.length;i++){
     const p=pagesOf(g)[i];
     onProgress?.(`${p}/${g.pages.length}`);
     const page=await pdfDoc.getPage(p);
     const vp0=page.getViewport({scale:1});
-    const scale=Math.min(3,IMG_MAXW/vp0.width);
-    const vp=page.getViewport({scale});
+    const scale=Math.min(4,lv.w/vp0.width);
+    const rot=((page.rotate||0)+(rotations[p]||0)*90)%360;
+    const vp=page.getViewport({scale,rotation:rot});
     const cv=document.createElement('canvas');
     cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
     await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
-    images.push(cv.toDataURL('image/jpeg',IMG_QUALITY));
+    if(config.enhance)enhanceImage(cv);
+    images.push(cv.toDataURL('image/jpeg',lv.q));
   }
   return {prompt,images};
 }
-async function callVision(prompt,images){
+async function callVision(prompt,images,onChunk){
   const provider=ai.provider;
   const url=provider==='custom'?(ai.customUrl||'').trim():PROVIDERS[provider].url;
   const key=(ai.keys[provider]||'').trim();
   const model=(ai.models[provider]||'').trim()||PROVIDERS[provider].models[0];
   const messages=[
     {role:'system',content:'你是一位经验丰富、认真负责的中小学老师，负责批改学生作业。批改要客观、具体、以鼓励为主：指出具体错误（尽量定位到题目或内容）、优点与薄弱点，并给出可执行的建议。所有输出使用简体中文。'},
-    {role:'user',content:[{type:'text',text:prompt},...images.map(u=>({type:'image_url',image_url:{url:u}}))]}
+    {role:'user',content:images.length?[{type:'text',text:prompt},...images.map(u=>({type:'image_url',image_url:{url:u}}))]:prompt}
   ];
   const res=await fetch(url,{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-    body:JSON.stringify({model,messages,temperature:ai.temp||0.35,max_tokens:ai.maxTokens||4096,stream:false}),
+    body:JSON.stringify({model,messages,temperature:ai.temp||0.35,max_tokens:ai.maxTokens||4096,stream:true}),
     signal:abortCtl?abortCtl.signal:undefined
   });
   if(!res.ok){
@@ -914,10 +1144,37 @@ async function callVision(prompt,images){
     try{const j=await res.json();msg=j.error&&(j.error.message||j.error.msg)||j.msg||JSON.stringify(j).slice(0,200)||msg}catch(e){}
     throw new Error(msg);
   }
-  const data=await res.json();
-  const content=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
-  if(!content)throw new Error('接口未返回内容');
-  return content;
+  const ctype=(res.headers.get('content-type')||'').toLowerCase();
+  if(ctype.indexOf('application/json')>=0){
+    // 兜底：接口未启用流式时直接返回
+    const data=await res.json();
+    const c=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
+    if(!c)throw new Error('接口未返回内容');
+    onChunk&&onChunk(c);
+    return c;
+  }
+  const reader=res.body.getReader();
+  const decoder=new TextDecoder('utf-8');
+  let full='',buf='';
+  while(true){
+    const {done,value}=await reader.read();
+    if(done)break;
+    buf+=decoder.decode(value,{stream:true});
+    const lines=buf.split('\n');buf=lines.pop();
+    for(const line of lines){
+      const t=line.trim();
+      if(!t.startsWith('data:'))continue;
+      const s=t.slice(5).trim();
+      if(s==='[DONE]')continue;
+      try{
+        const d=JSON.parse(s);
+        const delta=(d.choices&&d.choices[0]&&d.choices[0].delta)||{};
+        if(delta.content){full+=delta.content;onChunk&&onChunk(full)}
+      }catch(e){}
+    }
+  }
+  if(!full.trim())throw new Error('接口未返回内容');
+  return full;
 }
 function parseResult(text){
   let s=String(text).trim();
@@ -945,26 +1202,43 @@ function groupMD(g){
   if(config.scoreMode!=='score'&&r.level)parts.push(`等级：${r.level}`);
   lines.push(parts.join('　'));
   if(r.comment)lines.push('\n**评语**\n\n'+r.comment);
+  if(config.itemized&&r.itemsText)lines.push('\n**逐题批注**\n\n'+r.itemsText);
   config.custom.filter(c=>c.enabled).forEach(c=>{
     if(r.fields&&r.fields[c.key])lines.push(`\n**${c.name}**\n\n${r.fields[c.key]}`);
   });
   return lines.join('\n');
 }
+function summaryMD(){
+  if(!stateSummary||stateSummary.status!=='ok')return '';
+  return ['## 📣 全班讲评要点','',
+    stateSummary.common?`**共性问题（常见错误 / 薄弱点）**\n\n${stateSummary.common}\n\n`:'',
+    stateSummary.highlights?`**值得表扬的亮点**\n\n${stateSummary.highlights}\n\n`:'',
+    stateSummary.teaching?`**上课讲评要点**\n\n${stateSummary.teaching}\n\n`:''].join('\n');
+}
 function allMarkdown(){
   const heads=['# 作业批改结果','',`- 文件：${fileName||'未知'}`,'- 生成时间：'+timestamp(),`- 模型：${ai.models[ai.provider]||PROVIDERS[ai.provider].models[0]||''}`,''];
-  return heads.concat(groups.map((g,i)=>groupMD(g)||`### ${g.name}（未生成）`).join('\n\n---\n\n')).join('\n');
+  const summary=summaryMD();
+  return heads.concat(summary?[summary,'---\n']:[]).concat(groups.map((g,i)=>groupMD(g)||`### ${g.name}（未生成）`).join('\n\n---\n\n')).join('\n');
 }
 function allJSON(){
   return JSON.stringify({
-    app:'作业批改',version:1,exportedAt:timestamp(),file:fileName,
+    app:'作业批改',version:2,exportedAt:timestamp(),file:fileName,
     config:config,
     ai:{provider:ai.provider,model:(ai.models[ai.provider]||PROVIDERS[ai.provider].models[0])||''},
+    summary:stateSummary,
     groups:groups.map(g=>({name:g.name,pages:pagesOf(g),extra:g.extra,result:g.result}))
   },null,2);
 }
 function allWord(){
   let h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>作业批改结果</title><style>body{font-family:"宋体",SimSun;font-size:12pt;line-height:1.8} h1{font-size:20pt}h2{font-size:16pt;border-bottom:1px solid #999;padding-bottom:4px}h3{font-size:14pt;color:#B8453A}p{margin:6px 0}.meta{color:#666;font-size:10.5pt}</style></head><body>';
   h+=`<h1>作业批改结果</h1><p class="meta">文件：${esc(fileName||'未知')}　生成时间：${timestamp()}　模型：${esc((ai.models[ai.provider]||PROVIDERS[ai.provider].models[0])||'')}</p><hr>`;
+  if(stateSummary&&stateSummary.status==='ok'){
+    h+='<h2>📣 全班讲评要点</h2>';
+    if(stateSummary.common)h+=`<h3>共性问题</h3><p>${esc(stateSummary.common).replace(/\n/g,'<br>')}</p>`;
+    if(stateSummary.highlights)h+=`<h3>值得表扬的亮点</h3><p>${esc(stateSummary.highlights).replace(/\n/g,'<br>')}</p>`;
+    if(stateSummary.teaching)h+=`<h3>上课讲评要点</h3><p>${esc(stateSummary.teaching).replace(/\n/g,'<br>')}</p>`;
+    h+='<hr>';
+  }
   groups.forEach(g=>{
     const r=g.result;
     h+=`<h2>${esc(g.name)}（${esc(pageRange(g))}）</h2>`;
@@ -974,6 +1248,7 @@ function allWord(){
     if(config.scoreMode!=='score'&&r.level)meta.push(`等级：${esc(r.level)}`);
     if(meta.length)h+=`<p><b>${meta.join('　')}</b></p>`;
     if(r.comment)h+=`<h3>评语</h3><p>${esc(r.comment).replace(/\n/g,'<br>')}</p>`;
+    if(config.itemized&&r.itemsText)h+=`<h3>逐题批注</h3><p style="white-space:pre-wrap">${esc(r.itemsText)}</p>`;
     config.custom.filter(c=>c.enabled).forEach(c=>{
       if(r.fields&&r.fields[c.key])h+=`<h3>${esc(c.name)}</h3><p>${esc(r.fields[c.key]).replace(/\n/g,'<br>')}</p>`;
     });
@@ -982,6 +1257,22 @@ function allWord(){
   h+='</body></html>';
   return h;
 }
+function exportCSV(){
+  const enabled=config.custom.filter(c=>c.enabled);
+  const head=['序号','份名称','学生信息','得分','等级','评语'];
+  if(config.itemized)head.push('逐题批注');
+  enabled.forEach(c=>head.push(c.name));
+  const lines=[head.join(',')];
+  groups.forEach((g,i)=>{
+    const r=g.result;if(!r||r.status!=='ok')return;
+    const q=s=>'"'+String(s==null?'':s).replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
+    const row=[i+1,g.name,(r.fields&&r.fields.student)||'',r.score??'',r.level||'',r.comment||''];
+    if(config.itemized)row.push(r.itemsText||'');
+    enabled.forEach(c=>row.push((r.fields&&r.fields[c.key])||''));
+    lines.push(row.map(q).join(','));
+  });
+  return '\ufeff'+lines.join('\r\n');
+}
 function copyGroup(g){
   const md=groupMD(g);
   if(md)copyText(`# 作业批改 · ${g.name}\n\n${md}`);
@@ -989,8 +1280,104 @@ function copyGroup(g){
 $('exportMdBtn').addEventListener('click',()=>{download(`作业批改_${tsName()}.md`,allMarkdown(),'text/markdown;charset=utf-8');toast('已导出 Markdown')});
 $('exportWordBtn').addEventListener('click',()=>{download(`作业批改_${tsName()}.doc`,allWord(),'application/msword;charset=utf-8');toast('已导出 Word（.doc）')});
 $('exportJsonBtn').addEventListener('click',()=>{download(`作业批改_${tsName()}.json`,allJSON(),'application/json;charset=utf-8');toast('已导出 JSON')});
+$('exportCsvBtn').addEventListener('click',()=>{download(`成绩册_${tsName()}.csv`,exportCSV(),'text/csv;charset=utf-8');toast('已导出成绩册 CSV（Excel 可直接打开）')});
 $('copyAllBtn').addEventListener('click',()=>copyText(allMarkdown()));
 function tsName(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`}
+
+/* ============ 共性问题总结 ============ */
+async function generateSummary(){
+  const ok=groups.filter(g=>g.result&&g.result.status==='ok');
+  if(ok.length<2){toast('至少生成 2 份后才可总结');return}
+  if(!ensureAI())return;
+  if(stateSummary&&stateSummary.status==='running')return;
+  stateSummary={status:'running',common:'',highlights:'',teaching:'',error:'',time:''};
+  renderResults();
+  try{
+    const base="你是经验丰富的教研组长。下面是一批作业的批改结果，请从中提炼讲评要点。只输出 JSON：{\"common\":[\"共性问题（3-6条）\"],\"highlights\":[\"值得表扬的亮点（2-4条）\"],\"teaching\":[\"上课讲评要点（3-5条，可直接用于课堂）\"]}，不要输出其他文字。\n\n";
+    const body=ok.map(g=>{
+      const r=g.result;
+      let t=`【${g.name}】得分：${r.score||'—'} 等级：${r.level||'—'}\n评语：${(r.comment||'').slice(0,200)}`;
+      if(config.itemized&&r.itemsText)t+='\n逐题批注：\n'+r.itemsText;
+      const extras=config.custom.filter(c=>c.enabled&&r.fields&&r.fields[c.key]).map(c=>`${c.name}：${String(r.fields[c.key]).slice(0,120)}`).join('\n');
+      if(extras)t+='\n'+extras;
+      return t;
+    }).join('\n\n');
+    const content=await withRetry(()=>callVision(base+body,[]));
+    const d=parseResult(content);
+    const toLines=v=>Array.isArray(v)?v.map(x=>String(x).trim()).filter(Boolean).join('\n'):String(v||'').trim();
+    stateSummary={status:'ok',common:toLines(d.common),highlights:toLines(d.highlights),teaching:toLines(d.teaching),error:'',time:timestamp()};
+    toast('共性问题总结完成');
+  }catch(err){
+    stateSummary={status:'error',common:'',highlights:'',teaching:'',error:err.name==='AbortError'?'已停止':(err.message||String(err)),time:''};
+  }
+  renderResults();scheduleSave();
+}
+$('summarizeBtn').addEventListener('click',generateSummary);
+
+/* ============ 批改模板 ============ */
+const BUILTIN_TPLS=[
+  {name:'恢复默认设置',builtin:true,desc:'清空作业要求、评价标准等设置，恢复预设默认值。',cfg:null},
+  {name:'数学作业（计算/试卷）',builtin:true,desc:'书写20% + 计算40% + 过程30% + 订正10%，开启逐题批注。',cfg:{criteria:'1. 书写规范、卷面整洁：20 分\n2. 计算正确、步骤完整：40 分\n3. 解题思路清晰、格式规范：30 分\n4. 有检查与订正痕迹：10 分',style:'中肯型',len:'中等（3-5 句）',itemized:true,scoreMode:'both'}},
+  {name:'语文作文',builtin:true,desc:'内容30% + 结构25% + 语言25% + 书写20%，鼓励型详细评语。',cfg:{criteria:'1. 内容充实、中心明确：30 分\n2. 结构完整、条理清晰：25 分\n3. 语言生动、用词准确：25 分\n4. 书写规范、卷面整洁：20 分',style:'鼓励型',len:'详细（5 句以上）',itemized:false,scoreMode:'both'}}
+];
+function getTemplates(){
+  const user=loadJSON(LS_TPL,null)||[];
+  return BUILTIN_TPLS.concat(user.map(t=>({name:t.name,desc:t.desc||'',cfg:t.cfg,builtin:false})));
+}
+function renderTplList(){
+  const box=$('tplList');
+  box.innerHTML=getTemplates().map((t,i)=>`
+    <div class="tpl-card">
+      <div class="tpl-head">
+        <span class="tpl-name">${esc(t.name)}</span>
+        ${t.builtin?'<span class="tpl-builtin">内置</span>':''}
+        <span class="tpl-ops">
+          <button class="btn btn-primary small" data-tapply="${i}">套用</button>
+          ${t.builtin?'':'<button class="btn btn-danger small" data-tdel="'+i+'">删除</button>'}
+        </span>
+      </div>
+      <div class="tpl-desc">${esc(t.desc||'')}</div>
+    </div>`).join('');
+}
+function applyTemplate(t){
+  config=t.cfg?Object.assign(defaultConfig(),t.cfg):defaultConfig();
+  renderConfig();scheduleSave();renderResults();toast('已套用模板「'+t.name+'」');
+}
+$('tplBtn').addEventListener('click',()=>{renderTplList();$('tplModal').classList.add('show')});
+$('tplSaveBtn').addEventListener('click',()=>{
+  const name=$('tplNameInput').value.trim();
+  if(!name){toast('请输入模板名称');return}
+  const cfg={requirement:config.requirement||'',criteria:config.criteria||'',answer:config.answer||'',
+    scoreMode:config.scoreMode,fullScore:config.fullScore,levels:config.levels,scoreNote:config.scoreNote||'',
+    style:config.style,len:config.len,commentNote:config.commentNote||'',itemized:!!config.itemized,
+    custom:config.custom.map(c=>({id:c.id,name:c.name,key:c.key,prompt:c.prompt,enabled:c.enabled}))};
+  const user=loadJSON(LS_TPL,null)||[];
+  user.push({name,desc:(cfg.criteria||'').split('\n')[0].slice(0,50)||'自定义模板',cfg});
+  try{localStorage.setItem(LS_TPL,JSON.stringify(user))}catch(e){toast('保存失败');return}
+  $('tplNameInput').value='';
+  renderTplList();toast('已保存模板「'+name+'」');
+});
+$('tplModal').addEventListener('click',e=>{
+  const ta=e.target.closest('[data-tapply]');
+  if(ta){
+    const tpl=getTemplates()[+ta.dataset.tapply];
+    if(tpl)applyTemplate(tpl);
+    return;
+  }
+  const td=e.target.closest('[data-tdel]');
+  if(td){
+    const idx=+td.dataset.tdel;
+    const user=loadJSON(LS_TPL,null)||[];
+    const realIdx=idx-BUILTIN_TPLS.length;
+    if(realIdx>=0&&realIdx<user.length){
+      user.splice(realIdx,1);
+      try{localStorage.setItem(LS_TPL,JSON.stringify(user))}catch(e){}
+      renderTplList();toast('已删除模板');
+    }
+  }
+});
+function closeTpl(){$('tplModal').classList.remove('show')}
+window.closeTpl=closeTpl;
 
 /* ============ AI 设置 ============ */
 const settingsModal=$('settingsModal');
@@ -999,6 +1386,8 @@ function openSettings(){
   $('apiKeyInput').value=ai.keys[ai.provider]||'';
   $('modelInput').value=ai.models[ai.provider]||(PROVIDERS[ai.provider].models[0]||'');
   $('customUrlInput').value=ai.customUrl||'';
+  $('imgLevelSelect').value=ai.imgLevel||'std';
+  $('enhanceCk').checked=!!config.enhance;
   syncProviderUI();
   settingsModal.classList.add('show');
 }
@@ -1024,8 +1413,11 @@ function saveSettings(){
   ai.keys[p]=$('apiKeyInput').value.trim();
   ai.models[p]=$('modelInput').value.trim();
   ai.customUrl=$('customUrlInput').value.trim();
+  ai.imgLevel=$('imgLevelSelect').value||'std';
+  config.enhance=$('enhanceCk').checked;
   try{localStorage.setItem(LS_AI,JSON.stringify(ai))}catch(e){}
   settingsModal.classList.remove('show');
+  scheduleSave();
   toast('AI 设置已保存');
 }
 function closeSettings(){settingsModal.classList.remove('show')}
@@ -1068,6 +1460,7 @@ function restore(){
   const s=loadJSON(LS_STATE,null);
   if(s&&s.config){config=Object.assign(defaultConfig(),s.config);
     if(!Array.isArray(config.custom)||!config.custom.length){config.custom=defaultConfig().custom}}
+  if(s&&s.summary)stateSummary=s.summary;
   if(s&&s.fileName){
     fileName=s.fileName;numPages=s.numPages||0;
     groups=(s.groups||[]).map(g=>({id:g.id||uid(),name:g.name||'份',pages:(g.pages||[]).slice(),extra:g.extra||'',result:g.result||null}));
