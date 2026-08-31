@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>作业批改</title>
+<style>
+:root{
+    --bg:#F5F0E8;--card:#FFFDF7;--primary:#B8453A;--primary-light:#D4645A;
+    --accent:#C8A951;--accent-light:#E8D48B;--text:#2C2420;--text-light:#6B5D52;
+    --border:#D4C5B0;--border-light:#E8DDD0;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:1040px;margin:0 auto;padding:16px}
+
+/* 标题栏 */
+.header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 4px 10px;flex-wrap:wrap}
+.header h1{font-size:clamp(20px,5vw,26px);font-weight:700;letter-spacing:1px}
+.header h1::after{content:'';display:block;width:40px;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent));margin:8px 0 0;border-radius:2px}
+.header .sub{font-size:12px;color:var(--text-light);margin-top:6px}
+.head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.icon-btn{background:var(--card);border:1px solid var(--border);color:var(--text-light);padding:8px 14px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
+.icon-btn:hover{border-color:var(--primary);color:var(--primary)}
+.icon-btn.primary{color:var(--primary);border-color:var(--primary)}
+
+/* 卡片 */
+.card{background:var(--card);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 4px 20px rgba(44,36,32,.08);border:1px solid var(--border-light)}
+.card-title{font-size:14px;font-weight:600;color:var(--text-light);margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card-title .step{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;align-items:center;justify-content:center;flex-shrink:0}
+.card-title small{font-weight:400;font-size:12px;color:var(--text-light);opacity:.8}
+
+/* 上传区 */
+.drop-area{border:2px dashed var(--border);border-radius:12px;padding:26px 16px;text-align:center;color:var(--text-light);cursor:pointer;transition:all .3s ease;background:linear-gradient(135deg,#FFFDF7 0%,#F8F3EB 100%)}
+.drop-area:hover,.drop-area.drag-over{border-color:var(--primary);color:var(--primary);background:linear-gradient(135deg,#FFF8F5 0%,#FEF0EC 100%);transform:translateY(-2px);box-shadow:0 6px 24px rgba(184,69,58,.1)}
+.drop-area svg{width:40px;height:40px;margin-bottom:8px;opacity:.5;pointer-events:none}
+.drop-area .main-text{font-size:15px;font-weight:500;margin-bottom:4px}
+.drop-area .sub-text{font-size:12px;opacity:.7}
+.drop-area input{display:none}
+.import-info{margin-top:12px;font-size:13px;color:var(--text-light);padding:10px 14px;background:rgba(200,169,81,.08);border-radius:10px;border-left:3px solid var(--accent);line-height:1.7;display:none}
+
+/* 工具条 */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.toolbar label{font-size:13px;color:var(--text-light)}
+.toolbar input[type=number],.toolbar input[type=text]{width:72px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;outline:none}
+.toolbar input[type=text]{width:120px}
+.toolbar input:focus{border-color:var(--primary)}
+.btn{padding:8px 16px;border:none;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);color:#fff;box-shadow:0 4px 12px rgba(184,69,58,.25)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(184,69,58,.35)}
+.btn-accent{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-light) 100%);color:#fff;box-shadow:0 4px 12px rgba(200,169,81,.25)}
+.btn-accent:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(200,169,81,.35)}
+.btn-outline{background:transparent;color:var(--text-light);border:1.5px solid var(--border)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+.btn-danger{background:transparent;color:var(--primary);border:1.5px solid rgba(184,69,58,.4)}
+.btn-danger:hover{background:rgba(184,69,58,.06);border-color:var(--primary)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.small{padding:5px 10px;font-size:12px;border-radius:7px}
+
+/* 页面缩略图 */
+.page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+.page-card{position:relative;border:2px solid var(--border-light);border-radius:10px;background:#fff;cursor:pointer;transition:all .2s;overflow:hidden}
+.page-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(44,36,32,.12)}
+.page-card canvas{width:100%;display:block}
+.page-card .pno{position:absolute;top:4px;left:4px;background:rgba(44,36,32,.82);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;line-height:1.5}
+.page-card .pbadge{position:absolute;top:4px;right:4px;font-size:10px;padding:1px 6px;border-radius:8px;color:#fff;line-height:1.5;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page-card.selected{border-color:var(--primary);box-shadow:0 0 0 3px rgba(184,69,58,.18)}
+.page-card.droppable{border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,169,81,.25)}
+.page-card.dragging{opacity:.4}
+
+/* 分组 */
+.groups{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.group-card{border:1.5px solid var(--border);border-radius:12px;background:#fff;padding:12px;transition:all .2s;position:relative}
+.group-card.drop-target{border-color:var(--primary);background:#FFF8F5;box-shadow:0 0 0 3px rgba(184,69,58,.14)}
+.group-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.group-head .gindex{width:22px;height:22px;border-radius:6px;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.group-head input.gname{border:1px solid transparent;background:transparent;font-size:14px;font-weight:600;color:var(--text);padding:4px 6px;border-radius:6px;outline:none;font-family:inherit;flex:1;min-width:90px}
+.group-head input.gname:hover{border-color:var(--border-light)}
+.group-head input.gname:focus{border-color:var(--primary);background:#fff}
+.group-head .gcount{font-size:12px;color:var(--text-light);white-space:nowrap}
+.group-head .gops{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.gchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.page-chip{font-size:12px;padding:3px 10px;border-radius:14px;color:#fff;cursor:pointer;position:relative;user-select:none;transition:all .2s;line-height:1.6}
+.page-chip:hover{transform:translateY(-1px)}
+.page-chip .x{position:absolute;top:-5px;right:-3px;width:15px;height:15px;border-radius:50%;background:#7a6a5c;color:#fff;font-size:10px;line-height:15px;text-align:center;display:none;cursor:pointer}
+.page-chip:hover .x{display:block}
+.page-chip.dimming{opacity:.55}
+.group-extra{margin-top:10px}
+.group-extra textarea{width:100%;min-height:44px;border:1px dashed var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.7;font-family:inherit;background:#FFFDF7;resize:vertical;outline:none;color:var(--text)}
+.group-extra textarea:focus{border-color:var(--accent);border-style:solid}
+.group-extra .hint{font-size:11px;color:var(--text-light);margin-bottom:4px}
+
+/* 表单 */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;color:var(--text-light);margin-bottom:6px;font-weight:600}
+.field label .tip{font-weight:400;opacity:.75;font-size:11.5px}
+.field textarea{width:100%;min-height:74px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.8;font-family:inherit;background:#fff;resize:vertical;outline:none;color:var(--text)}
+.field textarea:focus{border-color:var(--primary)}
+.field textarea.medium{min-height:104px}
+.field input[type=text],.field input[type=number],.field select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;font-family:inherit;background:#fff;outline:none;color:var(--text)}
+.field input:focus,.field select:focus{border-color:var(--primary)}
+.sub-head{font-size:13px;font-weight:600;color:var(--text-light);margin:16px 0 10px;padding-left:8px;border-left:3px solid var(--accent);display:flex;align-items:center;gap:8px;justify-content:space-between}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.row3,.row2{grid-template-columns:1fr}}
+.link{color:var(--primary);cursor:pointer;font-size:12px;font-weight:400;text-decoration:underline}
+
+/* 自定义项 */
+.custom-item{display:grid;grid-template-columns:auto 110px 1fr auto;gap:8px;align-items:start;background:#FAF6EE;border:1px solid var(--border-light);border-radius:10px;padding:10px;margin-bottom:8px}
+.custom-item input[type=text]{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit;background:#fff;outline:none;width:100%}
+.custom-item input[type=text]:focus{border-color:var(--primary)}
+.custom-item textarea{resize:vertical;min-height:38px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:inherit;background:#fff;outline:none;width:100%;line-height:1.6}
+.custom-item textarea:focus{border-color:var(--primary)}
+.custom-item .ck{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-light);padding-top:9px;white-space:nowrap}
+.custom-item .ck input{accent-color:var(--primary)}
+.custom-item .del{background:none;border:none;color:#c0aa90;font-size:16px;cursor:pointer;padding:8px 4px}
+.custom-item .del:hover{color:var(--primary)}
+@media(max-width:640px){.custom-item{grid-template-columns:1fr 1fr}.custom-item .ck{padding-top:0}}
+
+/* 结果 */
+.gen-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.result-card{border:1.5px solid var(--border);border-radius:12px;background:#fff;padding:14px;margin-bottom:12px}
+.result-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.result-head .rname{font-size:14px;font-weight:700}
+.result-head .rpages{font-size:12px;color:var(--text-light)}
+.result-head .rstatus{margin-left:auto;font-size:12px;padding:3px 10px;border-radius:12px;background:#EFE7D8;color:var(--text-light)}
+.result-head .rstatus.ok{background:#E4EFE6;color:#3B6A52}
+.result-head .rstatus.err{background:#F8E3DE;color:var(--primary)}
+.result-head .rstatus.run{background:#F4EDD3;color:#8A650D}
+.result-grid{display:grid;grid-template-columns:130px 130px 1fr;gap:10px;margin-bottom:10px}
+@media(max-width:640px){.result-grid{grid-template-columns:1fr 1fr}}
+.result-grid .field{margin-bottom:0}
+.result-grid .field:last-child{grid-column:1/-1}
+.result-grid .field label{font-size:12px}
+.result-grid input,.result-grid select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;outline:none}
+.result-grid textarea{width:100%;min-height:64px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.7;font-family:inherit;background:#fff;resize:vertical;outline:none}
+.result-grid input:focus,.result-grid select:focus,.result-grid textarea:focus{border-color:var(--primary)}
+.rfield-title{font-size:12px;font-weight:600;color:var(--text-light);margin:8px 0 4px}
+.result-ops{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.result-err{font-size:12.5px;color:var(--primary);background:#F8E3DE;border-radius:8px;padding:8px 12px;line-height:1.6;margin-bottom:8px;white-space:pre-wrap}
+.result-done-tip{font-size:11.5px;color:var(--text-light);margin-top:4px}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(200,169,81,.35);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 弹窗 */
+.modal-mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(44,36,32,.55);display:none;justify-content:center;align-items:center;z-index:1000}
+.modal-mask.show{display:flex}
+.modal-box{background:var(--card);border-radius:14px;width:92%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.2);border:1px solid var(--border-light)}
+.modal-header{padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-title{font-size:16px;font-weight:600}
+.close-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-light);line-height:1}
+.modal-body{padding:18px 20px;overflow-y:auto}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+.setting-group{margin-bottom:14px}
+.setting-label{display:block;font-size:13px;color:var(--text-light);margin-bottom:6px}
+.setting-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;outline:none;font-family:inherit;background:#fff;color:var(--text)}
+.setting-input:focus{border-color:var(--primary)}
+.setting-note{font-size:11.5px;color:var(--text-light);line-height:1.8;margin-top:6px}
+
+/* Toast */
+#toast{position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(8px);background:#2C2420;color:#fff;font-size:12.5px;letter-spacing:.5px;padding:9px 20px;border-radius:20px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:2000;max-width:90vw;text-align:center}
+#toast.show{opacity:.96;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+    <div>
+        <h1>作业批改</h1>
+        <div class="sub">PDF 扫描作业 → 自动分份 → 逐份 AI 批改（评语 / 评分 / 改进建议 / 相关练习 / 拓展阅读）</div>
+    </div>
+    <div class="head-actions">
+        <button class="icon-btn" id="saveBtn">💾 已自动保存</button>
+        <button class="icon-btn primary" id="settingsBtn">⚙ AI 设置</button>
+    </div>
+</div>
+
+<!-- ① 导入 -->
+<div class="card">
+    <div class="card-title"><span class="step">1</span>导入 PDF 扫描件 <small>支持拖拽 · 本地解析，不上传服务器</small></div>
+    <div class="drop-area" id="dropArea">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><path d="M24 32V16m0 0l-8 8m8-8l8 8M8 40h32"/><rect x="4" y="4" width="40" height="40" rx="4"/></svg>
+        <div class="main-text">点击或拖拽导入 PDF</div>
+        <div class="sub-text">支持含图片的扫描件 / 拍照合成 PDF</div>
+        <input type="file" id="fileIn" accept=".pdf,application/pdf">
+    </div>
+    <div class="import-info" id="importInfo"></div>
+</div>
+
+<!-- ② 分份 -->
+<div class="card" id="splitCard" style="display:none">
+    <div class="card-title"><span class="step">2</span>分份 <small id="pageStat"></small></div>
+    <div class="toolbar">
+        <label>每份页数</label><input type="number" id="pagesPer" min="1" value="2">
+        <label>起始页</label><input type="number" id="startPage" min="1" value="1">
+        <button class="btn btn-primary" id="autoSplitBtn">自动分份</button>
+        <button class="btn btn-outline" id="clearSplitBtn">清除分组</button>
+    </div>
+    <div class="toolbar" id="selToolbar" style="display:none">
+        <span style="font-size:13px;color:var(--text-light)" id="selInfo"></span>
+        <button class="btn btn-outline small" id="selPrev">移到上一份</button>
+        <button class="btn btn-outline small" id="selNext">移到下一份</button>
+        <button class="btn btn-outline small" id="selNew">新建一份</button>
+        <button class="btn btn-outline small" id="selClear">取消选择</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-light);margin-bottom:8px">💡 点选页面可多选后批量移动；或直接把页面缩略图拖到目标「份」卡片上；分组后还可点「+ 合并」调整。</div>
+    <div class="page-grid" id="pageGrid"></div>
+    <div class="groups" id="groups"></div>
+</div>
+
+<!-- ③ 设置 -->
+<div class="card">
+    <div class="card-title"><span class="step">3</span>作业要求与评价设置 <small>全局统一，生成时应用于每一份</small></div>
+
+    <div class="field">
+        <label>作业要求 <span class="tip">（本作业是什么、做了哪些题/任务，供 AI 对照批改）</span></label>
+        <textarea id="cfgReq" class="medium" placeholder="例：完成练习册 P12 第 1-8 题，要求：格式规范，写出完整过程，应用题需有单位与答语。"></textarea>
+    </div>
+
+    <div class="field">
+        <label>评价标准 <span class="tip">（评分维度，每行一条，可含分值）</span> <span class="link" id="fillCriteria">填入示例</span></label>
+        <textarea id="cfgCriteria" class="medium" placeholder="例：&#10;1. 书写规范、卷面整洁：20 分&#10;2. 计算正确、步骤完整：40 分&#10;3. 解题思路清晰、格式规范：30 分&#10;4. 有检查与订正痕迹：10 分"></textarea>
+    </div>
+
+    <div class="sub-head">评分与评语</div>
+    <div class="row3">
+        <div class="field">
+            <label>评分方式</label>
+            <select id="cfgMode">
+                <option value="both">分数 + 等级</option>
+                <option value="score">仅分数</option>
+                <option value="level">仅等级</option>
+            </select>
+        </div>
+        <div class="field" id="fullScoreWrap">
+            <label>满分</label>
+            <input type="number" id="cfgFullScore" min="1" value="100">
+        </div>
+        <div class="field" id="levelWrap">
+            <label>等级标准</label>
+            <input type="text" id="cfgLevels" placeholder="优秀/良好/合格/待改进">
+        </div>
+    </div>
+    <div class="field">
+        <label>评分说明 <span class="tip">（对 AI 得分的额外要求，可选）</span></label>
+        <input type="text" id="cfgScoreNote" placeholder="例：扣分要注明具体题目/原因；90 分以上需附亮点说明">
+    </div>
+    <div class="row3">
+        <div class="field">
+            <label>评语风格</label>
+            <select id="cfgStyle">
+                <option>中肯型</option><option>鼓励型</option><option>专业型</option><option>幽默型</option><option>温和型</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>评语长度</label>
+            <select id="cfgLen">
+                <option>简短（1-2 句）</option><option selected>中等（3-5 句）</option><option>详细（5 句以上）</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>评语补充要求</label>
+            <input type="text" id="cfgCommentNote" placeholder="例：开头称呼学生姓名，结尾提出期望">
+        </div>
+    </div>
+
+    <div class="sub-head">其他（自定义评价项）<button class="btn btn-outline small" id="addCustom">＋ 添加自定义项</button></div>
+    <div id="customList"></div>
+    <div class="setting-note">每个自定义项会作为结果中的一个独立栏目，AI 将按其提示词撰写内容；「启用」才会列入生成范围。</div>
+</div>
+
+<!-- ④ 生成 -->
+<div class="card" id="genCard" style="display:none">
+    <div class="card-title"><span class="step">4</span>AI 一键生成 <small id="genStat"></small></div>
+    <div class="gen-actions">
+        <button class="btn btn-accent" id="genAllBtn">⚡ 一键生成全部</button>
+        <button class="btn btn-danger" id="genStopBtn" style="display:none">■ 停止</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-outline" id="exportMdBtn" disabled>导出 Markdown</button>
+        <button class="btn btn-outline" id="exportWordBtn" disabled>导出 Word</button>
+        <button class="btn btn-outline" id="exportJsonBtn" disabled>导出 JSON</button>
+        <button class="btn btn-outline" id="copyAllBtn" disabled>复制全部</button>
+    </div>
+    <div id="results"></div>
+</div>
+
+<div style="text-align:center;padding:6px 0 26px;font-size:11px;color:#B9AC9C">数据仅保存在本地浏览器 · API Key 不经过任何第三方</div>
+</div>
+
+<!-- AI 设置弹窗 -->
+<div class="modal-mask" id="settingsModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">AI 设置</span>
+            <button class="close-btn" onclick="closeSettings()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="setting-group">
+                <label class="setting-label">模型服务商</label>
+                <select class="setting-input" id="providerSelect">
+                    <option value="deepseek">DeepSeek（视觉）</option>
+                    <option value="doubao">豆包（火山方舟）</option>
+                    <option value="glm">GLM（智谱）</option>
+                    <option value="custom">自定义（OpenAI 兼容）</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label class="setting-label">API Key（仅保存在本地浏览器）</label>
+                <input type="password" class="setting-input" id="apiKeyInput" placeholder="输入 API Key" autocomplete="new-password">
+            </div>
+            <div class="setting-group">
+                <label class="setting-label">模型名称</label>
+                <input type="text" class="setting-input" id="modelInput" list="modelList" placeholder="选择或直接输入模型名">
+                <datalist id="modelList"></datalist>
+            </div>
+            <div class="setting-group" id="customUrlWrap" style="display:none">
+                <label class="setting-label">接口地址（chat/completions 完整地址）</label>
+                <input type="text" class="setting-input" id="customUrlInput" placeholder="https://example.com/v1/chat/completions">
+            </div>
+            <div class="setting-group">
+                <button class="btn btn-outline" id="testBtn">🔌 测试连接</button>
+                <span id="testResult" style="font-size:12px;margin-left:8px"></span>
+            </div>
+            <p class="setting-note" id="providerNote"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeSettings()">取消</button>
+            <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="./lib/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='./lib/pdf.worker.min.js';</script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(String(id).replace(/^#/,''));
+const GROUP_COLORS=['#B8453A','#3B6A52','#9A7111','#33507A','#7A4E9E','#0E7490','#B45309','#1F8A70','#5B6B8C','#A93226'];
+
+/* ============ 常量与默认值 ============ */
+const PROVIDERS={
+  deepseek:{label:'DeepSeek（视觉）',url:'https://api.deepseek.com/chat/completions',models:['deepseek-v4-flash-vision-exp'],keyUrl:'platform.deepseek.com'},
+  doubao:{label:'豆包（火山方舟）',url:'https://ark.cn-beijing.volces.com/api/v3/chat/completions',models:['doubao-seed-1-6-250615','doubao-seed-1-6-vision-250815','doubao-1-5-vision-pro-32k-250115'],keyUrl:'console.volcengine.com/ark'},
+  glm:{label:'GLM（智谱）',url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',models:['glm-4.5v','glm-4v-plus-0111','glm-4v-flash-241112'],keyUrl:'open.bigmodel.cn'},
+  custom:{label:'自定义（OpenAI 兼容）',url:'',models:[],keyUrl:'使用支持图片输入的任一 OpenAI 兼容接口'}
+};
+const LS_STATE='pigai_state',LS_AI='pigai_ai';
+const IMG_MAXW=1500, IMG_QUALITY=0.82;
+
+function defaultConfig(){
+  return {
+    requirement:'',criteria:'',
+    scoreMode:'both',fullScore:100,levels:'优秀/良好/合格/待改进',
+    scoreNote:'',style:'中肯型',len:'中等（3-5 句）',commentNote:'',
+    custom:[
+      {id:'c1',name:'学生信息',key:'student',enabled:true,prompt:'提取作业上的姓名、班级（或学号），识别不到则填「未识别」。'},
+      {id:'c2',name:'改进建议',key:'improvement',enabled:true,prompt:'指出主要错误与薄弱点，给出 2-4 条具体、可操作的改进建议。'},
+      {id:'c3',name:'相关练习',key:'exercises',enabled:true,prompt:'针对错题与薄弱点推荐 2-3 道同类练习（简述题目或题型，不用完整成题）。'},
+      {id:'c4',name:'拓展阅读',key:'reading',enabled:true,prompt:'推荐 1-2 个与本作业主题相关的拓展阅读或学习资源，注明适读年级。'}
+    ]
+  };
+}
+function defaultAI(){
+  return {provider:'deepseek',keys:{},models:{},customUrl:'',temp:0.35,maxTokens:4096};
+}
+
+/* ============ 状态 ============ */
+let pdfDoc=null,fileName='',numPages=0;
+let groups=[];
+let config=loadJSON(LS_STATE,'config')||defaultConfig();
+let ai=loadJSON(LS_AI,null)||defaultAI();
+let selected=new Set();
+let pageThumbs={};
+let abortCtl=null;
+
+function loadJSON(key,sub){
+  try{const s=JSON.parse(localStorage.getItem(key)||'null');return sub?(s&&s[sub])||null:s||null}catch(e){return null}
+}
+function saveState(){
+  try{
+    localStorage.setItem(LS_STATE,JSON.stringify({
+      fileName:fileName,numPages:numPages,config:config,
+      groups:groups.map(g=>({id:g.id,name:g.name,pages:g.pages.slice(),extra:g.extra,result:g.result}))
+    }));
+  }catch(e){}
+}
+let saveTimer=null;
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveState,600)}
+
+/* ============ 工具 ============ */
+function toast(msg){
+  const t=$('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400);
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function uid(){return 'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function colorOf(id){
+  const i=groups.findIndex(g=>g.id===id);
+  return GROUP_COLORS[Math.max(0,i)%GROUP_COLORS.length];
+}
+function pagesOf(group){return group.pages.slice().sort((a,b)=>a-b)}
+function pageRange(group){const p=pagesOf(group);return p.length?`第 ${p[0]}-${p[p.length-1]} 页 · 共 ${p.length} 页`:'暂无页面'}
+function ownerOf(page){return groups.find(g=>g.pages.includes(page))||null}
+function groupIndexOf(page){
+  const g=ownerOf(page);if(g)return groups.indexOf(g);
+  let idx=-1;for(let i=0;i<groups.length;i++){if(Math.max(...groups[i].pages)<page)idx=i}
+  return idx;
+}
+function download(name,content,mime){
+  const blob=new Blob([content],{type:mime});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1200);
+}
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt);toast('已复制到剪贴板');return}
+  catch(e){
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');toast('已复制到剪贴板')}catch(e2){toast('复制失败，请手动复制')}
+    ta.remove();
+  }
+}
+function timestamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`}
+
+/* ============ ① 导入 PDF ============ */
+const drop=$('dropArea'),fileIn=$('fileIn');
+drop.addEventListener('click',()=>fileIn.click());
+fileIn.addEventListener('change',e=>{if(e.target.files[0])handlePDF(e.target.files[0]);e.target.value=''});
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag-over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag-over')}));
+drop.addEventListener('drop',e=>{
+  const f=[...e.dataTransfer.files].find(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name));
+  if(f)handlePDF(f);else toast('请导入 PDF 文件');
+});
+
+async function handlePDF(file){
+  try{
+    const buf=await file.arrayBuffer();
+    pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+    fileName=file.name;numPages=pdfDoc.numPages;
+    selected.clear();pageThumbs={};
+    $('#importInfo').style.display='block';
+    $('#importInfo').innerHTML=`📄 <b>${esc(fileName)}</b> · 共 ${numPages} 页 · 解析完成`;
+    $('#pageStat').textContent=`共 ${numPages} 页`;
+    $('#splitCard').style.display='block';$('#genCard').style.display='block';
+    $('startPage').value=1;
+    renderPageGrid();
+    if(!groups.length)autoSplit();
+    else{renderGroups();renderResults()}
+    toast(`已导入 ${numPages} 页`);
+    saveState();
+  }catch(e){
+    toast('PDF 解析失败：'+(e.message||e));
+    $('#importInfo').style.display='block';
+    $('#importInfo').textContent='❌ 解析失败：'+(e.message||e)+'（可能已加密或文件损坏）';
+  }
+}
+
+async function renderPageGrid(){
+  const grid=$('pageGrid');grid.innerHTML='';
+  const cards=[];
+  let i=0;
+  async function worker(){
+    while(i<numPages){const p=++i;await renderThumb(p,grid,cards)}
+  }
+  await Promise.all([worker(),worker(),worker()]);
+}
+async function renderThumb(p,grid,cards){
+  try{
+    const page=await pdfDoc.getPage(p);
+    const vp0=page.getViewport({scale:1});
+    const scale=Math.min(1.2,240/vp0.width);
+    const vp=page.getViewport({scale});
+    const cv=document.createElement('canvas');cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+    await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    pageThumbs[p]=cv;
+    const card=document.createElement('div');
+    card.className='page-card';card.dataset.page=p;card.draggable=true;
+    card.innerHTML=`<div class="pno">${p}</div><div class="pbadge" style="background:#999">…</div>`;
+    card.appendChild(cv);
+    card.addEventListener('click',e=>{
+      if(e.target.classList.contains('pno')||e.target.classList.contains('pbadge'))return;
+      toggleSelect(p);
+    });
+    card.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('text/plain',String(p));
+      e.dataTransfer.effectAllowed='move';
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+    grid.appendChild(card);
+    cards[p]=card;
+    updatePageBadges();
+  }catch(e){console.warn('渲染第'+p+'页失败',e)}
+}
+function updatePageBadges(){
+  document.querySelectorAll('.page-card').forEach(card=>{
+    const p=+card.dataset.page;const g=ownerOf(p);
+    const b=card.querySelector('.pbadge');
+    if(g){b.style.background=colorOf(g.id);b.textContent=g.name}
+    else{b.style.background='#9AA5B1';b.textContent='未分'}
+    card.classList.toggle('selected',selected.has(p));
+  });
+}
+function toggleSelect(p){
+  if(selected.has(p))selected.delete(p);else selected.add(p);
+  updatePageBadges();updateSelToolbar();
+}
+function updateSelToolbar(){
+  const bar=$('selToolbar');
+  bar.style.display=selected.size?'flex':'none';
+  $('selInfo').textContent=`已选 ${selected.size} 页`;
+}
+
+/* ============ ② 分份 ============ */
+$('autoSplitBtn').addEventListener('click',autoSplit);
+$('clearSplitBtn').addEventListener('click',()=>{
+  if(!groups.length)return;
+  if(!confirm('清除全部分组？页面将变为未分状态。'))return;
+  groups=[];renderGroups();renderResults();scheduleSave();
+});
+$('selClear').addEventListener('click',()=>{selected.clear();updatePageBadges();updateSelToolbar()});
+$('selNew').addEventListener('click',()=>{
+  const pages=[...selected].sort((a,b)=>a-b);if(!pages.length)return;
+  const g={id:uid(),name:'份'+(groups.length+1),pages:pages,extra:'',result:null};
+  pages.forEach(p=>{const o=ownerOf(p);if(o)o.pages=o.pages.filter(x=>x!==p)});
+  groups.push(g);
+  selected.clear();renderAll();toast('已新建一份：'+g.name);
+});
+$('selPrev').addEventListener('click',()=>moveSelected(-1));
+$('selNext').addEventListener('click',()=>moveSelected(1));
+function moveSelected(dir){
+  const pages=[...selected].sort((a,b)=>a-b);
+  if(!pages.length)return;
+  let moved=0;
+  pages.forEach(p=>{
+    const idx=groupIndexOf(p);let target=-1;
+    if(dir<0){target=idx>0?idx-1:idx}
+    else{target=idx>=0&&idx<groups.length-1?idx+1:idx}
+    if(target===idx||target<0)return;
+    const o=ownerOf(p);if(o)o.pages=o.pages.filter(x=>x!==p);
+    groups[target].pages.push(p);moved++;
+  });
+  if(!moved){toast(dir<0?'已在第一份或左侧无份':'已在最后一份或右侧无份');return}
+  selected.clear();renderAll();toast('已移动 '+moved+' 页');
+}
+function autoSplit(){
+  if(!numPages){toast('请先导入 PDF');return}
+  const n=Math.max(1,parseInt($('pagesPer').value)||2);
+  const start=Math.min(numPages,Math.max(1,parseInt($('startPage').value)||1));
+  if(groups.length&&!confirm('重新自动分份将替换当前分组，继续？'))return;
+  const pages=[];for(let p=start;p<=numPages;p++)pages.push(p);
+  groups=[];
+  for(let i=0;i<pages.length;i+=n){
+    groups.push({id:uid(),name:'份'+(groups.length+1),pages:pages.slice(i,i+n),extra:'',result:null});
+  }
+  selected.clear();
+  renderAll();
+  toast(`已按每份 ${n} 页分成 ${groups.length} 份`);
+}
+
+function renderGroups(){
+  const box=$('groups');
+  if(!groups.length){
+    box.innerHTML='<div style="font-size:13px;color:var(--text-light);padding:6px 2px">还没有分组，点击上方「自动分份」，或从下方页面缩略图拖拽到此处。</div>';
+    return;
+  }
+  box.innerHTML=groups.map((g,i)=>`
+    <div class="group-card" data-gid="${g.id}">
+      <div class="group-head">
+        <span class="gindex" style="background:${colorOf(g.id)}">${i+1}</span>
+        <input class="gname" value="${esc(g.name)}" data-gid="${g.id}" placeholder="份名称">
+        <span class="gcount">${pageRange(g)}</span>
+        <span class="gops">
+          <button class="btn btn-outline small" data-op="up" data-gid="${g.id}" title="上移" ${i===0?'disabled':''}>↑</button>
+          <button class="btn btn-outline small" data-op="down" data-gid="${g.id}" title="下移" ${i===groups.length-1?'disabled':''}>↓</button>
+          <button class="btn btn-outline small" data-op="merge" data-gid="${g.id}" title="与下一份合并" ${i===groups.length-1?'disabled':''}>合并</button>
+          <button class="btn btn-danger small" data-op="del" data-gid="${g.id}">删除</button>
+        </span>
+      </div>
+      <div class="gchips">
+        ${pagesOf(g).map(p=>`<span class="page-chip" data-page="${p}" style="background:${colorOf(g.id)}">${p}<span class="x" data-remove="${p}">×</span></span>`).join('')}
+        ${!g.pages.length?'<span style="font-size:12px;color:#B9AC9C">（空，可拖入页面）</span>':''}
+      </div>
+      <div class="group-extra">
+        <div class="hint">本份单独要求（可选，追加到全局设置）</div>
+        <textarea data-extra="${g.id}" placeholder="例：这是陈雨同学的作业，注意她最近的计算粗心问题。">${esc(g.extra||'')}</textarea>
+      </div>
+    </div>`).join('');
+}
+function renderResults(){
+  const box=$('results');
+  const total=groups.length,done=groups.filter(g=>g.result&&g.result.status==='ok').length;
+  $('genStat').textContent=`共 ${total} 份 · 已生成 ${done} 份`;
+  const hasAny=groups.some(g=>g.result&&g.result.status==='ok');
+  ['exportMdBtn','exportWordBtn','exportJsonBtn','copyAllBtn'].forEach(id=>$(id).disabled=!hasAny);
+  box.innerHTML=groups.map((g,i)=>{
+    const st=g.result||{status:'idle'};
+    const statusMap={idle:'未生成',running:'生成中',ok:'已完成',error:'失败'};
+    return `
+    <div class="result-card" data-gid="${g.id}">
+      <div class="result-head">
+        <span style="width:22px;height:22px;border-radius:6px;background:${colorOf(g.id)};color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">${i+1}</span>
+        <span class="rname">${esc(g.name)}</span>
+        <span class="rpages">${pageRange(g)}</span>
+        <span class="rstatus ${st.status}">${st.status==='running'?'<span class="spinner"></span>':''}${statusMap[st.status]||st.status}</span>
+      </div>
+      ${st.status==='error'?`<div class="result-err">${esc(st.error||'生成失败')}</div>`:''}
+      ${st.status==='ok'?renderResultBody(g):''}
+      <div class="result-ops">
+        <button class="btn btn-accent small" data-gen="${g.id}">${st.status==='ok'?'♻ 重新生成':'⚡ 生成'}</button>
+        ${st.status==='ok'?`<button class="btn btn-outline small" data-copy="${g.id}">📋 复制本份</button><span class="result-done-tip">${esc(st.time||'')} · ${esc(st.elapsed||'')}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderResultBody(g){
+  const r=g.result,enabled=config.custom.filter(c=>c.enabled);
+  let rows=`<div class="result-grid">`;
+  if(config.scoreMode!=='level'){
+    rows+=`<div class="field"><label>得分（满分 ${esc(config.fullScore)}）</label><input type="number" step="any" data-r="score" value="${esc(r.score??'')}"></div>`;
+  }
+  if(config.scoreMode!=='score'){
+    rows+=`<div class="field"><label>等级</label><input type="text" list="levelList" data-r="level" value="${esc(r.level??'')}">`;
+    rows+=`<datalist id="levelList">${esc(config.levels||'').split(/[\/、,，]/).map(l=>l.trim()).filter(Boolean).map(l=>`<option value="${esc(l)}">`).join('')}</datalist></div>`;
+  }
+  rows+=`<div class="field" style="grid-column:${config.scoreMode==='both'?'1/-1':'1/-1'}"><label>评语</label><textarea data-r="comment">${esc(r.comment??'')}</textarea></div>`;
+  rows+=`</div>`;
+  rows+=enabled.map(c=>`
+    <div class="rfield-title">${esc(c.name)}</div>
+    <textarea data-f="${esc(c.key)}">${esc(r.fields&&r.fields[c.key]||'')}</textarea>`).join('');
+  return rows;
+}
+
+function renderAll(){updatePageBadges();renderGroups();renderResults();scheduleSave()}
+
+/* 分组卡片交互（事件委托） */
+$('groups').addEventListener('click',e=>{
+  const btn=e.target.closest('button[data-op]');
+  if(btn){
+    const gid=btn.dataset.gid,g=groups.find(x=>x.id===gid),i=groups.indexOf(g);if(!g)return;
+    if(btn.dataset.op==='up'&&i>0){groups.splice(i,1);groups.splice(i-1,0,g);renderAll()}
+    if(btn.dataset.op==='down'&&i<groups.length-1){groups.splice(i,1);groups.splice(i+1,0,g);renderAll()}
+    if(btn.dataset.op==='del'){
+      if(!confirm(`删除「${g.name}」？其中 ${g.pages.length} 页将变为未分。`))return;
+      groups.splice(i,1);renderAll();
+    }
+    if(btn.dataset.op==='merge'){
+      const next=groups[i+1];if(!next)return;
+      next.pages=next.pages.concat(g.pages);
+      groups.splice(i,1);renderAll();toast(`已并入「${next.name}」`);
+    }
+    return;
+  }
+  const x=e.target.closest('.x');
+  if(x){
+    const p=+x.dataset.remove;
+    const g=ownerOf(p);if(g){g.pages=g.pages.filter(x=>x!==p);renderAll();toast(`第 ${p} 页已移出`)}
+    return;
+  }
+  const chip=e.target.closest('.page-chip');
+  if(chip){
+    const p=+chip.dataset.page;
+    toggleSelect(p);
+    if(selected.has(p)){
+      document.querySelector(`.page-card[data-page="${p}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  }
+});
+$('groups').addEventListener('input',e=>{
+  const name=e.target.closest('input.gname');
+  if(name){const g=groups.find(x=>x.id===name.dataset.gid);if(g)g.name=name.value;renderResults();scheduleSave();return}
+  const ta=e.target.closest('textarea[data-extra]');
+  if(ta){const g=groups.find(x=>x.id===ta.dataset.extra);if(g)g.extra=ta.value;scheduleSave()}
+});
+$('groups').addEventListener('dragover',e=>{
+  const card=e.target.closest('.group-card');
+  if(card){e.preventDefault();e.dataTransfer.dropEffect='move';
+    document.querySelectorAll('.group-card.drop-target').forEach(c=>c!==card&&c.classList.remove('drop-target'));
+    card.classList.add('drop-target');
+  }
+});
+$('groups').addEventListener('dragleave',e=>{
+  const card=e.target.closest('.group-card');
+  if(card&&!card.contains(e.relatedTarget))card.classList.remove('drop-target');
+});
+$('groups').addEventListener('drop',e=>{
+  e.preventDefault();
+  document.querySelectorAll('.group-card.drop-target').forEach(c=>c.classList.remove('drop-target'));
+  const card=e.target.closest('.group-card');if(!card)return;
+  const g=groups.find(x=>x.id===card.dataset.gid);if(!g)return;
+  const p=parseInt(e.dataTransfer.getData('text/plain'));
+  if(!p||p<1||p>numPages)return;
+  const toMove=selected.has(p)?[...selected]:[p];
+  let moved=0;
+  toMove.forEach(pg=>{
+    const o=ownerOf(pg);if(o)o.pages=o.pages.filter(x=>x!==pg);
+    if(!g.pages.includes(pg)){g.pages.push(pg);moved++}
+  });
+  selected.clear();renderAll();toast(`已移入「${g.name}」${moved} 页`);
+});
+
+/* ============ ③ 设置 ============ */
+function renderConfig(){
+  $('cfgReq').value=config.requirement||'';
+  $('cfgCriteria').value=config.criteria||'';
+  $('cfgMode').value=config.scoreMode||'both';
+  $('cfgFullScore').value=config.fullScore||100;
+  $('cfgLevels').value=config.levels||'优秀/良好/合格/待改进';
+  $('cfgScoreNote').value=config.scoreNote||'';
+  $('cfgStyle').value=config.style||'中肯型';
+  $('cfgLen').value=config.len||'中等（3-5 句）';
+  $('cfgCommentNote').value=config.commentNote||'';
+  renderCustomList();
+  updateScoreMode();
+}
+function updateScoreMode(){
+  const m=$('cfgMode').value;
+  $('fullScoreWrap').style.display=m==='level'?'none':'block';
+  $('levelWrap').style.display=m==='score'?'none':'block';
+}
+$('cfgMode').addEventListener('change',()=>{config.scoreMode=$('cfgMode').value;updateScoreMode();scheduleSave()});
+$('cfgFullScore').addEventListener('input',()=>{config.fullScore=parseFloat($('cfgFullScore').value)||100;scheduleSave()});
+$('cfgLevels').addEventListener('input',()=>{config.levels=$('cfgLevels').value;scheduleSave()});
+$('cfgScoreNote').addEventListener('input',()=>{config.scoreNote=$('cfgScoreNote').value;scheduleSave()});
+$('cfgStyle').addEventListener('change',()=>{config.style=$('cfgStyle').value;scheduleSave()});
+$('cfgLen').addEventListener('change',()=>{config.len=$('cfgLen').value;scheduleSave()});
+$('cfgCommentNote').addEventListener('input',()=>{config.commentNote=$('cfgCommentNote').value;scheduleSave()});
+['cfgReq','cfgCriteria'].forEach(id=>$(id).addEventListener('input',()=>{
+  if(id==='cfgReq')config.requirement=$('cfgReq').value;else config.criteria=$('cfgCriteria').value;
+  scheduleSave();
+}));
+$('fillCriteria').addEventListener('click',()=>{
+  $('cfgCriteria').value='1. 书写规范、卷面整洁：20 分\n2. 内容正确、步骤完整：40 分\n3. 思路清晰、格式规范：30 分\n4. 有检查与订正痕迹：10 分';
+  config.criteria=$('cfgCriteria').value;scheduleSave();toast('已填入示例评价标准');
+});
+
+function renderCustomList(){
+  const box=$('customList');
+  box.innerHTML=config.custom.map((c,i)=>`
+    <div class="custom-item" data-cid="${c.id}">
+      <label class="ck"><input type="checkbox" data-ck="${i}" ${c.enabled?'checked':''}>启用</label>
+      <input type="text" data-cname="${i}" value="${esc(c.name)}" placeholder="栏目名（如 拓展阅读）">
+      <textarea data-cprompt="${i}" placeholder="提示词：要求 AI 写什么">${esc(c.prompt)}</textarea>
+      <button class="del" data-cdel="${i}" title="删除">✕</button>
+    </div>`).join('');
+}
+$('customList').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.cname!==undefined){config.custom[+t.dataset.cname].name=t.value;scheduleSave();return}
+  if(t.dataset.cprompt!==undefined){config.custom[+t.dataset.cprompt].prompt=t.value;scheduleSave()}
+});
+$('customList').addEventListener('change',e=>{
+  if(e.target.dataset.ck!==undefined){config.custom[+e.target.dataset.ck].enabled=e.target.checked;scheduleSave()}
+});
+$('customList').addEventListener('click',e=>{
+  const d=e.target.closest('[data-cdel]');
+  if(d){
+    const i=+d.dataset.cdel;
+    const c=config.custom[i];
+    const globalFixed=['student','improvement','exercises','reading'].includes(c.key);
+    if(globalFixed&&!confirm('删除默认项「'+c.name+'」？'))return;
+    config.custom.splice(i,1);renderCustomList();scheduleSave();
+  }
+});
+$('addCustom').addEventListener('click',()=>{
+  config.custom.push({id:uid(),name:'新栏目',key:'item'+config.custom.length,prompt:'对该项的具体要求…',enabled:true});
+  renderCustomList();scheduleSave();
+});
+
+/* ============ ④ 生成 ============ */
+$('genAllBtn').addEventListener('click',()=>generateAll());
+$('genStopBtn').addEventListener('click',()=>{if(abortCtl)abortCtl.abort();toast('正在停止…')});
+$('results').addEventListener('click',e=>{
+  const gen=e.target.closest('[data-gen]');
+  if(gen){const g=groups.find(x=>x.id===gen.dataset.gen);if(g)generateOne(g);return}
+  const cp=e.target.closest('[data-copy]');
+  if(cp){const g=groups.find(x=>x.id===cp.dataset.copy);if(g)copyGroup(g);return}
+});
+$('results').addEventListener('input',e=>{
+  const t=e.target,card=e.target.closest('.result-card'),g=card&&groups.find(x=>x.id===card.dataset.gid);
+  if(!g||!g.result)return;
+  if(t.dataset.r==='score')g.result.score=t.value;
+  else if(t.dataset.r==='level')g.result.level=t.value;
+  else if(t.dataset.r==='comment')g.result.comment=t.value;
+  else if(t.dataset.f!==undefined)g.result.fields[t.dataset.f]=t.value;
+  scheduleSave();
+});
+
+function generateAll(){
+  const todo=groups.slice();
+  if(!todo.length){toast('请先分份');return}
+  if(!ensureAI())return;
+  const noPages=todo.filter(g=>!g.pages.length);
+  if(noPages.length&&!confirm(`以下份没有页面：${noPages.map(g=>g.name).join('、')}，仍继续？`))return;
+  abortCtl=new AbortController();
+  $('genAllBtn').disabled=true;$('genStopBtn').style.display='inline-flex';
+  (async()=>{
+    let i=0;
+    for(const g of todo){
+      if(!g.pages.length){g.result={status:'error',error:'该份无页面',fields:{}};renderResults();continue}
+      if(abortCtl.signal.aborted)break;
+      i++;
+      $('genAllBtn').textContent=`生成中 ${i}/${todo.length}…`;
+      await generateOne(g,true);
+    }
+    $('genAllBtn').disabled=false;$('genAllBtn').textContent='⚡ 一键生成全部';
+    $('genStopBtn').style.display='none';
+    abortCtl=null;
+    if(!abortCtl||!abortCtl.signal.aborted)toast('全部生成完成');
+  })();
+}
+function ensureAI(){
+  const provider=ai.provider;
+  const key=(ai.keys[provider]||'').trim();
+  if(!key){toast('请先在「AI 设置」中填写 API Key');openSettings();return false}
+  const url=provider==='custom'?(ai.customUrl||'').trim():PROVIDERS[provider].url;
+  if(!url){toast('自定义服务需填写接口地址');openSettings();return false}
+  return true;
+}
+async function generateOne(g,fromAll){
+  if(!ensureAI())return;
+  const running=g.result&&g.result.status==='running';
+  if(running)return;
+  g.result={status:'running',score:'',level:'',comment:'',fields:{},error:'',elapsed:'',time:''};
+  renderResults();
+  const cardEl=document.querySelector(`.result-card[data-gid="${g.id}"]`);
+  const start=Date.now();
+  try{
+    const {prompt,images}=await buildRequest(g,el=>{
+      if(fromAll&&el){
+        const sEl=cardEl&&cardEl.querySelector('.rstatus');
+        if(sEl)sEl.textContent='渲染图片 '+el;
+      }
+    });
+    const content=await callVision(prompt,images);
+    const data=parseResult(content);
+    g.result.score=(data.score!=null&&data.score!=='')?data.score:'';
+    g.result.level=data.level||'';
+    g.result.comment=data.comment||'';
+    g.result.fields={};
+    config.custom.filter(c=>c.enabled).forEach(c=>{if(data[c.key]!=null)g.result.fields[c.key]=data[c.key]});
+    g.result.status='ok';
+    g.result.elapsed=`耗时 ${((Date.now()-start)/1000).toFixed(1)}s`;
+    g.result.time=timestamp();
+    toast(`「${g.name}」批改完成`);
+  }catch(err){
+    g.result.status='error';
+    g.result.error=err.name==='AbortError'?'已停止':(err.message||String(err));
+    g.result.elapsed=`耗时 ${((Date.now()-start)/1000).toFixed(1)}s`;
+    toast(`「${g.name}」失败：${g.result.error}`);
+  }
+  renderResults();scheduleSave();
+}
+
+async function buildRequest(g,onProgress){
+  const enabled=config.custom.filter(c=>c.enabled);
+  const parts=[];
+  parts.push(`这是学生作业的扫描图片，按顺序共 ${g.pages.length} 页。请逐页仔细查看，批改这一份作业。`);
+  if((config.requirement||'').trim())parts.push('【作业要求】\n'+config.requirement.trim());
+  if((config.criteria||'').trim())parts.push('【评价标准】\n'+config.criteria.trim());
+  const sc=[];
+  if(config.scoreMode!=='level')sc.push(`按满分 ${config.fullScore} 分给出具体得分`);
+  if(config.scoreMode!=='score')sc.push(`给出等级（可参考：${config.levels||'优秀/良好/合格/待改进'}）`);
+  if(sc.length)parts.push('【评分】'+sc.join('；')+'。'+(config.scoreNote?config.scoreNote:''));
+  parts.push(`【评语】风格：${config.style}；长度：${config.len}。`+(config.commentNote?config.commentNote:''));
+  if(enabled.length)parts.push('【其他项目】\n'+enabled.map(c=>`· ${c.name}：${c.prompt}`).join('\n'));
+  if((g.extra||'').trim())parts.push('【本份单独要求】\n'+g.extra.trim());
+  const keys=[];
+  if(config.scoreMode!=='level')keys.push('"score": 数字得分');
+  if(config.scoreMode!=='score')keys.push('"level": "等级字符串"');
+  keys.push('"comment": "评语字符串"');
+  enabled.forEach(c=>keys.push(`"${c.key}": "${c.name}内容字符串"`));
+  parts.push('【输出要求】只输出一个 JSON 对象，不要输出任何其他文字、不要使用 Markdown 代码块。对象格式：{'+
+    keys.join(', ')+
+    '}。评语与各项内容必须具体、结合卷面实际，指出具体题目或知识点的对错；所有值用字符串或数字，不要出现换行转义问题。');
+  const prompt=parts.join('\n');
+  const images=[];
+  for(let i=0;i<g.pages.length;i++){
+    const p=pagesOf(g)[i];
+    onProgress?.(`${p}/${g.pages.length}`);
+    const page=await pdfDoc.getPage(p);
+    const vp0=page.getViewport({scale:1});
+    const scale=Math.min(3,IMG_MAXW/vp0.width);
+    const vp=page.getViewport({scale});
+    const cv=document.createElement('canvas');
+    cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+    await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    images.push(cv.toDataURL('image/jpeg',IMG_QUALITY));
+  }
+  return {prompt,images};
+}
+async function callVision(prompt,images){
+  const provider=ai.provider;
+  const url=provider==='custom'?(ai.customUrl||'').trim():PROVIDERS[provider].url;
+  const key=(ai.keys[provider]||'').trim();
+  const model=(ai.models[provider]||'').trim()||PROVIDERS[provider].models[0];
+  const messages=[
+    {role:'system',content:'你是一位经验丰富、认真负责的中小学老师，负责批改学生作业。批改要客观、具体、以鼓励为主：指出具体错误（尽量定位到题目或内容）、优点与薄弱点，并给出可执行的建议。所有输出使用简体中文。'},
+    {role:'user',content:[{type:'text',text:prompt},...images.map(u=>({type:'image_url',image_url:{url:u}}))]}
+  ];
+  const res=await fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model,messages,temperature:ai.temp||0.35,max_tokens:ai.maxTokens||4096,stream:false}),
+    signal:abortCtl?abortCtl.signal:undefined
+  });
+  if(!res.ok){
+    let msg='HTTP '+res.status;
+    try{const j=await res.json();msg=j.error&&(j.error.message||j.error.msg)||j.msg||JSON.stringify(j).slice(0,200)||msg}catch(e){}
+    throw new Error(msg);
+  }
+  const data=await res.json();
+  const content=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
+  if(!content)throw new Error('接口未返回内容');
+  return content;
+}
+function parseResult(text){
+  let s=String(text).trim();
+  s=s.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  const a=s.indexOf('{'),b=s.lastIndexOf('}');
+  if(a<0||b<=a)throw new Error('AI 返回内容不是 JSON：'+s.slice(0,120));
+  let obj;
+  try{obj=JSON.parse(s.slice(a,b+1))}
+  catch(e){
+    // 尝试修复常见问题：多余逗号等
+    const fixed=s.slice(a,b+1).replace(/,\s*([}\]])/g,'$1').replace(/[\u201c\u201d]/g,'"');
+    try{obj=JSON.parse(fixed)}catch(e2){throw new Error('JSON 解析失败：'+s.slice(0,120))}
+  }
+  if(typeof obj!=='object'||obj===null)throw new Error('AI 返回内容不是对象');
+  return obj;
+}
+
+/* ============ 导出 ============ */
+function groupMD(g){
+  const r=g.result;if(!r||r.status!=='ok')return '';
+  const lines=[];
+  lines.push(`### ${g.name}（${pageRange(g)}）`);
+  const parts=[];
+  if(config.scoreMode!=='level'&&r.score!=='')parts.push(`得分：**${r.score} / ${config.fullScore}**`);
+  if(config.scoreMode!=='score'&&r.level)parts.push(`等级：${r.level}`);
+  lines.push(parts.join('　'));
+  if(r.comment)lines.push('\n**评语**\n\n'+r.comment);
+  config.custom.filter(c=>c.enabled).forEach(c=>{
+    if(r.fields&&r.fields[c.key])lines.push(`\n**${c.name}**\n\n${r.fields[c.key]}`);
+  });
+  return lines.join('\n');
+}
+function allMarkdown(){
+  const heads=['# 作业批改结果','',`- 文件：${fileName||'未知'}`,'- 生成时间：'+timestamp(),`- 模型：${ai.models[ai.provider]||PROVIDERS[ai.provider].models[0]||''}`,''];
+  return heads.concat(groups.map((g,i)=>groupMD(g)||`### ${g.name}（未生成）`).join('\n\n---\n\n')).join('\n');
+}
+function allJSON(){
+  return JSON.stringify({
+    app:'作业批改',version:1,exportedAt:timestamp(),file:fileName,
+    config:config,
+    ai:{provider:ai.provider,model:(ai.models[ai.provider]||PROVIDERS[ai.provider].models[0])||''},
+    groups:groups.map(g=>({name:g.name,pages:pagesOf(g),extra:g.extra,result:g.result}))
+  },null,2);
+}
+function allWord(){
+  let h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>作业批改结果</title><style>body{font-family:"宋体",SimSun;font-size:12pt;line-height:1.8} h1{font-size:20pt}h2{font-size:16pt;border-bottom:1px solid #999;padding-bottom:4px}h3{font-size:14pt;color:#B8453A}p{margin:6px 0}.meta{color:#666;font-size:10.5pt}</style></head><body>';
+  h+=`<h1>作业批改结果</h1><p class="meta">文件：${esc(fileName||'未知')}　生成时间：${timestamp()}　模型：${esc((ai.models[ai.provider]||PROVIDERS[ai.provider].models[0])||'')}</p><hr>`;
+  groups.forEach(g=>{
+    const r=g.result;
+    h+=`<h2>${esc(g.name)}（${esc(pageRange(g))}）</h2>`;
+    if(!r||r.status!=='ok'){h+='<p class="meta">未生成</p>';return}
+    const meta=[];
+    if(config.scoreMode!=='level'&&r.score!=='')meta.push(`得分：${esc(r.score)} / ${esc(config.fullScore)}`);
+    if(config.scoreMode!=='score'&&r.level)meta.push(`等级：${esc(r.level)}`);
+    if(meta.length)h+=`<p><b>${meta.join('　')}</b></p>`;
+    if(r.comment)h+=`<h3>评语</h3><p>${esc(r.comment).replace(/\n/g,'<br>')}</p>`;
+    config.custom.filter(c=>c.enabled).forEach(c=>{
+      if(r.fields&&r.fields[c.key])h+=`<h3>${esc(c.name)}</h3><p>${esc(r.fields[c.key]).replace(/\n/g,'<br>')}</p>`;
+    });
+    h+='<hr>';
+  });
+  h+='</body></html>';
+  return h;
+}
+function copyGroup(g){
+  const md=groupMD(g);
+  if(md)copyText(`# 作业批改 · ${g.name}\n\n${md}`);
+}
+$('exportMdBtn').addEventListener('click',()=>{download(`作业批改_${tsName()}.md`,allMarkdown(),'text/markdown;charset=utf-8');toast('已导出 Markdown')});
+$('exportWordBtn').addEventListener('click',()=>{download(`作业批改_${tsName()}.doc`,allWord(),'application/msword;charset=utf-8');toast('已导出 Word（.doc）')});
+$('exportJsonBtn').addEventListener('click',()=>{download(`作业批改_${tsName()}.json`,allJSON(),'application/json;charset=utf-8');toast('已导出 JSON')});
+$('copyAllBtn').addEventListener('click',()=>copyText(allMarkdown()));
+function tsName(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`}
+
+/* ============ AI 设置 ============ */
+const settingsModal=$('settingsModal');
+function openSettings(){
+  $('providerSelect').value=ai.provider||'deepseek';
+  $('apiKeyInput').value=ai.keys[ai.provider]||'';
+  $('modelInput').value=ai.models[ai.provider]||(PROVIDERS[ai.provider].models[0]||'');
+  $('customUrlInput').value=ai.customUrl||'';
+  syncProviderUI();
+  settingsModal.classList.add('show');
+}
+function syncProviderUI(){
+  const p=$('providerSelect').value;
+  $('customUrlWrap').style.display=p==='custom'?'block':'none';
+  const dl=$('modelList');
+  dl.innerHTML=(PROVIDERS[p].models||[]).map(m=>`<option value="${esc(m)}">`).join('');
+  if(PROVIDERS[p].models.length&&!$('modelInput').value)$('modelInput').value=PROVIDERS[p].models[0];
+  $('providerNote').textContent=p==='custom'
+    ?'自定义：接口需兼容 OpenAI 格式并支持图片输入（image_url + base64）。'
+    :`获取 API Key：${PROVIDERS[p].keyUrl}（密钥仅保存在本浏览器）`;
+}
+$('providerSelect').addEventListener('change',()=>{
+  const p=$('providerSelect').value;
+  $('modelInput').value=ai.models[p]||(PROVIDERS[p].models[0]||'');
+  $('apiKeyInput').value=ai.keys[p]||'';
+  syncProviderUI();
+});
+function saveSettings(){
+  const p=$('providerSelect').value;
+  ai.provider=p;
+  ai.keys[p]=$('apiKeyInput').value.trim();
+  ai.models[p]=$('modelInput').value.trim();
+  ai.customUrl=$('customUrlInput').value.trim();
+  try{localStorage.setItem(LS_AI,JSON.stringify(ai))}catch(e){}
+  settingsModal.classList.remove('show');
+  toast('AI 设置已保存');
+}
+function closeSettings(){settingsModal.classList.remove('show')}
+window.openSettings=openSettings;window.saveSettings=saveSettings;window.closeSettings=closeSettings;
+$('settingsBtn').addEventListener('click',openSettings);
+$('saveBtn').addEventListener('click',()=>{saveState();toast('已手动保存')});
+$('testBtn').addEventListener('click',async()=>{
+  const res=$('testResult');
+  const p=$('providerSelect').value,key=$('apiKeyInput').value.trim(),model=$('modelInput').value.trim();
+  const url=p==='custom'?$('customUrlInput').value.trim():PROVIDERS[p].url;
+  if(!key){res.textContent='请先填写 API Key';res.style.color='var(--primary)';return}
+  if(!url){res.textContent='请填写接口地址';res.style.color='var(--primary)';return}
+  res.textContent='测试中…';res.style.color='var(--text-light)';
+  try{
+    // 生成一张测试图
+    const cv=document.createElement('canvas');cv.width=320;cv.height=120;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#FFFDF7';ctx.fillRect(0,0,320,120);
+    ctx.fillStyle='#2C2420';ctx.font='22px sans-serif';ctx.fillText('AI 连接测试 12345',20,55);
+    ctx.strokeStyle='#B8453A';ctx.lineWidth=3;ctx.strokeRect(12,12,296,96);
+    const dataURL=cv.toDataURL('image/jpeg',0.9);
+    const messages=[
+      {role:'system',content:'测试助手'},
+      {role:'user',content:[{type:'text',text:'图中数字是什么？只回复数字。'},{type:'image_url',image_url:{url:dataURL}}]}
+    ];
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:model||PROVIDERS[p].models[0],messages,temperature:0,max_tokens:64,stream:false})});
+    if(!r.ok){let m='HTTP '+r.status;try{const j=await r.json();m=j.error&&(j.error.message||j.error.msg)||j.msg||m}catch(e){}throw new Error(m)}
+    const d=await r.json();
+    const content=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content||'';
+    res.textContent='✅ 连接成功，回复：'+content.slice(0,60);res.style.color='#3B6A52';
+  }catch(err){
+    res.textContent='❌ 失败：'+(err.message||err);res.style.color='var(--primary)';
+  }
+});
+
+/* ============ 启动恢复 ============ */
+function restore(){
+  renderConfig();
+  const s=loadJSON(LS_STATE,null);
+  if(s&&s.config){config=Object.assign(defaultConfig(),s.config);
+    if(!Array.isArray(config.custom)||!config.custom.length){config.custom=defaultConfig().custom}}
+  if(s&&s.fileName){
+    fileName=s.fileName;numPages=s.numPages||0;
+    groups=(s.groups||[]).map(g=>({id:g.id||uid(),name:g.name||'份',pages:(g.pages||[]).slice(),extra:g.extra||'',result:g.result||null}));
+    $('#splitCard').style.display='block';$('#genCard').style.display='block';
+    $('#importInfo').style.display='block';
+    $('#importInfo').innerHTML=`📄 <b>${esc(fileName)}</b> · ${numPages} 页 · <span style="color:var(--primary)">需重新导入 PDF 才能恢复页面缩略图</span>`;
+    renderConfig();renderGroups();renderResults();
+  }else{
+    renderConfig();
+  }
+  updateSelToolbar();
+}
+restore();
+})();
+</script>
+</body>
+</html>
