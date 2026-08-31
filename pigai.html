@@ -179,6 +179,25 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
 .summary-card .sc-ops{margin-left:auto;display:flex;gap:6px}
 .summary-card .sc-fields{display:grid;gap:10px}
 
+/* 学生绑定 */
+.gstudent{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.gstudent select{max-width:240px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit;background:#fff;outline:none;color:var(--text)}
+.gstudent select:focus{border-color:var(--primary)}
+.gstudent .gstulabel{font-size:12px;color:var(--text-light);white-space:nowrap}
+.gbadge{font-size:10.5px;background:rgba(59,106,82,.12);color:#3B6A52;border-radius:8px;padding:1px 8px}
+.rstu{font-size:12px;color:var(--text-light)}
+
+/* 学生名单弹窗 */
+.stu-item{display:grid;grid-template-columns:1fr 90px 1fr auto 26px;gap:8px;align-items:center;background:#FAF6EE;border:1px solid var(--border-light);border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.stu-item input{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit;background:#fff;outline:none;width:100%}
+.stu-item input:focus{border-color:var(--primary)}
+.stu-item .stu-hist{font-size:11px;color:var(--text-light);white-space:nowrap}
+.stu-item .del{background:none;border:none;color:#c0aa90;font-size:15px;cursor:pointer;padding:4px}
+.stu-item .del:hover{color:var(--primary)}
+@media(max-width:640px){.stu-item{grid-template-columns:1fr 70px 1fr;grid-auto-rows:auto}.stu-item .stu-hist{grid-column:1/3}.stu-item .del{grid-column:3;justify-self:end}}
+.stu-paste{width:100%;min-height:96px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.8;font-family:inherit;background:#fff;resize:vertical;outline:none;color:var(--text)}
+.stu-paste:focus{border-color:var(--primary)}
+
 /* 弹窗 */
 .modal-mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(44,36,32,.55);display:none;justify-content:center;align-items:center;z-index:1000}
 .modal-mask.show{display:flex}
@@ -207,6 +226,7 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
         <div class="sub">PDF 扫描作业 → 自动分份 → 逐份 AI 批改（评语 / 评分 / 改进建议 / 相关练习 / 拓展阅读）</div>
     </div>
     <div class="head-actions">
+        <button class="icon-btn" id="stuBtn">👥 学生名单</button>
         <button class="icon-btn" id="saveBtn">💾 已自动保存</button>
         <button class="icon-btn primary" id="settingsBtn">⚙ AI 设置</button>
     </div>
@@ -391,6 +411,33 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
 
 <div id="toast"></div>
 
+<!-- 学生名单弹窗 -->
+<div class="modal-mask" id="stuModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">学生名单（固定学生账号体系）</span>
+            <button class="close-btn" onclick="closeStu()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="setting-group">
+                <label class="setting-label">批量添加（每行一名：姓名 [学号] [班级]，支持从 Excel 直接粘贴）</label>
+                <textarea class="stu-paste" id="stuPaste" placeholder="张三 12 三(2)班&#10;李四 15 三(2)班&#10;王五 08 三(1)班"></textarea>
+                <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                    <button class="btn btn-primary" id="stuAddBtn">＋ 批量添加</button>
+                    <button class="btn btn-outline" id="stuBindBtn">按名单顺序绑定当前份</button>
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-light);margin-bottom:8px">💡 AI 批改后会尝试把识别出的姓名/学号与名单自动匹配并打「自动匹配」标记；任何「份」都可手动绑定学生。</div>
+            <div id="stuList"></div>
+        </div>
+        <div class="modal-footer">
+            <span style="font-size:12px;color:var(--text-light);margin-right:auto" id="stuCount"></span>
+            <button class="btn btn-danger" id="stuClearBtn">清空名单</button>
+            <button class="btn btn-outline" onclick="closeStu()">关闭</button>
+        </div>
+    </div>
+</div>
+
 <!-- 模板管理弹窗 -->
 <div class="modal-mask" id="tplModal">
     <div class="modal-box">
@@ -426,7 +473,7 @@ const PROVIDERS={
   glm:{label:'GLM（智谱）',url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',models:['glm-4.5v','glm-4v-plus-0111','glm-4v-flash-241112'],keyUrl:'open.bigmodel.cn'},
   custom:{label:'自定义（OpenAI 兼容）',url:'',models:[],keyUrl:'使用支持图片输入的任一 OpenAI 兼容接口'}
 };
-const LS_STATE='pigai_state',LS_AI='pigai_ai',LS_TPL='pigai_templates';
+const LS_STATE='pigai_state',LS_AI='pigai_ai',LS_TPL='pigai_templates',LS_STU='pigai_students';
 const IMG_LEVELS={lite:{w:1100,q:0.72,label:'省流'},std:{w:1500,q:0.82,label:'标准'},hd:{w:1900,q:0.9,label:'高清'}};
 
 function defaultConfig(){
@@ -457,6 +504,8 @@ let pageThumbs={};
 let rotations={};          // pageNo -> 90度旋转次数
 let stateSummary=null;     // {common,highlights,teaching,status,time}
 let tplDirty=false;
+let students=loadJSON(LS_STU,null)||[];
+students.forEach(s=>{if(!s.id)s.id=uid();if(!Array.isArray(s.hist))s.hist=[]});
 let abortCtl=null;
 
 function loadJSON(key,sub){
@@ -467,7 +516,7 @@ function saveState(){
     localStorage.setItem(LS_STATE,JSON.stringify({
       fileName:fileName,numPages:numPages,config:config,
       summary:stateSummary,
-      groups:groups.map(g=>({id:g.id,name:g.name,pages:g.pages.slice(),extra:g.extra,result:g.result}))
+      groups:groups.map(g=>({id:g.id,name:g.name,pages:g.pages.slice(),extra:g.extra,result:g.result,studentId:g.studentId||'',autoMatched:!!g.autoMatched}))
     }));
   }catch(e){}
 }
@@ -627,7 +676,7 @@ $('clearSplitBtn').addEventListener('click',()=>{
 $('selClear').addEventListener('click',()=>{selected.clear();updatePageBadges();updateSelToolbar()});
 $('selNew').addEventListener('click',()=>{
   const pages=[...selected].sort((a,b)=>a-b);if(!pages.length)return;
-  const g={id:uid(),name:'份'+(groups.length+1),pages:pages,extra:'',result:null};
+  const g={id:uid(),name:'份'+(groups.length+1),pages:pages,extra:'',result:null,studentId:'',autoMatched:false};
   pages.forEach(p=>{const o=ownerOf(p);if(o)o.pages=o.pages.filter(x=>x!==p)});
   groups.push(g);
   selected.clear();renderAll();toast('已新建一份：'+g.name);
@@ -657,11 +706,18 @@ function autoSplit(){
   const pages=[];for(let p=start;p<=numPages;p++)pages.push(p);
   groups=[];
   for(let i=0;i<pages.length;i+=n){
-    groups.push({id:uid(),name:'份'+(groups.length+1),pages:pages.slice(i,i+n),extra:'',result:null});
+    groups.push({id:uid(),name:'份'+(groups.length+1),pages:pages.slice(i,i+n),extra:'',result:null,studentId:'',autoMatched:false});
+  }
+  // 有学生名单时按顺序自动绑定
+  if(students.length){
+    groups.forEach(g=>{
+      const s=students.find(x=>!groups.some(y=>y.studentId===x.id));
+      if(s){g.studentId=s.id;g.name=s.name}
+    });
   }
   selected.clear();
   renderAll();
-  toast(`已按每份 ${n} 页分成 ${groups.length} 份`);
+  toast(`已按每份 ${n} 页分成 ${groups.length} 份`+(students.length?'，并按名单顺序绑定了学生':''));
 }
 
 function renderGroups(){
@@ -683,6 +739,14 @@ function renderGroups(){
           <button class="btn btn-danger small" data-op="del" data-gid="${g.id}">删除</button>
         </span>
       </div>
+      ${students.length?`<div class="gstudent">
+        <span class="gstulabel">👤 学生</span>
+        <select data-stu="${g.id}">
+          <option value="">— 未绑定 —</option>
+          ${students.map(s=>`<option value="${esc(s.id)}" ${g.studentId===s.id?'selected':''}>${esc(s.name)}${s.no?'（'+esc(s.no)+'）':''}</option>`).join('')}
+        </select>
+        ${g.studentId&&g.autoMatched?'<span class="gbadge">自动匹配</span>':''}
+      </div>`:''}
       <div class="gchips">
         ${pagesOf(g).map(p=>`<span class="page-chip" data-page="${p}" style="background:${colorOf(g.id)}">${p}<span class="x" data-remove="${p}">×</span></span>`).join('')}
         ${!g.pages.length?'<span style="font-size:12px;color:#B9AC9C">（空，可拖入页面）</span>':''}
@@ -696,12 +760,20 @@ function renderGroups(){
 function statsHTML(){
   const ok=groups.filter(g=>g.result&&g.result.status==='ok');
   const scores=ok.map(g=>parseFloat(g.result.score)).filter(n=>Number.isFinite(n));
-  if(!scores.length)return '';
-  const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
-  const pills=[`批改 ${ok.length} 份`,`平均分 <b>${avg}</b>`,`最高 <b>${Math.max(...scores)}</b>`,`最低 <b>${Math.min(...scores)}</b>`];
-  const levels={};
-  ok.forEach(g=>{const l=String(g.result.level||'').trim().slice(0,4);if(l)levels[l]=(levels[l]||0)+1});
-  Object.keys(levels).forEach(l=>pills.push(`${esc(l)} <b>${levels[l]}</b> 人`));
+  const pills=[];
+  if(scores.length){
+    const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+    pills.push(`已批 ${ok.length} 份`,`平均分 <b>${avg}</b>`,`最高 <b>${Math.max(...scores)}</b>`,`最低 <b>${Math.min(...scores)}</b>`);
+    const levels={};
+    ok.forEach(g=>{const l=String(g.result.level||'').trim().slice(0,4);if(l)levels[l]=(levels[l]||0)+1});
+    Object.keys(levels).forEach(l=>pills.push(`${esc(l)} <b>${levels[l]}</b> 人`));
+  }
+  if(students.length){
+    const okStu=students.filter(s=>{const g=groups.find(x=>x.studentId===s.id);return g&&g.result&&g.result.status==='ok'});
+    const miss=students.filter(s=>!okStu.includes(s));
+    pills.push(`已交 <b>${okStu.length}</b>/${students.length} 人`);
+    if(miss.length)pills.push(`缺交 <b>${miss.length}</b>：${esc(miss.map(s=>s.name).join('、').slice(0,24))}${miss.length>4?'…':''}`);
+  }
   return pills.map(p=>`<span class="stat-pill">${p}</span>`).join('');
 }
 function summaryHTML(){
@@ -747,7 +819,7 @@ function renderResults(){
       <div class="result-head">
         <span style="width:22px;height:22px;border-radius:6px;background:${colorOf(g.id)};color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">${i+1}</span>
         <span class="rname">${esc(g.name)}</span>
-        <span class="rpages">${pageRange(g)}</span>
+        <span class="rpages">${pageRange(g)}${students.length?' · 👤 '+esc(stuName(g)||'未绑定')+(stuName(g)&&g.autoMatched?'（自动匹配）':''):''}</span>
         <span class="rstatus ${r.status}">${r.status==='running'?'<span class="spinner"></span>':''}${statusMap[r.status]||r.status}</span>
       </div>
       ${r.status==='error'?`<div class="result-err">${esc(r.error||'生成失败')}</div>`:''}
@@ -816,6 +888,18 @@ $('groups').addEventListener('click',e=>{
       document.querySelector(`.page-card[data-page="${p}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});
     }
   }
+});
+$('groups').addEventListener('change',e=>{
+  const sel=e.target.closest('select[data-stu]');
+  if(!sel)return;
+  const g=groups.find(x=>x.id===sel.dataset.stu);if(!g)return;
+  g.studentId=sel.value||'';
+  g.autoMatched=false;
+  if(g.studentId&&/^份\d+$/.test(g.name)){
+    const s=students.find(x=>x.id===g.studentId);
+    if(s)g.name=s.name;
+  }
+  renderAll();scheduleSave();
 });
 $('groups').addEventListener('input',e=>{
   const name=e.target.closest('input.gname');
@@ -1038,9 +1122,15 @@ async function generateOne(g,fromAll){
     if(Array.isArray(data.items)){
       g.result.itemsText=data.items.map(it=>`第${it.no??'?'}题 [${it.verdict||''}] ${(it.note||it.comment||'').trim()}`.trim()).join('\n');
     }else if(typeof data.items==='string'){g.result.itemsText=data.items.trim()}
+    // 名单自动匹配 + 成绩归档
+    if(!g.studentId&&students.length){
+      const m=bestStudent(String(g.result.fields&&g.result.fields.student||''));
+      if(m){g.studentId=m.id;g.autoMatched=true;renderGroups()}
+    }
     g.result.status='ok';
     g.result.elapsed=`耗时 ${((Date.now()-start)/1000).toFixed(1)}s`;
     g.result.time=timestamp();
+    recordHistory(g);
     toast(`「${g.name}」批改完成`);
   }catch(err){
     g.result.status='error';
@@ -1259,18 +1349,29 @@ function allWord(){
 }
 function exportCSV(){
   const enabled=config.custom.filter(c=>c.enabled);
-  const head=['序号','份名称','学生信息','得分','等级','评语'];
+  const head=['序号','姓名','学号','班级','状态','得分','等级','评语'];
   if(config.itemized)head.push('逐题批注');
   enabled.forEach(c=>head.push(c.name));
   const lines=[head.join(',')];
-  groups.forEach((g,i)=>{
-    const r=g.result;if(!r||r.status!=='ok')return;
-    const q=s=>'"'+String(s==null?'':s).replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
-    const row=[i+1,g.name,(r.fields&&r.fields.student)||'',r.score??'',r.level||'',r.comment||''];
-    if(config.itemized)row.push(r.itemsText||'');
-    enabled.forEach(c=>row.push((r.fields&&r.fields[c.key])||''));
-    lines.push(row.map(q).join(','));
-  });
+  const q=s=>'"'+String(s==null?'':s).replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
+  const rowOf=(idx,stuNameTxt,no,cls,status,r)=>{
+    const row=[idx,stuNameTxt,no,cls,status,r?(r.score??''):'',r?(r.level||''):'',r?(r.comment||''):''];
+    if(config.itemized)row.push(r?(r.itemsText||''):'');
+    enabled.forEach(c=>row.push(r&&r.fields?(r.fields[c.key]||''):''));
+    return row.map(q).join(',');
+  };
+  if(students.length){
+    students.forEach((s,i)=>{
+      const g=groups.find(x=>x.studentId===s.id);
+      const r=g&&g.result&&g.result.status==='ok'?g.result:null;
+      lines.push(rowOf(i+1,s.name,s.no||'',s.cls||'',r?'已交':'未交',r));
+    });
+  }else{
+    groups.forEach((g,i)=>{
+      const r=g.result;
+      lines.push(rowOf(i+1,g.name+(r&&r.fields&&r.fields.student?(' · '+r.fields.student):''),'','',r&&r.status==='ok'?'已交':(r?'失败':'未生成'),r&&r.status==='ok'?r:null));
+    });
+  }
   return '\ufeff'+lines.join('\r\n');
 }
 function copyGroup(g){
@@ -1313,6 +1414,105 @@ async function generateSummary(){
   renderResults();scheduleSave();
 }
 $('summarizeBtn').addEventListener('click',generateSummary);
+
+/* ============ 学生名单（固定学生账号体系） ============ */
+function saveStudents(){try{localStorage.setItem(LS_STU,JSON.stringify(students))}catch(e){}}
+function stuName(g){
+  const s=g.studentId&&students.find(x=>x.id===g.studentId);
+  return s?s.name:'';
+}
+function bestStudent(text){
+  const norm=t=>String(t||'').trim().toLowerCase().replace(/[\s·．.]+/g,'');
+  const t=norm(text);
+  if(!t)return null;
+  let best=null,bestSc=0;
+  for(const s of students){
+    const n=norm(s.name);let sc=0;
+    if(n&&n===t)sc+=10;
+    if(n&&n.length>=2&&t.indexOf(n)>=0)sc+=5;
+    if(t.length>=2&&n.indexOf(t)>=0)sc+=3;
+    if(s.no&&norm(s.no)&&t.indexOf(norm(s.no))>=0)sc+=4;
+    if(sc>bestSc){best=s;bestSc=sc}
+  }
+  return bestSc>=3?best:null;
+}
+function recordHistory(g){
+  if(!g.studentId||!g.result||g.result.status!=='ok')return;
+  const s=students.find(x=>x.id===g.studentId);if(!s)return;
+  if(!Array.isArray(s.hist))s.hist=[];
+  const d=new Date().toDateString();
+  if(s.hist[0]&&s.hist[0].f===fileName&&s.hist[0].d===d){
+    s.hist[0]={...s.hist[0],score:g.result.score,level:g.result.level};
+  }else{
+    s.hist.unshift({f:fileName||'',d:today(),t:timestamp(),score:g.result.score,level:g.result.level});
+  }
+  if(s.hist.length>50)s.hist.length=50;
+  saveStudents();
+}
+function today(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
+function renderStuList(){
+  $('stuList').innerHTML=students.map((s,i)=>`
+    <div class="stu-item">
+      <input data-sname="${i}" value="${esc(s.name)}" placeholder="姓名">
+      <input data-sno="${i}" value="${esc(s.no||'')}" placeholder="学号">
+      <input data-scls="${i}" value="${esc(s.cls||'')}" placeholder="班级">
+      <span class="stu-hist">${(s.hist&&s.hist.length)?('历次 '+s.hist.length+' 次 · 最近 '+esc(s.hist[0].score||'—')+' 分'):'暂无成绩记录'}</span>
+      <button class="del" data-sdel="${i}" title="删除该生并解绑相关份">✕</button>
+    </div>`).join('');
+  $('stuCount').textContent=`共 ${students.length} 名学生`+(students.length?' · 绑定其中 '+groups.filter(g=>g.studentId).length+' 份':'');
+}
+function bulkAddStudents(){
+  const text=$('stuPaste').value.trim();
+  if(!text){toast('请先粘贴学生名单');return}
+  let added=0;
+  text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).forEach(line=>{
+    const parts=line.split(/[\t,，;；、\s]+/).filter(Boolean);
+    if(!parts.length)return;
+    const name=parts[0],no=parts[1]||'',cls=parts.slice(2).join(' ')||'';
+    if(students.some(s=>s.name===name&&s.no===no))return;
+    students.push({id:uid(),name,no,cls,note:'',hist:[]});added++;
+  });
+  $('stuPaste').value='';
+  saveStudents();renderStuList();renderGroups();renderResults();
+  toast('已添加 '+added+' 名学生');
+}
+function bindByRoster(){
+  if(!students.length){toast('名单为空');return}
+  let used=0;
+  groups.forEach(g=>{
+    if(g.studentId)return;
+    const s=students.find(x=>!groups.some(y=>y.studentId===x.id));
+    if(s){g.studentId=s.id;g.autoMatched=false;if(/^份\d+$/.test(g.name))g.name=s.name;used++}
+  });
+  renderAll();scheduleSave();
+  toast('已绑定 '+used+' 份');
+}
+function openStu(){renderStuList();$('stuModal').classList.add('show')}
+function closeStu(){$('stuModal').classList.remove('show')}
+window.openStu=openStu;window.closeStu=closeStu;
+$('stuBtn').addEventListener('click',openStu);
+$('stuAddBtn').addEventListener('click',bulkAddStudents);
+$('stuBindBtn').addEventListener('click',bindByRoster);
+$('stuClearBtn').addEventListener('click',()=>{
+  if(!students.length)return;
+  if(!confirm('清空全部 '+students.length+' 名学生？相关份将解除绑定（成绩结果保留）。'))return;
+  students=[];groups.forEach(g=>{g.studentId='';g.autoMatched=false});
+  saveStudents();renderStuList();renderGroups();renderResults();scheduleSave();
+});
+$('stuList').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.sname!==undefined){students[+t.dataset.sname].name=t.value;saveStudents();renderGroups();renderResults()}
+  else if(t.dataset.sno!==undefined){students[+t.dataset.sno].no=t.value;saveStudents()}
+  else if(t.dataset.scls!==undefined){students[+t.dataset.scls].cls=t.value;saveStudents()}
+});
+$('stuList').addEventListener('click',e=>{
+  const d=e.target.closest('[data-sdel]');if(!d)return;
+  const i=+d.dataset.sdel,s=students[i];
+  if(!confirm('删除学生「'+s.name+'」？相关份将解除绑定。'))return;
+  students.splice(i,1);
+  groups.forEach(g=>{if(g.studentId===s.id){g.studentId='';g.autoMatched=false}});
+  saveStudents();renderStuList();renderGroups();renderResults();scheduleSave();
+});
 
 /* ============ 批改模板 ============ */
 const BUILTIN_TPLS=[
@@ -1463,7 +1663,7 @@ function restore(){
   if(s&&s.summary)stateSummary=s.summary;
   if(s&&s.fileName){
     fileName=s.fileName;numPages=s.numPages||0;
-    groups=(s.groups||[]).map(g=>({id:g.id||uid(),name:g.name||'份',pages:(g.pages||[]).slice(),extra:g.extra||'',result:g.result||null}));
+    groups=(s.groups||[]).map(g=>({id:g.id||uid(),name:g.name||'份',pages:(g.pages||[]).slice(),extra:g.extra||'',result:g.result||null,studentId:g.studentId||'',autoMatched:!!g.autoMatched}));
     $('#splitCard').style.display='block';$('#genCard').style.display='block';
     $('#importInfo').style.display='block';
     $('#importInfo').innerHTML=`📄 <b>${esc(fileName)}</b> · ${numPages} 页 · <span style="color:var(--primary)">需重新导入 PDF 才能恢复页面缩略图</span>`;
