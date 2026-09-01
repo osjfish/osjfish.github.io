@@ -234,12 +234,12 @@ body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sa
 
 <!-- ① 导入 -->
 <div class="card">
-    <div class="card-title"><span class="step">1</span>导入 PDF 扫描件 <small>支持拖拽 · 本地解析，不上传服务器</small></div>
+    <div class="card-title"><span class="step">1</span>导入 PDF / 图片 <small>支持文档与图片混排 · 本地解析，不上传服务器</small></div>
     <div class="drop-area" id="dropArea">
         <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><path d="M24 32V16m0 0l-8 8m8-8l8 8M8 40h32"/><rect x="4" y="4" width="40" height="40" rx="4"/></svg>
-        <div class="main-text">点击或拖拽导入 PDF</div>
-        <div class="sub-text">支持含图片的扫描件 / 拍照合成 PDF</div>
-        <input type="file" id="fileIn" accept=".pdf,application/pdf">
+        <div class="main-text">点击或拖拽导入 PDF / 图片</div>
+        <div class="sub-text">支持多页 PDF、JPG / PNG / WEBP 等图片（可多选混排，一张图片 = 一页）</div>
+        <input type="file" id="fileIn" accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.gif,application/pdf,image/*" multiple>
     </div>
     <div class="import-info" id="importInfo"></div>
 </div>
@@ -495,7 +495,10 @@ function defaultAI(){
 }
 
 /* ============ 状态 ============ */
-let pdfDoc=null,fileName='',numPages=0;
+let pdfDocs=[];            // [{doc,start}] 多 PDF 支持
+let pageSrcs=[null];       // 1-based: [null,{kind:'pdf',di,p}|{kind:'img',img}]
+let imgUrls=[];            // 临时对象 URL，重新导入时释放
+let fileName='',numPages=0;
 let groups=[];
 let config=loadJSON(LS_STATE,'config')||defaultConfig();
 let ai=loadJSON(LS_AI,null)||defaultAI();
@@ -559,38 +562,105 @@ async function copyText(txt){
 }
 function timestamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`}
 
-/* ============ ① 导入 PDF ============ */
+/* ============ ① 导入 PDF / 图片 ============ */
 const drop=$('dropArea'),fileIn=$('fileIn');
+const IMG_TYPES={'image/jpeg':1,'image/png':1,'image/webp':1,'image/bmp':1,'image/gif':1};
+const isPdf=f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+const isImg=f=>IMG_TYPES[f.type]||/\.(jpe?g|png|webp|bmp|gif)$/i.test(f.name);
 drop.addEventListener('click',()=>fileIn.click());
-fileIn.addEventListener('change',e=>{if(e.target.files[0])handlePDF(e.target.files[0]);e.target.value=''});
+fileIn.addEventListener('change',e=>{if(e.target.files.length)handleFiles([...e.target.files]);e.target.value=''});
 ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag-over')}));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag-over')}));
 drop.addEventListener('drop',e=>{
-  const f=[...e.dataTransfer.files].find(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name));
-  if(f)handlePDF(f);else toast('请导入 PDF 文件');
+  const fs=[...e.dataTransfer.files];
+  const ok=fs.filter(f=>isPdf(f)||isImg(f));
+  if(!ok.length){toast('请导入 PDF 或图片文件');return}
+  handleFiles(ok);
 });
 
-async function handlePDF(file){
+async function loadImage(file){
   try{
-    const buf=await file.arrayBuffer();
-    pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
-    fileName=file.name;numPages=pdfDoc.numPages;
-    selected.clear();pageThumbs={};
+    const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});
+    return {bmp,w:bmp.width,h:bmp.height};
+  }catch(e){
+    const url=URL.createObjectURL(file);imgUrls.push(url);
+    const el=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+    return {el,w:el.naturalWidth,h:el.naturalHeight};
+  }
+}
+async function handleFiles(files){
+  try{
+    imgUrls.forEach(url=>URL.revokeObjectURL(url));imgUrls=[];
+    pdfDocs=[];pageSrcs=[null];
+    const names=[];
+    for(const f of files){
+      if(!(isPdf(f)||isImg(f)))continue;
+      names.push(f.name);
+      if(isPdf(f)){
+        const data=new Uint8Array(await f.arrayBuffer());
+        const doc=await pdfjsLib.getDocument({data}).promise;
+        const di=pdfDocs.length;
+        pdfDocs.push({doc,start:pageSrcs.length});
+        for(let i=1;i<=doc.numPages;i++)pageSrcs.push({kind:'pdf',di,p:i});
+      }else{
+        const img=await loadImage(f);
+        pageSrcs.push({kind:'img',img});
+      }
+    }
+    if(pageSrcs.length<2)throw new Error('未找到可解析的文件（PDF 或图片）');
+    numPages=pageSrcs.length-1;
+    fileName=names.length<=3?names.join(' + '):names.slice(0,3).join(' + ')+' 等 '+names.length+' 个文件';
+    const pdfCount=files.filter(isPdf).length,imgCount=files.filter(isImg).length;
+    selected.clear();pageThumbs={};rotations={};
+    // 清理超出页数的旧分组（重新导入页数变化时）
+    groups.forEach(g=>g.pages=g.pages.filter(p=>p<=numPages));
+    groups=groups.filter(g=>g.pages.length);
     $('#importInfo').style.display='block';
-    $('#importInfo').innerHTML=`📄 <b>${esc(fileName)}</b> · 共 ${numPages} 页 · 解析完成`;
+    $('#importInfo').innerHTML=`📄 <b>${esc(fileName)}</b> · 共 ${numPages} 页（PDF ${pdfCount} 个 / 图片 ${imgCount} 张）· 解析完成`;
     $('#pageStat').textContent=`共 ${numPages} 页`;
     $('#splitCard').style.display='block';$('#genCard').style.display='block';
     $('startPage').value=1;
     renderPageGrid();
     if(!groups.length)autoSplit();
     else{renderGroups();renderResults()}
-    toast(`已导入 ${numPages} 页`);
+    toast(`已导入 ${numPages} 页（${pdfCount} 个 PDF / ${imgCount} 张图片）`);
     saveState();
   }catch(e){
-    toast('PDF 解析失败：'+(e.message||e));
+    toast('导入失败：'+(e.message||e));
     $('#importInfo').style.display='block';
-    $('#importInfo').textContent='❌ 解析失败：'+(e.message||e)+'（可能已加密或文件损坏）';
+    $('#importInfo').textContent='❌ 导入失败：'+(e.message||e)+'（PDF 可能已加密或图片损坏）';
   }
+}
+function drawImgTo(img,targetW){
+  const s=Math.min(1,targetW/img.w);
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,Math.round(img.w*s));c.height=Math.max(1,Math.round(img.h*s));
+  const ctx=c.getContext('2d');
+  if(img.bmp)ctx.drawImage(img.bmp,0,0,c.width,c.height);
+  else if(img.el)ctx.drawImage(img.el,0,0,c.width,c.height);
+  return c;
+}
+function rotateCanvas(cv,deg){
+  deg=((deg%360)+360)%360;if(!deg)return cv;
+  const w=cv.width,h=cv.height;
+  const out=document.createElement('canvas');
+  if(deg===90||deg===270){out.width=h;out.height=w}else{out.width=w;out.height=h}
+  const ctx=out.getContext('2d');
+  ctx.translate(out.width/2,out.height/2);ctx.rotate(deg*Math.PI/180);
+  ctx.drawImage(cv,-w/2,-h/2);
+  return out;
+}
+async function renderPdfToCanvas(di,p,targetW){
+  const pd=pdfDocs[di];
+  const page=await pd.doc.getPage(p);
+  const vp0=page.getViewport({scale:1});
+  const scale=Math.min(4,targetW/vp0.width);
+  const rot=((page.rotate||0)+(rotations[p]||0)*90)%360;
+  const vp=page.getViewport({scale,rotation:rot});
+  const cv=document.createElement('canvas');
+  cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+  await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+  return cv;
 }
 
 async function renderPageGrid(){
@@ -606,13 +676,13 @@ async function renderThumb(p,grid,cards){
   try{
     const old=grid.querySelector(`.page-card[data-page="${p}"]`);
     if(old)old.remove();
-    const page=await pdfDoc.getPage(p);
-    const vp0=page.getViewport({scale:1});
-    const scale=Math.min(1.2,240/vp0.width);
-    const rot=((page.rotate||0)+(rotations[p]||0)*90)%360;
-    const vp=page.getViewport({scale,rotation:rot});
-    const cv=document.createElement('canvas');cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
-    await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    const src=pageSrcs[p];
+    let cv;
+    if(src&&src.kind==='img'){
+      cv=rotateCanvas(drawImgTo(src.img,240),(rotations[p]||0)*90);
+    }else{
+      cv=await renderPdfToCanvas((src&&src.di)||0,(src&&src.p)||1,240);
+    }
     pageThumbs[p]=cv;
     const card=document.createElement('div');
     card.className='page-card';card.dataset.page=p;card.draggable=true;
@@ -1201,14 +1271,13 @@ async function buildRequest(g,onProgress){
   for(let i=0;i<g.pages.length;i++){
     const p=pagesOf(g)[i];
     onProgress?.(`${p}/${g.pages.length}`);
-    const page=await pdfDoc.getPage(p);
-    const vp0=page.getViewport({scale:1});
-    const scale=Math.min(4,lv.w/vp0.width);
-    const rot=((page.rotate||0)+(rotations[p]||0)*90)%360;
-    const vp=page.getViewport({scale,rotation:rot});
-    const cv=document.createElement('canvas');
-    cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
-    await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    const src=pageSrcs[p];
+    let cv;
+    if(src&&src.kind==='img'){
+      cv=rotateCanvas(drawImgTo(src.img,lv.w),(rotations[p]||0)*90);
+    }else{
+      cv=await renderPdfToCanvas((src&&src.di)||0,(src&&src.p)||1,lv.w);
+    }
     if(config.enhance)enhanceImage(cv);
     images.push(cv.toDataURL('image/jpeg',lv.q));
   }
