@@ -417,8 +417,8 @@ function layoutTemplate(tpl){
   for(let i=0;i<10;i++)regRowsY.push(45.5+i*4.2);
   const reg={x:regX,y:32,colW:colW,grid:8,rowsY:regRowsY,bubble:3,label:'准 考 证 号'};
   const pages=[];
-  const contentTop=94, contentBottom=h-28;
-  const qr={x:w-38,y:h-32,size:18};
+  const contentTop=94, contentBottom=h-36;
+  const qr={x:w-36,y:h-30,size:16};
 
   function newPage(pi){
     return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&tpl.showInfo!==false)?{x:M,y:32,w:44,h:58}:null,
@@ -428,35 +428,53 @@ function layoutTemplate(tpl){
   let pg=newPage(0); pages.push(pg);
   let curY=contentTop;
   function pageBreak(need){ if(curY+need<=contentBottom)return; pg=newPage(pages.length); pages.push(pg); curY=contentTop; }
-  /* 选择题组 */
+  function forcePage(){ pg=newPage(pages.length); pages.push(pg); curY=contentTop; }
+  /* 选择题组（超高自动拆分为多个子组跨页，题号连续） */
+  const maxRowsPerPage=Math.max(1,Math.floor((contentBottom-contentTop-13)/5));
   (tpl.choiceGroups||[]).forEach(function(gp){
     const choices=Math.max(2,Math.min(6,gp.choices||4));
-    const count=Math.max(1,Math.min(200,gp.count||20));
+    const total=Math.max(1,Math.min(200,gp.count||20));
     const cellW=10;
-    let cols=Math.max(1,Math.min(count,gp.cols||0));
+    let cols=Math.max(1,Math.min(total,gp.cols||0));
     if(!gp.cols){cols=Math.max(1,Math.floor((contentW-6)/(cellW+choices*7.0+1)));}
-    cols=Math.min(cols,count);
-    const rows=Math.ceil(count/cols);
+    cols=Math.min(cols,total);
     const x0=M+6, gridW=contentW-12;
-    const dxq=gridW/cols, dxc=(dxq-cellW)/choices;
+    const dxq=gridW/cols;
+    const dxc=Math.max(3.5,(dxq-cellW)/choices);
     const label=(gp.label||('一、选择题'))+'';
-    const hNeed=7+rows*5+6;
-    pageBreak(hNeed);
-    const g={first:gp.first||1,count:count,choices:choices,cols:cols,rows:rows,
-      x0:x0,y0:curY+7,dxq:dxq,dy:5,dxc:dxc,size:[4.2,2.8],timing:{dx:-2,w:1,h:2},label:label};
-    pg.groups.push(g);
-    curY+=hNeed;
+    let qFirst=gp.first||1, remaining=total, part=0;
+    while(remaining>0){
+      const rows=Math.min(remaining,Math.max(1,Math.min(Math.ceil(remaining/cols),maxRowsPerPage)));
+      const subCount=Math.min(remaining,rows*cols);
+      const hNeed=7+rows*5+6;
+      pageBreak(hNeed);
+      const g={first:qFirst,count:subCount,choices:choices,cols:cols,rows:rows,
+        x0:x0,y0:curY+7,dxq:dxq,dy:5,dxc:dxc,size:[4.2,2.8],timing:{dx:-2,w:1,h:2},label:label+(part>0?'（续）':'')};
+      pg.groups.push(g);
+      curY+=hNeed;
+      qFirst+=subCount;remaining-=subCount;part++;
+    }
   });
   /* 主观题（超出页面自动分页切分） */
   (tpl.subjective||[]).forEach(function(sub){
     const type=sub.type||'lines';
     const rowH=(type==='grid-cn')?8:(type==='grid-en')?5:8;
     let remaining=Math.max(1,sub.rows||3), part=0;
+    const fullMax=Math.max(1,Math.floor((contentBottom-contentTop-13)/rowH));
     while(remaining>0){
       const avail=contentBottom-curY-13;
-      const take=Math.max(1,Math.min(remaining,Math.floor(avail/rowH)));
+      let take;
+      if(avail>=rowH){
+        take=Math.max(1,Math.min(remaining,Math.floor(avail/rowH)));
+        /* 避免「本页勉强放几行 → 下一页只剩1-2行」的碎片页 */
+        const rest=remaining-take;
+        if(rest>0&&rest<=2&&remaining<=fullMax){forcePage();take=Math.min(remaining,fullMax);}
+      }else{
+        /* 当前页放不下最小块：强制换页，再取整页最大块 */
+        forcePage();
+        take=Math.min(remaining,fullMax);
+      }
       const boxH=take*rowH+6;
-      pageBreak(14+boxH);
       const sx=M+2, sw=contentW-4, sy=curY+7;
       pg.subjective.push({qno:sub.qno||('主观'+(part+1)),score:sub.score||10,type:type,rows:take,rowH:rowH,
         part:part,label:(sub.label||'主观题')+(part>0?'（续第'+(part+1)+'部分）':''),x:sx,y:sy,w:sw,h:boxH});
@@ -740,7 +758,7 @@ async function qrParsePayload(data){
       notes:o.info?{x:o.w-60,y:32,w:46,h:58}:null,
       reg:{x:o.r.x,y:o.r.y,colW:o.r.col,grid:8,rowsY:rowsY,bubble:o.r.b,label:'准 考 证 号'},
       regDigits:o.rd,groups:[],subjective:[],footer:{n:o.pg,m:o.np},
-      anchors:[],qr:{x:o.w-38,y:o.h-32,size:18}};
+      anchors:[],qr:{x:o.w-36,y:o.h-30,size:16}};
     const fl=a=>{const out=[];for(let i=0;i<a.length;i+=3)out.push({x:a[i],y:a[i+1],s:a[i+2]});return out};
     page.anchors=fl(o.a);
     (o.gs||[]).forEach(function(g){
@@ -1754,7 +1772,9 @@ Object.assign(ACTS,{
   },
   'tpl-preview':async function(el){
     const t=await dbGet('templates',el.dataset.id);
-    const lay=layoutTemplate(t);
+    let lay;
+    try{lay=layoutTemplate(t)}catch(err){toast('排版校验失败：'+err.message,'err');return}
+    try{await dbPut('templates',t)}catch(e){}
     dlg('<div class="kv" style="margin-bottom:8px">'+esc(t.name)+' · '+lay.pages.length+' 页 · 60dpi 渲染，含版式二维码（页脚左下）</div><div class="preview-box" id="tplPrevBox" style="gap:12px;flex-wrap:wrap;justify-content:center"></div>',{title:'答题卡预览',wide:true});
     const box=$('tplPrevBox');
     box.innerHTML='<span class="kv">渲染中…</span>';
