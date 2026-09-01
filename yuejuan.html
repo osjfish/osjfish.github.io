@@ -676,6 +676,9 @@ function bytesFromB64(b64){
   for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
   return arr;
 }
+function b64ToBlob(b64,type){
+  try{return new Blob([bytesFromB64(b64)],{type:type||'image/jpeg'})}catch(e){return null}
+}
 function r1(v){return Math.round(v*10)/10}
 function r2(v){return Math.round(v*100)/100}
 async function qrPayloadFor(layout,tpl,page){
@@ -1142,6 +1145,14 @@ function canvasDataURL(cv,q){
   cnv.getContext('2d').drawImage(cv,0,0);
   return cnv.toDataURL('image/jpeg',q||0.85);
 }
+/* Blob 对象 URL 缓存（复用同一 Blob，避免每次渲染重复 createObjectURL 泄漏） */
+const __blobUrls=new WeakMap();
+function blobURL(b){
+  if(!b)return '';
+  let u=__blobUrls.get(b);
+  if(!u){u=URL.createObjectURL(b);__blobUrls.set(b,u);}
+  return u;
+}
 
 /* ---------- 单页识别 ---------- */
 async function recognizeCanvas(cv,layout,pageIdx,opts){
@@ -1223,6 +1234,11 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     else{studentNo+=j.reason==='空白'?'_':'?';regFlags.push('考号第'+(c+1)+'位'+j.reason);}
   }
   if(!studentNo||studentNo.indexOf('_')>=0||studentNo.indexOf('?')>=0)regFlags.push('考号异常（'+studentNo+'）');
+  /* 考号人工改判覆盖 */
+  if(opts&&opts.regOverride){
+    studentNo=String(opts.regOverride).trim();
+    regFlags=['考号经人工改判为 '+studentNo];
+  }
   /* 客观题 OMR */
   const perQ=[];
   pg2.groups.forEach(function(g){
@@ -1279,7 +1295,15 @@ async function scanExamPages(exam,files,onProgress){
   let idx=0;
   for(const it of items){
     const pageIdx=Math.min(layout.pages.length-1,(it.pageNo||1)-1);
-    const res=await recognizeCanvas(it.cv,layout,pageIdx,{});
+    let res;
+    try{res=await recognizeCanvas(it.cv,layout,pageIdx,{})}
+    catch(err){
+      results.push({id:uid('pg_'),examId:exam.id,studentNo:'',pageNo:it.pageNo,blob:null,thumb:'',
+        meta:{status:'error',qrFound:false,flags:['图像解析异常：'+(err.message||String(err))],perQ:[],regFlags:[],
+          layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,srcFile:it.file||''}});
+      if(onProgress)onProgress(++idx,items.length,it);
+      continue;
+    }
     const blob=await canvasToJpeg(it.cv,0.88);
     const pageRec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:it.pageNo,
       blob:blob,thumb:canvasDataURL(canvasToThumb(it.cv,220),0.7),
@@ -1293,7 +1317,7 @@ async function scanExamPages(exam,files,onProgress){
         const cid=exam.id+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
         const blob2=await canvasToJpeg(cp.cv,0.85);
         const old=await dbGet('crops',cid);
-        await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,
+        await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,pageId:pageRec.id,
           studentNo:res.studentNo,qno:cp.qno,part:cp.part,score:cp.score,
           blob:blob2,thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
           scoreVal:old&&old.scoreVal!=null?old.scoreVal:null,aiScore:old&&old.aiScore!=null?old.aiScore:null,
@@ -1462,7 +1486,7 @@ async function simulateScan(exam){
       await dbPut('pages',rec);
       if(res.crops)for(const cp of res.crops){
         const cid=exam.id+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
-        await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,
+        await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,pageId:rec.id,
           studentNo:res.studentNo||'(未识别)',qno:cp.qno,part:cp.part,score:cp.score,
           blob:await canvasToJpeg(cp.cv,0.85),thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
           scoreVal:null,aiScore:null,aiReason:null,marked:null,markedBy:'',flag:''});
@@ -1628,6 +1652,7 @@ async function renderTpl(){
     }
   }
   $('page').innerHTML=html;
+  afterRender(function(){bindFileInput('tplImportFile',importTemplateJSON)});
 }
 async function tplThumb(tpl){
   try{
@@ -1661,6 +1686,8 @@ async function tplEditorHTML(tplId){
   return '<div class="f-row" style="margin-bottom:12px">'
     +'<button class="btn btn-p" data-act="tpl-save" data-id="'+t.id+'">💾 保存模板并重新排版</button>'
     +'<button class="btn btn-b" data-act="tpl-preview" data-id="'+t.id+'">👁 预览</button>'
+    +'<button class="btn btn-o" data-act="tpl-pdf" data-id="'+t.id+'">📄 导出 PDF</button>'
+    +'<button class="btn" data-act="tpl-export" data-id="'+t.id+'">📤 分享 JSON</button>'
     +'<button class="btn" data-act="tpl-edit-cancel">返回列表</button>'
     +'<span class="tip">保存时自动校验并重新排版；PDF 导出为 300dpi，打印请选「实际大小/100%」。</span></div>'
     +'<div class="card"><h3>基本信息</h3><div class="f-grid">'
@@ -1825,13 +1852,17 @@ Object.assign(ACTS,{
     await dbPut('templates',t);
   }
 });
-afterRender(function(){
-  const f=$('tplImportFile');
-  if(f)f.addEventListener('change',function(){
-    if(f.files&&f.files[0])importTemplateJSON(f.files[0]);
-    f.value='';
-  });
-});
+/* 文件输入统一在渲染时绑定 */
+function bindFileInput(id,fn){
+  const f=$(id);
+  if(f&&!f.dataset.bound){
+    f.dataset.bound='1';
+    f.addEventListener('change',function(){
+      if(f.files&&f.files.length)fn(f.files[0],f);
+      f.value='';
+    });
+  }
+}
 
 
 /* ============================================================
@@ -1841,6 +1872,9 @@ afterRender(function(){
 /* ---------- 班级学生 ---------- */
 async function renderCls(){
   const classes=await dbAll('classes');
+  const allStu=await dbAll('students');
+  const clsCounts={};
+  allStu.forEach(function(s){clsCounts[s.classId]=(clsCounts[s.classId]||0)+1});
   if(!ui.clsCur||!(classes.find(function(c){return c.id===ui.clsCur})))ui.clsCur=classes.length?classes[0].id:null;
   let html='<div class="f-row" style="margin-bottom:14px">'
     +'<button class="btn btn-p" data-act="cls-new">＋ 新建班级</button>'
@@ -1854,7 +1888,7 @@ async function renderCls(){
   const students=await dbByIdx('students','byClass',ui.clsCur);
   students.sort(function(a,b){return String(a.no||'').localeCompare(String(b.no||''))});
   html+='<div class="card"><h3>班级</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-    +classes.map(function(c){return '<span class="chip'+(c.id===ui.clsCur?' on':'')+'" data-act="cls-pick" data-id="'+c.id+'">'+esc(c.name)+'（'+(c.studentCount==null?'':c.studentCount)+'）</span>'}).join('')
+    +classes.map(function(c){return '<span class="chip'+(c.id===ui.clsCur?' on':'')+'" data-act="cls-pick" data-id="'+c.id+'">'+esc(c.name)+'（'+(clsCounts[c.id]||0)+'人）</span>'}).join('')
     +'<span style="flex:1"></span>'
     +'<button class="btn btn-s btn-d" data-act="cls-del" data-id="'+cls.id+'">删除当前班级</button>'
     +'</div></div>';
@@ -2206,6 +2240,7 @@ async function renderScan(){
   }
   const ex=await dbGet('exams',ui.scanExam);
   const meta=await examMeta(ex);
+  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('❌','考试「'+esc(ex.name)+'」使用的答题卡模板不存在或已删除。<br>请到「答题卡模板」恢复模板后重试。')+'</div>';return}
   const cls=await dbGet('classes',ex.classId);
   const students=await dbByIdx('students','byClass',ex.classId);
   const pages=await dbByIdx('pages','byExam',ex.id);
@@ -2249,7 +2284,7 @@ async function renderScan(){
         const m=p.meta||{};
         const ok=m.status==='ok';
         const flags=(m.flags||[]).filter(function(f){return f&&f!=='null'});
-        return '<tr><td><img data-act="scan-page" data-id="'+p.id+'" src="'+p.thumb+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer"></td>'
+        return '<tr><td>'+(p.thumb?'<img data-act="scan-page" data-id="'+p.id+'" src="'+p.thumb+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer">':'<div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--line);background:#EEE;text-align:center;line-height:44px;font-size:12px;color:#999">✕</div>')+'</td>'
           +'<td>'+(p.pageNo)+'</td>'
           +'<td><b>'+esc(p.studentNo||'—')+'</b></td>'
           +'<td>'+(ok?badge('ok','已识别'):badge('err','定位失败'))+'</td>'
@@ -2262,6 +2297,7 @@ async function renderScan(){
   }
   html+='</div>';
   $('page').innerHTML=html;
+  afterRender(function(){bindFileInput('scanFiles',function(file,inp){runScanUpload(inp.files)})});
 }
 Object.assign(ACTS,{
   'go-exam':function(){go('exam')},
@@ -2283,16 +2319,12 @@ Object.assign(ACTS,{
   'scan-del-page':async function(el){
     const p=await dbGet('pages',el.dataset.id);
     await dbDel('pages',p.id);
-    if(p.meta&&p.meta.perQ){
-      const crops=await dbAll('crops');
-      for(const c of crops)if(c.examId===p.examId&&c.studentNo===p.studentNo){
-        const qnos=(p.meta.perQ||[]).map(function(q){return q.qno});
-        if(qnos.indexOf(c.qno)<0)await dbDel('crops',c.id);
-      }
-    }
+    const crops=await dbAll('crops');
+    for(const c of crops)if(c.examId===p.examId&&c.pageId===p.id)await dbDel('crops',c.id);
     renderScan();
   },
   'scan-simulate':async function(){
+    if(scanCtx&&scanCtx.running){toast('正在扫描/识别中，请稍候','err');return}
     const ex=await dbGet('exams',ui.scanExam);
     const tpl=await dbGet('templates',ex.templateId);
     const st=await dbByIdx('students','byClass',ex.classId);
@@ -2306,7 +2338,7 @@ Object.assign(ACTS,{
     if(pages.length)await scanClearAll(ex.id);
     const box=$('scanProgBox');
     box.style.display='block';
-    scanCtx={examId:ex.id,onProgress:function(done,total){
+    scanCtx={examId:ex.id,running:true,onProgress:function(done,total){
       $('scanProgBar').style.width=Math.round(done/total*100)+'%';
       $('scanProgTxt').textContent='模拟识别中 '+done+'/'+total;
       $('scanLog').textContent='最近：'+done;
@@ -2316,6 +2348,7 @@ Object.assign(ACTS,{
       toast('模拟扫描完成，共 '+st.length*Math.max(1,(await examMeta(ex)).layout.pages.length)+' 页已识别','ok');
     }catch(err){toast('模拟扫描失败：'+err.message,'err')}
     box.style.display='none';
+    scanCtx.running=false;
     renderScan();
   },
   'scan-empty':function(){}
@@ -2328,20 +2361,15 @@ async function scanClearAll(examId){
   const revs=await dbAll('revs');
   for(const r of revs)if(r.examId===examId)await dbDel('revs',r.id);
 }
-afterRender(function(){
-  const f=$('scanFiles');
-  if(f)f.addEventListener('change',function(){
-    if(f.files&&f.files.length)runScanUpload(f.files);
-    f.value='';
-  });
-});
+/* 上传文件绑定由 renderScan 内的 afterRender 完成 */
 async function runScanUpload(files){
+  if(scanCtx&&scanCtx.running){toast('正在扫描/识别中，请稍候','err');return}
   const ex=await dbGet('exams',ui.scanExam);
   const ok=await dlgConfirm('开始识别','将扫描/识别 '+files.length+' 个文件（'+pagesEst(files)+' 页）。识别结果与现有页面共存，同页可删除重扫。','开始');
   if(!ok)return;
   const box=$('scanProgBox');
   box.style.display='block';
-  scanCtx={examId:ex.id,onProgress:function(done,total,it){
+  scanCtx={examId:ex.id,running:true,onProgress:function(done,total,it){
     $('scanProgBar').style.width=Math.round(done/total*100)+'%';
     $('scanProgTxt').textContent='识别中 '+done+'/'+total;
   }};
@@ -2353,6 +2381,7 @@ async function runScanUpload(files){
     toast('识别完成：'+res.length+' 页','ok');
   }catch(err){toast('识别失败：'+err.message,'err')}
   box.style.display='none';
+  scanCtx.running=false;
   renderScan();
 }
 function pagesEst(files){
@@ -2366,9 +2395,7 @@ function pagesEst(files){
 
 /* ---------- 页详情 / 复核 ---------- */
 async function pageObjectURL(p){
-  if(p._url)return p._url;
-  p._url=URL.createObjectURL(p.blob);
-  return p._url;
+  return blobURL(p.blob);
 }
 async function pageFull(p){
   if(p._full)return p._full;
@@ -2387,7 +2414,7 @@ Object.assign(ACTS,{
       +(flags.length?badge('warn','告警 '+flags.length):'')
       +'</div>'
       +'<div style="display:flex;gap:12px;flex-wrap:wrap">'
-      +'<img src="'+p.thumb+'" style="width:120px;border:1px solid var(--line);border-radius:8px">'
+      +(p.thumb?'<img src="'+p.thumb+'" style="width:120px;border:1px solid var(--line);border-radius:8px">':'<div style="width:120px;height:150px;border:1px solid var(--line);border-radius:8px;background:#EEE;display:flex;align-items:center;justify-content:center;color:#999;font-size:13px">无预览</div>')
       +'<div style="flex:1;min-width:260px">'
       +'<div class="kv">页号：'+p.pageNo+'　考号：<b>'+esc(p.studentNo||'—')+'</b>　来源：'+esc(m.srcFile||'')+'</div>'
       +(flags.length?'<div class="kv" style="color:var(--danger);margin:6px 0">'+flags.map(esc).join('<br>')+'</div>':'')
@@ -2519,7 +2546,7 @@ Object.assign(ACTS,{
     const rev=await examReviewCount(ex.id);
     if(!rev.reg.length){toast('没有考号异常页面','ok');return}
     dlg(rev.reg.slice(0,60).map(function(p){
-      return '<div class="scan-item"><img src="'+p.thumb+'" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)">'
+      return '<div class="scan-item">'+(p.thumb?'<img src="'+p.thumb+'" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)">':'<div style="width:64px;height:64px;border-radius:7px;border:1px solid var(--line);background:#EEE"></div>')
         +'<div style="flex:1">第 '+p.pageNo+' 页　<b>'+esc(p.studentNo||'—')+'</b><br><span class="kv">'+((p.meta&&p.meta.regFlags||[]).join('；'))+'</span></div>'
         +'<button class="btn btn-sm btn-o" data-act="scan-fix-reg" data-id="'+p.id+'">考号改判</button></div>';
     }).join(''),{title:'考号异常（'+rev.reg.length+' 页）',wide:true});
@@ -2529,7 +2556,7 @@ Object.assign(ACTS,{
     const rev=await examReviewCount(ex.id);
     if(!rev.locate.length){toast('没有定位失败页面','ok');return}
     dlg(rev.locate.slice(0,60).map(function(p){
-      return '<div class="scan-item"><img src="'+p.thumb+'" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)">'
+      return '<div class="scan-item">'+(p.thumb?'<img src="'+p.thumb+'" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)">':'<div style="width:64px;height:64px;border-radius:7px;border:1px solid var(--line);background:#EEE"></div>')
         +'<div style="flex:1">第 '+p.pageNo+' 页　<b>'+esc(p.studentNo||'—')+'</b><br><span class="kv">'+((p.meta&&p.meta.flags||[]).join('；'))+'</span></div>'
         +'<button class="btn btn-sm btn-o" data-act="scan-relocate" data-id="'+p.id+'">手动 4 角重定位</button></div>';
     }).join(''),{title:'定位失败（'+rev.locate.length+' 页）',wide:true});
@@ -2546,17 +2573,16 @@ async function redoPage(p,cv,layout,opts){
     perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:res.geometry.w,layoutH:res.geometry.h,
     pageIdx:p.meta.pageIdx,srcFile:p.meta.srcFile||'重新识别',H:res.H?res.H.h:null};
   await dbPut('pages',p);
-  /* 删除该页旧裁剪 */
+  /* 删除该页旧裁剪（按 pageId 级联，覆盖主观题多部分） */
   const crops=await dbAll('crops');
-  const oldQnos=(p.meta.perQ||[]).map(function(q){return String(q.qno)});
   for(const c of crops){
-    if(c.examId===p.examId&&oldQnos.indexOf(String(c.qno))>=0&&c.studentNo===oldNo)await dbDel('crops',c.id);
+    if(c.examId===p.examId&&c.pageId===p.id)await dbDel('crops',c.id);
   }
   /* 新裁剪 */
   if(res.crops)for(const cp of res.crops){
     const cid=p.examId+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
     const old=await dbGet('crops',cid);
-    await dbPut('crops',{id:cid,examId:p.examId,exam_q:p.examId+'|'+cp.qno,studentNo:res.studentNo,
+    await dbPut('crops',{id:cid,examId:p.examId,exam_q:p.examId+'|'+cp.qno,pageId:p.id,studentNo:res.studentNo,
       qno:cp.qno,part:cp.part,score:cp.score,blob:await canvasToJpeg(cp.cv,0.85),
       thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
       scoreVal:old&&old.scoreVal!=null?old.scoreVal:null,aiScore:old&&old.aiScore!=null?old.aiScore:null,
@@ -2583,6 +2609,7 @@ async function renderGrade(){
   if(!gradeCtx||gradeCtx.examId!==ex.id){gradeCtx=null;ui.gradeQno=null;}
   if(!ui.gradeQno){
     const meta=await examMeta(ex);
+    if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('❌','该考试使用的答题卡模板不存在或已删除。')+'</div>';return}
     const cropsAll=await dbAll('crops');
     const crops=cropsAll.filter(function(c){return c.examId===ex.id});
     let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
@@ -2643,7 +2670,9 @@ Object.assign(ACTS,{
   'grade-next':function(){gradeCtx.idx=Math.min(gradeCtx.order.length-1,gradeCtx.idx+1);gradeCtx.buf='';renderGrade()},
   'grade-score-set':async function(el){
     const v=el.dataset.v;
-    await gradeSetScore(parseFloat(v)==null?null:parseFloat(v));
+    const n=parseFloat(v);
+    if(!Number.isFinite(n)){toast('请输入有效分数','err');return}
+    await gradeSetScore(n);
     renderGrade();
   },
   'grade-flag':async function(){await gradeToggleFlag('F');renderGrade()},
@@ -2664,6 +2693,8 @@ Object.assign(ACTS,{
         '<button class="btn" data-act="dlg-close">关闭</button><button class="btn btn-p" data-act="grade-ai-accept" data-v="'+esc(el.score)+'">✔ 采纳 '+esc(el.score)+' 分</button>'});
   },
   'grade-ai-accept':async function(el){
+    if(!gradeCtx.order.length)return;
+    if(gradeCtx.idx>=gradeCtx.order.length)gradeCtx.idx=gradeCtx.order.length-1;
     const no=gradeCtx.order[gradeCtx.idx];
     await gradeSetScoreLocal(no,parseFloat(el.dataset.v));
     dlgClose();
@@ -2789,6 +2820,8 @@ async function cropMarkedImage(crop,w){
 }
 async function renderGradeView(ex){
   const meta=await gradeMeta(ex);
+  if(!gradeCtx.order.length){ui.gradeQno=null;gradeCtx=null;renderGrade();return}
+  if(gradeCtx.idx>=gradeCtx.order.length)gradeCtx.idx=gradeCtx.order.length-1;
   const no=gradeCtx.order[gradeCtx.idx];
   if(no==null){ui.gradeQno=null;renderGrade();return}
   const students=await dbByIdx('students','byClass',ex.classId);
@@ -2801,7 +2834,7 @@ async function renderGradeView(ex){
   const done=parts.length?parts[0].scoreVal!=null:false;
   let imgs='';
   for(const p of parts){
-    const url=URL.createObjectURL(p.blob);
+    const url=blobURL(p.blob);
     const userUrl=url;
     imgs+='<div style="margin-bottom:10px"><img src="'+userUrl+'" data-act="grade-zoom" data-url="'+userUrl+'" style="max-width:100%;max-height:60vh;border:1px solid var(--line);border-radius:8px;cursor:zoom-in"></div>';
   }
@@ -2816,12 +2849,12 @@ async function renderGradeView(ex){
   if(full>=5){
     scoreBtns+='<button class="gs dim" data-act="grade-score-set" data-v="'+(Math.max(0,cur!=null?cur:0)+0.5)+'">+0.5</button>';
   }
-  scoreBtns+='<button class="gs dim" data-act="grade-score-set" data-v="'+(parseFloat(gradeCtx.buf||'')||'' )+'">'+esc(gradeCtx.buf||'—')+'</button>';
+  if(gradeCtx.buf)scoreBtns+='<button class="gs dim" data-act="grade-score-set" data-v="'+esc(gradeCtx.buf)+'">'+esc(gradeCtx.buf)+'</button>';
   scoreBtns+='<button class="gs dim" data-act="grade-clear-score">清零</button>';
   /* 缩略图 */
   const thumbs=gradeCtx.order.map(function(o,i){
     const cc=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
-    const url=cc.length?URL.createObjectURL(cc[0].blob):'';
+    const url=cc.length?blobURL(cc[0].blob):'';
     const st=cc.length&&cc[0].scoreVal!=null?cc[0].scoreVal:null;
     const fl=cc.length?cc[0].flag:'';
     return '<div class="gt'+(i===gradeCtx.idx?' on':'')+'" data-act="grade-jump" data-i="'+i+'" title="'+esc(o)+'">'
@@ -2916,6 +2949,7 @@ async function computeScorebook(examId){
   const {exam,pages,crops,revs,students}=await examData(examId);
   if(!exam)return null;
   const meta=await examMeta(exam);
+  if(!meta)return {error:'模板不存在或已删除，无法计算成绩',exam:exam,meta:null,rows:[],perQStat:{},perScore:0};
   const perScore=exam.perScore||meta.layout.perScore||2;
   const byNo={};
   pages.forEach(function(p){
@@ -2997,6 +3031,7 @@ async function renderScore(){
   const book=await computeScorebook(ex.id);
   if(!book){$('page').innerHTML=emptyBox('❌','计算失败');return}
   const meta=book.meta;
+  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('❌',''+(book.error||'模板缺失，无法计算成绩')+'<br>请到「答题卡模板」恢复或重建该模板。')+'</div>';return}
   const sc=book.rows.filter(function(r){return !r.absent});
   const n=sc.length;
   const sf=sc.length?sc.reduce(function(a,r){return a+r.total},0)/sc.length:0;
@@ -3161,7 +3196,14 @@ Object.assign(ACTS,{
   },
   'score-json':async function(el){
     const book=await computeScorebook(el.dataset.id);
-    const pack={app:'yuejuan_score',v:1,exportedAt:timestamp(),exam:book.exam,meta:{choiceQnos:book.meta.choiceQnos,subjList:book.meta.subjList,perScore:book.perScore},rows:book.rows};
+    const rowsClean=book.rows.map(function(r2){
+      const subj2={};
+      Object.keys(r2.subj).forEach(function(k){
+        subj2[k]={score:r2.subj[k].score,full:r2.subj[k].full,ai:r2.subj[k].ai};
+      });
+      return {no:r2.no,name:r2.name,note:r2.note,absent:r2.absent,obj:r2.obj,objScore:r2.objScore,subj:subj2,subjScore:r2.subjScore,subjGraded:r2.subjGraded,total:r2.total,rank:r2.rank};
+    });
+    const pack={app:'yuejuan_score',v:1,exportedAt:timestamp(),exam:book.exam,meta:{choiceQnos:book.meta.choiceQnos,subjList:book.meta.subjList,perScore:book.perScore},rows:rowsClean};
     download('成绩_'+book.exam.name+'_'+tsName()+'.json',JSON.stringify(pack,null,2),'application/json;charset=utf-8');
     toast('成绩 JSON 已导出','ok');
   },
@@ -3184,7 +3226,7 @@ Object.assign(ACTS,{
     book.meta.subjList.forEach(function(sq){
       const sub=r.subj[sq.qno]||{};
       if(sub.marked){
-        const url=URL.createObjectURL(sub.marked);
+        const url=blobURL(sub.marked);
         html+='<div><img src="'+url+'" style="max-width:220px;border:1px solid var(--line);border-radius:8px" data-act="grade-zoom" data-url="'+url+'" data-large="1"><div class="kv" style="text-align:center">题 '+esc(String(sq.qno))+'　<b>'+sub.score+'</b>/'+sub.full+'</div></div>';
       }else{
         html+='<div class="kv">题 '+esc(String(sq.qno))+'：'+(sub.score!=null?sub.score+'分':'未阅')+'</div>';
@@ -3364,6 +3406,7 @@ async function renderSet(){
     +'<b>版本：</b>智能阅卷 v1.0（网页版）· 对标 答题卡助手 Pro v4.3.0 核心闭环 · 2026-09</div></div>';
   $('page').innerHTML=html;
   afterRender(async function(){
+    bindFileInput('backupFile',backupImport);
     try{
       if(navigator.storage&&navigator.storage.estimate){
         const est=await navigator.storage.estimate();
@@ -3454,14 +3497,14 @@ async function backupExport(includeBlobs){
     if(includeBlobs){
       const b64p=function(blob){return new Promise(function(res){if(!blob)return res(null);const fr=new FileReader();fr.onload=function(){res(String(fr.result||'').split(',')[1]||'')};fr.onerror=function(){res(null)};fr.readAsDataURL(blob);})};
       pack.pages=[];
-      for(const p of pages)pack.pages.push({id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta,b64:await b64p(p.blob)});
+      for(const p of pages)pack.pages.push({id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta,b64:await b64p(p.blob),thumb:p.thumb||''});
       pack.crops=[];
-      for(const c of crops)pack.crops.push({id:c.id,examId:c.examId,studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,
-        scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy,
+      for(const c of crops)pack.crops.push({id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,
+        scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy,thumb:c.thumb||'',
         b64:await b64p(c.blob),markedB64:await b64p(c.marked)});
     }else{
       pack.pages=pages.map(function(p){return {id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta}});
-      pack.crops=crops.map(function(c){return {id:c.id,examId:c.examId,studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy}});
+      pack.crops=crops.map(function(c){return {id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy}});
     }
     download('智能阅卷备份_'+tsName()+'.json',JSON.stringify(pack),'application/json;charset=utf-8');
     toast('备份已导出','ok');
@@ -3477,17 +3520,26 @@ async function backupImport(file){
     for(const s of ['classes','students','templates','exams','pages','crops','revs'])await dbClear(s);
     for(const k of ['classes','students','templates','exams'])for(const it of (obj.data[k]||[]))await dbPut(k,it);
     for(const r of (obj.revs||[]))await dbPut('revs',r);
-    toast('导入完成（'+((obj.data&&obj.data.students||[]).length)+' 名学生 / '+(obj.data.exams||[]).length+' 场考试）','ok');
+    /* 恢复扫描页/裁剪图（完整备份按 base64 还原；最小备份仅还原元数据/判分） */
+    const full=obj.pages&&obj.pages.length&&obj.pages[0].b64;
+    if(obj.pages)for(const p of obj.pages){
+      await dbPut('pages',{id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo||'',meta:p.meta||{},
+        blob:full&&p.b64?await b64ToBlob(p.b64):null,thumb:full&&p.thumb||''});
+    }
+    if(obj.crops)for(const c of obj.crops){
+      await dbPut('crops',{id:c.id,examId:c.examId,exam_q:c.examId+'|'+c.qno,pageId:c.pageId||'',
+        studentNo:c.studentNo||'',qno:c.qno,part:c.part||0,score:c.score,
+        scoreVal:c.scoreVal!=null?c.scoreVal:null,aiScore:c.aiScore!=null?c.aiScore:null,
+        aiReason:c.aiReason||'',flag:c.flag||'',markedBy:c.markedBy||'',
+        blob:full&&c.b64?await b64ToBlob(c.b64):null,marked:full&&c.markedB64?await b64ToBlob(c.markedB64):null,
+        thumb:full&&c.thumb||''});
+    }
+    toast('导入完成（'+((obj.data&&obj.data.students||[]).length)+' 名学生 / '+(obj.data.exams||[]).length+' 场考试'
+      +(full?' · 已恢复扫描图':' · 未含扫描图（可重扫）')+'）','ok');
     go('home');
   }catch(err){toast('导入失败：'+err.message,'err')}
 }
-afterRender(function(){
-  const f=$('backupFile');
-  if(f)f.addEventListener('change',function(){
-    if(f.files&&f.files[0])backupImport(f.files[0]);
-    f.value='';
-  });
-});
+/* 备份文件绑定由 renderSet 内的 afterRender 完成 */
 
 /*__YJ_MORE__*/
 /* 调试钩子（供自动化校验/排障使用） */
