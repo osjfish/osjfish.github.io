@@ -1,0 +1,3504 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--category:教育-->
+<title>智能阅卷</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --zhu:#A93226;--zhu2:#C0392B;--zhu3:#7B241C;
+  --bg:#F6F4EF;--card:#FFFFFF;--txt:#2C3E50;--txt2:#6B7A8C;
+  --line:#E5E0D8;--gold:#B8860B;--green:#1F8A70;--blue:#33507A;--purple:#7A4E9E;
+  --warn:#B45309;--danger:#B8453A;
+}
+html,body{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);height:100%;font-size:14px}
+.sj-app{display:flex;min-height:100vh}
+/* ===== 侧栏 ===== */
+.sj-side{width:200px;background:linear-gradient(180deg,#26303F,#1B2430);color:#fff;position:fixed;top:0;bottom:0;left:0;display:flex;flex-direction:column;z-index:50}
+.sj-logo{padding:20px 16px 14px;font-size:17px;font-weight:700;letter-spacing:1px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sj-logo b{color:#E6A23C}
+.sj-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.sj-nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;color:#C8D1DC;font-size:14px;margin-bottom:2px;transition:.18s}
+.sj-nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.sj-nav-item.on{background:var(--zhu);color:#fff;box-shadow:0 3px 10px rgba(169,50,38,.4)}
+.sj-nav-item .ic{width:20px;text-align:center;font-size:15px}
+.sj-side-foot{padding:12px 16px;font-size:11px;color:#7F8C9B;line-height:1.6;border-top:1px solid rgba(255,255,255,.08)}
+/* ===== 主区 ===== */
+.sj-main{flex:1;margin-left:200px;padding:0 26px 40px;min-width:0}
+.sj-top{position:sticky;top:0;z-index:40;background:rgba(246,244,239,.92);backdrop-filter:blur(8px);padding:16px 2px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.sj-title{font-size:20px;font-weight:700}
+.sj-title small{font-weight:400;color:var(--txt2);font-size:12.5px;margin-left:10px}
+.sj-topbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sj-page{max-width:1180px}
+/* ===== 通用 ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(44,62,80,.05)}
+.card h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h3::before{content:'';width:3px;height:14px;background:var(--zhu);border-radius:2px}
+.card .tip{color:var(--txt2);font-size:12.5px;line-height:1.7}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--txt);cursor:pointer;font-size:13.5px;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:#C9BFB0;background:#FBF9F5}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-p{background:var(--zhu);border-color:var(--zhu);color:#fff}
+.btn-p:hover{background:var(--zhu2);border-color:var(--zhu2)}
+.btn-g{background:var(--green);border-color:var(--green);color:#fff}
+.btn-g:hover{background:#187A64}
+.btn-b{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-b:hover{background:#2B4467}
+.btn-o{background:#fff;border-color:var(--gold);color:var(--gold)}
+.btn-d{background:#fff;border-color:#E8C4BE;color:var(--danger)}
+.btn-d:hover{background:#FBF1EF}
+.btn-s{padding:5px 10px;font-size:12.5px;border-radius:7px}
+.btn-sm{padding:4px 9px;font-size:12px;border-radius:6px}
+.inp,select.inp,textarea.inp{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fff;color:var(--txt);outline:none;font-family:inherit}
+.inp:focus{border-color:var(--zhu);box-shadow:0 0 0 2px rgba(169,50,38,.08)}
+textarea.inp{resize:vertical;line-height:1.6}
+label.f-lb{display:block;font-size:12.5px;color:var(--txt2);margin:10px 0 4px}
+.f-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 14px}
+.f-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.tbl th{background:#F4F0E8;color:#5A4E3C;font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
+table.tbl td{padding:8px 10px;border-bottom:1px solid #EFEAE2;vertical-align:middle}
+table.tbl tr:hover td{background:#FBF8F3}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
+.bd-ok{background:#E3F2EC;color:#1A6B54}.bd-warn{background:#FCF0DD;color:#9A6110}
+.bd-err{background:#FBE7E4;color:#B03A2E}.bd-info{background:#E6EDF7;color:#2B4467}
+.bd-gray{background:#EEF0F2;color:#5B6570}.bd-purple{background:#F0E7F8;color:#64348F}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:#F4F0E8;border:1px solid var(--line);font-size:12px;color:#5A4E3C;margin:2px 4px 2px 0;cursor:pointer}
+.chip.on{background:var(--zhu);color:#fff;border-color:var(--zhu)}
+.chip.gray.on{background:#5B6570;border-color:#5B6570}
+.kv{font-size:12.5px;color:var(--txt2)}
+.kv b{color:var(--txt)}
+.empty{padding:36px;text-align:center;color:var(--txt2);font-size:13px}
+.empty .big{font-size:34px;margin-bottom:8px}
+.progress{width:100%;background:#EDE8DF;border-radius:99px;height:10px;overflow:hidden}
+.progress>div{height:100%;background:linear-gradient(90deg,var(--zhu),#E67E22);border-radius:99px;transition:width .2s}
+/* ===== 考试卡片 ===== */
+.exam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.exam-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:15px;display:flex;flex-direction:column;gap:9px;transition:.18s}
+.exam-card:hover{box-shadow:0 6px 18px rgba(44,62,80,.09);transform:translateY(-2px)}
+.exam-card .t{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.exam-card .meta{font-size:12.5px;color:var(--txt2);line-height:1.7}
+.exam-card .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+/* ===== 统计 ===== */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat .n{font-size:24px;font-weight:800;color:var(--zhu)}
+.stat .l{font-size:12px;color:var(--txt2);margin-top:2px}
+/* ===== 答案录入 ===== */
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+.qcell{border:1px solid var(--line);border-radius:9px;padding:7px;background:#FCFAF6}
+.qcell .qn{font-size:12px;color:var(--txt2);margin-bottom:5px}
+.qcell .opts{display:flex;gap:4px}
+.qcell .opt{flex:1;padding:3px 0;text-align:center;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:#fff;font-size:12.5px;font-weight:700;color:#98A5B0}
+.qcell .opt.on{background:var(--zhu);color:#fff;border-color:var(--zhu)}
+.qcell .opt.dim{opacity:.35}
+/* ===== 图表 ===== */
+.chart-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;overflow:hidden}
+.chart-box .ct{font-size:13px;font-weight:600;margin-bottom:6px;color:#5A4E3C}
+/* ===== 阅卷台 ===== */
+.gwrap{display:flex;gap:14px;align-items:flex-start}
+.gimg{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px;text-align:center}
+.gimg img{max-width:100%;max-height:70vh;border-radius:6px;cursor:zoom-in}
+.gside{width:250px;flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
+.gscore{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.gscore .gs{padding:8px 0;text-align:center;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;background:#fff}
+.gscore .gs:hover{border-color:var(--zhu)}
+.gscore .gs.on{background:var(--zhu);color:#fff;border-color:var(--zhu)}
+.gscore .gs.dim{opacity:.4}
+.gthumbs{display:flex;gap:6px;overflow-x:auto;padding:4px 0}
+.gthumbs .gt{flex-shrink:0;border:2px solid transparent;border-radius:8px;cursor:pointer;padding:2px}
+.gthumbs .gt.on{border-color:var(--zhu)}
+.gthumbs img{width:64px;height:64px;object-fit:cover;border-radius:6px;display:block}
+.prog-line{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12.5px;color:var(--txt2)}
+/* ===== 模式框 ===== */
+.m-overlay{position:fixed;inset:0;background:rgba(20,25,32,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.m-box{background:#fff;border-radius:14px;max-width:min(860px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.m-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.m-title{font-size:16px;font-weight:700}
+.m-x{border:none;background:none;font-size:18px;cursor:pointer;color:var(--txt2);padding:4px}
+.m-x:hover{color:var(--zhu)}
+.m-body{padding:16px 18px;overflow-y:auto}
+.m-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+/* ===== 提示 ===== */
+.toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:400;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:#26303F;color:#fff;padding:9px 18px;border-radius:9px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.25);animation:tin .25s}
+.toast.err{background:var(--danger)}.toast.ok{background:var(--green)}
+@keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+/* ===== 扫描结果 ===== */
+.scan-item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.scan-item img{width:52px;height:52px;object-fit:cover;border-radius:7px;border:1px solid var(--line)}
+/* ===== 预览画布 ===== */
+.preview-box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;justify-content:center;overflow:auto;max-height:75vh}
+.preview-box canvas{max-width:100%;height:auto;box-shadow:0 2px 10px rgba(0,0,0,.15);background:#fff}
+.marked-badge{position:absolute;right:8px;bottom:8px;background:rgba(20,25,32,.82);color:#fff;padding:4px 12px;border-radius:8px;font-weight:800;font-size:15px}
+.tpl-thumb{width:110px;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
+.review-plot{position:relative;display:inline-block}
+/* ===== 响应式 ===== */
+@media(max-width:900px){
+  .sj-side{width:60px}
+  .sj-side .sj-logo span,.sj-nav-item span.tx,.sj-side-foot{display:none}
+  .sj-nav-item{justify-content:center;padding:12px 4px}
+  .sj-main{margin-left:60px;padding:0 10px 30px}
+  .gwrap{flex-direction:column}
+  .gside{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="sj-app">
+  <aside class="sj-side">
+    <div class="sj-logo">📝 <b>智能阅卷</b></div>
+    <nav class="sj-nav" id="nav"></nav>
+    <div class="sj-side-foot">数据存于本地浏览器<br>请定期在「设置」导出备份<br><span style="color:#E6A23C">支持生成答题卡 → 扫描识别<br>→ 按题阅卷 → 成绩分析</span></div>
+  </aside>
+  <main class="sj-main">
+    <header class="sj-top">
+      <div class="sj-title" id="pageTitle"></div>
+      <div class="sj-topbtns" id="topBtns"></div>
+    </header>
+    <section class="sj-page" id="page"></section>
+  </main>
+</div>
+<div class="m-overlay" id="mOverlay" hidden><div class="m-box" id="mBox"></div></div>
+<div class="toasts" id="toasts"></div>
+
+<script src="./lib/pdf.min.js"></script>
+<script>
+try{pdfjsLib.GlobalWorkerOptions.workerSrc='./lib/pdf.worker.min.js';}catch(e){}
+</script>
+<script src="./lib/jspdf.umd.min.js"></script>
+<script src="./lib/qrcode.js"></script>
+<script src="./lib/jsQR.js"></script>
+<script src="./lib/xlsx.full.min.js"></script>
+<script>
+(function(){
+'use strict';
+/* ============================================================
+   智能阅卷 · 网页版
+   依据：答题卡助手 Pro v4.3.0 逆向分析（Apps/阅卷系统技术方案.md）
+   功能：答题卡生成/打印PDF → 扫描识别(OMR) → 主观题切割 → 按题阅卷(+AI) → 成绩分析导出
+   数据：IndexedDB（本地优先，可导出备份）
+   ============================================================ */
+
+/* ---------- 小工具 ---------- */
+const $=function(id){return document.getElementById(String(id).replace(/^#/,''))};
+const esc=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')};
+const uid=function(p){return (p||'x')+Date.now().toString(36)+Math.random().toString(36).slice(2,8)};
+const sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+const today=function(){const d=new Date(),p=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())};
+const timestamp=function(){const d=new Date(),p=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())};
+const tsName=function(){const d=new Date(),p=function(n){return String(n).padStart(2,'0')};return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())};
+const now=function(){return Date.now()};
+function toast(msg,type){
+  const t=document.createElement('div');
+  t.className='toast '+(type||'');
+  t.textContent=String(msg);
+  $('toasts').appendChild(t);
+  setTimeout(function(){t.style.opacity='0';t.style.transition='.3s';setTimeout(function(){t.remove()},300)},2600);
+}
+function download(name,data,mime){
+  const blob=data instanceof Blob?data:new Blob([data],{type:mime||'application/octet-stream'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500);
+}
+function copyText(t){
+  const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');toast('已复制到剪贴板')}catch(e){toast('复制失败','err')}
+  ta.remove();
+}
+function loadJSON(key,sub){
+  try{const s=JSON.parse(localStorage.getItem(key)||'null');return sub?(s&&s[sub]!=null?s[sub]:null):(s||null)}catch(e){return null}
+}
+function saveJSON(key,val){try{localStorage.setItem(key,JSON.stringify(val))}catch(e){}}
+
+/* ---------- 常数 ---------- */
+const PAPER={A4:[210,297],A3:[297,420],B4:[257,364],'8K':[260,368]};
+const PAPER_NAMES={A4:'A4（210×297mm）',A3:'A3（297×420mm）',B4:'B4（257×364mm）','8K':'8开（260×368mm）'};
+const NOTE_TEXT='1.严禁在答题卡图像定位点周围区域做任何涂写或标记，否则答题卡作废，不计成绩。2.应保持答题卡的清洁，不得折叠、污染、破损等，不得在答题卡上写与题目无关的内容。3.填涂时要做到深、满、匀，即涂准位置，涂深颜色，涂满选项的方框，整个答题卡的所有涂点要涂的基本一致；涂错时用橡皮擦干净，且不造成答题卡破损。4.主观题作答请在对应区域内书写，超出答题框的内容可能无法评阅。';
+const VERDICT_NAMES={RIGHT:'对',WRONG:'错',BLANK:'空白',MULTI:'多涂',REVIEW:'待复核',OK:'已涂'};
+const PROVIDERS={
+  deepseek:{label:'DeepSeek（视觉）',url:'https://api.deepseek.com/chat/completions',models:['deepseek-v4-flash-vision-exp'],keyUrl:'platform.deepseek.com'},
+  doubao:{label:'豆包（火山方舟）',url:'https://ark.cn-beijing.volces.com/api/v3/chat/completions',models:['doubao-seed-1-6-vision-250815','doubao-1-5-vision-pro-32k-250115'],keyUrl:'console.volcengine.com/ark'},
+  glm:{label:'GLM（智谱）',url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',models:['glm-4.5v','glm-4v-plus-0111','glm-4v-flash-241112'],keyUrl:'open.bigmodel.cn'},
+  custom:{label:'自定义（OpenAI 兼容）',url:'',models:[],keyUrl:'使用支持图片输入的任一 OpenAI 兼容接口'}
+};
+const IMG_LEVELS={lite:{w:800,q:0.72,label:'省流'},std:{w:900,q:0.82,label:'标准'},hd:{w:1200,q:0.9,label:'高清'}};
+const LS_AI='yj_ai',LS_OMR='yj_omr',LS_UI='yj_ui';
+
+function defaultAI(){
+  return {provider:'deepseek',keys:{},models:{},customUrl:'',temp:0.35,maxTokens:4096,imgLevel:'std'};
+}
+function defaultOMR(){
+  return {k:0.75,win:15,inkHigh:0.45,inkLow:0.25,sens:'std'};
+}
+let omr=Object.assign(defaultOMR(),loadJSON(LS_OMR)||{});
+let ai=Object.assign(defaultAI(),loadJSON(LS_AI)||{});
+
+/* ---------- 状态 ---------- */
+let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:null,gradeExam:null,gradeQno:null,scoreExam:null};
+let scanCtx=null;   // 扫描会话 {examId, total, done, status, logs}
+
+/* ---------- IndexedDB ---------- */
+const DB_NAME='yuejuan_db',DB_VER=1;
+let db=null;
+function openDB(){
+  return new Promise(function(res,rej){
+    if(db)return res(db);
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=function(ev){
+      const d=req.result;
+      if(!d.objectStoreNames.contains('classes'))d.createObjectStore('classes',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('students')){const s=d.createObjectStore('students',{keyPath:'id'});s.createIndex('byClass','classId');}
+      if(!d.objectStoreNames.contains('templates'))d.createObjectStore('templates',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('exams'))d.createObjectStore('exams',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('pages')){const s=d.createObjectStore('pages',{keyPath:'id'});s.createIndex('byExam','examId');}
+      if(!d.objectStoreNames.contains('crops')){const s=d.createObjectStore('crops',{keyPath:'id'});s.createIndex('byExamQ','exam_q');}
+      if(!d.objectStoreNames.contains('revs'))d.createObjectStore('revs',{keyPath:'id'});
+    };
+    req.onsuccess=function(){db=req.result;res(db)};
+    req.onerror=function(){rej(req.error)};
+  });
+}
+function reqp(req){return new Promise(function(res,rej){req.onsuccess=function(){res(req.result)};req.onerror=function(){rej(req.error)}})}
+const dbPut=async function(store,obj){const t=db.transaction(store,'readwrite');await reqp(t.objectStore(store).put(obj))};
+const dbGet=async function(store,key){const t=db.transaction(store,'readonly');return reqp(t.objectStore(store).get(key))};
+const dbAll=async function(store){const t=db.transaction(store,'readonly');return reqp(t.objectStore(store).getAll())};
+const dbByIdx=async function(store,idx,val){const t=db.transaction(store,'readonly');return reqp(t.objectStore(store).index(idx).getAll(val))};
+const dbDel=async function(store,key){const t=db.transaction(store,'readwrite');await reqp(t.objectStore(store).delete(key))};
+const dbClear=async function(store){const t=db.transaction(store,'readwrite');await reqp(t.objectStore(store).clear())};
+
+/* ---------- 模态框 ---------- */
+let mResolve=null;
+function dlg(html,opts){
+  opts=opts||{};
+  const box=$('mBox');
+  box.innerHTML='<div class="m-head"><div class="m-title">'+esc(opts.title||'')+'</div><button class="m-x" data-act="dlg-close">✕</button></div>'
+    +'<div class="m-body">'+html+'</div>'
+    +(opts.foot?'<div class="m-foot">'+opts.foot+'</div>':'');
+  $('mOverlay').hidden=false;
+  box.style.width=opts.wide?'min(94vw,1100px)':'';
+}
+function dlgClose(){const ov=$('mOverlay');ov.hidden=true;$( 'mBox').innerHTML='';if(mResolve){const r=mResolve;mResolve=null;r(null);}}
+document.addEventListener('keydown',function(e){
+  if(!$('mOverlay').hidden){
+    if(e.key==='Escape'){dlgClose();return}
+    if(e.key==='Enter'){
+      const tag=document.activeElement&&document.activeElement.tagName;
+      if(tag==='TEXTAREA')return;
+      const okBtn=$('mBox').querySelector('[data-act="dlg-ok"],[data-act="dlg-okval"]');
+      if(okBtn){e.preventDefault();ACTS[okBtn.dataset.act]&&ACTS[okBtn.dataset.act](okBtn);}
+    }
+  }
+});
+function dlgConfirm(title,msg,okText){
+  return new Promise(function(res){
+    dlg('<div style="font-size:14px;line-height:1.8">'+msg+'</div>',{
+      title:title,
+      foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="dlg-ok" data-v="1">'+esc(okText||'确定')+'</button>'
+    });
+    mResolve=res;
+  });
+}
+function dlgPrompt(title,label,val){
+  return new Promise(function(res){
+    dlg('<label class="f-lb">'+esc(label)+'</label><input class="inp" id="dlgInp" value="'+esc(val==null?'':val)+'">',{
+      title:title,
+      foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="dlg-okval">确定</button>'
+    });
+    mResolve=res;
+    setTimeout(function(){const i=$('dlgInp');if(i){i.focus();i.select()}},60);
+  });
+}
+
+/* ---------- 动作分发 ---------- */
+const ACTS={};
+document.addEventListener('click',function(e){
+  const el=e.target.closest('[data-act]');
+  if(!el)return;
+  const f=ACTS[el.dataset.act];
+  if(f){try{f(el,e)}catch(err){console.error(err);toast('操作出错：'+err.message,'err')}}
+});
+document.addEventListener('input',function(e){
+  const el=e.target.closest('[data-on]');
+  if(!el)return;
+  const f=ACTS[el.dataset.on];
+  if(f){try{f(el,e)}catch(err){console.error(err);toast('出错：'+err.message,'err')}}
+});
+document.addEventListener('change',function(e){
+  const el=e.target.closest('[data-on]');
+  if(!el)return;
+  const f=ACTS[el.dataset.on];
+  if(f){try{f(el,e)}catch(err){console.error(err);toast('出错：'+err.message,'err')}}
+});
+
+/* ---------- 导航 ---------- */
+const TABS=[
+  ['home','🏠','首页'],['tpl','📋','答题卡模板'],['class','👥','班级学生'],['exam','🗂️','考试管理'],
+  ['scan','📷','扫描识别'],['grade','✍️','阅卷工作台'],['score','📊','成绩分析'],['set','⚙️','设置']
+];
+const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级与学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩与分析',set:'设置'};
+function renderNav(){
+  $('nav').innerHTML=TABS.map(function(t){
+    return '<div class="sj-nav-item '+(ui.tab===t[0]?'on':'')+'" data-act="nav" data-tab="'+t[0]+'"><span class="ic">'+t[1]+'</span><span class="tx">'+t[2]+'</span></div>';
+  }).join('');
+}
+function go(tab){
+  ui.tab=tab;
+  saveJSON(LS_UI,{tab:tab});
+  renderNav();
+  $('pageTitle').innerHTML=TAB_TITLES[tab]||'';
+  $('topBtns').innerHTML='';
+  const f={home:renderHome,tpl:renderTpl,class:renderCls,exam:renderExam,scan:renderScan,grade:renderGrade,score:renderScore,set:renderSet}[tab]||renderHome;
+  f();
+}
+function afterRender(fn){setTimeout(fn,0)}
+
+/* ---------- 渲染基元 ---------- */
+function statCards(list){
+  return '<div class="stats">'+list.map(function(s){
+    return '<div class="stat"><div class="n">'+esc(s.n)+'</div><div class="l">'+esc(s.l)+'</div></div>';
+  }).join('')+'</div>';
+}
+function emptyBox(icon,text){
+  return '<div class="empty"><div class="big">'+icon+'</div>'+text+'</div>';
+}
+function badge(cls,txt){return '<span class="badge bd-'+cls+'">'+esc(txt)+'</span>'}
+
+/* ---------- 各页渲染入口（在各代码段中实现） ---------- */
+function renderHome(){} function renderTpl(){} function renderCls(){} function renderExam(){}
+function renderScan(){} function renderGrade(){} function renderScore(){} function renderSet(){}
+
+Object.assign(ACTS,{
+  'nav':function(el){go(el.dataset.tab)},
+  'dlg-close':function(){dlgClose()},
+  'dlg-ok':function(){const ov=$('mOverlay');ov.hidden=true;const r=mResolve;mResolve=null;if(r)r(true)},
+  'dlg-okval':function(){const i=$('dlgInp');const r=mResolve;mResolve=null;dlgClose();if(r)r(i?i.value:'')}
+});
+
+/* ---------- 启动 ---------- */
+window.addEventListener('error',function(e){
+  console.error(e.error||e.message);
+  if(e&&e.message&&!String(e.message).match(/ResizeObserver/i))toast('脚本错误：'+e.message,'err');
+});
+window.__yjReady=openDB().then(function(){go(loadJSON(LS_UI,0)==='home'?'home':(loadJSON(LS_UI)&&loadJSON(LS_UI).tab)||'home')}).catch(function(err){console.error(err);toast('数据库打开失败：'+err.message,'err')});
+
+
+/* ============================================================
+   第二段：答题卡模板 · 版式布局 / 渲染 / 二维码 / PDF
+   ============================================================ */
+
+/* ---------- 版式布局（mm 坐标系，确定性输出） ---------- */
+function paperWH(tpl){
+  const p=PAPER[tpl.paper]||PAPER.A4;
+  if(tpl.orient==='landscape')return {w:p[1],h:p[0]};
+  return {w:p[0],h:p[1]};
+}
+function layoutTemplate(tpl){
+  const wh=paperWH(tpl), w=wh.w, h=wh.h;
+  const M=14, contentW=w-2*M;
+  const big=9, sm=5;
+  const anchors=[
+    {x:12-big/2,y:12-big/2,s:big},
+    {x:w-12-big/2,y:12-big/2,s:big},
+    {x:w-12-big/2,y:h-12-big/2,s:big},
+    {x:12-big/2,y:h-12-big/2,s:big},
+    {x:12-sm/2,y:22-sm/2,s:sm},
+    {x:w-12-sm/2,y:22-sm/2,s:sm}
+  ];
+  const regDigits=Math.max(4,Math.min(9,tpl.regDigits||5));
+  const colW=11, regW=regDigits*colW, regX=Math.round((w-regW)/2);
+  const regRowsY=[];
+  for(let i=0;i<10;i++)regRowsY.push(45.5+i*4.2);
+  const reg={x:regX,y:32,colW:colW,grid:8,rowsY:regRowsY,bubble:3,label:'准 考 证 号'};
+  const pages=[];
+  const contentTop=94, contentBottom=h-28;
+  const qr={x:w-38,y:h-32,size:18};
+
+  function newPage(pi){
+    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&tpl.showInfo!==false)?{x:M,y:32,w:44,h:58}:null,
+      notes:(pi===0&&tpl.showInfo!==false)?{x:w-M-46,y:32,w:46,h:58}:null,
+      reg:reg,regDigits:regDigits,groups:[],subjective:[],qr:qr,anchors:anchors,footer:{n:pi+1,m:0}};
+  }
+  let pg=newPage(0); pages.push(pg);
+  let curY=contentTop;
+  function pageBreak(need){ if(curY+need<=contentBottom)return; pg=newPage(pages.length); pages.push(pg); curY=contentTop; }
+  /* 选择题组 */
+  (tpl.choiceGroups||[]).forEach(function(gp){
+    const choices=Math.max(2,Math.min(6,gp.choices||4));
+    const count=Math.max(1,Math.min(200,gp.count||20));
+    const cellW=10;
+    let cols=Math.max(1,Math.min(count,gp.cols||0));
+    if(!gp.cols){cols=Math.max(1,Math.floor((contentW-6)/(cellW+choices*7.0+1)));}
+    cols=Math.min(cols,count);
+    const rows=Math.ceil(count/cols);
+    const x0=M+6, gridW=contentW-12;
+    const dxq=gridW/cols, dxc=(dxq-cellW)/choices;
+    const label=(gp.label||('一、选择题'))+'';
+    const hNeed=7+rows*5+6;
+    pageBreak(hNeed);
+    const g={first:gp.first||1,count:count,choices:choices,cols:cols,rows:rows,
+      x0:x0,y0:curY+7,dxq:dxq,dy:5,dxc:dxc,size:[4.2,2.8],timing:{dx:-2,w:1,h:2},label:label};
+    pg.groups.push(g);
+    curY+=hNeed;
+  });
+  /* 主观题（超出页面自动分页切分） */
+  (tpl.subjective||[]).forEach(function(sub){
+    const type=sub.type||'lines';
+    const rowH=(type==='grid-cn')?8:(type==='grid-en')?5:8;
+    let remaining=Math.max(1,sub.rows||3), part=0;
+    while(remaining>0){
+      const avail=contentBottom-curY-13;
+      const take=Math.max(1,Math.min(remaining,Math.floor(avail/rowH)));
+      const boxH=take*rowH+6;
+      pageBreak(14+boxH);
+      const sx=M+2, sw=contentW-4, sy=curY+7;
+      pg.subjective.push({qno:sub.qno||('主观'+(part+1)),score:sub.score||10,type:type,rows:take,rowH:rowH,
+        part:part,label:(sub.label||'主观题')+(part>0?'（续第'+(part+1)+'部分）':''),x:sx,y:sy,w:sw,h:boxH});
+      remaining-=take; part++;
+      curY+=13+boxH;
+    }
+  });
+  pages.forEach(function(p,i){p.footer.n=i+1;p.footer.m=pages.length});
+  return {w:w,h:h,pages:pages,regDigits:regDigits,perScore:tpl.perScore||2,id:tpl.id||'',name:tpl.name||''};
+}
+
+/* ---------- 内置预设 ---------- */
+function presetTemplates(){
+  return [
+    {name:'小学客观题卡（40题+解答）',paper:'A4',orient:'portrait',title:'小学答题卡',showInfo:true,regDigits:5,perScore:2,
+      choiceGroups:[{first:1,count:40,choices:4,label:'一、选择题'}],
+      subjective:[{qno:'二',score:30,type:'lines',rows:3,label:'二、解答题'}]},
+    {name:'语文作文卡',paper:'A4',orient:'portrait',title:'语文答题卡',showInfo:true,regDigits:5,perScore:2,
+      choiceGroups:[{first:1,count:10,choices:4,label:'一、选择题'}],
+      subjective:[{qno:'二',score:6,type:'lines',rows:2,label:'二、填空题'},{qno:'三',score:50,type:'grid-cn',rows:34,label:'三、作文题'}]},
+    {name:'英语答题卡（60题+作文）',paper:'A4',orient:'portrait',title:'英语答题卡',showInfo:true,regDigits:5,perScore:1.5,
+      choiceGroups:[{first:1,count:30,choices:4,label:'一、选择题'},{first:31,count:30,choices:4,label:'二、选择题'}],
+      subjective:[{qno:'三',score:25,type:'grid-en',rows:10,label:'三、书面表达'}]},
+    {name:'空白自定义',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regDigits:5,perScore:2,
+      choiceGroups:[],subjective:[]}
+  ];
+}
+function newTemplate(name){
+  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regDigits:5,perScore:2,choiceGroups:[],subjective:[],createdAt:now()};
+}
+
+/* ---------- mm→px 渲染 ---------- */
+function renderPageCanvas(tpl,layout,page,dpi,qrCv){
+  const px=function(m){return m*dpi/25.4};
+  const cv=document.createElement('canvas');
+  cv.width=Math.max(1,Math.round(px(page.w)));
+  cv.height=Math.max(1,Math.round(px(page.h)));
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#FFFFFF';
+  ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  /* 锚点：外白框(0.4mm线) + 内实心方块 */
+  page.anchors.forEach(function(a){
+    const outer=a.s, inner=a.s*0.667;
+    ctx.fillStyle='#fff';
+    ctx.fillRect(px(a.x),px(a.y),px(outer),px(outer));
+    ctx.strokeStyle='#000';ctx.lineWidth=Math.max(1,px(0.4));
+    ctx.strokeRect(px(a.x)+ctx.lineWidth/2,px(a.y)+ctx.lineWidth/2,px(outer)-ctx.lineWidth,px(outer)-ctx.lineWidth);
+    ctx.fillStyle='#000';
+    const off=(outer-inner)/2;
+    ctx.fillRect(px(a.x+off),px(a.y+off),px(inner),px(inner));
+  });
+  /* 标题 */
+  ctx.fillStyle='#000';
+  ctx.font='bold '+Math.max(9,Math.round(px(5.2)))+'px "Microsoft YaHei",sans-serif';
+  ctx.fillText(page.title,px(page.w/2),px(21));
+  /* 姓名/班级/座位号 */
+  if(page.info){
+    const r=page.info;
+    ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
+    ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
+    const rows=[['姓名',8],['班级',18],['座位号',28]];
+    ctx.font=Math.max(8,Math.round(px(3.4)))+'px "Microsoft YaHei",sans-serif';
+    rows.forEach(function(rd){
+      ctx.textAlign='left';
+      ctx.fillText(rd[0],px(r.x+3),px(r.y+rd[1]));
+      ctx.beginPath();ctx.moveTo(px(r.x+16),px(r.y+rd[1]+3.2));ctx.lineTo(px(r.x+r.w-3),px(r.y+rd[1]+3.2));
+      ctx.lineWidth=Math.max(0.7,px(0.3));ctx.strokeStyle='#333';ctx.stroke();
+    });
+  }
+  /* 注意事项 */
+  if(page.notes){
+    const r=page.notes;
+    ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
+    ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
+    ctx.textAlign='left';ctx.font=Math.max(6,Math.round(px(2.4)))+'px "Microsoft YaHei",sans-serif';
+    ctx.fillStyle='#333';
+    let y=r.y+5;
+    const full=NOTE_TEXT;
+    let line='',li=0;
+    for(let i=0;i<full.length;i++){
+      if((line.length+1)*2.4>r.w-5&&line){ctx.fillText(line,px(r.x+2.5),px(y));y+=3.3;if(y>r.y+r.h-2.5)break;line='';}
+      line+=full[i];
+    }
+    if(line)ctx.fillText(line,px(r.x+2.5),px(y));
+  }
+  /* 考号区 */
+  const reg=page.reg;
+  ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
+  ctx.strokeRect(px(reg.x-2.5),px(reg.y-3),px(regDigitsW(reg,page)+5),px(regBottom(reg)-reg.y+3+2.5));
+  ctx.fillStyle='#000';ctx.font=Math.max(8,Math.round(px(3)))+'px "Microsoft YaHei",sans-serif';
+  ctx.fillText(reg.label,px(reg.x+regDigitsW(reg,page)/2),px(reg.y-1));
+  for(let c=0;c<pageRegDigits(reg,page);c++){
+    const cx=reg.x+c*reg.colW;
+    ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
+    ctx.strokeRect(px(cx),px(reg.y),px(reg.grid),px(reg.grid));
+    ctx.font=Math.max(7,Math.round(px(2.6)))+'px "Microsoft YaHei",sans-serif';
+    ctx.fillStyle='#999';ctx.textAlign='center';
+    ctx.fillText(String(c+1),px(cx+reg.grid/2),px(reg.y-6.5));
+  }
+  reg.rowsY.forEach(function(ry,i){
+    for(let c=0;c<pageRegDigits(reg,page);c++){
+      const cx=reg.x+c*reg.colW+(reg.colW-reg.bubble)/2;
+      ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.6,px(0.2));
+      ctx.strokeRect(px(cx),px(ry-reg.bubble/2),px(reg.bubble),px(reg.bubble));
+      ctx.font=Math.max(6,Math.round(px(2.1)))+'px "Microsoft YaHei",sans-serif';
+      ctx.fillStyle='#333';
+      ctx.fillText(String(i),px(cx+reg.bubble/2),px(ry+0.1));
+    }
+    /* 每位数字右侧同步条 */
+    ctx.fillStyle='#000';
+    for(let c=0;c<pageRegDigits(reg,page);c++){
+      const cx=reg.x+c*reg.colW+reg.colW+0.7;
+      ctx.fillRect(px(cx-0.4),px(ry-1),px(0.8),px(2));
+    }
+  });
+  ctx.textAlign='center';
+  /* 选择题组 */
+  page.groups.forEach(function(g){
+    ctx.strokeStyle='#555';ctx.lineWidth=Math.max(0.7,px(0.3));
+    ctx.strokeRect(px(g.x0-3),px(g.y0-2),px((g.dxq*g.cols)+6),px(g.rows*g.dy+4));
+    ctx.fillStyle='#000';
+    ctx.font='bold '+Math.max(8,Math.round(px(3.6)))+'px "Microsoft YaHei",sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText(g.label+'（每题'+(pagePerScore(tpl,layout,page))+'分）',px(g.x0),px(g.y0-4.5));
+    ctx.textAlign='center';
+    for(let c=0;c<g.cols;c++){
+      const xc=g.x0+c*g.dxq;
+      for(let r=0;r<g.rows;r++){
+        const qn=g.first+c*g.rows+r;
+        if(qn>g.first+g.count-1)break;
+        const rowY=g.y0+2.5+r*g.dy;
+        ctx.font='bold '+Math.max(7,Math.round(px(2.8)))+'px "Microsoft YaHei",sans-serif';
+        ctx.fillStyle='#000';
+        ctx.fillText(String(qn),px(xc+4),px(rowY));
+        for(let ch=0;ch<g.choices;ch++){
+          const bx=xc+9+ch*g.dxc;
+          const bw=g.size[0],bh=g.size[1];
+          ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.6,px(0.18));
+          ctx.strokeRect(px(bx),px(rowY-bh/2),px(bw),px(bh));
+          ctx.font=Math.max(6,Math.round(px(2.3)))+'px Arial,sans-serif';
+          ctx.fillStyle='#444';
+          ctx.fillText(String.fromCharCode(65+ch),px(bx+bw/2),px(rowY+0.1));
+        }
+        /* 行同步条 */
+        ctx.fillStyle='#000';
+        ctx.fillRect(px(g.x0-2.2),px(rowY-1),px(1),px(2));
+      }
+    }
+  });
+  /* 主观题区 */
+  page.subjective.forEach(function(sb){
+    ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.8,px(0.35));
+    ctx.strokeRect(px(sb.x),px(sb.y),px(sb.w),px(sb.h));
+    ctx.fillStyle='#000';ctx.font='bold '+Math.max(8,Math.round(px(3.6)))+'px "Microsoft YaHei",sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText(sb.label+'（'+sb.score+'分）',px(sb.x),px(sb.y-4.5));
+    const innerW=sb.w-12;
+    if(sb.type==='lines'){
+      ctx.strokeStyle='#999';ctx.lineWidth=Math.max(0.6,px(0.2));
+      for(let i=0;i<sb.rows;i++){
+        const ly=sb.y+4+i*sb.rowH+2;
+        ctx.beginPath();ctx.moveTo(px(sb.x+5),px(ly));ctx.lineTo(px(sb.x+sb.w-5),px(ly));ctx.stroke();
+      }
+    }else if(sb.type==='grid-cn'){
+      const cell=8;
+      const cols=Math.floor(innerW/cell);
+      const gw=cols*cell, gx=sb.x+(sb.w-gw)/2, gy=sb.y+3;
+      ctx.strokeStyle='#bbb';ctx.lineWidth=Math.max(0.5,px(0.18));
+      for(let c=0;c<=cols;c++){ctx.beginPath();ctx.moveTo(px(gx+c*cell),px(gy));ctx.lineTo(px(gx+c*cell),px(sb.y+sb.h-3));ctx.stroke();}
+      for(let r=0;r<=sb.rows;r++){ctx.beginPath();ctx.moveTo(px(gx),px(gy+r*cell));ctx.lineTo(px(gx+gw),px(gy+r*cell));ctx.stroke();}
+      ctx.fillStyle='#999';ctx.font=Math.max(5,Math.round(px(1.8)))+'px "Microsoft YaHei",sans-serif';
+      ctx.textAlign='left';
+      for(let r=1;r<sb.rows;r++){if(r%5===0)ctx.fillText(String(r*cols)+'格',px(gx),px(gy+r*cell-0.6));}
+    }else if(sb.type==='grid-en'){
+      ctx.strokeStyle='#999';ctx.lineWidth=Math.max(0.5,px(0.18));
+      for(let i=0;i<sb.rows;i++){
+        const base=sb.y+4+i*sb.rowH;
+        const ys=[base,base+1.4,base+2.8,base+4.2];
+        ys.forEach(function(y,k){
+          ctx.beginPath();ctx.moveTo(px(sb.x+4),px(y));ctx.lineTo(px(sb.x+sb.w-4),px(y));ctx.stroke();
+        });
+      }
+    }
+  });
+  /* 页脚 */
+  ctx.fillStyle='#000';ctx.font=Math.max(7,Math.round(px(2.8)))+'px "Microsoft YaHei",sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('第'+page.footer.n+'页,共'+page.footer.m+'页',px(page.w/2),px(page.h-14.5));
+  /* 二维码 */
+  if(qrCv&&page.qr){
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(qrCv,px(page.qr.x),px(page.qr.y),px(page.qr.size),px(page.qr.size));
+  }
+  ctx.textAlign='center';
+  return cv;
+}
+function pageRegDigits(reg,page){return (page.regDigits||regDigitsOf(page))||5}
+function regDigitsOf(page){return page.regDigits||5}
+function regDigitsW(reg,page){return reg.colW*pageRegDigits(reg,page)}
+function regBottom(reg){return reg.rowsY[9]+2.2}
+function pagePerScore(tpl,layout,page){return layout.perScore||2}
+function pageRegDigits2(page){return page.regDigits||5}
+
+/* ---------- 二维码（自描述版式） ---------- */
+function b64FromBytes(bytes){
+  let bin='';
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
+  }
+  return btoa(bin);
+}
+function bytesFromB64(b64){
+  const bin=atob(b64);
+  const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return arr;
+}
+function r1(v){return Math.round(v*10)/10}
+function r2(v){return Math.round(v*100)/100}
+async function qrPayloadFor(layout,tpl,page){
+  /* 紧凑版式：尽量压缩；超限则退化为「仅模板ID」最小模式（本地查模板，找不到走批内模板并告警） */
+  const a=[];
+  page.anchors.forEach(function(x){a.push(r1(x.x),r1(x.y),r1(x.s))});
+  const gs=page.groups.map(function(g){
+    return [g.first,g.count,g.choices,g.cols,g.rows,r1(g.x0),r1(g.y0),r2(g.dxq),r2(g.dy),r2(g.dxc),g.size[0],g.size[1]];
+  });
+  const ss=page.subjective.map(function(s){
+    return [s.qno,s.score,s.type,s.rows,r2(s.rowH),r1(s.x),r1(s.y),r1(s.w),r1(s.h),s.part];
+  });
+  const slice={v:1,p:tpl.paper||'A4',o:tpl.orient||'portrait',w:layout.w,h:layout.h,rd:layout.regDigits,
+    ps:layout.perScore,t:page.title,id:tpl.id||'',pg:page.footer.n,np:page.footer.m,info:page.info?1:0,
+    a:a,r:{x:r1(page.reg.x),y:r1(page.reg.y),dy:r2(page.reg.rowsY[1]-page.reg.rowsY[0]),b:page.reg.bubble,col:page.reg.colW},
+    gs:gs,ss:ss};
+  const json=JSON.stringify(slice);
+  let payload='';
+  try{
+    if(typeof CompressionStream!=='undefined'&&typeof TextEncoder!=='undefined'){
+      const cs=new CompressionStream('deflate-raw');
+      const res=await new Response(new Blob([json]).stream().pipeThrough(cs)).blob();
+      const buf=await res.arrayBuffer();
+      payload='DTZ1|1|'+b64FromBytes(new Uint8Array(buf));
+    }
+  }catch(e){}
+  if(!payload)payload='DTZ1|0|'+b64FromBytes(new TextEncoder().encode(json));
+  if(payload.length<=330)return payload;
+  /* 退化：最小模式（模板ID + 考号位数 + 页数） */
+  return 'DTZ1|2|'+encodeURIComponent(tpl.id||'')+'|'+layout.regDigits+'|'+layout.pages.length;
+}
+async function qrParsePayload(data){
+  data=String(data||'').trim();
+  if(data.indexOf('DTZ1|')!==0)throw new Error('非本系统二维码');
+  const s=data.slice(5);
+  const sep=s.indexOf('|');
+  const flag=s.slice(0,sep);
+  if(flag==='2'){
+    const rest=s.slice(sep+1).split('|');
+    return {minimal:true,tplId:decodeURIComponent(rest[0]||''),regDigits:parseInt(rest[1],10)||5,pages:parseInt(rest[2],10)||1};
+  }
+  const b64=s.slice(sep+1);
+  const bytes=bytesFromB64(b64);
+  let json;
+  if(flag==='1'){
+    if(typeof DecompressionStream==='undefined')throw new Error('浏览器不支持解压');
+    const ds=new DecompressionStream('deflate-raw');
+    const blob=new Blob([bytes]);
+    json=await new Response(blob.stream().pipeThrough(ds)).text();
+  }else{
+    json=new TextDecoder().decode(bytes);
+  }
+  const o=JSON.parse(json);
+  if(o.gs||o.a){  /* 紧凑格式还原为页面版式 */
+    const rowsY=[];
+    const rdy=(o.r.dy&&isFinite(o.r.dy))?o.r.dy:4.2;
+    for(let i=0;i<10;i++)rowsY.push(o.r.y+13.5+i*rdy);
+    const page={w:o.w,h:o.h,title:o.t,info:o.info?{x:14,y:32,w:44,h:58}:null,
+      notes:o.info?{x:o.w-60,y:32,w:46,h:58}:null,
+      reg:{x:o.r.x,y:o.r.y,colW:o.r.col,grid:8,rowsY:rowsY,bubble:o.r.b,label:'准 考 证 号'},
+      regDigits:o.rd,groups:[],subjective:[],footer:{n:o.pg,m:o.np},
+      anchors:[],qr:{x:o.w-38,y:o.h-32,size:18}};
+    const fl=a=>{const out=[];for(let i=0;i<a.length;i+=3)out.push({x:a[i],y:a[i+1],s:a[i+2]});return out};
+    page.anchors=fl(o.a);
+    (o.gs||[]).forEach(function(g){
+      page.groups.push({first:g[0],count:g[1],choices:g[2],cols:g[3],rows:g[4],
+        x0:g[5],y0:g[6],dxq:g[7],dy:g[8],dxc:g[9],size:[g[10],g[11]],timing:{dx:-2.2,w:1,h:2},label:'选择题'});
+    });
+    (o.ss||[]).forEach(function(s){
+      page.subjective.push({qno:s[0],score:s[1],type:s[2],rows:s[3],rowH:s[4],x:s[5],y:s[6],w:s[7],h:s[8],part:s[9],label:'主观题'});
+    });
+    page.perScore=o.ps;
+    return page;
+  }
+  return o;
+}
+async function makeQRCanvas(payload){
+  if(typeof qrcode!=='function')return null;
+  try{
+    const modPx=6;
+    const qr=qrcode(0,'M');
+    qr.addData(payload);
+    qr.make();
+    const n=qr.getModuleCount();
+    const S=(n+8)*modPx;
+    const cv=document.createElement('canvas');
+    cv.width=S;cv.height=S;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,S,S);
+    ctx.fillStyle='#000';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++){
+      if(qr.isDark(r,c))ctx.fillRect((c+4)*modPx,(r+4)*modPx,modPx,modPx);
+    }
+    return cv;
+  }catch(e){console.error(e);return null}
+}
+
+/* ---------- 渲染入口（异步：先备齐各页二维码） ---------- */
+async function renderPagesAsync(tpl,dpi){
+  const layout=layoutTemplate(tpl);
+  const qrs=[];
+  for(let i=0;i<layout.pages.length;i++){
+    const payload=await qrPayloadFor(layout,tpl,layout.pages[i]);
+    qrs.push(await makeQRCanvas(payload));
+  }
+  return {layout:layout,canvases:layout.pages.map(function(p,i){return renderPageCanvas(tpl,layout,p,dpi,qrs[i])})};
+}
+function renderPagesSync(tpl,dpi){
+  const layout=layoutTemplate(tpl);
+  return {layout:layout,canvases:layout.pages.map(function(p){return renderPageCanvas(tpl,layout,p,dpi,null)})};
+}
+
+/* ---------- PDF 导出 ---------- */
+async function exportTemplatePDF(tpl){
+  if(typeof jspdf==='undefined'||!jspdf.jsPDF){toast('jsPDF 库未加载','err');return}
+  dlg('<div class="kv">正在渲染 '+tpl.name+'（'+layoutTemplate(tpl).pages.length+' 页，300dpi）…</div>',{title:'导出 PDF'});
+  try{
+    const {layout,canvases}=await renderPagesAsync(tpl,300);
+    const wh=paperWH(tpl);
+    const pdf=new jspdf.jsPDF({orientation:wh.h>=wh.w?'portrait':'landscape',unit:'mm',format:[wh.w,wh.h],compress:false});
+    canvases.forEach(function(cv,i){
+      if(i>0)pdf.addPage([wh.w,wh.h],wh.h>=wh.w?'portrait':'landscape');
+      pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,wh.w,wh.h,undefined,'FAST');
+    });
+    pdf.save('答题卡_'+tpl.name+'_'+tsName()+'.pdf');
+    dlgClose();
+    toast('PDF 已导出：'+layout.pages.length+' 页（请按 100%/实际大小 打印）','ok');
+  }catch(err){
+    console.error(err);
+    dlgClose();
+    toast('导出失败：'+err.message,'err');
+  }
+}
+
+/* 模板导出/导入（离线分享） */
+function exportTemplateJSON(tpl){
+  const out={app:'yuejuan_tpl',v:1,exportedAt:timestamp(),tpl:tpl};
+  download('答题卡模板_'+tpl.name+'_'+tsName()+'.json',JSON.stringify(out,null,2),'application/json;charset=utf-8');
+  toast('模板已导出','ok');
+}
+async function importTemplateJSON(file){
+  try{
+    const text=await file.text();
+    const obj=JSON.parse(text);
+    const tpl=obj.tpl||(obj.v&&obj.regDigits?obj:null);
+    if(!tpl||!Array.isArray(tpl.choiceGroups))throw new Error('文件格式不正确');
+    tpl.id=uid('tpl_');tpl.createdAt=now();
+    layoutTemplate(tpl);
+    await dbPut('templates',tpl);
+    toast('模板导入成功：'+tpl.name,'ok');
+    renderTpl();
+  }catch(err){toast('导入失败：'+err.message,'err')}
+}
+
+
+/* ============================================================
+   第三段：识别管线（二值化/锚点/单应/同步条/OMR/主观题切割）
+   ============================================================ */
+
+/* ---------- 图像加载 ---------- */
+async function blobCanvas(blob,maxLong){
+  const img=await createImageBitmap(blob);
+  const scale=Math.min(1,maxLong/Math.max(img.width,img.height));
+  const w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+  ctx.drawImage(img,0,0,w,h);
+  return {cv:cv,scale:scale,srcW:img.width,srcH:img.height};
+}
+async function pdfToCanvases(file,maxLong){
+  const buf=await file.arrayBuffer();
+  const doc=await pdfjsLib.getDocument({data:buf}).promise;
+  const out=[];
+  for(let i=1;i<=doc.numPages;i++){
+    const pg=await doc.getPage(i);
+    const vp=pg.getViewport({scale:1});
+    const scale=Math.min(1,maxLong/Math.max(vp.width,vp.height));
+    const vp2=pg.getViewport({scale:scale});
+    const cv=document.createElement('canvas');cv.width=Math.round(vp2.width);cv.height=Math.round(vp2.height);
+    const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+    await pg.render({canvasContext:ctx,viewport:vp2}).promise;
+    out.push(cv);
+  }
+  return out;
+}
+async function filesToCanvases(files,maxLong){
+  const out=[];
+  for(const f of Array.from(files||[])){
+    if(f.type==='application/pdf'||/\.pdf$/i.test(f.name||'')){
+      const pages=await pdfToCanvases(f,maxLong);
+      pages.forEach(function(cv){out.push({cv:cv,file:f.name,pageNo:out.length+1})});
+    }else{
+      const r=await blobCanvas(f,maxLong);
+      out.push({cv:r.cv,file:f.name,pageNo:out.length+1});
+    }
+  }
+  return out;
+}
+
+/* ---------- 灰度与自适应二值化 ---------- */
+function toGray(cv){
+  const w=cv.width,h=cv.height;
+  const d=cv.getContext('2d').getImageData(0,0,w,h).data;
+  const gray=new Uint8Array(w*h);
+  for(let i=0,j=0;i<d.length;i+=4,j++)gray[j]=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000|0;
+  return {gray:gray,w:w,h:h};
+}
+function binarize(gray,w,h,k,win){
+  const I=new Float64Array((w+1)*(h+1));
+  for(let y=0;y<h;y++){
+    let rowSum=0;
+    const yc=(y+1)*(w+1),yp=y*(w+1);
+    for(let x=0;x<w;x++){
+      rowSum+=gray[y*w+x];
+      I[yc+x+1]=I[yp+x+1]+rowSum;
+    }
+  }
+  const bin=new Uint8Array(w*h);
+  for(let y=0;y<h;y++){
+    const y0=Math.max(0,y-win),y1=Math.min(h-1,y+win);
+    for(let x=0;x<w;x++){
+      const x0=Math.max(0,x-win),x1=Math.min(w-1,x+win);
+      const sum=I[(y1+1)*(w+1)+x1+1]-I[y0*(w+1)+x1+1]-I[(y1+1)*(w+1)+x0]+I[y0*(w+1)+x0];
+      const m=sum/((y1-y0+1)*(x1-x0+1));
+      bin[y*w+x]=gray[y*w+x]<m*k?1:0;
+    }
+  }
+  return bin;
+}
+
+/* ---------- 连通域找实心锚点 ---------- */
+function findSolid(bin,w,h,cx,cy,halfX,halfY,minA,maxA,minSol){
+  const x0=Math.max(1,Math.floor(cx-halfX)),x1=Math.min(w-2,Math.ceil(cx+halfX));
+  const y0=Math.max(1,Math.floor(cy-halfY)),y1=Math.min(h-2,Math.ceil(cy+halfY));
+  if(x0>x1||y0>y1)return null;
+  const W=x1-x0+1;
+  const vis=new Uint8Array(W*(y1-y0+1));
+  let best=null;
+  for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++){
+    const idx=(yy-y0)*W+(xx-x0);
+    if(vis[idx]||!bin[yy*w+xx])continue;
+    let area=0,sx=0,sy=0,mx=xx,Mx=xx,my=yy,My=yy;
+    const stack=[xx,yy];vis[idx]=1;
+    while(stack.length){
+      const py=stack.pop(),px2=stack.pop();
+      area++;sx+=px2;sy+=py;
+      if(px2<mx)mx=px2;if(px2>Mx)Mx=px2;if(py<my)my=py;if(py>My)My=py;
+      if(px2+1<=x1&&!vis[(py-y0)*W+(px2+1-x0)]&&bin[py*w+px2+1]){vis[(py-y0)*W+(px2+1-x0)]=1;stack.push(px2+1,py);}
+      if(px2-1>=x0&&!vis[(py-y0)*W+(px2-1-x0)]&&bin[py*w+px2-1]){vis[(py-y0)*W+(px2-1-x0)]=1;stack.push(px2-1,py);}
+      if(py+1<=y1&&!vis[(py+1-y0)*W+(px2-x0)]&&bin[(py+1)*w+px2]){vis[(py+1-y0)*W+(px2-x0)]=1;stack.push(px2,py+1);}
+      if(py-1>=y0&&!vis[(py-1-y0)*W+(px2-x0)]&&bin[(py-1)*w+px2]){vis[(py-1-y0)*W+(px2-x0)]=1;stack.push(px2,py-1);}
+    }
+    const bw2=Mx-mx+1,bh2=My-my+1;
+    if(area<minA||area>maxA)continue;
+    const asp=bw2/bh2;
+    if(asp<0.7||asp>1.4)continue;
+    const sol=area/(bw2*bh2);
+    if(sol<minSol)continue;
+    if(!best||area>best.area)best={x:sx/area,y:sy/area,area:area,w:bw2,h:bh2};
+  }
+  return best;
+}
+function detectAnchors(bin,w,h,page,sX,sY){
+  const pts=[null,null,null,null],smallPts=[null,null],warn=[];
+  page.anchors.forEach(function(a,i){
+    const cx=(a.x+a.s/2)*sX,cy=(a.y+a.s/2)*sY;
+    const halfX=a.s*sX*2.4,halfY=a.s*sY*2.4;
+    const theory=(a.s*0.667*sX)*(a.s*0.667*sY);
+    const r=findSolid(bin,w,h,cx,cy,halfX,halfY,theory*0.45,theory*2.1,0.72);
+    if(r){if(i<4)pts[i]={x:r.x,y:r.y};else smallPts[i-4]={x:r.x,y:r.y};}
+    else warn.push('锚点'+(i+1)+'未找到');
+  });
+  return {pts:pts,small:smallPts,warn:warn};
+}
+
+/* ---------- 单应 DLT ---------- */
+function gaussSolve(A,b,n){
+  const M=[];
+  for(let i=0;i<n;i++){
+    const row=new Array(n+1);
+    for(let j=0;j<n;j++)row[j]=A[i][j];
+    row[n]=b[i];M.push(row);
+  }
+  for(let col=0;col<n;col++){
+    let piv=col;
+    for(let r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[piv][col]))piv=r;
+    if(piv!==col){const t=M[col];M[col]=M[piv];M[piv]=t;}
+    const d=M[col][col]||1e-12;
+    for(let j=col;j<n+1;j++)M[col][j]/=d;
+    for(let r=0;r<n;r++){
+      if(r===col)continue;
+      const f=M[r][col];if(!f)continue;
+      for(let j=col;j<n+1;j++)M[r][j]-=f*M[col][j];
+    }
+  }
+  return M.map(function(row){return row[n]});
+}
+function solveHomo(src,dst){
+  const A=[],b=[];
+  for(let i=0;i<4;i++){
+    const x=src[i].x,y=src[i].y,u=dst[i].x,v=dst[i].y;
+    A.push([x,y,1,0,0,0,-u*x,-u*y]);b.push(u);
+    A.push([0,0,0,x,y,1,-v*x,-v*y]);b.push(v);
+  }
+  const h=gaussSolve(A,b,8);
+  const map=function(x,y){
+    const den=h[6]*x+h[7]*y+1;
+    return {x:(h[0]*x+h[1]*y+h[2])/den,y:(h[3]*x+h[4]*y+h[5])/den};
+  };
+  map.h=h;map.src=src;map.dst=dst;
+  return map;
+}
+
+/* ---------- OMR 采样 ---------- */
+function inkRatio(bin,w,h,cx,cy,r){
+  const x0=Math.max(0,Math.floor(cx-r)),x1=Math.min(w-1,Math.ceil(cx+r));
+  const y0=Math.max(0,Math.floor(cy-r)),y1=Math.min(h-1,Math.ceil(cy+r));
+  if(x0>x1||y0>y1)return 0;
+  let cnt=0,total=0;
+  const r2=r*r;
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const dx=x-cx,dy=y-cy;
+    if(dx*dx+dy*dy<=r2){total++;if(bin[y*w+x])cnt++;}
+  }
+  return total?cnt/total:0;
+}
+/* 同步条行检测：对每个预期行位置，在 x±2mm 竖窗内找黑色横段质心 */
+function detectRowMarks(bin,w,h,expPx,smm){
+  const marks=[];
+  expPx.forEach(function(exp,idx){
+    const mm=smm;
+    const y0=Math.round(exp.y-mm*4.2),y1=Math.round(exp.y+mm*4.2);
+    const x0=Math.round(exp.x-mm*2),x1=Math.round(exp.x+mm*2);
+    const minRun=Math.max(3,Math.round(mm*0.8)),maxRun=Math.round(mm*3.6);
+    let runY=null,runLen=0,best=null,widthMax=0;
+    for(let y=y0;y<=y1;y++){
+      let c=0;
+      for(let x=x0;x<=x1;x++)if(bin[y*w+x])c++;
+      if(c>=4){if(runY===null)runY=y;runLen++;if(c>widthMax)widthMax=c;}
+      else{
+        if(runLen>=minRun&&runLen<=maxRun&&widthMax>=5){
+          const center=runY+(runLen-1)/2;
+          if(best===null||Math.abs(center-exp.y)<Math.abs(best-exp.y))best=center;
+        }
+        runY=null;runLen=0;widthMax=0;
+      }
+    }
+    if(runLen>=minRun&&runLen<=maxRun&&widthMax>=5){
+      const center=runY+(runLen-1)/2;
+      if(best===null||Math.abs(center-exp.y)<Math.abs(best-exp.y))best=center;
+    }
+    marks.push(best);
+  });
+  return marks;
+}
+function rowDeltas(marks,expYs){
+  const n=expYs.length,deltas=new Array(n).fill(null);
+  for(let i=0;i<n;i++)if(marks[i]!=null)deltas[i]=marks[i]-expYs[i];
+  for(let i=0;i<n;i++){
+    if(deltas[i]!=null)continue;
+    for(let j=1;j<n;j++){
+      const k=i-j,l=i+j;
+      if(k>=0&&deltas[k]!=null){deltas[i]=deltas[k];break}
+      if(l<n&&deltas[l]!=null){deltas[i]=deltas[l];break}
+    }
+  }
+  return deltas;
+}
+function judgeQuestion(inks,high,low){
+  const hs=[],mids=[];
+  inks.forEach(function(x){if(x.ink>=high)hs.push(x);else if(x.ink>low)mids.push(x)});
+  if(hs.length===1)return {verdict:'OK',choice:String(hs[0].c)};
+  if(hs.length>1)return {verdict:'MULTI',choice:null};
+  if(mids.length)return {verdict:'REVIEW',choice:null};
+  return {verdict:'BLANK',choice:null};
+}
+function judgeDigit(inks,high,low){
+  const hs=inks.filter(function(x){return x.ink>=high});
+  const mids=inks.filter(function(x){return x.ink>low&&x.ink<high});
+  if(hs.length===1)return {digit:String(hs[0].c),ok:true};
+  if(hs.length>1)return {digit:null,ok:false,reason:'多涂'};
+  if(mids.length)return {digit:null,ok:false,reason:'模糊'};
+  return {digit:null,ok:false,reason:'空白'};
+}
+
+/* ---------- 二维码读取 ---------- */
+function qrFromCanvas(cv){
+  try{
+    if(typeof jsQR!=='function')return null;
+    const d=cv.getContext('2d').getImageData(0,0,cv.width,cv.height);
+    const r=jsQR(d.data,cv.width,cv.height,{inversionAttempts:'dontInvert'});
+    return r&&r.data?r.data:null;
+  }catch(e){return null}
+}
+async function qrFromCrop(cv,H,qr,smm){
+  try{
+    if(!qr||typeof jsQR!=='function')return null;
+    const c=[H(qr.x,qr.y),H(qr.x+qr.size,qr.y),H(qr.x+qr.size,qr.y+qr.size),H(qr.x,qr.y+qr.size)];
+    const margin=qr.size*0.08;
+    const x0=Math.min(c[0].x,c[3].x)-margin*smm, x1=Math.max(c[1].x,c[2].x)+margin*smm;
+    const y0=Math.min(c[0].y,c[1].y)-margin*smm, y1=Math.max(c[3].y,c[2].y)+margin*smm;
+    const wpx=x1-x0,hpx=y1-y0;
+    if(wpx<50||hpx<50||x0<-10||y0<-10||x1>cv.width+10||y1>cv.height+10)return null;
+    const outW=Math.min(560,Math.max(320,Math.round(wpx*3)));
+    const outH=Math.round(outW*hpx/wpx);
+    const oc=document.createElement('canvas');oc.width=outW;oc.height=outH;
+    const octx=oc.getContext('2d');
+    octx.imageSmoothingEnabled=true;
+    if(octx.imageSmoothingQuality)octx.imageSmoothingQuality='high';
+    octx.drawImage(cv,x0,y0,wpx,hpx,0,0,outW,outH);
+    const d=octx.getImageData(0,0,outW,outH);
+    const r=jsQR(d.data,outW,outH);
+    return r&&r.data?r.data:null;
+  }catch(e){return null}
+}
+
+/* ---------- 透视/梯形切块（主观题裁剪用，双线性逆映射） ---------- */
+function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy)}
+function cropQuad(cv,corners,outW,outH){
+  const c=corners;
+  const wpx=(dist(c[0],c[1])+dist(c[2],c[3]))/2;
+  const hpx=(dist(c[0],c[3])+dist(c[1],c[2]))/2;
+  outW=outW||Math.round(wpx);outH=outH||Math.round(hpx);
+  const oc=document.createElement('canvas');oc.width=outW;oc.height=outH;
+  const octx=oc.getContext('2d');
+  const ictx=cv.getContext('2d');
+  const img=ictx.getImageData(0,0,cv.width,cv.height);
+  const d=img.data,sw=cv.width,sh=cv.height;
+  const od=octx.createImageData(outW,outH);
+  const o=od.data;
+  for(let vy=0;vy<outH;vy++){
+    const v=vy/(outH-1||1);
+    for(let ux=0;ux<outW;ux++){
+      const u=ux/(outW-1||1);
+      const px2=(1-v)*((1-u)*c[0].x+u*c[1].x)+v*((1-u)*c[3].x+u*c[2].x);
+      const py2=(1-v)*((1-u)*c[0].y+u*c[1].y)+v*((1-u)*c[3].y+u*c[2].y);
+      const sx2=Math.round(px2),sy2=Math.round(py2);
+      const si=(sy2*sw+sx2)*4;
+      const oi=(vy*outW+ux)*4;
+      if(sx2>=0&&sx2<sw&&sy2>=0&&sy2<sh){
+        o[oi]=d[si];o[oi+1]=d[si+1];o[oi+2]=d[si+2];o[oi+3]=255;
+      }else{o[oi]=255;o[oi+1]=255;o[oi+2]=255;o[oi+3]=255;}
+    }
+  }
+  octx.putImageData(od,0,0);
+  return oc;
+}
+function canvasToJpeg(cv,q){
+  return new Promise(function(res){
+    try{cv.toBlob(function(b){res(b)},'image/jpeg',q||0.88)}catch(e){res(null)}
+  });
+}
+function canvasToThumb(cv,maxW){
+  const sc=Math.min(1,maxW/(cv.width||1));
+  const oc=document.createElement('canvas');
+  oc.width=Math.max(1,Math.round(cv.width*sc));
+  oc.height=Math.max(1,Math.round(cv.height*sc));
+  oc.getContext('2d').drawImage(cv,0,0,oc.width,oc.height);
+  return oc;
+}
+function canvasDataURL(cv,q){
+  const cnv=document.createElement('canvas');
+  cnv.width=cv.width;cnv.height=cv.height;
+  cnv.getContext('2d').drawImage(cv,0,0);
+  return cnv.toDataURL('image/jpeg',q||0.85);
+}
+
+/* ---------- 单页识别 ---------- */
+async function recognizeCanvas(cv,layout,pageIdx,opts){
+  opts=opts||{};
+  const page=layout.pages[pageIdx];
+  const sX=cv.width/page.w,sY=cv.height/page.h;
+  const smm=(sX+sY)/2;
+  const gray=toGray(cv);
+  const bin=binarize(gray.gray,gray.w,gray.h,omr.k,omr.win);
+  const flags=[];
+  let qrData=null,qrFound=false,layoutSlice=null;
+  /* 尝试读取二维码（先整页后裁剪） */
+  const qrRaw=qrFromCanvas(cv);
+  if(qrRaw){try{layoutSlice=await qrParsePayload(qrRaw);qrFound=true}catch(e){}}
+  if(layoutSlice&&layoutSlice.minimal){
+    try{
+      const mtpl=await dbGet('templates',layoutSlice.tplId);
+      if(mtpl){
+        const ml=layoutTemplate(mtpl);
+        layoutSlice=ml.pages[Math.min(pageIdx,ml.pages.length-1)];
+      }else layoutSlice=null;
+    }catch(e){layoutSlice=null}
+  }
+  /* 锚点检测 */
+  const geometry=layoutSlice||page;
+  let det=detectAnchors(bin,cv.width,cv.height,geometry,sX,sY);
+  let pts=det.pts,usedSmall=false;
+  if(pts.filter(function(p){return p}).length<4){
+    /* 用两个小锚 + 两点外推补角 */
+    let haveB=pts.map(function(p){return !!p});
+    const small=det.small;
+    if((haveB[0]===false||haveB[3]===false)&&small[0]){pts[0]=pts[0]||small[0];pts[3]=pts[3]||small[0];usedSmall=true;}
+    if((haveB[1]===false||haveB[2]===false)&&small[1]){pts[1]=pts[1]||small[1];pts[2]=pts[2]||small[1];usedSmall=true;}
+  }
+  let okCount=pts.filter(function(p){return p}).length;
+  if(okCount<4){return {ok:false,status:'locate_fail',flags:['定位失败：锚点不足('+okCount+'/4)'],warn:det.warn}}
+  /* 手动锚点覆盖 */
+  if(opts.manualPts){
+    pts=opts.manualPts.slice(0,4);
+    flags.push(usedSmall?'以小锚辅助定位':null);
+  }
+  const srcPts=geometry.anchors.slice(0,4).map(function(a){return {x:a.x+a.s/2,y:a.y+a.s/2}});
+  const H=solveHomo(srcPts,pts.map(function(p){return {x:p.x,y:p.y}}));
+  /* 小锚残差校验 */
+  if(geometry.anchors[4]&&geometry.anchors[5]&&det.small[0]&&det.small[1]){
+    const e1=H(geometry.anchors[4].x+geometry.anchors[4].s/2,geometry.anchors[4].y+geometry.anchors[4].s/2);
+    const e2=H(geometry.anchors[5].x+geometry.anchors[5].s/2,geometry.anchors[5].y+geometry.anchors[5].s/2);
+    const d1=Math.sqrt((e1.x-det.small[0].x)*(e1.x-det.small[0].x)+(e1.y-det.small[0].y)*(e1.y-det.small[0].y))/smm;
+    const d2=Math.sqrt((e2.x-det.small[1].x)*(e2.x-det.small[1].x)+(e2.y-det.small[1].y)*(e2.y-det.small[1].y))/smm;
+    if(d1>1.8||d2>1.8)flags.push('版式异常：小锚残差'+d1.toFixed(2)+'/'+d2.toFixed(2)+'mm（建议重扫）');
+  }
+  /* 裁剪二维码增强识别 */
+  if(!qrFound){
+    const cropData=await qrFromCrop(cv,H,geometry.qr||page.qr,smm);
+    if(cropData){try{layoutSlice=await qrParsePayload(cropData);qrFound=true}catch(e){}}
+  }
+  const pg2=layoutSlice||page;
+  const reg=pg2.reg;
+  const regDigitsN=(pg2.regDigits!=null)?pg2.regDigits:page.regDigits;
+  /* 考号识别（含同步条行校正） */
+  let studentNo='',regFlags=[],regPts=[],regDBG={marks:null,deltas:null,expY:null,tx:0};
+  for(let c=0;c<regDigitsN;c++){
+    const cx=reg.x+c*reg.colW;
+    const timingX=cx+reg.colW+0.7;
+    const expMarks=reg.rowsY.map(function(ry){return H(timingX,ry)});
+    const marks=detectRowMarks(bin,cv.width,cv.height,expMarks,smm);
+    const deltas=rowDeltas(marks,expMarks.map(function(m){return m.y}));
+    if(c===0){regDBG={marks:marks,deltas:deltas,expY:expMarks.map(function(m){return m.y}),tx:timingX};}
+    const inks=[];
+    for(let dg=0;dg<10;dg++){
+      const bxmm=reg.x+c*reg.colW+(reg.colW-reg.bubble)/2+reg.bubble/2;
+      const p=H(bxmm,reg.rowsY[dg]);
+      const ink=inkRatio(bin,cv.width,cv.height,p.x,p.y+deltas[dg],Math.max(2,reg.bubble/2*smm*0.8));
+      inks.push({c:String(dg),ink:ink});
+    }
+    const j=judgeDigit(inks,omr.inkHigh,omr.inkLow);
+    regPts.push({c:c,j:j,inks:inks});
+    if(j.ok)studentNo+=j.digit;
+    else{studentNo+=j.reason==='空白'?'_':'?';regFlags.push('考号第'+(c+1)+'位'+j.reason);}
+  }
+  if(!studentNo||studentNo.indexOf('_')>=0||studentNo.indexOf('?')>=0)regFlags.push('考号异常（'+studentNo+'）');
+  /* 客观题 OMR */
+  const perQ=[];
+  pg2.groups.forEach(function(g){
+    const gx0=g.x0,gid=g.label;
+    const expTiming=gx0-2.2;
+    const expMarks=[];
+    for(let r=0;r<g.rows;r++)expMarks.push(H(expTiming,g.y0+2.5+r*g.dy));
+    const marks=detectRowMarks(bin,cv.width,cv.height,expMarks,smm);
+    let miss=marks.filter(function(m){return m===null}).length;
+    if(miss>=Math.max(2,g.rows*0.4))flags.push(gid+'同步条缺失'+miss+'条');
+    const deltas=rowDeltas(marks,expMarks.map(function(m){return m.y}));
+    for(let rr=0;rr<g.rows;rr++){
+      for(let c=0;c<g.cols;c++){
+        const qn=g.first+c*g.rows+rr;
+        if(qn>g.first+g.count-1)continue;
+        const rowYmm=g.y0+2.5+rr*g.dy;
+        if(deltas[rr]===null)continue;
+        const inks=[];
+        for(let ch=0;ch<g.choices;ch++){
+          const bxmm=g.x0+c*g.dxq+9+ch*g.dxc+g.size[0]/2;
+          const p=H(bxmm,rowYmm);
+          const ink=inkRatio(bin,cv.width,cv.height,p.x,p.y+deltas[rr],Math.max(2,g.size[0]/2*smm*0.8));
+          inks.push({c:String.fromCharCode(65+ch),ink:ink});
+        }
+        const j=judgeQuestion(inks,omr.inkHigh,omr.inkLow);
+        perQ.push({qno:qn,choice:j.choice,verdict:j.verdict,
+          inks:inks.map(function(x){return Math.round(x.ink*100)/100})});
+      }
+    }
+  });
+  /* 主观题切割 */
+  const crops=[];
+  for(const sb of pg2.subjective){
+    const pad=1.2;
+    const corners=[H(sb.x-pad,sb.y-pad),H(sb.x+sb.w+pad,sb.y-pad),H(sb.x+sb.w+pad,sb.y+sb.h+pad),H(sb.x-pad,sb.y+sb.h+pad)];
+    const wmm=dist(corners[0],corners[1])/smm;
+    const outW=Math.round(Math.min(1300,Math.max(420,wmm*10.5)));
+    const cc=cropQuad(cv,corners,outW,0);
+    crops.push({qno:sb.qno,part:sb.part||0,score:sb.score,cv:cc});
+  }
+  return {ok:true,status:'ok',H:H,geometry:pg2,sX:sX,sY:sY,smm:smm,
+    qrFound:qrFound,qrLayout:!!layoutSlice,
+    studentNo:studentNo,regFlags:regFlags,regPts:regPts,perQ:perQ,crops:crops,flags:flags,warn:det.warn,
+    dbg:{regMarks:regDBG&&regDBG.marks,regDeltas:regDBG&&regDBG.deltas,regExpY:regDBG&&regDBG.expY,anchorPts:pts,timingX0:regDBG&&regDBG.tx}};
+}
+
+/* ---------- 扫描主流程（上传文件或模拟） ---------- */
+async function scanExamPages(exam,files,onProgress){
+  const tpl=await dbGet('templates',exam.templateId);
+  if(!tpl)throw new Error('模板不存在');
+  const layout=layoutTemplate(tpl);
+  const items=await filesToCanvases(files,2200);
+  const results=[];
+  let idx=0;
+  for(const it of items){
+    const pageIdx=Math.min(layout.pages.length-1,(it.pageNo||1)-1);
+    const res=await recognizeCanvas(it.cv,layout,pageIdx,{});
+    const blob=await canvasToJpeg(it.cv,0.88);
+    const pageRec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:it.pageNo,
+      blob:blob,thumb:canvasDataURL(canvasToThumb(it.cv,220),0.7),
+      meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
+        perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,
+        H:res.H?res.H.h:null,srcFile:it.file||''}};
+    await dbPut('pages',pageRec);
+    /* 主观题裁剪入库 */
+    if(res.crops){
+      for(const cp of res.crops){
+        const cid=exam.id+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
+        const blob2=await canvasToJpeg(cp.cv,0.85);
+        const old=await dbGet('crops',cid);
+        await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,
+          studentNo:res.studentNo,qno:cp.qno,part:cp.part,score:cp.score,
+          blob:blob2,thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
+          scoreVal:old&&old.scoreVal!=null?old.scoreVal:null,aiScore:old&&old.aiScore!=null?old.aiScore:null,
+          aiReason:old&&old.aiReason||'',marked:old&&old.marked||null,markedBy:old&&old.markedBy||'',flag:old&&old.flag||''});
+      }
+    }
+    results.push(pageRec);
+    idx++;
+    if(onProgress)onProgress(idx,items.length,it);
+  }
+  return results;
+}
+
+/* ---------- 卡面答题绘制（模拟扫描） ---------- */
+function mulberry32(seed){
+  let a=seed>>>0;
+  return function(){
+    a|=0;a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function seedFrom(str){
+  let s=0;
+  for(let i=0;i<str.length;i++)s=(s*31+str.charCodeAt(i))>>>0;
+  return s||1;
+}
+function drawFilledBubble(ctx,px, bxmm,bymm,bw,bh,fill){
+  ctx.fillStyle=fill||'#111';
+  ctx.fillRect(px(bxmm),px(bymm-bh/2),px(bw),px(bh));
+}
+function simulatePageCanvas(tpl,layout,page,pageIdx,exam,student,rnd,qrCv){
+  const longSide=2600;
+  const dpi=longSide*25.4/Math.max(layout.w,layout.h);
+  const px=function(m){return m*dpi/25.4};
+  const base=renderPageCanvas(tpl,layout,page,dpi,qrCv||null);
+  const cv=document.createElement('canvas');
+  cv.width=Math.round(px(layout.w));cv.height=Math.round(px(layout.h));
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.imageSmoothingEnabled=true;
+  if(ctx.imageSmoothingQuality)ctx.imageSmoothingQuality='high';
+  /* 轻微形变（旋转0.4°+2%缩放+平移），考验单应校正 */
+  ctx.save();
+  const cx=cv.width/2,cy=cv.height/2;
+  ctx.translate(cx,cy);
+  ctx.rotate((rnd()-0.5)*0.008);
+  ctx.scale(1.008+rnd()*0.005,0.994+rnd()*0.004);
+  ctx.translate(-cx,-cy);
+  ctx.drawImage(base,0,0);
+  /* 考号涂写（与页面同处形变空间，保证识别/裁剪几何一致） */
+  const reg=page.reg;
+  const no=String(student.no||'').padStart(page.regDigits||5,'0');
+  for(let c=0;c<no.length;c++){
+    const digit=parseInt(no[c],10);
+    if(isNaN(digit))continue;
+    /* 第4名学生缺1位、第7名学生整行不涂 → 演示「考号异常」复核 */
+    const simSkip=(student.__si===3&&c===1)||student.__si===6;
+    if(!simSkip){
+      const bxmm=reg.x+c*reg.colW+(reg.colW-reg.bubble)/2;
+      ctx.fillStyle='#111';
+      ctx.fillRect(px(bxmm),px(reg.rowsY[digit]-reg.bubble/2),px(reg.bubble),px(reg.bubble));
+      ctx.strokeRect(px(bxmm),px(reg.rowsY[digit]-reg.bubble/2),px(reg.bubble),px(reg.bubble));
+    }
+  }
+  /* 客观题涂卡 */
+  page.groups.forEach(function(g){
+    for(let r=0;r<g.rows;r++)for(let c=0;c<g.cols;c++){
+      const qn=g.first+c*g.rows+r;
+      if(qn>g.first+g.count-1)continue;
+      const ans=exam.answers&&exam.answers[qn];
+      const rowY=g.y0+2.5+r*g.dy;
+      if(!ans){
+        if(rnd()<0.35){ /* 3成未答留作空白样本 */ }
+        continue;
+      }
+      const ch=String(ans).toUpperCase().charCodeAt(0)-65;
+      let useCh=ch;
+      const r1=rnd();
+      if(r1<0.02){useCh=(ch+1)%g.choices;}                         /* 2% 涂错 */
+      else if(r1>=0.02&&r1<0.055){ctx.fillStyle='#111';            /* 3.5% 多涂 */
+        const bxmm2=g.x0+9+((ch+1)%g.choices)*g.dxc+g.size[0]/2;
+        ctx.fillRect(px(bxmm2-g.size[0]/2),px(rowY-g.size[1]/2),px(g.size[0]),px(g.size[1]));}
+      if(r1>=0.055&&r1<0.072){useCh=-1;}                            /* 1.7% 模糊（只涂一角）→ 待复核 */
+      const bxmm=g.x0+9+useCh*g.dxc+g.size[0]/2;
+      if(useCh>=0){
+        if(r1>=0.055&&r1<0.072){
+          ctx.fillStyle='#111';
+          ctx.fillRect(px(bxmm-g.size[0]/2),px(rowY-g.size[1]/2),px(g.size[0]*0.38),px(g.size[1]*0.8));
+        }else{
+          ctx.fillStyle='#111';
+          ctx.fillRect(px(bxmm-g.size[0]/2),px(rowY-g.size[1]/2),px(g.size[0]),px(g.size[1]));
+          ctx.strokeRect(px(bxmm-g.size[0]/2),px(rowY-g.size[1]/2),px(g.size[0]),px(g.size[1]));
+        }
+      }
+    }
+  });
+  /* 主观题作答涂抹 */
+  page.subjective.forEach(function(sb){
+    const n=Math.min(sb.rows*4,26);
+    ctx.strokeStyle='#3a3a3a';
+    for(let i=0;i<n;i++){
+      ctx.lineWidth=Math.max(1,px(0.35));
+      ctx.beginPath();
+      const x=rnd()*sb.w*0.9+sb.x+5;
+      const y=rnd()*sb.h*0.8+sb.y+4;
+      ctx.moveTo(px(x),px(y));
+      ctx.lineTo(px(x+Math.min(20,rnd()*18)),px(y+(rnd()*2-1)));
+      ctx.stroke();
+    }
+    if(sb.type==='grid-cn'){
+      ctx.strokeStyle='#2d2d2d';
+      for(let i=0;i<Math.min(sb.rows*8,70);i++){
+        ctx.lineWidth=Math.max(1,px(0.3));
+        ctx.beginPath();
+        const x=rnd()*sb.w*0.86+sb.x+6;
+        const y=rnd()*sb.h*0.85+sb.y+5;
+        ctx.moveTo(px(x),px(y));
+        ctx.lineTo(px(x+4.5+rnd()*2),px(y));
+        ctx.stroke();
+      }
+    }
+  });
+  ctx.restore();
+  return {cv:cv,dpi:dpi};
+}
+async function simulateScan(exam){
+  const tpl=await dbGet('templates',exam.templateId);
+  if(!tpl)throw new Error('模板不存在');
+  const students=await dbByIdx('students','byClass',exam.classId);
+  if(!students.length)throw new Error('该班级没有学生，请先在「班级学生」导入名单');
+  const layout=layoutTemplate(tpl);
+  /* 无答案时自动生成模拟答案 */
+  if(!exam.answers||!Object.keys(exam.answers).length){
+    exam.answers={};
+    layout.pages.forEach(function(p){p.groups.forEach(function(g){
+      for(let q=g.first;q<g.first+g.count;q++)exam.answers[q]=String.fromCharCode(65+Math.floor((q*7)%g.choices));
+    })});
+    exam.answersAuto=true;
+    await dbPut('exams',exam);
+  }
+  const dbOldPages=await dbByIdx('pages','byExam',exam.id);
+  const oldCrops=await dbAll('crops');
+  for(const p of dbOldPages)await dbDel('pages',p.id);
+  for(const c of oldCrops)if(c.examId===exam.id)await dbDel('crops',c.id);
+  let done=0;
+  const total=students.length*layout.pages.length;
+  const records=[];
+  for(let si=0;si<students.length;si++){
+    const stu=students[si];
+    if(stu.__si==null)stu.__si=si;
+    const rnd=mulberry32(seedFrom(exam.id+stu.no));
+    for(let pIdx=0;pIdx<layout.pages.length;pIdx++){
+      const page=layout.pages[pIdx];
+      let qrCv=null;
+      try{qrCv=await makeQRCanvas(await qrPayloadFor(layout,tpl,page))}catch(e){}
+      const {cv}=simulatePageCanvas(tpl,layout,page,pIdx,exam,stu,rnd,qrCv);
+      const blob=await canvasToJpeg(cv,0.88);
+      const res=await recognizeCanvas(cv,layout,pIdx,{});
+      const rec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:pIdx+1,
+        blob:blob,thumb:canvasDataURL(canvasToThumb(cv,240),0.7),
+        meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
+          perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:pIdx,
+          H:res.H?res.H.h:null,srcFile:'模拟扫描'}};
+      await dbPut('pages',rec);
+      if(res.crops)for(const cp of res.crops){
+        const cid=exam.id+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
+        await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,
+          studentNo:res.studentNo||'(未识别)',qno:cp.qno,part:cp.part,score:cp.score,
+          blob:await canvasToJpeg(cp.cv,0.85),thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
+          scoreVal:null,aiScore:null,aiReason:null,marked:null,markedBy:'',flag:''});
+      }
+      records.push(rec);
+      done++;
+      if(scanCtx&&scanCtx.onProgress)scanCtx.onProgress(done,total,stu);
+    }
+  }
+  return records;
+}
+
+
+/* ============================================================
+   第四段：数据汇总 / 首页 / 模板管理
+   ============================================================ */
+
+/* ---------- 考试数据汇总 ---------- */
+async function examData(examId){
+  const exam=await dbGet('exams',examId);
+  const pages=await dbByIdx('pages','byExam',examId);
+  const cropsAll=await dbAll('crops');
+  const crops=cropsAll.filter(function(c){return c.examId===examId});
+  const revsAll=await dbAll('revs');
+  const revs=revsAll.filter(function(r){return r.examId===examId});
+  const students=exam?await dbByIdx('students','byClass',exam.classId):[];
+  return {exam:exam,pages:pages,crops:crops,revs:revs,students:students};
+}
+async function examMeta(exam){
+  if(!exam)return null;
+  const tpl=await dbGet('templates',exam.templateId);
+  if(!tpl)return null;
+  const layout=layoutTemplate(tpl);
+  const choiceQnos=[];
+  const subjList=[];
+  const seen={};
+  layout.pages.forEach(function(p){
+    p.groups.forEach(function(g){
+      for(let q=g.first;q<g.first+g.count;q++)choiceQnos.push(q);
+    });
+    p.subjective.forEach(function(sb){
+      if(!seen[sb.qno]){seen[sb.qno]=true;subjList.push({qno:sb.qno,score:sb.score,type:sb.type,parts:[]});}
+      subjList.find(function(s){return s.qno===sb.qno}).parts.push({pi:p.footer.n-1,part:sb.part,rows:sb.rows});
+    });
+  });
+  return {tpl:tpl,layout:layout,choiceQnos:choiceQnos,subjList:subjList};
+}
+async function examReviewCount(examId){
+  const {exam,pages,revs}=await examData(examId);
+  const items={locate:[],reg:[],q:[]};
+  pages.forEach(function(p){
+    const m=p.meta||{};
+    if(m.status!=='ok')items.locate.push(p);
+    const flags=(m.flags||[]).join('|');
+    if(flags.indexOf('考号异常')>=0)items.reg.push(p);
+    if(m.status==='ok'&&m.perQ){
+      (m.perQ).forEach(function(q){
+        const ov=revs.find(function(r){return r.studentNo===p.studentNo&&r.qno===q.qno&&r.type==='q'});
+        if(!ov&&q.verdict==='REVIEW')items.q.push({studentNo:p.studentNo,qno:q.qno,inks:q.inks});
+      });
+    }
+  });
+  return items;
+}
+async function examStatusLabel(examId){
+  const {exam,pages}=await examData(examId);
+  if(!exam)return {badge:badge('gray','—'),label:'—'};
+  const rev=await examReviewCount(examId);
+  const meta=await examMeta(exam);
+  let gradDone=0,gradTotal=0;
+  if(meta){
+    for(const sq of meta.subjList){
+      const crops=(await dbByIdx('crops','byExamQ',examId+'|'+sq.qno)).filter(function(c){return c.scoreVal!=null});
+      gradTotal=gradTotal+1;
+      if(crops.length)gradDone=gradDone+1;
+    }
+  }
+  if(!pages.length)return {badge:badge('warn','待扫描'),label:'尚未扫描（可模拟扫描体验全流程）'};
+  if(rev.locate.length||rev.reg.length||rev.q.length)return {badge:badge('err','待复核 '+(rev.locate.length+rev.reg.length+rev.q.length)),label:'有项目待复核，先在「扫描识别」处理'};
+  if(meta&&meta.subjList.length&&gradDone<gradTotal)return {badge:badge('info','阅卷中'),label:'主观题待阅'};
+  return {badge:badge('ok','已完成'),label:'考试已完成'};
+}
+
+/* ---------- 首页 ---------- */
+async function renderHome(){
+  const classes=await dbAll('classes');
+  const students=await dbAll('students');
+  const tpls=await dbAll('templates');
+  const exams=await dbAll('exams');
+  exams.sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
+  let html=statCards([
+    {n:classes.length,l:'班级'},{n:students.length,l:'学生'},{n:tpls.length,l:'答题卡模板'},{n:exams.length,l:'考试'}
+  ])
+  +'<div class="card"><h3>开始使用</h3>'
+  +'<div class="f-row" style="margin-bottom:10px">'
+  +'<button class="btn btn-p" data-act="home-quick" data-to="tpl">📋 新建答题卡模板</button>'
+  +'<button class="btn btn-b" data-act="home-quick" data-to="class">👥 导入学生名单</button>'
+  +'<button class="btn btn-g" data-act="home-quick" data-to="exam">🗂️ 新建考试</button>'
+  +'<button class="btn btn-o" data-act="home-quick" data-to="scan">📷 扫描识别</button>'
+  +'</div>'
+  +'<div class="tip">流程：<b>①</b>「答题卡模板」设计并导出 PDF 打印（请选 <b>100%/实际大小</b>）→ <b>②</b>「班级学生」导入名单（考号=卡上涂写号）→ <b>③</b>「考试管理」录入答案建考试 → <b>④</b>「扫描识别」上传扫描件/照片，或点<b>「模拟扫描」</b>自动生成全班模拟卡并识别 → <b>⑤</b>「阅卷工作台」按题人工打分（可选 AI 建议）→ <b>⑥</b>「成绩分析」成绩册 + 统计图表 + CSV 导出。<br>'
+  +'<b style="color:var(--zhu)">没有打印机? </b>导入班级学生 → 新建考试 → 在「扫描识别」页点「模拟扫描」，即可走通 生成→识别→复核→阅卷→出分 完整闭环。</div></div>';
+  let examCards='';
+  if(exams.length){
+    examCards='<div class="card"><h3>最近考试</h3><div class="exam-grid">';
+    for(const ex of exams.slice(0,6)){
+      const st=await examStatusLabel(ex.id);
+      const cls=classes.find(function(c){return c.id===ex.classId});
+      examCards+='<div class="exam-card">'
+        +'<div class="t"><span>'+esc(ex.name)+'</span>'+st.badge+'</div>'
+        +'<div class="meta">'+esc(cls?cls.name:'（班级已删）')+'　·　'+esc(ex.templateName||'')+'<br>'+esc(ex.createdAt||'')+'<br><b>'+esc(st.label)+'</b></div>'
+        +'<div class="acts">'
+        +'<button class="btn btn-s btn-p" data-act="exam-open" data-id="'+ex.id+'" data-to="scan">识别</button>'
+        +'<button class="btn btn-s btn-b" data-act="exam-open" data-id="'+ex.id+'" data-to="grade">阅卷</button>'
+        +'<button class="btn btn-s" data-act="exam-open" data-id="'+ex.id+'" data-to="score">成绩</button>'
+        +'<button class="btn btn-s" data-act="exam-edit" data-id="'+ex.id+'">编辑</button>'
+        +'</div></div>';
+    }
+    examCards+='</div></div>';
+  }
+  $('page').innerHTML=html+examCards;
+}
+Object.assign(ACTS,{
+  'home-quick':function(el){go(el.dataset.to)}
+});
+
+/* ---------- 答题卡模板 ---------- */
+async function renderTpl(){
+  const tpls=await dbAll('templates');
+  let html='';
+  if(ui.tplEdit){
+    html=await tplEditorHTML(ui.tplEdit);
+  }else{
+    html='<div class="f-row" style="margin-bottom:14px">'
+      +'<button class="btn btn-p" data-act="tpl-new">＋ 新建模板</button>'
+      +'<button class="btn btn-b" data-act="tpl-from-preset">✨ 从预设创建</button>'
+      +'<button class="btn btn-o" data-act="tpl-import">📥 导入模板 JSON</button>'
+      +'<input type="file" id="tplImportFile" accept=".json" style="display:none">'
+      +'<span class="tip">模板 → 预览 → 导出 PDF（300dpi + 版式二维码）→ 打印后扫描可自动解析</span></div>';
+    if(!tpls.length){
+      html+='<div class="card">'+emptyBox('📋','还没有模板。点击「新建模板」或「从预设创建」（内置小学客观题卡 / 语文作文卡 / 英语答题卡）。')+'</div>';
+    }else{
+      const cards=[];
+      for(const t of tpls){
+        const lay=layoutTemplate(t);
+        const choiceN=lay.pages.reduce(function(a,p){return a+p.groups.reduce(function(b,g){return b+g.count},0)},0);
+        const subjN=lay.pages.reduce(function(a,p){return a+p.subjective.length},0);
+        cards.push('<div class="card" style="display:flex;gap:14px;align-items:center">'
+          +'<img class="tpl-thumb" data-act="tpl-preview" data-id="'+t.id+'" src="'+await tplThumb(t)+'" alt="">'
+          +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+esc(t.name)+'</div>'
+          +'<div class="kv" style="margin:4px 0">'+(PAPER_NAMES[t.paper]||t.paper)+'　·　'+lay.pages.length+' 页　·　选择题 '+choiceN+' 题（'+(t.perScore||2)+'分/题）　·　主观题 '+subjN+' 区<br>考号 '+t.regDigits+' 位　·　标题：'+esc(t.title||'')+'　·　创建 '+esc(t.createdAt||'')+'</div>'
+          +'<div class="kv">定位锚点 ×6　·　同步条行校正　·　二维码自描述版式（扫描自动识别排版，无需选模板）</div></div>'
+          +'<div class="f-row" style="flex-shrink:0;flex-direction:column;align-items:stretch">'
+          +'<button class="btn btn-s btn-p" data-act="tpl-edit" data-id="'+t.id+'">✏️ 编辑</button>'
+          +'<button class="btn btn-s" data-act="tpl-preview" data-id="'+t.id+'">👁 预览</button>'
+          +'<button class="btn btn-s" data-act="tpl-pdf" data-id="'+t.id+'">📄 导出 PDF</button>'
+          +'<button class="btn btn-s" data-act="tpl-export" data-id="'+t.id+'">📤 分享 JSON</button>'
+          +'<button class="btn btn-s" data-act="tpl-dup" data-id="'+t.id+'">复制</button>'
+          +'<button class="btn btn-s btn-d" data-act="tpl-del" data-id="'+t.id+'">删除</button>'
+          +'</div></div>');
+      }
+      html+=cards.join('');
+    }
+  }
+  $('page').innerHTML=html;
+}
+async function tplThumb(tpl){
+  try{
+    const {canvases}=await renderPagesAsync(tpl,45);
+    const cv=canvasToThumb(canvases[0],240);
+    return cv.toDataURL('image/jpeg',0.75);
+  }catch(e){return ''}
+}
+async function tplEditorHTML(tplId){
+  const t=await dbGet('templates',tplId);
+  if(!t)return emptyBox('❌','模板不存在');
+  const cg=(t.choiceGroups||[]).map(function(g,i){
+    return '<div class="f-row" style="border:1px dashed var(--line);border-radius:9px;padding:8px;margin-bottom:8px">'
+      +'<span class="kv">起始题号</span><input class="inp" style="width:70px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="first" type="number" value="'+esc(g.first)+'">'
+      +'<span class="kv">题数</span><input class="inp" style="width:70px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="count" type="number" value="'+esc(g.count)+'">'
+      +'<span class="kv">选项</span><select class="inp" style="width:70px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="choices">'
+      +[4,5,6].map(function(x){return '<option value="'+x+'"'+(g.choices===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select>'
+      +'<span class="kv">组标题</span><input class="inp" style="flex:1;min-width:120px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="label" value="'+esc(g.label||'')+'">'
+      +'<button class="btn btn-sm btn-d" data-act="tpl-cg-del" data-id="'+t.id+'" data-i="'+i+'">✕</button></div>';
+  }).join('');
+  const subj=(t.subjective||[]).map(function(s,i){
+    return '<div class="f-row" style="border:1px dashed var(--line);border-radius:9px;padding:8px;margin-bottom:8px">'
+      +'<span class="kv">题号</span><input class="inp" style="width:70px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="qno" value="'+esc(s.qno||'')+'">'
+      +'<span class="kv">满分</span><input class="inp" style="width:70px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="score" type="number" value="'+esc(s.score)+'">'
+      +'<span class="kv">类型</span><select class="inp" style="width:110px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="type">'
+      +[['lines','横线作答'],['grid-cn','中文作文格'],['grid-en','英文四线格']].map(function(x){return '<option value="'+x[0]+'"'+(s.type===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>'
+      +'<span class="kv">行数</span><input class="inp" style="width:70px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="rows" type="number" value="'+esc(s.rows)+'">'
+      +'<span class="kv">标题</span><input class="inp" style="flex:1;min-width:140px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="label" value="'+esc(s.label||'')+'">'
+      +'<button class="btn btn-sm btn-d" data-act="tpl-sub-del" data-id="'+t.id+'" data-i="'+i+'">✕</button></div>';
+  }).join('');
+  return '<div class="f-row" style="margin-bottom:12px">'
+    +'<button class="btn btn-p" data-act="tpl-save" data-id="'+t.id+'">💾 保存模板并重新排版</button>'
+    +'<button class="btn btn-b" data-act="tpl-preview" data-id="'+t.id+'">👁 预览</button>'
+    +'<button class="btn" data-act="tpl-edit-cancel">返回列表</button>'
+    +'<span class="tip">保存时自动校验并重新排版；PDF 导出为 300dpi，打印请选「实际大小/100%」。</span></div>'
+    +'<div class="card"><h3>基本信息</h3><div class="f-grid">'
+    +'<div><label class="f-lb">模板名称</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="name" value="'+esc(t.name)+'"></div>'
+    +'<div><label class="f-lb">纸型</label><select class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="paper">'
+    +Object.keys(PAPER_NAMES).map(function(k){return '<option value="'+k+'"'+(t.paper===k?' selected':'')+'>'+PAPER_NAMES[k]+'</option>'}).join('')+'</select></div>'
+    +'<div><label class="f-lb">方向</label><select class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="orient">'
+    +'<option value="portrait"'+(t.orient!=='landscape'?' selected':'')+'>竖版</option><option value="landscape"'+(t.orient==='landscape'?' selected':'')+'>横版</option></select></div>'
+    +'<div><label class="f-lb">试卷标题</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="title" value="'+esc(t.title||'')+'"></div>'
+    +'<div><label class="f-lb">考号位数（4-9）</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="regDigits" type="number" min="4" max="9" value="'+esc(t.regDigits)+'"></div>'
+    +'<div><label class="f-lb">客观题每题分值</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="perScore" type="number" step="0.5" value="'+esc(t.perScore)+'"></div>'
+    +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">显示姓名/班级/座位号框</label>'
+    +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="showInfo"'+(t.showInfo!==false?' checked':'')+'>'
+    +'<span class="kv" style="margin-left:8px">（页面左栏手写信息 + 右栏注意事项，仅首页）</span></div>'
+    +'</div></div>'
+    +'<div class="card"><h3>选择题组（客观题 · 自动分列排版 + 同步条）</h3>'+cg
+    +'<button class="btn btn-sm" data-act="tpl-cg-add" data-id="'+t.id+'">＋ 添加选择题组</button></div>'
+    +'<div class="card"><h3>主观题区（横线 / 中文作文格 / 英文四线格 · 超高自动分页）</h3>'+subj
+    +'<button class="btn btn-sm" data-act="tpl-sub-add" data-id="'+t.id+'">＋ 添加主观题区</button></div>';
+}
+Object.assign(ACTS,{
+  'tpl-new':async function(){
+    const name=await dlgPrompt('新建模板','模板名称','新答题卡模板');
+    if(!name)return;
+    const t=newTemplate(name);
+    t.createdAt=today();
+    await dbPut('templates',t);
+    ui.tplEdit=t.id;
+    toast('已创建，请编辑后保存','ok');
+    renderTpl();
+  },
+  'tpl-from-preset':async function(){
+    const presets=presetTemplates();
+    const html='<div style="display:flex;flex-direction:column;gap:8px">'
+      +presets.map(function(p,i){
+        return '<button class="btn" style="justify-content:space-between" data-act="tpl-preset-pick" data-i="'+i+'"><span>'+esc(p.name)+'</span><span style="opacity:.55">创建并编辑 →</span></button>';
+      }).join('')+'</div>';
+    dlg(html,{title:'从预设创建答题卡模板'});
+    afterRender(function(){
+      const ps=presetTemplates();
+    });
+  },
+  'tpl-preset-pick':async function(el){
+    const p=presetTemplates()[parseInt(el.dataset.i,10)];
+    const t=newTemplate(p.name);
+    Object.assign(t,JSON.parse(JSON.stringify(p)));
+    t.id=uid('tpl_');t.createdAt=today();
+    await dbPut('templates',t);
+    dlgClose();
+    ui.tplEdit=t.id;
+    toast('预设已创建，可继续编辑','ok');
+    renderTpl();
+  },
+  'tpl-edit':async function(el){ui.tplEdit=el.dataset.id;renderTpl()},
+  'tpl-edit-cancel':function(){ui.tplEdit=null;renderTpl()},
+  'tpl-save':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    try{
+      const lay=layoutTemplate(t);
+      await dbPut('templates',t);
+      toast('已保存：'+lay.pages.length+' 页 / '+t.choiceGroups.length+' 选择题组 / '+t.subjective.length+' 主观题区','ok');
+    }catch(err){toast('排版校验失败：'+err.message,'err')}
+    renderTpl();
+  },
+  'tpl-preview':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    const lay=layoutTemplate(t);
+    dlg('<div class="kv" style="margin-bottom:8px">'+esc(t.name)+' · '+lay.pages.length+' 页 · 60dpi 渲染，含版式二维码（页脚左下）</div><div class="preview-box" id="tplPrevBox" style="gap:12px;flex-wrap:wrap;justify-content:center"></div>',{title:'答题卡预览',wide:true});
+    const box=$('tplPrevBox');
+    box.innerHTML='<span class="kv">渲染中…</span>';
+    try{
+      const {canvases}=await renderPagesAsync(t,60);
+      box.innerHTML=canvases.map(function(cv,i){
+        return '<div style="text-align:center"><canvas id="tpv'+i+'" style="max-width:340px;height:auto;border:1px solid #ddd;border-radius:6px;background:#fff"></canvas><div class="kv" style="margin-top:4px">第 '+(i+1)+' 页</div></div>';
+      }).join('');
+      canvases.forEach(function(cv,i){
+        const el2=$('tpv'+i);
+        el2.width=cv.width;el2.height=cv.height;
+        el2.getContext('2d').drawImage(cv,0,0);
+        el2.style.visibility='visible';
+      });
+    }catch(err){box.innerHTML=esc('渲染失败：'+err.message)}
+  },
+  'tpl-pdf':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    await exportTemplatePDF(t);
+  },
+  'tpl-export':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    exportTemplateJSON(t);
+  },
+  'tpl-dup':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    const nt=JSON.parse(JSON.stringify(t));
+    nt.id=uid('tpl_');nt.name=t.name+' 副本';nt.createdAt=today();
+    await dbPut('templates',nt);
+    toast('已复制','ok');
+    renderTpl();
+  },
+  'tpl-del':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    const ok=await dlgConfirm('删除模板','确定删除「'+esc(t.name)+'」？<br>使用该模板的考试将无法再识别。','删除');
+    if(!ok)return;
+    await dbDel('templates',el.dataset.id);
+    if(ui.tplEdit===el.dataset.id)ui.tplEdit=null;
+    toast('已删除','ok');
+    renderTpl();
+  },
+  'tpl-import':function(){const f=$('tplImportFile');if(f)f.click()},
+  'tpl-cg-add':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    const last=t.choiceGroups[t.choiceGroups.length-1];
+    const first=last?last.first+last.count:1;
+    t.choiceGroups.push({first:first,count:20,choices:4,label:'选择题'});
+    await dbPut('templates',t);
+    renderTpl();
+  },
+  'tpl-cg-del':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    t.choiceGroups.splice(parseInt(el.dataset.i,10),1);
+    await dbPut('templates',t);
+    renderTpl();
+  },
+  'tpl-sub-add':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    t.subjective.push({qno:'三',score:10,type:'lines',rows:3,label:'解答题'});
+    await dbPut('templates',t);
+    renderTpl();
+  },
+  'tpl-sub-del':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    t.subjective.splice(parseInt(el.dataset.i,10),1);
+    await dbPut('templates',t);
+    renderTpl();
+  },
+  'tpl-cg':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    const g=t.choiceGroups[parseInt(el.dataset.i,10)];
+    if(!g)return;
+    const v=el.type==='number'?(parseFloat(el.value)||0):el.value;
+    g[el.dataset.f]=v;
+    if(el.dataset.f==='first')g.first=Math.max(1,Math.round(v));
+    await dbPut('templates',t);
+  },
+  'tpl-sub':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    const s=t.subjective[parseInt(el.dataset.i,10)];
+    if(!s)return;
+    s[el.dataset.f]=el.type==='number'?(parseFloat(el.value)||0):el.value;
+    await dbPut('templates',t);
+  },
+  'tpl-field':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    const f=el.dataset.f;
+    let v;
+    if(el.type==='checkbox')v=el.checked;
+    else if(el.type==='number')v=parseFloat(el.value)||0;
+    else v=el.value;
+    t[f]=v;
+    if(f==='regDigits')t.regDigits=Math.max(4,Math.min(9,Math.round(v)));
+    await dbPut('templates',t);
+  }
+});
+afterRender(function(){
+  const f=$('tplImportFile');
+  if(f)f.addEventListener('change',function(){
+    if(f.files&&f.files[0])importTemplateJSON(f.files[0]);
+    f.value='';
+  });
+});
+
+
+/* ============================================================
+   第四段(续)：班级学生 / 考试管理（含建考向导）
+   ============================================================ */
+
+/* ---------- 班级学生 ---------- */
+async function renderCls(){
+  const classes=await dbAll('classes');
+  if(!ui.clsCur||!(classes.find(function(c){return c.id===ui.clsCur})))ui.clsCur=classes.length?classes[0].id:null;
+  let html='<div class="f-row" style="margin-bottom:14px">'
+    +'<button class="btn btn-p" data-act="cls-new">＋ 新建班级</button>'
+    +'<span class="tip">学生考号 = 答题卡上涂写的准考证号（请与卡上位数一致），识别后按考号自动匹配成绩</span></div>';
+  if(!classes.length){
+    html+='<div class="card">'+emptyBox('👥','还没有班级。点击「新建班级」，然后导入学生名单。')+'</div>';
+    $('page').innerHTML=html;
+    return;
+  }
+  const cls=classes.find(function(c){return c.id===ui.clsCur});
+  const students=await dbByIdx('students','byClass',ui.clsCur);
+  students.sort(function(a,b){return String(a.no||'').localeCompare(String(b.no||''))});
+  html+='<div class="card"><h3>班级</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+    +classes.map(function(c){return '<span class="chip'+(c.id===ui.clsCur?' on':'')+'" data-act="cls-pick" data-id="'+c.id+'">'+esc(c.name)+'（'+(c.studentCount==null?'':c.studentCount)+'）</span>'}).join('')
+    +'<span style="flex:1"></span>'
+    +'<button class="btn btn-s btn-d" data-act="cls-del" data-id="'+cls.id+'">删除当前班级</button>'
+    +'</div></div>';
+  html+='<div class="card"><h3>学生名单：'+esc(cls.name)+'（'+students.length+' 人）</h3>'
+    +'<div class="f-row" style="margin-bottom:10px">'
+    +'<input class="inp" id="stuAddNo" style="width:110px" placeholder="考号（涂卡号）">'
+    +'<input class="inp" id="stuAddName" style="width:130px" placeholder="姓名">'
+    +'<input class="inp" id="stuAddNote" style="width:130px" placeholder="备注（可选）">'
+    +'<button class="btn btn-p btn-s" data-act="stu-add" data-id="'+cls.id+'">添加</button>'
+    +'<button class="btn btn-o btn-s" data-act="stu-excel-tpl">⬇ 下载《考生信息表.xlsx》模板</button>'
+    +'<button class="btn btn-o btn-s" data-act="stu-excel">⬆ 导入 Excel</button>'
+    +'<input type="file" id="stuExcelFile" accept=".xlsx,.xls,.csv" style="display:none">'
+    +'<button class="btn btn-s" data-act="stu-csv">📄 导出 CSV</button>'
+    +'</div>';
+  if(students.length){
+    html+='<div class="tbl-wrap"><table class="tbl"><tr><th style="width:60px">序号</th><th style="width:150px">考号（涂卡号）</th><th style="width:150px">姓名</th><th>备注</th><th style="width:70px"></th></tr>'
+      +students.map(function(s,i){
+        return '<tr><td>'+(i+1)+'</td>'
+          +'<td><input class="inp" style="padding:4px 8px" data-on="stu-field" data-id="'+s.id+'" data-f="no" value="'+esc(s.no||'')+'"></td>'
+          +'<td><input class="inp" style="padding:4px 8px" data-on="stu-field" data-id="'+s.id+'" data-f="name" value="'+esc(s.name||'')+'"></td>'
+          +'<td><input class="inp" style="padding:4px 8px" data-on="stu-field" data-id="'+s.id+'" data-f="note" value="'+esc(s.note||'')+'"></td>'
+          +'<td><button class="btn btn-sm btn-d" data-act="stu-del" data-id="'+s.id+'">✕</button></td></tr>';
+      }).join('')+'</table></div>';
+  }else{
+    html+=emptyBox('📄','暂无学生。可在上方逐个添加，或粘贴多行名单：<br>每行 <b>姓名 考号</b>（空格/逗号/制表符分隔）');
+  }
+  html+='<div style="margin-top:12px"><label class="f-lb">📋 批量粘贴导入（每行：姓名 空格 考号，可带备注）</label>'
+    +'<textarea class="inp" id="stuPaste" rows="4" placeholder="张三 10001&#10;李四 10002&#10;王五 10003"></textarea>'
+    +'<button class="btn btn-b btn-s" style="margin-top:6px" data-act="stu-paste" data-id="'+cls.id+'">从粘贴导入</button></div>';
+  $('page').innerHTML=html;
+  afterRender(function(){
+    const f=$('stuExcelFile');
+    if(f)f.addEventListener('change',function(){
+      if(f.files&&f.files[0])importStudentsExcel(f.files[0],cls.id);
+      f.value='';
+    });
+  });
+}
+Object.assign(ACTS,{
+  'cls-new':async function(){
+    const name=await dlgPrompt('新建班级','班级名称','');
+    if(!name)return;
+    const c={id:uid('cls_'),name:name,createdAt:today()};
+    await dbPut('classes',c);
+    ui.clsCur=c.id;
+    toast('班级已创建','ok');
+    renderCls();
+  },
+  'cls-pick':async function(el){
+    ui.clsCur=el.dataset.id;
+    renderCls();
+  },
+  'cls-del':async function(el){
+    const c=await dbGet('classes',el.dataset.id);
+    const st=await dbByIdx('students','byClass',c.id);
+    const ok=await dlgConfirm('删除班级','删除「'+esc(c.name)+'」及其 '+st.length+' 名学生？<br>（考试数据不受影响，仍按考号显示）','删除');
+    if(!ok)return;
+    for(const s of st)await dbDel('students',s.id);
+    await dbDel('classes',c.id);
+    ui.clsCur=null;
+    toast('已删除','ok');
+    renderCls();
+  },
+  'stu-add':async function(el){
+    const no=$('stuAddNo').value.trim();
+    const name=$('stuAddName').value.trim();
+    if(!no&&!name){toast('请填写考号或姓名','err');return}
+    await dbPut('students',{id:uid('stu_'),classId:el.dataset.id,no:no,name:name||no,note:$('stuAddNote').value.trim()});
+    $('stuAddNo').value='';$('stuAddName').value='';$('stuAddNote').value='';
+    toast('已添加','ok');
+    renderCls();
+  },
+  'stu-field':async function(el){
+    const s=await dbGet('students',el.dataset.id);
+    if(!s)return;
+    s[el.dataset.f]=el.value;
+    await dbPut('students',s);
+  },
+  'stu-del':async function(el){
+    await dbDel('students',el.dataset.id);
+    renderCls();
+  },
+  'stu-paste':async function(el){
+    const text=$('stuPaste').value||'';
+    if(!text.trim()){toast('请先粘贴名单','err');return}
+    let added=0;
+    text.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean).forEach(function(line){
+      const parts=line.split(/[\t,，;；、\s]+/).filter(Boolean);
+      if(!parts.length)return;
+      const name=parts[0],no=parts[1]||'',note=parts.slice(2).join(' ');
+      added++;
+      dbPut('students',{id:uid('stu_'),classId:el.dataset.id,no:no,name:name,note:note}).catch(function(){});
+    });
+    $('stuPaste').value='';
+    setTimeout(function(){toast('已导入 '+added+' 名学生','ok');renderCls()},600);
+  },
+  'stu-csv':async function(el){
+    const st=await dbByIdx('students','byClass',ui.clsCur);
+    if(!st.length){toast('暂无学生','err');return}
+    const q=function(s){return '"'+String(s==null?'':s).replace(/"/g,'""')+'"'};
+    const lines=[['序号','考号','姓名','备注'].join(',')]
+      .concat(st.map(function(s,i){return [i+1,s.no||'',s.name||'',s.note||''].map(q).join(',')}));
+    download('学生名单_'+tsName()+'.csv','\ufeff'+lines.join('\r\n'),'text/csv;charset=utf-8');
+    toast('CSV 已导出','ok');
+  },
+  'stu-excel-tpl':function(){
+    try{
+      const wb=XLSX.utils.book_new();
+      const ws=XLSX.utils.aoa_to_sheet([['序号','姓名','考号','备注'],['1','张三','10001',''],['2','李四','10002','']]);
+      XLSX.utils.book_append_sheet(wb,ws,'考生信息表');
+      XLSX.writeFile(wb,'考生信息表.xlsx');
+    }catch(e){toast('导出失败：'+e.message,'err')}
+  },
+  'stu-excel':function(){const f=$('stuExcelFile');if(f)f.click()}
+});
+async function importStudentsExcel(file,classId){
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    let added=0;
+    for(let i=0;i<rows.length;i++){
+      const r=rows[i];
+      if(i===0&&(/姓名|考号/.test(String(r[0]||'')+String(r[1]||''))))continue;
+      const no=String(r[1]==null?'':r[1]).trim();
+      const name=String(r[0]==null?'':r[0]).trim();
+      const note=String(r[2]==null?'':r[2]).trim();
+      if(!name&&!no)continue;
+      if(!name)continue;
+      await dbPut('students',{id:uid('stu_'),classId:classId,no:no,name:name,note:note});
+      added++;
+    }
+    toast('Excel 导入 '+added+' 名学生','ok');
+    renderCls();
+  }catch(err){toast('Excel 导入失败：'+err.message,'err')}
+}
+
+/* ---------- 考试管理 ---------- */
+let wiz=null;
+async function renderExam(){
+  const examsAll=await dbAll('exams');
+  const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
+  const classes=await dbAll('classes');
+  const tpls=await dbAll('templates');
+  let html='<div class="f-row" style="margin-bottom:14px">'
+    +'<button class="btn btn-p" data-act="exam-new">＋ 新建考试</button>'
+    +'<span class="tip">考试 = 班级 + 答题卡模板 + 客观题答案 + 主观题满分/评分要点</span></div>';
+  if(!exams.length){
+    html+='<div class="card">'+emptyBox('🗂️','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
+  }else{
+    const cards=[];
+    for(const ex of exams){
+      const st=await examStatusLabel(ex.id);
+      cards.push('<div class="exam-card">'
+        +'<div class="t"><span>'+esc(ex.name)+'</span>'+st.badge+'</div>'
+        +'<div class="meta"><b>'+esc(ex.className||'（班级已删）')+'</b>　·　'+esc(ex.templateName||'')+'　·　'+esc(ex.createdAt||'')+'<br>'
+        +esc(st.label)+'</div>'
+        +'<div class="acts">'
+        +'<button class="btn btn-s btn-p" data-act="exam-open" data-id="'+ex.id+'" data-to="scan">📷 扫描</button>'
+        +'<button class="btn btn-s btn-b" data-act="exam-open" data-id="'+ex.id+'" data-to="grade">✍️ 阅卷</button>'
+        +'<button class="btn btn-s" data-act="exam-open" data-id="'+ex.id+'" data-to="score">📊 成绩</button>'
+        +'<button class="btn btn-s" data-act="exam-edit" data-id="'+ex.id+'">✏️ 编辑</button>'
+        +'<button class="btn btn-s btn-d" data-act="exam-del" data-id="'+ex.id+'">删除</button>'
+        +'</div></div>');
+    }
+    html+='<div class="exam-grid">'+cards.join('')+'</div>';
+  }
+  $('page').innerHTML=html;
+}
+Object.assign(ACTS,{
+  'exam-new':async function(){examWizardOpen(null)},
+  'exam-edit':async function(el){examWizardOpen(el.dataset.id)},
+  'exam-open':async function(el){
+    const id=el.dataset.id,to=el.dataset.to;
+    if(to==='scan')ui.scanExam=id;
+    if(to==='grade')ui.gradeExam=id;
+    if(to==='score')ui.scoreExam=id;
+    go(to);
+  },
+  'exam-del':async function(el){
+    const ex=await dbGet('exams',el.dataset.id);
+    const ok=await dlgConfirm('删除考试','删除「'+esc(ex.name)+'」？<br>该考试的扫描页、裁剪图、判分记录将一并删除（学生名单保留）。','删除');
+    if(!ok)return;
+    const pages=await dbByIdx('pages','byExam',ex.id);
+    for(const p of pages)await dbDel('pages',p.id);
+    const crops=await dbAll('crops');
+    for(const c of crops)if(c.examId===ex.id)await dbDel('crops',c.id);
+    const revs=await dbAll('revs');
+    for(const r of revs)if(r.examId===ex.id)await dbDel('revs',r.id);
+    await dbDel('exams',ex.id);
+    toast('已删除','ok');
+    renderExam();
+  }
+});
+async function examWizardOpen(examId){
+  const classes=await dbAll('classes');
+  const tpls=await dbAll('templates');
+  if(!classes.length){toast('请先创建班级','err');go('class');return}
+  if(!tpls.length){toast('请先创建答题卡模板','err');go('tpl');return}
+  const ex=examId?await dbGet('exams',examId):null;
+  wiz={examId:examId,step:1,
+    name:ex?ex.name:('期中考试 '+today()),
+    classId:ex?ex.classId:classes[0].id,
+    templateId:ex?ex.templateId:tpls[0].id,
+    perScore:ex?ex.perScore:null,
+    answers:ex?JSON.parse(JSON.stringify(ex.answers||{})):{},
+    subjective:ex?JSON.parse(JSON.stringify(ex.subjective||{})):{}
+  };
+  wizRender();
+}
+async function wizRender(){
+  if(!wiz)return;
+  const classes=await dbAll('classes');
+  const tpls=await dbAll('templates');
+  const tpl=tpls.find(function(t){return t.id===wiz.templateId})||tpls[0];
+  const meta=await examMeta({templateId:tpl.id,id:wiz.examId||'wiz'});
+  if(wiz.perScore==null)wiz.perScore=meta.layout.perScore;
+  let body='';
+  if(wiz.step===1){
+    body='<div class="f-grid">'
+      +'<div><label class="f-lb">考试名称</label><input class="inp" id="wizName" value="'+esc(wiz.name)+'"></div>'
+      +'<div><label class="f-lb">班级</label><select class="inp" id="wizClass">'
+      +classes.map(function(c){return '<option value="'+c.id+'"'+(c.id===wiz.classId?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')+'</select></div>'
+      +'<div><label class="f-lb">答题卡模板</label><select class="inp" id="wizTpl">'
+      +tpls.map(function(t){return '<option value="'+t.id+'"'+(t.id===wiz.templateId?' selected':'')+'>'+esc(t.name)+'</option>'}).join('')+'</select></div>'
+      +'<div><label class="f-lb">客观题每题分值（可覆盖模板默认）</label><input class="inp" id="wizPerScore" type="number" step="0.5" value="'+esc(wiz.perScore)+'"></div>'
+      +'</div>'
+      +'<div class="tip" style="margin-top:10px">模板：'+esc(tpl.name)+'（'+meta.choiceQnos.length+' 道客观题，'+meta.subjList.map(function(s){return esc(s.qno)}).join('、')+' 等主观题区）</div>';
+  }else if(wiz.step===2){
+    const answers=wiz.answers;
+    let cells='';
+    meta.choiceQnos.forEach(function(qn,i){
+      const a=answers[qn]||'';
+      let opts='';
+      for(let ci=0;ci<Math.max(4,(tpl.choiceGroups[0]||{}).choices||4);ci++){
+        const L=String.fromCharCode(65+ci);
+        opts+='<span class="opt'+(a===L?' on':'')+'" data-act="wiz-ans" data-q="'+qn+'" data-v="'+L+'">'+L+'</span>';
+      }
+      cells+='<div class="qcell"><div class="qn">第 '+qn+' 题</div><div class="opts">'+opts+'</div></div>';
+    });
+    let subjHtml='';
+    meta.subjList.forEach(function(sq){
+      const sc=wiz.subjective[sq.qno]||{score:sq.score,points:'',answer:''};
+      subjHtml+='<div class="card" style="margin-top:10px"><h3>主观题 '+esc(String(sq.qno))+'（'+(sq.parts.length>1?sq.parts.length+' 部分，':'')+'满分 '+esc(sc.score)+' 分）</h3>'
+        +'<div class="f-grid">'
+        +'<div><label class="f-lb">满分</label><input class="inp" data-on="wiz-sub" data-q="'+esc(sq.qno)+'" data-f="score" type="number" step="0.5" value="'+esc(sc.score)+'"></div>'
+        +'<div style="grid-column:1/-1"><label class="f-lb">评分要点（AI 辅助阅卷必填，逐条写明扣分点）</label>'
+        +'<textarea class="inp" rows="2" data-on="wiz-sub" data-q="'+esc(sq.qno)+'" data-f="points">'+esc(sc.points)+'</textarea></div>'
+        +'<div style="grid-column:1/-1"><label class="f-lb">参考答案（可选）</label>'
+        +'<textarea class="inp" rows="2" data-on="wiz-sub" data-q="'+esc(sq.qno)+'" data-f="answer">'+esc(sc.answer)+'</textarea></div>'
+        +'</div></div>';
+    });
+    body='<div class="kv" style="margin-bottom:8px">点击选项循环切换：空 → A → B → C → D → 空；共 '+meta.choiceQnos.length+' 道客观题</div>'
+      +'<div class="qgrid">'+cells+'</div>'+subjHtml;
+  }else{
+    const cls=classes.find(function(c){return c.id===wiz.classId});
+    const ansN=Object.keys(wiz.answers).length;
+    body='<div class="kv" style="line-height:2">'
+      +'<b>考试：</b>'+esc(wiz.name)+'<br>'
+      +'<b>班级：</b>'+esc(cls?cls.name:'')+'　<b>模板：</b>'+esc(tpl.name)+'<br>'
+      +'<b>客观题：</b>'+meta.choiceQnos.length+' 题，已录 '+ansN+' 题，每题 '+esc(wiz.perScore)+' 分<br>'
+      +'<b>主观题：</b>'+meta.subjList.map(function(s){
+        const sc=wiz.subjective[s.qno]||{};
+        return esc(String(s.qno))+'（'+esc(sc.score!=null?sc.score:s.score)+'分'+(sc.points?'·已写评分要点':'·<span style="color:var(--danger)">缺评分要点</span>')+'）';
+      }).join('　')+'<br>'
+      +'<b>流程：</b>保存后 → 「扫描识别」上传扫描件或点「模拟扫描」→ 复核 → 阅卷 → 成绩</div>';
+  }
+  const foot=''+'<button class="btn" data-act="wiz-cancel">取消</button>'
+    +(wiz.step>1?'<button class="btn" data-act="wiz-prev">← 上一步</button>':'')
+    +(wiz.step<3?'<button class="btn btn-p" data-act="wiz-next">下一步 →</button>':'')
+    +(wiz.step===3?'<button class="btn btn-p" data-act="wiz-save">💾 保存考试</button>':'');
+  dlg(body,{title:(wiz.examId?'编辑考试':'新建考试')+' · 第 '+wiz.step+'/3 步',foot:foot,wide:true});
+  afterRender(function(){
+    const n=$('wizName'),c=$('wizClass'),tp=$('wizTpl'),ps=$('wizPerScore');
+    if(n)n.addEventListener('input',function(){wiz.name=n.value});
+    if(c)c.addEventListener('change',function(){wiz.classId=c.value});
+    if(tp)tp.addEventListener('change',function(){wiz.templateId=tp.value;wiz.perScore=null;wizRender()});
+    if(ps)ps.addEventListener('input',function(){wiz.perScore=parseFloat(ps.value)||0});
+  });
+}
+Object.assign(ACTS,{
+  'wiz-cancel':function(){wiz=null;dlgClose();renderExam()},
+  'wiz-next':function(){wiz.step++;wizRender()},
+  'wiz-prev':function(){wiz.step--;wizRender()},
+  'wiz-ans':async function(el){
+    const qn=el.dataset.q;
+    const v=el.dataset.v;
+    const cur=wiz.answers[qn]||'';
+    if(cur===v)delete wiz.answers[qn];
+    else wiz.answers[qn]=v;
+    const cell=el.closest('.qcell');
+    if(cell){
+      cell.querySelectorAll('.opt').forEach(function(o){
+        o.classList.toggle('on',wiz.answers[qn]===o.dataset.v);
+      });
+    }
+  },
+  'wiz-sub':function(el){
+    const q=el.dataset.q;
+    const f=el.dataset.f;
+    if(!wiz.subjective[q])wiz.subjective[q]={score:0,points:'',answer:''};
+    wiz.subjective[q][f]=f==='score'?(parseFloat(el.value)||0):el.value;
+  },
+  'wiz-save':async function(){
+    if(!wiz.name.trim()){toast('请填写考试名称','err');return}
+    const ex=wiz.examId?await dbGet('exams',wiz.examId):null;
+    const classes=await dbAll('classes');
+    const tpls=await dbAll('templates');
+    const cls=classes.find(function(c){return c.id===wiz.classId});
+    const tpl=tpls.find(function(t){return t.id===wiz.templateId});
+    const ansN=Object.keys(wiz.answers).length;
+    const meta=await examMeta({templateId:wiz.templateId});
+    if(ansN<meta.choiceQnos.length){
+      const ok=await dlgConfirm('答案未录完','客观题共 '+meta.choiceQnos.length+' 题，当前只录了 '+ansN+' 题。<br>未录答案的题目将判为「错/空白」，确定继续保存？','仍要保存');
+      if(!ok)return;
+    }
+    const rec=ex||{id:uid('exm_')};
+    rec.name=wiz.name.trim();
+    rec.classId=wiz.classId;
+    rec.className=cls?cls.name:'';
+    rec.templateId=wiz.templateId;
+    rec.templateName=tpl?tpl.name:'';
+    rec.perScore=wiz.perScore||meta.layout.perScore||2;
+    rec.answers=wiz.answers;
+    rec.subjective=wiz.subjective;
+    rec.createdAt=ex?ex.createdAt:today();
+    await dbPut('exams',rec);
+    wiz=null;
+    dlgClose();
+    toast('考试已保存','ok');
+    renderExam();
+  }
+});
+
+
+/* ============================================================
+   第五段：扫描识别页 + 复核面板（定位 / 考号 / 涂点）
+   ============================================================ */
+let scanModifying=false;
+async function renderScan(){
+  const examsAll=await dbAll('exams');
+  const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
+  if(!ui.scanExam||!(exams.find(function(e){return e.id===ui.scanExam})))ui.scanExam=exams.length?exams[0].id:null;
+  if(!ui.scanExam){
+    $('page').innerHTML='<div class="card">'+emptyBox('📷','请先在「考试管理」创建考试（班级 + 模板 + 答案），再到这里扫描识别。')
+      +'<button class="btn btn-p" data-act="go-exam">去创建考试</button></div>';
+    return;
+  }
+  const ex=await dbGet('exams',ui.scanExam);
+  const meta=await examMeta(ex);
+  const cls=await dbGet('classes',ex.classId);
+  const students=await dbByIdx('students','byClass',ex.classId);
+  const pages=await dbByIdx('pages','byExam',ex.id);
+  const rev=await examReviewCount(ex.id);
+  let html='<div class="card"><h3>当前考试</h3>'
+    +'<div class="f-row" style="margin-bottom:8px">'
+    +'<select class="inp" style="width:220px" data-on="scan-pick">'
+    +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')
+    +'</select>'
+    +'<span class="kv">'+esc(ex.className||'')+'　·　'+esc(ex.templateName||'')+'　·　学生 '+students.length+' 人　·　共 '+meta.choiceQnos.length+' 道客观题 / '+meta.subjList.map(function(s){return esc(String(s.qno))+'题'}).join('、')+'</span>'
+    +'</div>'
+    +'<div class="f-row">'
+    +'<button class="btn btn-p" data-act="scan-pick-files">📤 选择扫描件（PDF/图片，可多选）</button>'
+    +'<input type="file" id="scanFiles" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tif,.webp" style="display:none">'
+    +'<button class="btn btn-g" data-act="scan-simulate">🧪 模拟扫描（生成全班模拟卡并识别）</button>'
+    +'<button class="btn btn-d" data-act="scan-clear">🗑 清空本场扫描结果</button>'
+    +'<span class="tip">扫描件按页顺序对应模板页；识别用「6 锚点 + 同步条 + 单应校正」，页内二维码会自描述版式。</span>'
+    +'</div>'
+    +'<div id="scanProgBox" style="margin-top:10px;display:none"><div class="prog-line"><span id="scanProgTxt"></span><div class="progress" style="flex:1"><div id="scanProgBar" style="width:0%"></div></div></div><div id="scanLog" class="tip"></div></div>'
+    +'</div>';
+  /* 复核汇总 */
+  html+='<div class="card"><h3>识别结果（'+pages.length+' 页）</h3>';
+  if(!pages.length){
+    html+=emptyBox('📷','尚未扫描。上传实体扫描件/照片，或用「模拟扫描」体验完整流程（会为每名学生生成涂卡 + 作答 + 轻度形变，模拟真实打印扫描）。');
+  }else{
+    const okPages=pages.filter(function(p){return p.meta&&p.meta.status==='ok'}).length;
+    const noRec=pages.filter(function(p){return p.studentNo&&p.studentNo.indexOf('_')<0&&p.studentNo.indexOf('?')<0}).length;
+    html+='<div class="f-row" style="margin-bottom:10px">'
+      +badge('ok','识别成功 '+okPages+'/'+pages.length)
+      +badge(noRec===pages.length?'ok':'warn','考号完整 '+noRec+'/'+pages.length)
+      +badge(rev.locate.length?'err':'ok','定位失败 '+rev.locate.length)
+      +badge(rev.reg.length?'err':'ok','考号异常 '+rev.reg.length)
+      +badge(rev.q.length?'err':'ok','涂点待复核 '+rev.q.length)
+      +'<span style="flex:1"></span>'
+      +'<button class="btn btn-s btn-o" data-act="scan-rev-locate">处理定位失败（'+rev.locate.length+'）</button>'
+      +'<button class="btn btn-s btn-o" data-act="scan-rev-reg">处理考号异常（'+rev.reg.length+'）</button>'
+      +'<button class="btn btn-s btn-o" data-act="scan-rev-q">处理涂点待复核（'+rev.q.length+'）</button>'
+      +'</div>';
+    html+='<div class="tbl-wrap"><table class="tbl"><tr><th style="width:70px"></th><th style="width:60px">页</th><th style="width:90px">考号</th><th style="width:70px">状态</th><th>告警/记录</th><th style="width:230px">操作</th></tr>'
+      +pages.map(function(p,i){
+        const m=p.meta||{};
+        const ok=m.status==='ok';
+        const flags=(m.flags||[]).filter(function(f){return f&&f!=='null'});
+        return '<tr><td><img data-act="scan-page" data-id="'+p.id+'" src="'+p.thumb+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer"></td>'
+          +'<td>'+(p.pageNo)+'</td>'
+          +'<td><b>'+esc(p.studentNo||'—')+'</b></td>'
+          +'<td>'+(ok?badge('ok','已识别'):badge('err','定位失败'))+'</td>'
+          +'<td class="kv">'+(m.qrFound?badge('info','✅ 读码')+' ':'')+flags.map(function(f){return badge('warn',esc(f))}).join(' ')+(flags.length?badge('gray','同步条'+((m.perQ||[]).filter(function(q){return q.verdict==='REVIEW'}).length+'待复核')):'')+'</td>'
+          +'<td><button class="btn btn-sm" data-act="scan-page" data-id="'+p.id+'">查看</button> '
+          +(ok?'<button class="btn btn-sm" data-act="scan-fix-reg" data-id="'+p.id+'">考号改判</button> ':'')
+          +(ok?'<button class="btn btn-sm" data-act="scan-relocate" data-id="'+p.id+'">重新定位</button>':'')
+          +'<button class="btn btn-sm btn-d" data-act="scan-del-page" data-id="'+p.id+'">删除</button></td></tr>';
+      }).join('')+'</table></div>';
+  }
+  html+='</div>';
+  $('page').innerHTML=html;
+}
+Object.assign(ACTS,{
+  'go-exam':function(){go('exam')},
+  'scan-pick':async function(el){ui.scanExam=el.value;renderScan()},
+  'scan-pick-files':function(){const f=$('scanFiles');if(f)f.click()},
+  'scan-clear':async function(){
+    const ex=await dbGet('exams',ui.scanExam);
+    const ok=await dlgConfirm('清空扫描','删除「'+esc(ex.name)+'」的所有扫描页与裁剪图、复核记录？<br>（不影响学生名单、答案与成绩设置）','清空');
+    if(!ok)return;
+    const pages=await dbByIdx('pages','byExam',ex.id);
+    for(const p of pages)await dbDel('pages',p.id);
+    const crops=await dbAll('crops');
+    for(const c of crops)if(c.examId===ex.id)await dbDel('crops',c.id);
+    const revs=await dbAll('revs');
+    for(const r of revs)if(r.examId===ex.id)await dbDel('revs',r.id);
+    toast('已清空','ok');
+    renderScan();
+  },
+  'scan-del-page':async function(el){
+    const p=await dbGet('pages',el.dataset.id);
+    await dbDel('pages',p.id);
+    if(p.meta&&p.meta.perQ){
+      const crops=await dbAll('crops');
+      for(const c of crops)if(c.examId===p.examId&&c.studentNo===p.studentNo){
+        const qnos=(p.meta.perQ||[]).map(function(q){return q.qno});
+        if(qnos.indexOf(c.qno)<0)await dbDel('crops',c.id);
+      }
+    }
+    renderScan();
+  },
+  'scan-simulate':async function(){
+    const ex=await dbGet('exams',ui.scanExam);
+    const tpl=await dbGet('templates',ex.templateId);
+    const st=await dbByIdx('students','byClass',ex.classId);
+    if(!st.length){toast('该班级没有学生，请先导入名单','err');go('class');return}
+    const pages=await dbByIdx('pages','byExam',ex.id);
+    const ok=await dlgConfirm('模拟扫描','将用「'+esc(tpl.name)+'」为 '+st.length+' 名学生生成模拟答题卡（含随机作答与轻微形变），'
+      +'然后自动走 二维码读取→锚点定位→同步条校正→OMR 识别→主观题切割 全流程。'
+      +(pages.length?'<br><br>本场已有 '+pages.length+' 页扫描结果，会先清空。模拟答案若未录入将自动生成。':'')
+      +'<br><br><b>注意：</b>请先在下一步新建考试时录入答案，或系统自动生成。','开始模拟');
+    if(!ok)return;
+    if(pages.length)await scanClearAll(ex.id);
+    const box=$('scanProgBox');
+    box.style.display='block';
+    scanCtx={examId:ex.id,onProgress:function(done,total){
+      $('scanProgBar').style.width=Math.round(done/total*100)+'%';
+      $('scanProgTxt').textContent='模拟识别中 '+done+'/'+total;
+      $('scanLog').textContent='最近：'+done;
+    }};
+    try{
+      await simulateScan(ex);
+      toast('模拟扫描完成，共 '+st.length*Math.max(1,(await examMeta(ex)).layout.pages.length)+' 页已识别','ok');
+    }catch(err){toast('模拟扫描失败：'+err.message,'err')}
+    box.style.display='none';
+    renderScan();
+  },
+  'scan-empty':function(){}
+});
+async function scanClearAll(examId){
+  const pages=await dbByIdx('pages','byExam',examId);
+  for(const p of pages)await dbDel('pages',p.id);
+  const crops=await dbAll('crops');
+  for(const c of crops)if(c.examId===examId)await dbDel('crops',c.id);
+  const revs=await dbAll('revs');
+  for(const r of revs)if(r.examId===examId)await dbDel('revs',r.id);
+}
+afterRender(function(){
+  const f=$('scanFiles');
+  if(f)f.addEventListener('change',function(){
+    if(f.files&&f.files.length)runScanUpload(f.files);
+    f.value='';
+  });
+});
+async function runScanUpload(files){
+  const ex=await dbGet('exams',ui.scanExam);
+  const ok=await dlgConfirm('开始识别','将扫描/识别 '+files.length+' 个文件（'+pagesEst(files)+' 页）。识别结果与现有页面共存，同页可删除重扫。','开始');
+  if(!ok)return;
+  const box=$('scanProgBox');
+  box.style.display='block';
+  scanCtx={examId:ex.id,onProgress:function(done,total,it){
+    $('scanProgBar').style.width=Math.round(done/total*100)+'%';
+    $('scanProgTxt').textContent='识别中 '+done+'/'+total;
+  }};
+  try{
+    const res=await scanExamPages(ex,files,function(done,total){
+      $('scanProgBar').style.width=Math.round(done/total*100)+'%';
+      $('scanProgTxt').textContent='识别中 '+done+'/'+total;
+    });
+    toast('识别完成：'+res.length+' 页','ok');
+  }catch(err){toast('识别失败：'+err.message,'err')}
+  box.style.display='none';
+  renderScan();
+}
+function pagesEst(files){
+  let n=0;
+  for(const f of Array.from(files)){
+    if(f.type==='application/pdf'||/\.pdf$/i.test(f.name||''))n+=3;
+    else n+=1;
+  }
+  return n;
+}
+
+/* ---------- 页详情 / 复核 ---------- */
+async function pageObjectURL(p){
+  if(p._url)return p._url;
+  p._url=URL.createObjectURL(p.blob);
+  return p._url;
+}
+async function pageFull(p){
+  if(p._full)return p._full;
+  const {cv}=await blobCanvas(p.blob,2200);
+  p._full=cv;
+  return cv;
+}
+Object.assign(ACTS,{
+  'scan-page':async function(el){
+    const p=await dbGet('pages',el.dataset.id);
+    const m=p.meta||{};
+    const flags=(m.flags||[]).filter(function(f){return f&&f!=='null'});
+    dlg('<div class="f-row" style="margin-bottom:10px">'
+      +badge((m.status==='ok')?'ok':'err',(m.status==='ok')?'已识别':'定位失败')
+      +(m.qrFound?badge('info','已读取版式二维码'):badge('gray','未读码(按模板解析)'))
+      +(flags.length?badge('warn','告警 '+flags.length):'')
+      +'</div>'
+      +'<div style="display:flex;gap:12px;flex-wrap:wrap">'
+      +'<img src="'+p.thumb+'" style="width:120px;border:1px solid var(--line);border-radius:8px">'
+      +'<div style="flex:1;min-width:260px">'
+      +'<div class="kv">页号：'+p.pageNo+'　考号：<b>'+esc(p.studentNo||'—')+'</b>　来源：'+esc(m.srcFile||'')+'</div>'
+      +(flags.length?'<div class="kv" style="color:var(--danger);margin:6px 0">'+flags.map(esc).join('<br>')+'</div>':'')
+      +'<div class="tbl-wrap" style="max-height:300px;overflow:auto"><table class="tbl"><tr><th>题号</th><th>判定</th><th>选项</th><th>涂点密度 A/B/C/D</th></tr>'
+      +(m.perQ||[]).map(function(q){
+        return '<tr><td>'+(q.qno)+'</td><td>'+badge(q.verdict==='OK'?'ok':q.verdict==='REVIEW'?'err':(q.verdict==='MULTI'?'err':'warn'),VERDICT_NAMES[q.verdict]||q.verdict)+'</td>'
+          +'<td>'+(q.choice||'—')+'</td><td class="kv">'+(q.inks||[]).map(function(x){return String(x).toFixed(2)}).join(' / ')+'</td></tr>';
+      }).join('')+'</table></div>'
+      +'</div></div>'
+      +'<div class="f-row"><button class="btn btn-sm" data-act="scan-fix-reg" data-id="'+p.id+'">考号改判</button>'
+      +'<button class="btn btn-sm" data-act="scan-relocate" data-id="'+p.id+'">重新定位</button></div>',
+      {title:'第 '+p.pageNo+' 页详情',wide:true});
+  },
+  /* 考号改判 */
+  'scan-fix-reg':async function(el){
+    const p=await dbGet('pages',el.dataset.id);
+    dlg('<div class="kv" style="margin-bottom:8px">当前识别考号：<b>'+esc(p.studentNo||'—')+'</b>。请确认/修正每位数：</div>'
+      +'<div class="f-row" id="regFixRow">'
+      +String(p.studentNo||'------').split('').map(function(ch,i){
+        return '<div><label class="f-lb">第 '+(i+1)+' 位</label><select class="inp regFixSel" data-i="'+i+'" style="width:72px">'
+          +['_','0','1','2','3','4','5','6','7','8','9'].map(function(d){
+            return '<option value="'+d+'"'+((ch===d)||(ch==='?'&&d==='_')?' selected':'')+'>'+d+'</option>'}).join('')
+          +'</select></div>';
+      }).join('')+'</div>'
+      +'<div class="tip" style="margin-top:8px">保存后将重新识别该页并重建主观题裁剪（考号用于分组与成绩匹配）。</div>',
+      {title:'考号改判 · 第 '+p.pageNo+' 页',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="scan-reg-save" data-id="'+p.id+'">保存重识别</button>'});
+  },
+  'scan-reg-save':async function(el){
+    const p=await dbGet('pages',el.dataset.id);
+    const sels=$('mBox').querySelectorAll('.regFixSel');
+    let no='';
+    sels.forEach(function(s){no+=s.value});
+    no=no.replace(/_/g,'');
+    if(!no){toast('考号不能为空','err');return}
+    const ok=await dlgConfirm('重识别','将以考号「'+esc(no)+'」重新识别第 '+p.pageNo+' 页（含主观题裁剪重建），确定？','开始');
+    if(!ok)return;
+    dlgClose();
+    try{
+      const ex=await dbGet('exams',p.examId);
+      const tpl=await dbGet('templates',ex.templateId);
+      const layout=layoutTemplate(tpl);
+      const {cv}=await blobCanvas(p.blob,2200);
+      await redoPage(p,cv,layout,{regOverride:no});
+      toast('已更新','ok');
+      renderScan();
+    }catch(err){toast('重识别失败：'+err.message,'err')}
+  },
+  /* 重新定位（手动 4 角） */
+  'scan-relocate':async function(el){
+    const p=await dbGet('pages',el.dataset.id);
+    const {cv}=await pageFull(p);
+    const big=canvasDataURL(canvasToThumb(cv,900),0.85);
+    dlg('<div class="kv" style="margin-bottom:8px">请在页面大图上<b>按顺序点击 4 个锚点中心</b>：①左上 → ②右上 → ③右下 → ④左下。</div>'
+      +'<div style="text-align:center"><div id="relWrap" style="position:relative;display:inline-block"><img id="relImg" src="'+big+'" style="max-width:640px;cursor:crosshair;border:1px solid var(--line);border-radius:8px"></div></div>'
+      +'<div class="kv" id="relStatus" style="margin-top:8px"></div>',
+      {title:'重新定位 · 第 '+p.pageNo+' 页',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="scan-rel-go" disabled id="relGoBtn">按 4 点重识别</button>'});
+    const pts=[];
+    window.__yjRel={p:p,pts:pts};
+    const img=$('relImg');
+    const wrap=$('relWrap');
+    const st=$('relStatus');
+    img.addEventListener('click',function(e){
+      if(pts.length>=4)return;
+      const rect=img.getBoundingClientRect();
+      const sx=img.naturalWidth/rect.width,sy=img.naturalHeight/rect.height;
+      const x=(e.clientX-rect.left)*sx,y=(e.clientY-rect.top)*sy;
+      pts.push({x:x,y:y});
+      const dot=document.createElement('div');
+      dot.style.cssText='position:absolute;width:18px;height:18px;border:3px solid #e11;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%)';
+      dot.style.left=(e.clientX-rect.left)+'px';
+      dot.style.top=(e.clientY-rect.top)+'px';
+      wrap.appendChild(dot);
+      st.innerHTML='已选 <b>'+pts.length+'/4</b>：'+pts.map(function(p2,i){return '['+(i+1)+': '+Math.round(p2.x)+','+Math.round(p2.y)+']'}).join('　');
+      if(pts.length>=4){
+        const btn=$('relGoBtn');
+        if(btn)btn.disabled=false;
+      }
+    });
+  },
+  'scan-rel-go':async function(){
+    const rel=window.__yjRel;
+    if(!rel||rel.pts.length<4){toast('请先点选 4 个角','err');return}
+    const p=rel.p;
+    const ok=await dlgConfirm('重识别','以 4 角手动定位重新识别第 '+p.pageNo+' 页，确定？','开始');
+    if(!ok)return;
+    dlgClose();
+    try{
+      const ex=await dbGet('exams',p.examId);
+      const tpl=await dbGet('templates',ex.templateId);
+      const layout=layoutTemplate(tpl);
+      const {cv}=await blobCanvas(p.blob,2200);
+      await redoPage(p,cv,layout,{manualPts:rel.pts});
+      toast('已更新','ok');
+      renderScan();
+    }catch(err){toast('重识别失败：'+err.message,'err')}
+  },
+  /* 涂点待复核 */
+  'scan-rev-q':async function(){
+    const ex=await dbGet('exams',ui.scanExam);
+    const rev=await examReviewCount(ex.id);
+    if(!rev.q.length){toast('没有待复核的涂点','ok');return}
+    const items=rev.q.slice(0,80);
+    const text=items.map(function(it,i){
+      const pages2=null;
+      return '<div class="scan-item" style="margin-bottom:6px"><div style="flex:1;min-width:220px">'
+        +'<div style="font-weight:700">考号 <b>'+esc(it.studentNo||'(未识别)')+'</b>　第 <b>'+(it.qno)+'</b> 题</div>'
+        +'<div class="kv">涂点密度：'+(it.inks||[]).map(function(x,k){return String.fromCharCode(65+k)+'='+Number(x).toFixed(2)}).join('　')+'</div></div>'
+        +'<div class="f-row">'+['A','B','C','D'].map(function(L){
+          return '<button class="btn btn-sm" data-act="rev-q-pick" data-key="'+esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno)+'" data-v="'+L+'">'+L+'</button>';
+        }).join('')
+        +'<button class="btn btn-sm" data-act="rev-q-pick" data-key="'+esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno)+'" data-v="BLANK">空白</button>'
+        +'<button class="btn btn-sm btn-d" data-act="rev-q-pick" data-key="'+esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno)+'" data-v="MULTI">多涂</button>'
+        +'</div></div>';
+    }).join('');
+    dlg(text,{title:'涂点待复核（'+rev.q.length+' 项，显示前 '+items.length+' 项）',wide:true});
+  },
+  'rev-q-pick':async function(el){
+    const key=el.dataset.key.split('|');
+    const exId=key[0],no=key[1],qno=parseInt(key[2],10);
+    const v=el.dataset.v;
+    await dbPut('revs',{id:exId+'|'+no+'|q'+qno,examId:exId,studentNo:no,qno:qno,type:'q',
+      verdict:(v==='BLANK'||v==='MULTI')?v:'OK',choice:(v==='A'||v==='B'||v==='C'||v==='D')?v:null,at:timestamp(),by:'manual'});
+    toast('已判：'+esc(no)+' 第 '+qno+' 题 = '+esc(v)+(v.length===1?'（'+VERDICT_NAMES.OK+'）':''),'ok');
+    dlgClose();
+    renderScan();
+  },
+  'scan-rev-reg':async function(){
+    const ex=await dbGet('exams',ui.scanExam);
+    const rev=await examReviewCount(ex.id);
+    if(!rev.reg.length){toast('没有考号异常页面','ok');return}
+    dlg(rev.reg.slice(0,60).map(function(p){
+      return '<div class="scan-item"><img src="'+p.thumb+'" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)">'
+        +'<div style="flex:1">第 '+p.pageNo+' 页　<b>'+esc(p.studentNo||'—')+'</b><br><span class="kv">'+((p.meta&&p.meta.regFlags||[]).join('；'))+'</span></div>'
+        +'<button class="btn btn-sm btn-o" data-act="scan-fix-reg" data-id="'+p.id+'">考号改判</button></div>';
+    }).join(''),{title:'考号异常（'+rev.reg.length+' 页）',wide:true});
+  },
+  'scan-rev-locate':async function(){
+    const ex=await dbGet('exams',ui.scanExam);
+    const rev=await examReviewCount(ex.id);
+    if(!rev.locate.length){toast('没有定位失败页面','ok');return}
+    dlg(rev.locate.slice(0,60).map(function(p){
+      return '<div class="scan-item"><img src="'+p.thumb+'" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)">'
+        +'<div style="flex:1">第 '+p.pageNo+' 页　<b>'+esc(p.studentNo||'—')+'</b><br><span class="kv">'+((p.meta&&p.meta.flags||[]).join('；'))+'</span></div>'
+        +'<button class="btn btn-sm btn-o" data-act="scan-relocate" data-id="'+p.id+'">手动 4 角重定位</button></div>';
+    }).join(''),{title:'定位失败（'+rev.locate.length+' 页）',wide:true});
+  }
+});
+/* 重识别单页：更新 page 记录 + 重建该页主观题裁剪 */
+async function redoPage(p,cv,layout,opts){
+  const res=await recognizeCanvas(cv,layout,p.meta.pageIdx||0,opts);
+  const blob=await canvasToJpeg(cv,0.88);
+  const oldNo=p.studentNo;
+  p.studentNo=res.studentNo||'';
+  p.blob=p.blob;
+  p.meta={status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
+    perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:res.geometry.w,layoutH:res.geometry.h,
+    pageIdx:p.meta.pageIdx,srcFile:p.meta.srcFile||'重新识别',H:res.H?res.H.h:null};
+  await dbPut('pages',p);
+  /* 删除该页旧裁剪 */
+  const crops=await dbAll('crops');
+  const oldQnos=(p.meta.perQ||[]).map(function(q){return String(q.qno)});
+  for(const c of crops){
+    if(c.examId===p.examId&&oldQnos.indexOf(String(c.qno))>=0&&c.studentNo===oldNo)await dbDel('crops',c.id);
+  }
+  /* 新裁剪 */
+  if(res.crops)for(const cp of res.crops){
+    const cid=p.examId+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
+    const old=await dbGet('crops',cid);
+    await dbPut('crops',{id:cid,examId:p.examId,exam_q:p.examId+'|'+cp.qno,studentNo:res.studentNo,
+      qno:cp.qno,part:cp.part,score:cp.score,blob:await canvasToJpeg(cp.cv,0.85),
+      thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
+      scoreVal:old&&old.scoreVal!=null?old.scoreVal:null,aiScore:old&&old.aiScore!=null?old.aiScore:null,
+      aiReason:old&&old.aiReason||'',marked:old&&old.marked||null,markedBy:old&&old.markedBy||'',flag:old&&old.flag||''});
+  }
+  return res;
+}
+
+
+/* ============================================================
+   第六段(1)：阅卷工作台（按题阅卷 + 键盘 + 批改标注图）
+   ============================================================ */
+let gradeCtx=null;   // {examId,qno,shuffle,order,idx,buf,abort}
+async function renderGrade(){
+  const examsAll=await dbAll('exams');
+  const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
+  if(!ui.gradeExam||!(exams.find(function(e){return e.id===ui.gradeExam})))ui.gradeExam=exams.length?exams[0].id:null;
+  if(!ui.gradeExam){
+    $('page').innerHTML='<div class="card">'+emptyBox('✍️','没有考试。请先创建考试并扫描识别（或模拟扫描）生成主观题裁剪图。')
+      +'<button class="btn btn-p" data-act="go-exam">去创建考试</button></div>';
+    return;
+  }
+  const ex=await dbGet('exams',ui.gradeExam);
+  if(!gradeCtx||gradeCtx.examId!==ex.id){gradeCtx=null;ui.gradeQno=null;}
+  if(!ui.gradeQno){
+    const meta=await examMeta(ex);
+    const cropsAll=await dbAll('crops');
+    const crops=cropsAll.filter(function(c){return c.examId===ex.id});
+    let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
+      +'<select class="inp" style="width:220px" data-on="grade-pick">'
+      +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>'
+      +'<span class="tip">按主观题逐题阅卷；每小题对应一份裁剪图，打分即存。</span></div></div>';
+    html+='<div class="card"><h3>主观题进度</h3>';
+    if(!meta.subjList.length){html+=emptyBox('📄','该模板没有主观题区，无需人工阅卷，直接到「成绩分析」查看。');}
+    else{
+      for(const sq of meta.subjList){
+        const list=crops.filter(function(c){return String(c.qno)===String(sq.qno)});
+        const done=list.filter(function(c){return c.scoreVal!=null}).length;
+        const avg=list.length&&list.filter(function(c){return c.scoreVal!=null}).length? (list.reduce(function(a,c){return a+(c.scoreVal||0)},0)/Math.max(1,list.filter(function(c){return c.scoreVal!=null}).length)) : 0;
+        const unique={};list.forEach(function(c){unique[c.studentNo]=1});
+        const total=Object.keys(unique).length;
+        html+='<div class="scan-item"><div style="flex:1;min-width:220px">'
+          +'<div style="font-weight:700">题 '+esc(String(sq.qno))+'（满分 '+esc(sq.score)+' 分'+(sq.parts.length>1?' · '+sq.parts.length+' 部分':'')+'）</div>'
+          +'<div class="kv">已阅 '+done+' / '+total+' 份　·　平均分 '+avg.toFixed(1)+'</div>'
+          +'</div>'
+          +'<div style="width:160px"><div class="progress"><div style="width:'+(total?Math.round(done/total*100):0)+'%"></div></div></div>'
+          +'<button class="btn btn-s btn-p" data-act="grade-open-q" data-q="'+esc(String(sq.qno))+'">开始阅卷</button>'
+          +'<button class="btn btn-s btn-o" data-act="grade-ai-batch-open" data-q="'+esc(String(sq.qno))+'">🤖 AI 预阅未评分</button>'
+          +'</div>';
+      }
+    }
+    html+='</div>';
+    $('page').innerHTML=html;
+    return;
+  }
+  await renderGradeView(ex);
+}
+Object.assign(ACTS,{
+  'grade-pick':async function(el){
+    ui.gradeExam=el.value;ui.gradeQno=null;gradeCtx=null;
+    renderGrade();
+  },
+  'grade-open-q':async function(el){
+    const q=el.dataset.q;
+    const ex=await dbGet('exams',ui.gradeExam);
+    const cropsAll=await dbAll('crops');
+    const list=cropsAll.filter(function(c){return c.examId===ex.id&&String(c.qno)===String(q)});
+    const uniq=[];
+    list.forEach(function(c){if(uniq.indexOf(c.studentNo)<0)uniq.push(c.studentNo)});
+    if(!uniq.length){toast('该题没有裁剪图，请先扫描识别','err');return}
+    ui.gradeQno=q;
+    gradeCtx={examId:ex.id,qno:q,shuffle:true,order:uniq,idx:0,buf:'',abort:null};
+    gradeShuffle();
+    renderGrade();
+  },
+  'grade-back':function(){ui.gradeQno=null;gradeCtx=null;renderGrade()},
+  'grade-toggle-shuffle':async function(){
+    gradeCtx.shuffle=!gradeCtx.shuffle;
+    gradeShuffle();
+    renderGrade();
+  },
+  'grade-jump':function(el){gradeCtx.idx=parseInt(el.dataset.i,10);gradeCtx.buf='';renderGrade()},
+  'grade-prev':function(){gradeCtx.idx=Math.max(0,gradeCtx.idx-1);gradeCtx.buf='';renderGrade()},
+  'grade-next':function(){gradeCtx.idx=Math.min(gradeCtx.order.length-1,gradeCtx.idx+1);gradeCtx.buf='';renderGrade()},
+  'grade-score-set':async function(el){
+    const v=el.dataset.v;
+    await gradeSetScore(parseFloat(v)==null?null:parseFloat(v));
+    renderGrade();
+  },
+  'grade-flag':async function(){await gradeToggleFlag('F');renderGrade()},
+  'grade-good':async function(){await gradeToggleFlag('G');renderGrade()},
+  'grade-ai-one':async function(){
+    const now2=gradeCtx.order[gradeCtx.idx];
+    if(!now2)return;
+    let el=null;
+    try{el=await aiSuggestExam(ui.gradeExam,now2,gradeCtx.qno)}
+    catch(err){toast('AI 建议失败：'+(err.message||String(err)),'err');return}
+    if(!el){toast('AI 未返回结果','err');return}
+    dlg('<div class="kv"><b>AI 建议分：'+esc(el.score)+'</b>（满分 '+el.full+'）</div>'
+      +(el.problems?'<div class="card" style="margin-top:8px"><h3>问题清单</h3><div style="white-space:pre-wrap;font-size:13px;line-height:1.7">'+esc(el.problems)+'</div></div>':'')
+      +(el.dimScores?'<div class="kv">维度得分：'+esc(JSON.stringify(el.dimScores))+'</div>':'')
+      +'<div class="card" style="margin-top:8px"><h3>总评</h3><div>'+esc(el.reason)+'</div></div>'
+      +'<div class="tip" style="margin-top:6px">AI 建议仅供参考；点「采纳」写入成绩（写入后仍可手改）。</div>',
+      {title:'AI 建议 · 考号 '+esc(now2)+' · 题 '+esc(String(gradeCtx.qno)),foot:
+        '<button class="btn" data-act="dlg-close">关闭</button><button class="btn btn-p" data-act="grade-ai-accept" data-v="'+esc(el.score)+'">✔ 采纳 '+esc(el.score)+' 分</button>'});
+  },
+  'grade-ai-accept':async function(el){
+    const no=gradeCtx.order[gradeCtx.idx];
+    await gradeSetScoreLocal(no,parseFloat(el.dataset.v));
+    dlgClose();
+    renderGrade();
+  },
+  'grade-ai-batch-open':async function(el){
+    const q=el.dataset.q;
+    const ex=await dbGet('exams',ui.gradeExam);
+    const cropsAll=await dbAll('crops');
+    const list=cropsAll.filter(function(c){return c.examId===ex.id&&String(c.qno)===String(q)});
+    const todo=[];
+    list.forEach(function(c){if(c.scoreVal==null){const parts=list.filter(function(x){return x.studentNo===c.studentNo}).sort(function(a,b){return a.part-b.part});let found=false;todo.forEach(function(t){if(t.no===c.studentNo)found=true});if(!found)todo.push({no:c.studentNo,parts:parts});}});
+    if(!todo.length){toast('该题没有未评分项','ok');return}
+    if(!ensureAI())return;
+    const ok=await dlgConfirm('AI 批量预阅','将对「题 '+esc(String(q))+'」的 '+todo.length+' 份未评分裁剪图调用 AI 建议分（2 路并发，可中途停止）。'
+      +'<br>建议先确认「设置」中的 AI 服务与评分要点。','开始');
+    if(!ok)return;
+    dlgClose();
+    const metas=await gradeMeta(ex);
+    if(!gradeCtx||gradeCtx.qno!==q){ui.gradeQno=q;gradeCtx={examId:ex.id,qno:q,shuffle:false,order:todo.map(function(t){return t.no}),idx:0,buf:'',abort:new AbortController()};}
+    if(!gradeCtx.abort)gradeCtx.abort=new AbortController();
+    const ctl=gradeCtx.abort;
+    dlg('<div class="prog-line"><span id="aiBatchTxt">准备中…</span></div><div class="progress"><div id="aiBatchBar" style="width:0%"></div></div><div class="tip" id="aiBatchLog"></div>',{
+      title:'AI 批量预阅 · 题 '+esc(String(q)),
+      foot:'<button class="btn btn-d" data-act="ai-batch-stop">停止</button>'
+    });
+    let done=0;
+    async function worker(){
+      while(done<todo.length){
+        if(ctl.signal.aborted)return;
+        const it=todo[done];
+        try{
+          const r=await aiSuggestItem(ex,it.parts,q,ctl);
+          const full=it.parts[0].score;
+          const score=r.score!=null?(Math.min(full,Math.max(0,Number(r.score)||0))):null;
+          for(const c of it.parts){
+            c.aiScore=score;c.aiReason=(r.reason||'')+'\n【问题】'+(r.problems||'');
+            await dbPut('crops',c);
+          }
+          $('aiBatchTxt').textContent='已完成 '+(done+1)+'/'+todo.length+'（'+esc(it.no)+' → '+score+'）';
+        }catch(err){
+          if(err.name!=='AbortError')$('aiBatchLog').textContent='出错：'+err.message;
+        }
+        done++;
+        $('aiBatchBar').style.width=Math.round(done/todo.length*100)+'%';
+      }
+      if(!ctl.signal.aborted){$('aiBatchLog').textContent='完成';toast('AI 预阅完成','ok');setTimeout(dlgClose,900);}
+    }
+    await Promise.all([worker(),worker()]);
+    renderGrade();
+  },
+  'ai-batch-stop':function(){
+    if(gradeCtx&&gradeCtx.abort)gradeCtx.abort.abort();
+    dlgClose();
+    renderGrade();
+  },
+  'grade-zoom':function(el){
+    const url=el.dataset.url;
+    dlg('<div style="text-align:center"><img src="'+url+'" style="max-width:92vw;max-height:82vh;border-radius:8px"></div>',{title:'放大查看',wide:true});
+  }
+});
+function gradeShuffle(){
+  const a=gradeCtx.order.slice();
+  if(gradeCtx.shuffle){
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      const t=a[i];a[i]=a[j];a[j]=t;
+    }
+  }
+  gradeCtx.order=a;
+}
+async function gradeMeta(ex){
+  const meta=await examMeta(ex);
+  return meta;
+}
+async function gradeSetScore(v){
+  const no=gradeCtx.order[gradeCtx.idx];
+  await gradeSetScoreLocal(no,v);
+}
+async function gradeSetScoreLocal(studentNo,v){
+  const ex=await dbGet('exams',ui.gradeExam);
+  const cropsAll=await dbAll('crops');
+  const list=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===studentNo&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
+  for(const c of list){
+    c.scoreVal=v;
+    c.markedBy='manual';
+    c.flag=(v==null)?'':c.flag;
+    if(v!=null)c.marked=await cropMarkedImage(c,v);
+    await dbPut('crops',c);
+  }
+}
+async function gradeToggleFlag(flag){
+  const no=gradeCtx.order[gradeCtx.idx];
+  const ex=await dbGet('exams',ui.gradeExam);
+  const cropsAll=await dbAll('crops');
+  const list=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===no&&String(c.qno)===String(gradeCtx.qno)});
+  for(const c of list){
+    c.flag=(flag==='F'&&c.flag==='F')?'':(flag==='G'&&c.flag==='G')?'':flag;
+    await dbPut('crops',c);
+  }
+  toast(flag==='F'?'已切换「待商榷」标记':'已切换「优秀」标记','ok');
+}
+async function cropMarkedImage(crop,w){
+  try{
+    const img=await createImageBitmap(crop.blob);
+    const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;
+    const ctx=cv.getContext('2d');ctx.drawImage(img,0,0);
+    const fs=Math.max(28,Math.round(img.width*0.075));
+    const txt=String(w)+'/'+crop.score;
+    ctx.font='bold '+fs+'px Arial,sans-serif';
+    const tw=ctx.measureText(txt).width;
+    const pad=fs*0.7;
+    const bx=cv.width-tw-pad*2-14,by=cv.height-fs-pad*2-12;
+    ctx.fillStyle='rgba(20,25,32,.78)';
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(bx,by,tw+pad*2,fs+pad*1.2,10);else ctx.rect(bx,by,tw+pad*2,fs+pad*1.2);
+    ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.textBaseline='middle';ctx.textAlign='left';
+    ctx.fillText(txt,bx+pad,by+(fs+pad*1.2)/2);
+    return await canvasToJpeg(cv,0.85);
+  }catch(e){return null}
+}
+async function renderGradeView(ex){
+  const meta=await gradeMeta(ex);
+  const no=gradeCtx.order[gradeCtx.idx];
+  if(no==null){ui.gradeQno=null;renderGrade();return}
+  const students=await dbByIdx('students','byClass',ex.classId);
+  const stu=students.find(function(s){return String(s.no)===String(no)});
+  const cropsAll=await dbAll('crops');
+  const parts=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===no&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
+  const sq=meta.subjList.find(function(s){return String(s.qno)===String(gradeCtx.qno)});
+  const full=sq?sq.score:100;
+  const cur=parts.length?parts[0].scoreVal:null;
+  const done=parts.length?parts[0].scoreVal!=null:false;
+  let imgs='';
+  for(const p of parts){
+    const url=URL.createObjectURL(p.blob);
+    const userUrl=url;
+    imgs+='<div style="margin-bottom:10px"><img src="'+userUrl+'" data-act="grade-zoom" data-url="'+userUrl+'" style="max-width:100%;max-height:60vh;border:1px solid var(--line);border-radius:8px;cursor:zoom-in"></div>';
+  }
+  if(!parts.length)imgs='<div class="empty">该生此题的裁剪图不存在</div>';
+  /* 快捷分按钮 */
+  let scoreBtns='';
+  const steps=[0,Math.round(full*0.25),Math.round(full*0.5),Math.round(full*0.75),full];
+  const uniqs=steps.filter(function(v,i){return steps.indexOf(v)===i});
+  uniqs.forEach(function(v){
+    scoreBtns+='<button class="gs'+(cur===v?' on':'')+'" data-act="grade-score-set" data-v="'+v+'">'+v+'</button>';
+  });
+  if(full>=5){
+    scoreBtns+='<button class="gs dim" data-act="grade-score-set" data-v="'+(Math.max(0,cur!=null?cur:0)+0.5)+'">+0.5</button>';
+  }
+  scoreBtns+='<button class="gs dim" data-act="grade-score-set" data-v="'+(parseFloat(gradeCtx.buf||'')||'' )+'">'+esc(gradeCtx.buf||'—')+'</button>';
+  scoreBtns+='<button class="gs dim" data-act="grade-clear-score">清零</button>';
+  /* 缩略图 */
+  const thumbs=gradeCtx.order.map(function(o,i){
+    const cc=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
+    const url=cc.length?URL.createObjectURL(cc[0].blob):'';
+    const st=cc.length&&cc[0].scoreVal!=null?cc[0].scoreVal:null;
+    const fl=cc.length?cc[0].flag:'';
+    return '<div class="gt'+(i===gradeCtx.idx?' on':'')+'" data-act="grade-jump" data-i="'+i+'" title="'+esc(o)+'">'
+      +'<img src="'+url+'" style="'+(st!=null?'outline:2px solid var(--green);':'')+(fl==='F'?'outline:2px solid var(--warn);':fl==='G'?'outline:2px solid var(--zhu);':'')+'">'
+      +'<div class="kv" style="text-align:center;font-size:10px">'+(st!=null?('✔'+st):esc(o))+((fl)?(fl==='F'?'⚑':'★'):'')+'</div></div>';
+  }).join('');
+  $('page').innerHTML='<div class="f-row" style="margin-bottom:10px">'
+    +'<button class="btn btn-s" data-act="grade-back">← 返回题列表</button>'
+    +'<b>题 '+esc(String(gradeCtx.qno))+'</b><span class="kv">满分 '+full+' 分</span>'
+    +'<span class="chip'+(gradeCtx.shuffle?' on':'')+'" data-act="grade-toggle-shuffle">🔀 随机打乱阅卷顺序</span>'
+    +'<span style="flex:1"></span>'
+    +'<span class="kv">已阅 '+gradeCtx.order.filter(function(o){const cc=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)});return cc.length&&cc[0].scoreVal!=null}).length+' / '+gradeCtx.order.length+'</span>'
+    +'</div><div class="gwrap">'
+    +'<div class="gimg"><div class="kv" style="margin-bottom:6px">考号 <b>'+esc(no)+'</b>　姓名 <b>'+esc(stu?stu.name:'（未匹配名单）')+'</b>　'+(done?'当前 '+cur+' 分':'未评分')+'</div>'
+    +imgs
+    +'<div class="gthumbs">'+thumbs+'</div></div>'
+    +'<div class="gside">'
+    +'<div style="font-weight:700;margin-bottom:6px">打分（键盘：数字输入 / Enter 下一份 / ←→ 前后 / F 待商榷 / G 优秀 / Del 清零）</div>'
+    +'<input class="inp" id="gradeManualInput" type="number" step="0.5" min="0" max="'+full+'" placeholder="手动输入 0-'+full+'" value="'+esc(cur!=null?cur:'')+'">'
+    +'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-s btn-p" data-act="grade-manual" style="flex:1">写入</button>'
+    +'<button class="btn btn-s" data-act="grade-clear-score" style="flex:1">清零</button></div>'
+    +'<div class="gscore">'+scoreBtns+'</div>'
+    +'<div class="f-row" style="justify-content:space-between;margin-top:8px">'
+    +'<button class="btn btn-s" data-act="grade-prev">← 上一份</button>'
+    +'<button class="btn btn-s btn-p" data-act="grade-next">下一份 →</button></div>'
+    +'<button class="btn btn-s btn-o" data-act="grade-ai-one" style="width:100%;margin-top:8px">🤖 AI 建议</button>'
+    +'<button class="btn btn-s" data-act="grade-flag" style="width:100%;margin-top:6px">⚑ 标记待商榷</button>'
+    +'<button class="btn btn-s" data-act="grade-good" style="width:100%;margin-top:6px">★ 标记优秀</button>'
+    +'<div class="tip" style="margin-top:8px">所有修改即时保存，无需手动点击保存。AI 建议需在「设置」中配置视觉大模型。</div>'
+    +'</div></div>';
+  afterRender(function(){
+    const inp=$('gradeManualInput');
+    if(inp){
+      inp.addEventListener('keydown',function(e){
+        if(e.key==='Enter'){ACTS['grade-manual'](inp);}
+        e.stopPropagation();
+      });
+    }
+  });
+}
+Object.assign(ACTS,{
+  'grade-manual':async function(el){
+    const inp=$('gradeManualInput');
+    if(!inp)return;
+    const v=parseFloat(inp.value);
+    if(!Number.isFinite(v)){toast('请输入分数','err');return}
+    const ex=await dbGet('exams',ui.gradeExam);
+    const meta=await gradeMeta(ex);
+    const sq=meta.subjList.find(function(s){return String(s.qno)===String(gradeCtx.qno)});
+    const full=sq?sq.score:100;
+    await gradeSetScoreLocal(gradeCtx.order[gradeCtx.idx],Math.min(full,Math.max(0,v)));
+    renderGrade();
+  },
+  'grade-clear-score':async function(){
+    await gradeSetScoreLocal(gradeCtx.order[gradeCtx.idx],null);
+    renderGrade();
+  }
+});
+/* 键盘快捷键（阅卷视图激活时） */
+document.addEventListener('keydown',function(e){
+  if(!ui.gradeQno||!gradeCtx)return;
+  if(!$('mOverlay').hidden)return;
+  const isInput=/(INPUT|TEXTAREA|SELECT)/.test(document.activeElement&&document.activeElement.tagName||'');
+  if(isInput)return;
+  if(e.key>='0'&&e.key<='9'){
+    gradeCtx.buf=(gradeCtx.buf+e.key).slice(0,4);
+    const inp=$('gradeManualInput');
+    if(inp)inp.value=gradeCtx.buf;
+    e.preventDefault();
+  }else if(e.key==='Enter'){
+    e.preventDefault();
+    const inp=$('gradeManualInput');
+    if(inp&&inp.value!==''){ACTS['grade-manual'](inp);}
+  }else if(e.key==='ArrowRight'){
+    e.preventDefault();ACTS['grade-next']();
+  }else if(e.key==='ArrowLeft'){
+    e.preventDefault();ACTS['grade-prev']();
+  }else if(e.key==='f'||e.key==='F'){
+    e.preventDefault();ACTS['grade-flag']();
+  }else if(e.key==='g'||e.key==='G'){
+    e.preventDefault();ACTS['grade-good']();
+  }else if(e.key==='Delete'){
+    e.preventDefault();ACTS['grade-clear-score']();
+  }
+});
+
+
+/* ============================================================
+   第六段(2)：成绩计算 / 分析图表 / 导出
+   ============================================================ */
+async function computeScorebook(examId){
+  const {exam,pages,crops,revs,students}=await examData(examId);
+  if(!exam)return null;
+  const meta=await examMeta(exam);
+  const perScore=exam.perScore||meta.layout.perScore||2;
+  const byNo={};
+  pages.forEach(function(p){
+    const no=p.studentNo||'(未识别)';
+    if(!byNo[no])byNo[no]={pages:[],perQ:{}};
+    byNo[no].pages.push(p);
+    (p.meta&&p.meta.perQ||[]).forEach(function(q){
+      const cur=byNo[no].perQ[q.qno];
+      if(!cur)byNo[no].perQ[q.qno]=q;
+      else if(cur.verdict==='REVIEW'&&q.verdict!=='REVIEW')byNo[no].perQ[q.qno]=q;
+    });
+  });
+  const studentByNo={};
+  students.forEach(function(s){studentByNo[String(s.no)]=s});
+  const noSet={};
+  students.forEach(function(s){noSet[String(s.no)]=true});
+  Object.keys(byNo).forEach(function(no){if(byNo[no]&&byNo[no].pages.length)noSet[no]=true});
+  const rows=[];
+  Object.keys(noSet).forEach(function(no){
+    const st=studentByNo[no];
+    const src=byNo[no];
+    const absent=!src||!src.pages.length;
+    const obj={};let objScore=0;
+    meta.choiceQnos.forEach(function(qn){
+      const q=(src&&src.perQ[qn])||{verdict:'NOREC'};
+      const ov=revs.find(function(r){return r.studentNo===no&&r.qno===qn&&r.type==='q'});
+      const verdict=ov?ov.verdict:q.verdict;
+      const choice=ov?ov.choice:q.choice;
+      let tf;
+      if(verdict==='OK'){
+        const ans=String((exam.answers||{})[qn]!=null?(exam.answers[qn]):'').toUpperCase();
+        tf=choice===ans?'RIGHT':'WRONG';
+      }else tf=verdict;
+      if(tf==='RIGHT')objScore+=perScore;
+      obj[qn]={verdict:tf,choice:choice};
+    });
+    const subj={};let subjScore=0,subjGraded=0;
+    meta.subjList.forEach(function(sq){
+      const cs=crops.filter(function(c){return c.studentNo===no&&String(c.qno)===String(sq.qno)}).sort(function(a,b){return a.part-b.part});
+      const score=cs.length?cs[0].scoreVal:null;
+      subj[sq.qno]={score:score,full:sq.score,ai:cs.length?cs[0].aiScore:null,marked:cs.length?cs[0].marked:null};
+      if(score!=null){subjScore+=score;subjGraded++;}
+    });
+    rows.push({no:no,name:st?st.name:'（未匹配名单）',note:st?st.note:'',absent:absent,
+      obj:obj,objScore:objScore,subj:subj,subjScore:subjScore,subjGraded:subjGraded,
+      total:objScore+subjScore});
+  });
+  rows.sort(function(a,b){return (b.total-a.total)||String(a.no).localeCompare(String(b.no))});
+  rows.forEach(function(r,i){r.rank=i+1});
+  const perQStat={};
+  meta.choiceQnos.forEach(function(qn){
+    const s={ok:0,wrong:0,blank:0,multi:0,review:0,norec:0,n:0,rate:0,dist:{}};
+    rows.forEach(function(r){
+      const v=r.obj[qn];
+      if(!v)return;
+      s.n++;
+      if(v.verdict==='RIGHT')s.ok++;
+      else if(v.verdict==='WRONG'){s.wrong++;const c=v.choice||'?';s.dist[c]=(s.dist[c]||0)+1;}
+      else if(v.verdict==='BLANK')s.blank++;
+      else if(v.verdict==='MULTI')s.multi++;
+      else if(v.verdict==='REVIEW')s.review++;
+      else s.norec++;
+    });
+    s.rate=s.n?s.ok/s.n:0;
+    perQStat[qn]=s;
+  });
+  return {exam:exam,meta:meta,rows:rows,perQStat:perQStat,perScore:perScore};
+}
+async function renderScore(){
+  const examsAll=await dbAll('exams');
+  const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
+  if(!ui.scoreExam||!(exams.find(function(e){return e.id===ui.scoreExam})))ui.scoreExam=exams.length?exams[0].id:null;
+  if(!ui.scoreExam){
+    $('page').innerHTML='<div class="card">'+emptyBox('📊','没有考试。先创建考试并完成扫描与阅卷。')
+      +'<button class="btn btn-p" data-act="go-exam">去创建考试</button></div>';
+    return;
+  }
+  const ex=await dbGet('exams',ui.scoreExam);
+  const book=await computeScorebook(ex.id);
+  if(!book){$('page').innerHTML=emptyBox('❌','计算失败');return}
+  const meta=book.meta;
+  const sc=book.rows.filter(function(r){return !r.absent});
+  const n=sc.length;
+  const sf=sc.length?sc.reduce(function(a,r){return a+r.total},0)/sc.length:0;
+  const max=sc.length?Math.max.apply(null,sc.map(function(r){return r.total})):0;
+  const min=sc.length?Math.min.apply(null,sc.map(function(r){return r.total})):0;
+  const full=max0(book); 
+  let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
+    +'<select class="inp" style="width:220px" data-on="score-pick">'
+    +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>'
+    +'<span class="kv">'+esc(ex.className||'')+'　·　'+esc(ex.templateName||'')+'　·　客观题 '+meta.choiceQnos.length+' 题 ×'+book.perScore+' 分</span>'
+    +'<span style="flex:1"></span>'
+    +'<button class="btn btn-p" data-act="score-csv" data-id="'+ex.id+'">📄 导出成绩册 CSV</button>'
+    +'<button class="btn" data-act="score-json" data-id="'+ex.id+'">📦 导出 JSON</button>'
+    +'</div></div>';
+  html+=statCards([
+    {n:n,l:'参评人数'},{n:sf.toFixed(1),l:'平均总分'},{n:max,l:'最高分'},{n:min,l:'最低分'},
+    {n:(n?Math.round(sc.filter(function(r){return r.total>=full*0.8}).length/n*100):0)+'%',l:'优秀率(≥80%)'}
+  ]);
+  /* 客观题得分率 */
+  html+='<div class="card"><h3>客观题逐题得分率</h3><div class="kv" style="margin-bottom:8px">绿=对 红=错 灰=空白/多涂 橙=待复核（待复核应先处理）</div><div class="tbl-wrap"><table class="tbl"><tr><th>题</th><th style="min-width:180px">得分率</th><th>对</th><th>错</th><th>空/多涂</th><th>待复核</th><th>错题选项分布</th></tr>';
+  meta.choiceQnos.forEach(function(qn){
+    const s=book.perQStat[qn];
+    const pct=Math.round(s.rate*100);
+    const dist=Object.keys(s.dist).map(function(k){return k+':'+s.dist[k]}).join(' ');
+    html+='<tr><td>'+(qn)+'</td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress" style="flex:1"><div style="width:'+pct+'%;background:'+(pct>=90?'var(--green)':pct>=60?'var(--gold)':'var(--zhu2)')+'"></div></div><b>'+pct+'%</b></div></td>'
+      +'<td>'+s.ok+'</td><td style="color:var(--danger)">'+s.wrong+'</td><td>'+(s.blank+s.multi)+'</td><td style="color:var(--warn)">'+s.review+'</td>'
+      +'<td class="kv">'+esc(dist||'—')+'</td></tr>';
+  });
+  html+='</table></div></div>';
+  /* 主观题统计 */
+  html+='<div class="f-row" style="align-items:stretch">';
+  html+='<div class="card" style="flex:1;min-width:300px"><h3>主观题统计</h3>';
+  for(const sq of meta.subjList){
+    const cs=book.rows.map(function(r){return r.subj[sq.qno]});
+    const list=cs.filter(function(c){return c&&c.score!=null});
+    const avg=list.length?list.reduce(function(a,c){return a+c.score},0)/list.length:0;
+    let hist='';
+    const bins=8;
+    for(let b=0;b<bins;b++){
+      const lo=(sq.score)*b/bins,hi=(sq.score)*(b+1)/bins;
+      const cnt=list.filter(function(c){return c.score>lo&&c.score<=hi||(b===0&&c.score===0)}).length;
+      const maxC=Math.max(1,Math.max.apply(null,Array.from({length:bins},function(_,i){
+        return list.filter(function(c){const l2=sq.score*i/bins,h2=sq.score*(i+1)/bins;return c.score>l2&&c.score<=h2||(i===0&&c.score===0)}).length;
+      })));
+      hist+='<div style="display:flex;gap:4px;margin:1px 0"><div style="width:70px;font-size:11px;color:var(--txt2);text-align:right">'+lo.toFixed(0)+'-'+hi.toFixed(0)+'</div><div style="flex:1;background:#F4F0E8;border-radius:4px"><div style="height:14px;background:var(--blue);border-radius:4px;width:'+Math.round(cnt/maxC*100)+'%"></div></div><div style="width:22px;font-size:11px">'+cnt+'</div></div>';
+    }
+    html+='<div style="margin-bottom:12px"><b>题 '+esc(String(sq.qno))+'</b>（满分 '+sq.score+'）：已阅 '+list.length+'/'
+      +(cs.length)+'，平均 '+avg.toFixed(1)+'　'+(list.length&&((list.reduce(function(a,c){return a+(c.ai!=null?1:0)},0))))+' 份有 AI 分</div>'+hist;
+  }
+  html+='</div>';
+  /* 总分分布 + 优良率 */
+  html+='<div class="card" style="flex:1;min-width:300px"><h3>总分分布与优良合格率</h3><canvas id="totalHist" style="width:100%;height:150px"></canvas>'
+    +'<canvas id="passDonut" style="width:100%;height:150px;max-width:260px;display:block;margin:6px auto"></canvas>'
+    +'<div class="kv" style="text-align:center">绿 优秀(≥80%)　蓝 良好(70-79)　金 合格(60-69)　灰 待合格(&lt;60)</div></div>';
+  html+='</div>';
+  /* 成绩册 */
+  html+='<div class="card"><h3>成绩册（'+book.rows.length+' 人 · 排序：总分）</h3><div class="tbl-wrap" style="max-height:520px;overflow:auto"><table class="tbl"><tr><th>排名</th><th>考号</th><th>姓名</th><th>备注</th><th>客观</th>';
+  meta.subjList.forEach(function(sq){html+='<th>'+esc(String(sq.qno))+'</th>'});
+  html+='<th>主观</th><th>总分</th><th>状态</th></tr>';
+  book.rows.forEach(function(r){
+    html+='<tr style="cursor:pointer" data-act="score-stu" data-no="'+esc(r.no)+'">'
+      +'<td>'+(r.rank)+'</td><td>'+(r.absent?esc(r.no):'<b>'+esc(r.no)+'</b>')+'</td><td>'+esc(r.name)+'</td><td class="kv">'+esc(r.note)+'</td>'
+      +'<td>'+(r.absent?'—':r.objScore+'/'+(meta.choiceQnos.length*book.perScore))+'</td>';
+    meta.subjList.forEach(function(sq){
+      const sub=r.subj[sq.qno]||{};
+      html+='<td>'+((sub.score!=null)?('<b>'+sub.score+'</b>/'+sub.full):'<span class="kv">未阅</span>')+'</td>';
+    });
+    html+='<td>'+(r.absent?'—':r.subjScore)+'</td><td><b>'+(r.absent?'缺考':r.total)+'</b></td>'
+      +'<td>'+(r.absent?badge('gray','缺考'):(r.subjGraded<meta.subjList.length?badge('warn','阅卷中'):badge('ok','完成')))+'</td></tr>';
+  });
+  html+='</table></div></div>';
+  $('page').innerHTML=html;
+  afterRender(function(){
+    drawTotalHist(full,book.rows);
+    drawPassDonut(full,book.rows);
+  });
+}
+function max0(book){
+  let t=0;
+  book.meta.subjList.forEach(function(s){t+=s.score});
+  return t+book.meta.choiceQnos.length*book.perScore;
+}
+function drawTotalHist(full,rows){
+  const cv=$('totalHist');
+  if(!cv)return;
+  const w=cv.width=cv.clientWidth||560,h=cv.height=150;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  const bins=12,data=new Array(bins).fill(0);
+  rows.forEach(function(r){
+    if(r.absent)return;
+    const b=Math.min(bins-1,Math.floor(r.total/Math.max(1,full)*bins));
+    data[b]++;
+  });
+  const maxC=Math.max(1,Math.max.apply(null,data));
+  const bw=w/bins*0.7;
+  ctx.fillStyle='#33507A';
+  data.forEach(function(c,i){
+    const x=i*(w/bins)+(w/bins-bw)/2;
+    const bh=c/maxC*(h-36);
+    ctx.fillRect(x,h-26-bh,bw,bh);
+    ctx.fillStyle='#5A4E3C';ctx.font='10px sans-serif';ctx.textAlign='center';
+    ctx.fillText(Math.round((i+0.5)/bins*full),x+bw/2,h-12);
+  });
+  ctx.fillStyle='#999';ctx.font='11px sans-serif';ctx.textAlign='left';
+  ctx.fillText('总分分布（横轴=分数段）',6,14);
+}
+function drawPassDonut(full,rows){
+  const cv=$('passDonut');
+  if(!cv)return;
+  const w=cv.width=cv.clientWidth<260?260:cv.clientWidth,h=cv.height=150;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  const good=rows.filter(function(r){return !r.absent&&r.total>=full*0.8}).length;
+  const well=rows.filter(function(r){return !r.absent&&r.total>=full*0.7&&r.total<full*0.8}).length;
+  const pass=rows.filter(function(r){return !r.absent&&r.total>=full*0.6&&r.total<full*0.7}).length;
+  const fail=rows.filter(function(r){return !r.absent&&r.total<full*0.6}).length;
+  const total=good+well+pass+fail;
+  if(!total){ctx.fillStyle='#999';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('暂无成绩',w/2,h/2);return}
+  const cx=w/2,cy=h/2,R=Math.min(w,h)/2-12;
+  const segs=[[good,'#1F8A70'],[well,'#33507A'],[pass,'#B8860B'],[fail,'#B8B2A6']];
+  let a=-Math.PI/2;
+  segs.forEach(function(sg){
+    const frac=sg[0]/total;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R,a,a+frac*Math.PI*2);
+    ctx.fillStyle=sg[1];
+    ctx.fill();
+    a+=frac*Math.PI*2;
+  });
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,R*0.58,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2C3E50';ctx.font='bold 14px sans-serif';ctx.textAlign='center';
+  ctx.fillText(total+' 人',cx,cy-2);
+  ctx.fillStyle='#999';ctx.font='10px sans-serif';
+  ctx.fillText('参评',cx,cy+13);
+  ctx.fillStyle='#666';ctx.font='11px sans-serif';ctx.textAlign='center';
+  ctx.fillText('优秀'+good+'　良好'+well+'　合格'+pass+'　待合格'+fail,cx,h-4);
+}
+/* 成绩导出 */
+Object.assign(ACTS,{
+  'score-pick':async function(el){ui.scoreExam=el.value;renderScore()},
+  'score-csv':async function(el){
+    const book=await computeScorebook(el.dataset.id);
+    const q=function(s){return '"'+String(s==null?'':s).replace(/"/g,'""').replace(/\r?\n/g,' ')+'"'};
+    const head=['排名','考号','姓名','备注','客观题得分','客观题满分'];
+    book.meta.subjList.forEach(function(sq){head.push('题'+sq.qno+'得分');head.push('题'+sq.qno+'满分')});
+    head.push('主观题得分','主观题满分','总分','状态');
+    const lines=[head.join(',')];
+    const full=max0(book);
+    book.rows.forEach(function(r){
+      const rowv=[r.rank,r.no,r.name,r.note,r.objScore,book.meta.choiceQnos.length*book.perScore];
+      book.meta.subjList.forEach(function(sq){
+        const sub=r.subj[sq.qno]||{};
+        rowv.push(sub.score!=null?sub.score:'未阅',sub.full!=null?sub.full:sq.score);
+      });
+      rowv.push(r.subjScore,book.meta.subjList.reduce(function(a,s2){return a+s2.score},0),r.absent?'缺考':r.total,r.absent?'缺考':(r.subjGraded<book.meta.subjList.length?'阅卷中':'完成'));
+      lines.push(rowv.map(q).join(','));
+    });
+    download('成绩册_'+book.exam.name+'_'+tsName()+'.csv','\ufeff'+lines.join('\r\n'),'text/csv;charset=utf-8');
+    toast('成绩册 CSV 已导出（Excel 可直接打开）','ok');
+  },
+  'score-json':async function(el){
+    const book=await computeScorebook(el.dataset.id);
+    const pack={app:'yuejuan_score',v:1,exportedAt:timestamp(),exam:book.exam,meta:{choiceQnos:book.meta.choiceQnos,subjList:book.meta.subjList,perScore:book.perScore},rows:book.rows};
+    download('成绩_'+book.exam.name+'_'+tsName()+'.json',JSON.stringify(pack,null,2),'application/json;charset=utf-8');
+    toast('成绩 JSON 已导出','ok');
+  },
+  'score-stu':async function(el){
+    const no=el.dataset.no;
+    const book=await computeScorebook(ui.scoreExam);
+    const r=book.rows.find(function(x){return x.no===no});
+    if(!r)return;
+    let html='<div class="kv" style="margin-bottom:8px">考号 <b>'+esc(r.no)+'</b>　姓名 <b>'+esc(r.name)+'</b>　总分 <b style="color:var(--zhu)">'+r.total+'</b>　排名 '+r.rank+'　客观 '+r.objScore+'　主观 '+r.subjScore+'</div>';
+    html+='<div style="max-height:340px;overflow:auto"><table class="tbl"><tr><th>客观题（对'+book.perScore+'分/题）</th><th>判定</th><th>涂选</th></tr>';
+    book.meta.choiceQnos.forEach(function(qn){
+      const v=r.obj[qn];
+      if(!v)return;
+      const cls=v.verdict==='RIGHT'?'ok':v.verdict==='WRONG'?'err':(v.verdict==='REVIEW'||v.verdict==='MULTI'?'err':'warn');
+      html+='<tr><td>'+(qn)+'</td><td>'+badge(cls,VERDICT_NAMES[v.verdict]||v.verdict)+'</td><td>'+esc(v.choice||'—')+'</td></tr>';
+    }).join('');
+    html+='</table></div>';
+    /* 主观题已批图 */
+    html+='<div class="f-row" style="margin-top:10px;flex-wrap:wrap">';
+    book.meta.subjList.forEach(function(sq){
+      const sub=r.subj[sq.qno]||{};
+      if(sub.marked){
+        const url=URL.createObjectURL(sub.marked);
+        html+='<div><img src="'+url+'" style="max-width:220px;border:1px solid var(--line);border-radius:8px" data-act="grade-zoom" data-url="'+url+'" data-large="1"><div class="kv" style="text-align:center">题 '+esc(String(sq.qno))+'　<b>'+sub.score+'</b>/'+sub.full+'</div></div>';
+      }else{
+        html+='<div class="kv">题 '+esc(String(sq.qno))+'：'+(sub.score!=null?sub.score+'分':'未阅')+'</div>';
+      }
+    });
+    html+='</div>';
+    dlg(html,{title:'学生成绩明细',wide:true});
+  }
+});
+
+
+/* ============================================================
+   第六段(3)：AI 辅助阅卷 / 设置 / 数据备份
+   ============================================================ */
+const sleep2=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+async function withRetry(fn){
+  let last=null;
+  for(let attempt=1;attempt<=2;attempt++){
+    try{return await fn()}
+    catch(e){
+      last=e;
+      if(e.name==='AbortError')throw e;
+      const msg=String(e.message||'');
+      const retriable=/429|5\d\d|Failed to fetch|network error|timeout|ECONN|socket|abort/i.test(msg);
+      if(!retriable||attempt>=2)throw e;
+      await sleep2(2000*attempt);
+    }
+  }
+  throw last;
+}
+function ensureAI(){
+  const provider=ai.provider;
+  const key=(ai.keys[provider]||'').trim();
+  if(!key){toast('请先在「设置 → AI 服务」中填写 API Key','err');return false}
+  const url=provider==='custom'?(ai.customUrl||'').trim():PROVIDERS[provider].url;
+  if(!url){toast('自定义服务需填写接口地址','err');return false}
+  return true;
+}
+async function callVision(prompt,images,signal){
+  const provider=ai.provider;
+  const url=provider==='custom'?(ai.customUrl||'').trim():PROVIDERS[provider].url;
+  const key=(ai.keys[provider]||'').trim();
+  const model=(ai.models[provider]||'').trim()||PROVIDERS[provider].models[0];
+  const messages=[
+    {role:'system',content:'你是一位经验丰富、认真负责的阅卷老师。评分时，你是执行主流阅卷标准的严格阅卷人：每一分都必须有卷面依据，发现错误必须扣分，不得因"整体印象尚可"而免扣具体问题。所有输出使用简体中文。'},
+    {role:'user',content:images.length?[{type:'text',text:prompt},...images.map(function(u){return {type:'image_url',image_url:{url:u}}})]:prompt}
+  ];
+  const res=await fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model:model,messages:messages,temperature:ai.temp||0.35,max_tokens:ai.maxTokens||4096,stream:false}),
+    signal:signal||undefined
+  });
+  if(!res.ok){
+    let msg='HTTP '+res.status;
+    try{const j=await res.json();msg=j.error&&(j.error.message||j.error.msg)||j.msg||JSON.stringify(j).slice(0,200)||msg}catch(e){}
+    throw new Error(msg);
+  }
+  const data=await res.json();
+  const c=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
+  if(!c)throw new Error('接口未返回内容');
+  return c;
+}
+function parseResult(text){
+  let s=String(text).trim();
+  s=s.replace(/^\`\`\`(?:json)?\s*/i,'').replace(/\s*\`\`\`$/,'');
+  const a=s.indexOf('{'),b=s.lastIndexOf('}');
+  if(a<0||b<=a)throw new Error('AI 返回内容不是 JSON：'+s.slice(0,120));
+  let obj;
+  try{obj=JSON.parse(s.slice(a,b+1))}
+  catch(e){
+    const fixed=s.slice(a,b+1).replace(/,\s*([}\]])/g,'$1').replace(/[\u201c\u201d]/g,'"');
+    try{obj=JSON.parse(fixed)}catch(e2){throw new Error('JSON 解析失败：'+s.slice(0,120))}
+  }
+  if(typeof obj!=='object'||obj===null)throw new Error('AI 返回内容不是对象');
+  return obj;
+}
+async function cropToDataURL(crop,maxW,q){
+  const img=await createImageBitmap(crop.blob);
+  const sc=Math.min(1,maxW/(img.width||1));
+  const cv=document.createElement('canvas');
+  cv.width=Math.max(1,Math.round(img.width*sc));
+  cv.height=Math.max(1,Math.round(img.height*sc));
+  cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+  return cv.toDataURL('image/jpeg',q||0.82);
+}
+async function aiSuggestItem(ex,parts,qno,ctl){
+  if(!ensureAI())throw new Error('先配置 AI');
+  const meta=await examMeta(ex);
+  const sq=meta.subjList.find(function(s){return String(s.qno)===String(qno)});
+  const full=sq?sq.score:100;
+  const subjMeta=(ex.subjective||{})[qno]||{score:full,points:'',answer:''};
+  const level=IMG_LEVELS[ai.imgLevel]||IMG_LEVELS.std;
+  const images=[];
+  for(const p of parts)images.push(await cropToDataURL(p,level.w,level.q));
+  const strictMap={loose:'宽松',std:'适中',strict:'严格'};
+  const strictLine=(omr.aiStrict&&omr.aiStrict!=='std')?('\n（本场严格度：'+strictMap[omr.aiStrict]+'档，请按该档把握扣分尺度）'):'';
+  const prompt='【题目】第 '+qno+' 题（'+(sq?sq.type:'')+'）\n'
+    +'【满分】'+full+' 分\n'
+    +'【评分要点】'+((subjMeta.points||'').trim()||'（未提供，请按主流标准）')+'\n'
+    +'【参考答案】'+((subjMeta.answer||'').trim()||'（未提供）')+'\n'
+    +'【评分规则】\n'
+    +'1. 先通读作答，把所有问题逐条列全（错别字、病句、计算错误、步骤缺失、漏答未答、未按要求等），不许遗漏、不许美化；\n'
+    +'2. 评分采用"从满分往下扣"：每处问题按评分要点扣除对应分数，注明扣分原因；'+strictLine+'\n'
+    +'3. 得分可以有小数，不得为凑整抬高分数；每一处扣分都要能在卷面上指出来；\n'
+    +'4. 若要点中各维度标有分值，必须按维度给分（dimScores），总分为各维度之和。\n'
+    +'【输出要求】只输出 JSON：{"problems":"问题清单","dimScores":{"维度":分}|null,"score":数字,"reason":"一句话总评"}，不要其他文字。';
+  const content=await withRetry(function(){return callVision(prompt,images,ctl?ctl.signal:undefined)});
+  const d=parseResult(content);
+  let score=d.score;
+  if(d.dimScores&&typeof d.dimScores==='object'){
+    let s=0,has=false;
+    for(const k in d.dimScores){has=true;s+=Number(d.dimScores[k])||0;}
+    if(has&&Number.isFinite(s)&&s>=0)score=s;
+  }
+  return {score:Number.isFinite(Number(score))?Number(score):null,reason:d.reason||'',
+    problems:d.problems||'',dimScores:d.dimScores||null,full:full};
+}
+async function aiSuggestExam(examId,studentNo,qno){
+  const ex=await dbGet('exams',examId);
+  const cropsAll=await dbAll('crops');
+  const parts=cropsAll.filter(function(c){return c.examId===examId&&c.studentNo===studentNo&&String(c.qno)===String(qno)}).sort(function(a,b){return a.part-b.part});
+  return aiSuggestItem(ex,parts,qno,null);
+}
+
+/* ---------- 设置 ---------- */
+async function renderSet(){
+  const keys=ai.keys||{};
+  let html='<div class="card"><h3>AI 服务（主观题 AI 建议 · 严格扣分式提示词）</h3>'
+    +'<div class="f-grid">'
+    +'<div><label class="f-lb">服务商</label><select class="inp" id="aiProvider" data-on="ai-provider">'
+    +Object.keys(PROVIDERS).map(function(k){return '<option value="'+k+'"'+(ai.provider===k?' selected':'')+'>'+PROVIDERS[k].label+'</option>'}).join('')
+    +'</select></div>'
+    +'<div><label class="f-lb">API Key</label><input class="inp" id="aiKey" type="password" value="'+esc(keys[ai.provider]||'')+'" placeholder="'+PROVIDERS[ai.provider].keyUrl+'"></div>'
+    +'<div><label class="f-lb">模型</label><select class="inp" id="aiModel">'
+    +(PROVIDERS[ai.provider].models||[]).map(function(m){return '<option value="'+m+'"'+(ai.models[ai.provider]===m?' selected':'')+'>'+m+'</option>'}).join('')
+    +'</select><input class="inp" id="aiModelCustom" style="margin-top:4px" placeholder="自定义模型名（选中时生效）" value="'+esc(ai.models[ai.provider]?((PROVIDERS[ai.provider].models||[]).indexOf(ai.models[ai.provider])<0?ai.models[ai.provider]:''):'')+'"></div>'
+    +'<div><label class="f-lb" id="aiCustomUrlLb" style="display:'+(ai.provider==='custom'?'block':'none')+'">接口地址（OpenAI 兼容 /chat/completions）</label>'
+    +'<input class="inp" id="aiCustomUrl" style="display:'+(ai.provider==='custom'?'block':'none')+'" placeholder="https://..." value="'+esc(ai.customUrl||'')+'"></div>'
+    +'<div><label class="f-lb">图片清晰度</label><select class="inp" id="aiImgLevel">'
+    +Object.keys(IMG_LEVELS).map(function(k){return '<option value="'+k+'"'+(ai.imgLevel===k?' selected':'')+'>'+IMG_LEVELS[k].label+'（'+IMG_LEVELS[k].w+'px）</option>'}).join('')+'</select></div>'
+    +'<div><label class="f-lb">temperature</label><input class="inp" id="aiTemp" type="number" step="0.05" value="'+esc(ai.temp)+'"></div>'
+    +'</div>'
+    +'<div class="f-row" style="margin-top:10px">'
+    +'<button class="btn btn-p" data-act="ai-save">💾 保存 AI 设置</button>'
+    +'<button class="btn btn-b" data-act="ai-test">🔌 测试连接</button>'
+    +'<span class="tip">测试将发送一条短消息（不发送图片）。AI 需<b>支持图片输入</b>（视觉模型）。建议完整填写考试中的「评分要点」后再使用。</span></div></div>';
+  html+='<div class="card"><h3>识别参数（OMR）</h3>'
+    +'<div class="f-grid">'
+    +'<div><label class="f-lb">灵敏度预设</label><select class="inp" id="omrSens" data-on="omr-sens">'
+    +[['loose','宽松（低误杀）'],['std','标准（推荐）'],['strict','严格（高检出）']].map(function(x){return '<option value="'+x[0]+'"'+(omr.sens===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></div>'
+    +'<div><label class="f-lb">二值化系数 k（越小越黑）</label><input class="inp" id="omrK" type="number" step="0.01" value="'+esc(omr.k)+'"></div>'
+    +'<div><label class="f-lb">窗口半径 px</label><input class="inp" id="omrWin" type="number" step="1" value="'+esc(omr.win)+'"></div>'
+    +'<div><label class="f-lb">涂点判「已涂」阈值</label><input class="inp" id="omrHigh" type="number" step="0.01" value="'+esc(omr.inkHigh)+'"></div>'
+    +'<div><label class="f-lb">涂点判「空白」阈值</label><input class="inp" id="omrLow" type="number" step="0.01" value="'+esc(omr.inkLow)+'"></div>'
+    +'<div><label class="f-lb">AI 阅卷严格度</label><select class="inp" id="omrStrict">'
+    +[['loose','宽松'],['std','适中（推荐）'],['strict','严格']].map(function(x){return '<option value="'+x[0]+'"'+(omr.aiStrict===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></div>'
+    +'</div>'
+    +'<div class="f-row" style="margin-top:10px"><button class="btn btn-p" data-act="omr-save">💾 保存识别参数</button>'
+    +'<span class="tip">涂点 ink ∈ (低阈值,高阈值) 视为「模糊」→ 进复核，绝不静默乱判。</span></div></div>';
+  html+='<div class="card"><h3>数据备份与恢复</h3>'
+    +'<div class="f-row">'
+    +'<button class="btn btn-p" data-act="backup-mini">📦 导出备份（不含扫描图）</button>'
+    +'<button class="btn" data-act="backup-full">💾 导出完整备份（含扫描页/裁剪图，体积大）</button>'
+    +'<button class="btn btn-o" data-act="backup-import">📥 导入备份</button>'
+    +'<input type="file" id="backupFile" accept=".json" style="display:none">'
+    +'<button class="btn btn-d" data-act="data-wipe">⚠ 清空所有数据</button>'
+    +'</div>'
+    +'<div class="kv" id="storageInfo" style="margin-top:10px"></div>'
+    +'<div class="tip" style="margin-top:8px">所有数据保存在本浏览器 IndexedDB 中。换电脑/清缓存前请先导出；最小备份含班级、学生、模板、考试、答案、识别与判分数据（页图可在需要时用原件重扫）。</div></div>';
+  html+='<div class="card"><h3>打印提示 & 使用说明</h3>'
+    +'<div class="tip" style="line-height:1.9">'
+    +'<b>打印答题卡：</b>导出 PDF 后在打印对话框中选 <b>「实际大小 / 100% / 无缩放」</b>，不要选「适应页面」；否则非等比缩放会被检测为「版式异常」。<br>'
+    +'<b>拍照指引：</b>尽量正上方拍摄，四角锚点完整、无反光强阴影；建议用学校扫描仪或手机「扫描全能王」类应用导出 PDF/JPG。<br>'
+    +'<b>识别原理：</b>6 锚点定位 → 单应校正 → 同步条逐行校正 → OMR 判涂（考号 + 客观题）；页脚左下二维码自描述版式，打印后扫描无需选模板。<br>'
+    +'<b>容错策略：</b>一切不确定项（涂点模糊/多涂、考号异常、定位失败、版式异常）都会进复核队列人工处理，不会静默误判。<br>'
+    +'<b>版本：</b>智能阅卷 v1.0（网页版）· 对标 答题卡助手 Pro v4.3.0 核心闭环 · 2026-09</div></div>';
+  $('page').innerHTML=html;
+  afterRender(async function(){
+    try{
+      if(navigator.storage&&navigator.storage.estimate){
+        const est=await navigator.storage.estimate();
+        if(est&&$('storageInfo'))$('storageInfo').textContent='本应用已用 '+(est.usage/1048576).toFixed(1)+' MB / 配额约 '+(est.quota/1073741824).toFixed(1)+' GB';
+      }
+    }catch(e){}
+  });
+}
+Object.assign(ACTS,{
+  'ai-provider':function(el){
+    ai.provider=el.value;
+    renderSet();
+  },
+  'ai-save':function(){
+    const p=ai.provider;
+    ai.keys=ai.keys||{};
+    ai.keys[p]=$('aiKey').value.trim();
+    const msel=$('aiModel'),mcus=$('aiModelCustom');
+    const m=(mcus&&mcus.value.trim())||(msel&&msel.value);
+    ai.models[p]=m;
+    ai.customUrl=$('aiCustomUrl').value.trim();
+    ai.imgLevel=$('aiImgLevel').value;
+    ai.temp=parseFloat($('aiTemp').value)||0.35;
+    saveJSON(LS_AI,ai);
+    toast('AI 设置已保存','ok');
+  },
+  'ai-test':async function(){
+    if(!ai.keys[ai.provider]&&!($('aiKey').value.trim())){toast('请先填写 API Key','err');return}
+    ai.keys[ai.provider]=$('aiKey').value.trim();
+    const p=ai.provider,m=$('aiModelCustom').value.trim()||$('aiModel').value;
+    const url=p==='custom'?$('aiCustomUrl').value.trim():PROVIDERS[p].url;
+    if(!url){toast('请填写接口地址','err');return}
+    toast('测试中…');
+    try{
+      const res=await fetch(url,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+ai.keys[p]},
+        body:JSON.stringify({model:m,messages:[{role:'user',content:'回复"连接成功"四个字'}],max_tokens:16,stream:false})
+      });
+      if(!res.ok){const j=await res.json().catch(function(){return null});throw new Error((j&&(j.error&&j.error.message||j.msg))||('HTTP '+res.status));}
+      const d=await res.json();
+      const c=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
+      toast('连接成功：'+(c||'ok').slice(0,30),'ok');
+    }catch(err){toast('连接失败：'+err.message,'err')}
+  },
+  'omr-sens':function(el){
+    const map={loose:{k:0.8,win:15,inkHigh:0.5,inkLow:0.3},std:{k:0.75,win:15,inkHigh:0.45,inkLow:0.25},strict:{k:0.7,win:15,inkHigh:0.4,inkLow:0.2}};
+    const v=map[el.value];
+    if(v){
+      $('omrK').value=v.k;$('omrHigh').value=v.inkHigh;$('omrLow').value=v.inkLow;
+    }
+    omr.sens=el.value;
+  },
+  'omr-save':function(){
+    omr.k=parseFloat($('omrK').value)||0.75;
+    omr.win=parseInt($('omrWin').value,10)||15;
+    omr.inkHigh=parseFloat($('omrHigh').value)||0.45;
+    omr.inkLow=parseFloat($('omrLow').value)||0.25;
+    omr.aiStrict=$('omrStrict').value;
+    saveJSON(LS_OMR,omr);
+    toast('识别参数已保存','ok');
+  },
+  'backup-mini':function(){backupExport(false)},
+  'backup-full':async function(){
+    const ok=await dlgConfirm('完整备份','将把所有扫描页与裁剪图（可能数百 MB）转 base64 打包为 JSON，耗时较长，确定？','开始打包');
+    if(!ok)return;
+    backupExport(true);
+  },
+  'backup-import':function(){const f=$('backupFile');if(f)f.click()},
+  'data-wipe':async function(){
+    const ok=await dlgConfirm('清空所有数据','将删除：班级/学生/模板/考试/扫描页/裁剪图/判分记录，全部！<br>请确认已导出备份。','清空');
+    if(!ok)return;
+    const ok2=await dlgConfirm('最后确认','真的要清空浏览器中的全部数据吗？此操作不可撤销！','确认清空');
+    if(!ok2)return;
+    for(const s of ['classes','students','templates','exams','pages','crops','revs'])await dbClear(s);
+    toast('已清空','ok');
+    go('home');
+  }
+});
+async function backupExport(includeBlobs){
+  try{
+    toast('正在打包数据…');
+    const pages=await dbAll('pages');
+    const crops=await dbAll('crops');
+    const pack={app:'yuejuan',v:1,exportedAt:timestamp(),
+      data:{classes:await dbAll('classes'),students:await dbAll('students'),templates:await dbAll('templates'),exams:await dbAll('exams')},
+      revs:await dbAll('revs')};
+    if(includeBlobs){
+      const b64p=function(blob){return new Promise(function(res){if(!blob)return res(null);const fr=new FileReader();fr.onload=function(){res(String(fr.result||'').split(',')[1]||'')};fr.onerror=function(){res(null)};fr.readAsDataURL(blob);})};
+      pack.pages=[];
+      for(const p of pages)pack.pages.push({id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta,b64:await b64p(p.blob)});
+      pack.crops=[];
+      for(const c of crops)pack.crops.push({id:c.id,examId:c.examId,studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,
+        scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy,
+        b64:await b64p(c.blob),markedB64:await b64p(c.marked)});
+    }else{
+      pack.pages=pages.map(function(p){return {id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta}});
+      pack.crops=crops.map(function(c){return {id:c.id,examId:c.examId,studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy}});
+    }
+    download('智能阅卷备份_'+tsName()+'.json',JSON.stringify(pack),'application/json;charset=utf-8');
+    toast('备份已导出','ok');
+  }catch(err){toast('导出失败：'+err.message,'err')}
+}
+async function backupImport(file){
+  try{
+    toast('解析备份…');
+    const obj=JSON.parse(await file.text());
+    if(obj.app!=='yuejuan')throw new Error('不是本系统的备份文件');
+    const ok=await dlgConfirm('导入备份','导入将<b>覆盖现有全部数据</b>（班级/学生/模板/考试/识别/判分）。目标环境已有数据会丢失，确定？','覆盖导入');
+    if(!ok)return;
+    for(const s of ['classes','students','templates','exams','pages','crops','revs'])await dbClear(s);
+    for(const k of ['classes','students','templates','exams'])for(const it of (obj.data[k]||[]))await dbPut(k,it);
+    for(const r of (obj.revs||[]))await dbPut('revs',r);
+    toast('导入完成（'+((obj.data&&obj.data.students||[]).length)+' 名学生 / '+(obj.data.exams||[]).length+' 场考试）','ok');
+    go('home');
+  }catch(err){toast('导入失败：'+err.message,'err')}
+}
+afterRender(function(){
+  const f=$('backupFile');
+  if(f)f.addEventListener('change',function(){
+    if(f.files&&f.files[0])backupImport(f.files[0]);
+    f.value='';
+  });
+});
+
+/*__YJ_MORE__*/
+/* 调试钩子（供自动化校验/排障使用） */
+window.__yjDbg={recognizeCanvas:recognizeCanvas,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,simulateScan:simulateScan,cropQuad:cropQuad,dist:dist,
+  qrPayloadFor:qrPayloadFor,qrFromCanvas:qrFromCanvas,qrFromCrop:qrFromCrop,makeQRCanvas:makeQRCanvas,qrParsePayload:qrParsePayload,
+  simulatePageCanvas:simulatePageCanvas,mulberry32:mulberry32,seedFrom:seedFrom,
+  dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs'])dbClear(s).catch(()=>{});return 'ok'},
+  detectRowMarks:detectRowMarks,rowDeltas:rowDeltas,inkRatio:inkRatio,solveHomo:solveHomo,omr:omr,
+  renderPageCanvas:renderPageCanvas,renderPagesAsync:renderPagesAsync,canvasDataURL:canvasDataURL,
+  canvasToThumb:canvasToThumb,
+  getAll:function(s){return dbAll(s)},get:dbGet,examMeta:examMeta,computeScorebook:computeScorebook,pageRegDigits:pageRegDigits};
+})();
+</script>
+</body>
+</html>
