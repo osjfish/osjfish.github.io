@@ -464,33 +464,25 @@ function layoutTemplate(tpl){
     const rowH=(type==='grid-cn')?(Math.min(8,166/cols)+1.2):(type==='grid-en')?5:8;
     const totalRows=(type==='grid-cn'&&sub.count)?Math.max(1,Math.ceil(sub.count/cols)):Math.max(1,sub.rows||3);
     const fullMax=Math.max(1,Math.floor((contentBottom-contentTop-13)/rowH));
-    /* 分页计划：首段按当前页剩余空间，后续均衡拆页，避免细小尾页 */
-    let plan=[];
-    const avail0=contentBottom-curY-13;
-    let first=0;
-    if(avail0>=rowH)first=Math.min(totalRows,Math.floor(avail0/rowH));
-    const rest0=totalRows-first;
-    if(rest0>0&&rest0<=2&&totalRows<=fullMax)first=0;
-    if(rest0>0){
-      const pages=Math.max(1,Math.ceil(rest0/fullMax));
-      const per=Math.ceil(rest0/pages);
-      let rem=rest0;
-      while(rem>0){const t=Math.min(rem,per);plan.push(t);rem-=t;}
-    }
-    if(first>0)plan.unshift(first);
-    if(plan.length===0)plan=[totalRows];
-    if(first===0&&totalRows>0)forcePage();
-    let part=0,partRowStart=0;
-    plan.forEach(function(take,idx){
-      if(idx>0)forcePage();
+    /* 分页：每页尽量填满（首页按剩余空间，之后每页按整页容量，不做均衡拆分） */
+    let remaining=totalRows, part=0, partRowStart=0;
+    while(remaining>0){
+      const avail=contentBottom-curY-13;
+      let take;
+      if(avail>=rowH){
+        take=Math.min(remaining,Math.floor(avail/rowH));
+      }else{
+        forcePage();
+        take=Math.min(remaining,fullMax);
+      }
       const boxH=take*rowH+6;
       const sx=M+2, sw=contentW-4, sy=curY+7;
       pg.subjective.push({qno:sub.qno||('主观'+(part+1)),score:sub.score||10,type:type,rows:take,rowH:rowH,
         cols:cols,rowStart:partRowStart,
         part:part,label:(sub.label||'主观题')+(part>0?'（续第'+(part+1)+'部分）':''),x:sx,y:sy,w:sw,h:boxH});
-      partRowStart+=take; part++;
+      remaining-=take; part++; partRowStart+=take;
       curY+=13+boxH;
-    });
+    }
   });
   pages.forEach(function(p,i){p.footer.n=i+1;p.footer.m=pages.length});
   return {w:w,h:h,pages:pages,regDigits:regDigits,perScore:tpl.perScore||2,id:tpl.id||'',name:tpl.name||''};
