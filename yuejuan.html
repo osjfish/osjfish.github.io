@@ -972,6 +972,72 @@ function binarize(gray,w,h,k,win){
   return bin;
 }
 
+/* ---------- 全局四角锚点（通用：照片带背景、未充满画面、倾斜） ---------- */
+function globalSolids(bin,w,h,minArea,maxArea){
+  const vis=new Uint8Array(w*h);
+  const out=[];
+  const step=3;
+  for(let y=1;y<h-1;y+=step)for(let x=1;x<w-1;x+=step){
+    if(!bin[y*w+x]||vis[y*w+x])continue;
+    /* BFS */
+    let area=0,sx=0,sy=0,mx=x,Mx=x,my=y,My=y;
+    const stack=[x,y];vis[y*w+x]=1;
+    while(stack.length){
+      const py=stack.pop(),px2=stack.pop();
+      area++;sx+=px2;sy+=py;
+      if(px2<mx)mx=px2;if(px2>Mx)Mx=px2;if(py<my)my=py;if(py>My)My=py;
+      if(px2+1<w&&!vis[py*w+px2+1]&&bin[py*w+px2+1]){vis[py*w+px2+1]=1;stack.push(px2+1,py);}
+      if(px2-1>0&&!vis[py*w+px2-1]&&bin[py*w+px2-1]){vis[py*w+px2-1]=1;stack.push(px2-1,py);}
+      if(py+1<h&&!vis[(py+1)*w+px2]&&bin[(py+1)*w+px2]){vis[(py+1)*w+px2]=1;stack.push(px2,py+1);}
+      if(py-1>0&&!vis[(py-1)*w+px2]&&bin[(py-1)*w+px2]){vis[(py-1)*w+px2]=1;stack.push(px2,py-1);}
+    }
+    const bw2=Mx-mx+1,bh2=My-my+1;
+    if(area<minArea||area>maxArea)continue;
+    const asp=bw2/bh2;
+    if(asp<0.7||asp>1.4)continue;
+    const sol=area/(bw2*bh2);
+    if(sol<0.72)continue;
+    /* 排除噪点：相对面积过滤 */
+    out.push({x:sx/area,y:sy/area,area:area,w:bw2,h:bh2,cx:mx+Mx>>1,cy:my+My>>1});
+  }
+  return out;
+}
+function pickQuad(cands){
+  if(!cands||cands.length<4)return null;
+  cands=cands.slice().sort(function(a,b){return b.area-a.area}).slice(0,10);
+  const dist=function(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy)};
+  let best=null;
+  for(let i=0;i<cands.length;i++)for(let j=i+1;j<cands.length;j++)for(let k=j+1;k<cands.length;k++)for(let l=k+1;l<cands.length;l++){
+    const C=[cands[i],cands[j],cands[k],cands[l]];
+    let TL=C[0];
+    let TR=C[0];
+    let BR=C[0];
+    let BL=C[0];
+    C.forEach(function(c){
+      if(c.x+c.y<TL.x+TL.y)TL=c;
+      if(c.x-c.y>TR.x-TR.y)TR=c;
+      if(c.x+c.y>BR.x+BR.y)BR=c;
+      if(c.x-c.y<BL.x-BL.y)BL=c;
+    });
+    if(TL===TR||TL===BR||TL===BL||TR===BR||TR===BL||BR===BL)continue;
+    const wT=dist(TL,TR),wB=dist(BL,BR),hL=dist(TL,BL),hR=dist(TR,BR);
+    if(wT<30||wB<30||hL<30||hR<30)continue;
+    if(wT/wB<0.65||wT/wB>1.55)continue;
+    if(hL/hR<0.65||hL/hR>1.55)continue;
+    const asp=(wT+wB)/(hL+hR);
+    if(asp<0.5||asp>1.8)continue;
+    const score=wT*wB*hL*hR;
+    if(!best||score>best.score)best={score:score,TL:TL,TR:TR,BR:BR,BL:BL,wT:wT,wB:wB,hL:hL,hR:hR};
+  }
+  return best;
+}
+function detectAnchorsGlobal(bin,w,h){
+  const lo=Math.round(w*0.010),hi=Math.round(w*0.042);
+  const cands=globalSolids(bin,w,h,lo*lo*0.35,hi*hi*2.2);
+  const q=pickQuad(cands);
+  if(!q)return null;
+  return {pts:[q.TL,q.TR,q.BR,q.BL],wStart:q.wT,wEnd:q.wB};
+}
 /* ---------- 连通域找实心锚点 ---------- */
 function findSolid(bin,w,h,cx,cy,halfX,halfY,minA,maxA,minSol){
   const x0=Math.max(1,Math.floor(cx-halfX)),x1=Math.min(w-2,Math.ceil(cx+halfX));
@@ -1239,10 +1305,20 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       }else layoutSlice=null;
     }catch(e){layoutSlice=null}
   }
-  /* 锚点检测 */
+  /* 锚点检测：先全局搜索四角（兼容照片背景/未充满画面/倾斜），再用预期位置窗口兜底 */
   const geometry=layoutSlice||page;
-  let det=detectAnchors(bin,cv.width,cv.height,geometry,sX,sY);
-  let pts=det.pts,usedSmall=false;
+  let detGlobal=null;
+  try{detGlobal=detectAnchorsGlobal(bin,cv.width,cv.height)}catch(e){}
+  let det=null,pts=null,usedSmall=false,globalUsed=false;
+  if(detGlobal){
+    pts=detGlobal.pts;
+    globalUsed=true;
+  }else{
+    det=detectAnchors(bin,cv.width,cv.height,geometry,sX,sY);
+    pts=det?det.pts:null;
+  }
+  if(!pts)pts=[null,null,null,null];
+  const detWarn=det?det.warn:[];
   if(pts.filter(function(p){return p}).length<4){
     /* 用两个小锚 + 两点外推补角 */
     let haveB=pts.map(function(p){return !!p});
@@ -1251,7 +1327,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     if((haveB[1]===false||haveB[2]===false)&&small[1]){pts[1]=pts[1]||small[1];pts[2]=pts[2]||small[1];usedSmall=true;}
   }
   let okCount=pts.filter(function(p){return p}).length;
-  if(okCount<4){return {ok:false,status:'locate_fail',flags:['定位失败：锚点不足('+okCount+'/4)'],warn:det.warn}}
+  if(okCount<4){return {ok:false,status:'locate_fail',flags:['定位失败：锚点不足('+okCount+'/4)（照片请平正拍摄、四角完整可见）'],warn:detWarn}}
   /* 手动锚点覆盖 */
   if(opts.manualPts){
     pts=opts.manualPts.slice(0,4);
@@ -1259,12 +1335,13 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }
   const srcPts=geometry.anchors.slice(0,4).map(function(a){return {x:a.x+a.s/2,y:a.y+a.s/2}});
   const H=solveHomo(srcPts,pts.map(function(p){return {x:p.x,y:p.y}}));
-  /* 小锚残差校验 */
-  if(geometry.anchors[4]&&geometry.anchors[5]&&det.small[0]&&det.small[1]){
+  /* 小锚残差校验（全局匹配下跳过） */
+  const smallRef=det?det.small:[null,null];
+  if(!globalUsed&&geometry.anchors[4]&&geometry.anchors[5]&&smallRef[0]&&smallRef[1]){
     const e1=H(geometry.anchors[4].x+geometry.anchors[4].s/2,geometry.anchors[4].y+geometry.anchors[4].s/2);
     const e2=H(geometry.anchors[5].x+geometry.anchors[5].s/2,geometry.anchors[5].y+geometry.anchors[5].s/2);
-    const d1=Math.sqrt((e1.x-det.small[0].x)*(e1.x-det.small[0].x)+(e1.y-det.small[0].y)*(e1.y-det.small[0].y))/smm;
-    const d2=Math.sqrt((e2.x-det.small[1].x)*(e2.x-det.small[1].x)+(e2.y-det.small[1].y)*(e2.y-det.small[1].y))/smm;
+    const d1=Math.sqrt((e1.x-smallRef[0].x)*(e1.x-smallRef[0].x)+(e1.y-smallRef[0].y)*(e1.y-smallRef[0].y))/smm;
+    const d2=Math.sqrt((e2.x-smallRef[1].x)*(e2.x-smallRef[1].x)+(e2.y-smallRef[1].y)*(e2.y-smallRef[1].y))/smm;
     if(d1>1.8||d2>1.8)flags.push('版式异常：小锚残差'+d1.toFixed(2)+'/'+d2.toFixed(2)+'mm（建议重扫）');
   }
   /* 裁剪二维码增强识别 */
@@ -1347,7 +1424,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }
   return {ok:true,status:'ok',H:H,geometry:pg2,sX:sX,sY:sY,smm:smm,
     qrFound:qrFound,qrLayout:!!layoutSlice,
-    studentNo:studentNo,regFlags:regFlags,regPts:regPts,perQ:perQ,crops:crops,flags:flags,warn:det.warn,
+    studentNo:studentNo,regFlags:regFlags,regPts:regPts,perQ:perQ,crops:crops,flags:flags,warn:detWarn,globalAnchors:globalUsed,
     dbg:{regMarks:regDBG&&regDBG.marks,regDeltas:regDBG&&regDBG.deltas,regExpY:regDBG&&regDBG.expY,anchorPts:pts,timingX0:regDBG&&regDBG.tx}};
 }
 
@@ -3287,7 +3364,7 @@ async function renderSet(){
   html+='<div class="card"><h3>打印提示 & 使用说明</h3>'
     +'<div class="tip" style="line-height:1.9">'
     +'<b>打印答题卡：</b>导出 PDF 后在打印对话框中选 <b>「实际大小 / 100% / 无缩放」</b>，不要选「适应页面」；否则非等比缩放会被检测为「版式异常」。<br>'
-    +'<b>拍照指引：</b>尽量正上方拍摄，四角锚点完整、无反光强阴影；建议用学校扫描仪或手机「扫描全能王」类应用导出 PDF/JPG。<br>'
+    +'<b>拍照指引：</b>尽量正上方拍摄、卡片四角锚点完整、无反光强阴影；桌面/背景不影响（系统会自动在全图中寻找四角定位点），也支持将照片旋转/裁切到卡片再上传。<br>'
     +'<b>识别原理：</b>6 锚点定位 → 单应校正 → 同步条逐行校正 → OMR 判涂（考号 + 客观题）；页脚左下二维码自描述版式，打印后扫描无需选模板。<br>'
     +'<b>容错策略：</b>一切不确定项（涂点模糊/多涂、考号异常、定位失败、版式异常）都会进复核队列人工处理，不会静默误判。<br>'
     +'<b>版本：</b>智能阅卷 v1.0（网页版）· 对标 答题卡助手 Pro v4.3.0 核心闭环 · 2026-09</div></div>';
