@@ -1729,7 +1729,7 @@ async function renderTpl(){
     }
   }
   $('page').innerHTML=html;
-  afterRender(function(){bindFileInput('tplImportFile',importTemplateJSON)});
+  afterRender(function(){bindFileInput('tplImportFile',function(files){importTemplateJSON(files[0])})});
 }
 async function tplThumb(tpl){
   try{
@@ -1947,7 +1947,11 @@ function bindFileInput(id,fn){
   if(f&&!f.dataset.bound){
     f.dataset.bound='1';
     f.addEventListener('change',function(){
-      if(f.files&&f.files.length)fn(f.files[0],f);
+      /* 立即快照文件后再清空，避免 FileList（活对象）被清空后变 0 */
+      if(f.files&&f.files.length){
+        var snap=Array.prototype.slice.call(f.files||[]);
+        fn(snap,f);
+      }
       f.value='';
     });
   }
@@ -2386,7 +2390,7 @@ async function renderScan(){
   }
   html+='</div>';
   $('page').innerHTML=html;
-  afterRender(function(){bindFileInput('scanFiles',function(file,inp){runScanUpload(inp.files)})});
+  afterRender(function(){bindFileInput('scanFiles',function(files){runScanUpload(files)})});
 }
 Object.assign(ACTS,{
   'go-exam':function(){go('exam')},
@@ -3496,7 +3500,7 @@ async function renderSet(){
     +'<b>版本：</b>智能阅卷 v1.0（网页版）· 对标 答题卡助手 Pro v4.3.0 核心闭环 · 2026-09</div></div>';
   $('page').innerHTML=html;
   afterRender(async function(){
-    bindFileInput('backupFile',backupImport);
+    bindFileInput('backupFile',function(files){backupImport(files[0])});
     try{
       if(navigator.storage&&navigator.storage.estimate){
         const est=await navigator.storage.estimate();
