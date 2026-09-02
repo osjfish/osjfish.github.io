@@ -414,16 +414,17 @@ function layoutTemplate(tpl){
   const regDigits=Math.max(4,Math.min(9,tpl.regDigits||5));
   const colW=11, regW=regDigits*colW, regX=Math.round((w-regW)/2);
   const regRowsY=[];
-  for(let i=0;i<10;i++)regRowsY.push(45.5+i*4.2);
-  const reg={x:regX,y:32,colW:colW,grid:8,rowsY:regRowsY,bubble:3,label:'准 考 证 号'};
+  for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
+  const reg={x:regX,y:33,colW:colW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
+    numY:26.2,labelY:29.6,boxTop:24.5,label:'准 考 证 号'};
   const pages=[];
   const contentTop=94, contentBottom=h-36;
   const qr={x:w-36,y:h-30,size:16};
 
   const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
-    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&tpl.showInfo!==false)?{x:M,y:32,w:44,h:58}:null,
-      notes:(pi===0&&tpl.showInfo!==false)?{x:w-M-46,y:32,w:46,h:58}:null,
+    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&tpl.showInfo!==false)?{x:M,y:33,w:44,h:54.6}:null,
+      notes:(pi===0&&tpl.showInfo!==false)?{x:w-M-46,y:33,w:46,h:54.6}:null,
       reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:qr,anchors:anchors,footer:{n:pi+1,m:0}};
   }
   let pg=newPage(0); pages.push(pg);
@@ -460,31 +461,36 @@ function layoutTemplate(tpl){
   (tpl.subjective||[]).forEach(function(sub){
     const type=sub.type||'lines';
     const cols=(type==='grid-cn')?Math.max(10,Math.min(40,sub.cols||20)):null;
-    const rowH=(type==='grid-cn')?(Math.min(8,166/cols)):(type==='grid-en')?5:8;
+    const rowH=(type==='grid-cn')?(Math.min(8,166/cols)+1.2):(type==='grid-en')?5:8;
     const totalRows=(type==='grid-cn'&&sub.count)?Math.max(1,Math.ceil(sub.count/cols)):Math.max(1,sub.rows||3);
-    let remaining=totalRows, part=0, partRowStart=0;
     const fullMax=Math.max(1,Math.floor((contentBottom-contentTop-13)/rowH));
-    while(remaining>0){
-      const avail=contentBottom-curY-13;
-      let take;
-      if(avail>=rowH){
-        take=Math.max(1,Math.min(remaining,Math.floor(avail/rowH)));
-        /* 避免「本页勉强放几行 → 下一页只剩1-2行」的碎片页 */
-        const rest=remaining-take;
-        if(rest>0&&rest<=2&&remaining<=fullMax){forcePage();take=Math.min(remaining,fullMax);}
-      }else{
-        /* 当前页放不下最小块：强制换页，再取整页最大块 */
-        forcePage();
-        take=Math.min(remaining,fullMax);
-      }
+    /* 分页计划：首段按当前页剩余空间，后续均衡拆页，避免细小尾页 */
+    let plan=[];
+    const avail0=contentBottom-curY-13;
+    let first=0;
+    if(avail0>=rowH)first=Math.min(totalRows,Math.floor(avail0/rowH));
+    const rest0=totalRows-first;
+    if(rest0>0&&rest0<=2&&totalRows<=fullMax)first=0;
+    if(rest0>0){
+      const pages=Math.max(1,Math.ceil(rest0/fullMax));
+      const per=Math.ceil(rest0/pages);
+      let rem=rest0;
+      while(rem>0){const t=Math.min(rem,per);plan.push(t);rem-=t;}
+    }
+    if(first>0)plan.unshift(first);
+    if(plan.length===0)plan=[totalRows];
+    if(first===0&&totalRows>0)forcePage();
+    let part=0,partRowStart=0;
+    plan.forEach(function(take,idx){
+      if(idx>0)forcePage();
       const boxH=take*rowH+6;
       const sx=M+2, sw=contentW-4, sy=curY+7;
       pg.subjective.push({qno:sub.qno||('主观'+(part+1)),score:sub.score||10,type:type,rows:take,rowH:rowH,
         cols:cols,rowStart:partRowStart,
         part:part,label:(sub.label||'主观题')+(part>0?'（续第'+(part+1)+'部分）':''),x:sx,y:sy,w:sw,h:boxH});
-      remaining-=take; part++; partRowStart+=take;
+      partRowStart+=take; part++;
       curY+=13+boxH;
-    }
+    });
   });
   pages.forEach(function(p,i){p.footer.n=i+1;p.footer.m=pages.length});
   return {w:w,h:h,pages:pages,regDigits:regDigits,perScore:tpl.perScore||2,id:tpl.id||'',name:tpl.name||''};
@@ -533,20 +539,20 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
   });
   /* 标题 */
   ctx.fillStyle='#000';
-  ctx.font='bold '+Math.max(9,Math.round(px(5.2)))+'px "Microsoft YaHei",sans-serif';
+  ctx.font='bold '+Math.max(10,Math.round(px(5.6)))+'px "Microsoft YaHei",sans-serif';
   ctx.fillText(page.title,px(page.w/2),px(21));
   /* 姓名/班级/座位号 */
   if(page.info){
     const r=page.info;
     ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
     ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
-    const rows=[['姓名',8],['班级',18],['座位号',28]];
-    ctx.font=Math.max(8,Math.round(px(3.4)))+'px "Microsoft YaHei",sans-serif';
+    const rows=[['姓名',8.5],['班级',20],['座位号',31.5]];
+    ctx.font=Math.max(9,Math.round(px(3.3)))+'px "Microsoft YaHei",sans-serif';
     rows.forEach(function(rd){
       ctx.textAlign='left';
-      ctx.fillText(rd[0],px(r.x+3),px(r.y+rd[1]));
-      ctx.beginPath();ctx.moveTo(px(r.x+16),px(r.y+rd[1]+3.2));ctx.lineTo(px(r.x+r.w-3),px(r.y+rd[1]+3.2));
-      ctx.lineWidth=Math.max(0.7,px(0.3));ctx.strokeStyle='#333';ctx.stroke();
+      ctx.fillText(rd[0],px(r.x+3.2),px(r.y+rd[1]));
+      ctx.beginPath();ctx.moveTo(px(r.x+16),px(r.y+rd[1]+3.4));ctx.lineTo(px(r.x+r.w-3.5),px(r.y+rd[1]+3.4));
+      ctx.lineWidth=Math.max(0.7,px(0.28));ctx.strokeStyle='#555';ctx.stroke();
     });
   }
   /* 注意事项 */
@@ -571,25 +577,30 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     ctx.textAlign='center';
   }else{
   ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
-  ctx.strokeRect(px(reg.x-2.5),px(reg.y-3),px(regDigitsW(reg,page)+5),px(regBottom(reg)-reg.y+3+2.5));
-  ctx.fillStyle='#000';ctx.font=Math.max(8,Math.round(px(3)))+'px "Microsoft YaHei",sans-serif';
-  ctx.fillText(reg.label,px(reg.x+regDigitsW(reg,page)/2),px(reg.y-1));
+  ctx.strokeRect(px(reg.x-2.5),px(reg.boxTop),px(regDigitsW(reg,page)+5),px(regBottom(reg)-reg.boxTop+3.4));
+  /* 列序号 */
+  ctx.font=Math.max(7,Math.round(px(2.3)))+'px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle='#777';ctx.textAlign='center';
+  for(let c=0;c<pageRegDigits(reg,page);c++){
+    const cx=reg.x+c*reg.colW;
+    ctx.fillText(String(c+1),px(cx+reg.grid/2),px(reg.numY));
+  }
+  /* 标题「准 考 证 号」 */
+  ctx.fillStyle='#000';ctx.font=Math.max(9,Math.round(px(3.1)))+'px "Microsoft YaHei",sans-serif';
+  ctx.fillText(reg.label,px(reg.x+regDigitsW(reg,page)/2),px(reg.labelY));
   for(let c=0;c<pageRegDigits(reg,page);c++){
     const cx=reg.x+c*reg.colW;
     ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
     ctx.strokeRect(px(cx),px(reg.y),px(reg.grid),px(reg.grid));
-    ctx.font=Math.max(7,Math.round(px(2.6)))+'px "Microsoft YaHei",sans-serif';
-    ctx.fillStyle='#999';ctx.textAlign='center';
-    ctx.fillText(String(c+1),px(cx+reg.grid/2),px(reg.y-6.5));
   }
   reg.rowsY.forEach(function(ry,i){
     for(let c=0;c<pageRegDigits(reg,page);c++){
       const cx=reg.x+c*reg.colW+(reg.colW-reg.bubble)/2;
       ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.6,px(0.2));
       ctx.strokeRect(px(cx),px(ry-reg.bubble/2),px(reg.bubble),px(reg.bubble));
-      ctx.font=Math.max(6,Math.round(px(2.1)))+'px "Microsoft YaHei",sans-serif';
+      ctx.font=Math.max(6,Math.round(px(2.2)))+'px "Microsoft YaHei",sans-serif';
       ctx.fillStyle='#333';
-      ctx.fillText(String(i),px(cx+reg.bubble/2),px(ry+0.1));
+      ctx.fillText(String(i),px(cx+reg.bubble/2),px(ry));
     }
     /* 每位数字右侧同步条 */
     ctx.fillStyle='#000';
@@ -650,14 +661,29 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     }else if(sb.type==='grid-cn'){
       const cols=Math.max(10,Math.min(40,sb.cols||20));
       const cell=Math.min(8,innerW/cols);
-      const gw=cols*cell, gx=sb.x+(sb.w-gw)/2, gy=sb.y+3;
-      ctx.strokeStyle='#bbb';ctx.lineWidth=Math.max(0.5,px(0.18));
-      for(let c=0;c<=cols;c++){ctx.beginPath();ctx.moveTo(px(gx+c*cell),px(gy));ctx.lineTo(px(gx+c*cell),px(sb.y+sb.h-3));ctx.stroke();}
-      for(let r=0;r<=sb.rows;r++){ctx.beginPath();ctx.moveTo(px(gx),px(gy+r*cell));ctx.lineTo(px(gx+gw),px(gy+r*cell));ctx.stroke();}
-      ctx.fillStyle='#999';ctx.font=Math.max(5,Math.round(px(1.8)))+'px "Microsoft YaHei",sans-serif';
-      ctx.textAlign='left';
+      const gw=cols*cell, gx=sb.x+(sb.w-gw)/2, gy=sb.y+4;
+      const cellH=8, gapV=1.2, pitch=cellH+gapV;
+      ctx.strokeStyle='#bbb';ctx.lineWidth=Math.max(0.5,px(0.16));
+      for(let r=0;r<sb.rows;r++){
+        const lineY=gy+r*pitch;
+        for(let c=0;c<cols;c++){
+          ctx.strokeRect(px(gx+c*cell),px(lineY),px(cell),px(cellH));
+        }
+      }
+      /* 行与行之间的缝隙内标注：每满100字 */
       const rowBase=(sb.rowStart||0);
-      for(let r=1;r<sb.rows;r++){if(r%5===0)ctx.fillText(String((rowBase+r)*cols)+'格',px(gx),px(gy+r*cell-0.6));}
+      ctx.fillStyle='#8a8a8a';ctx.font=Math.max(4.5,Math.round(px(1.5)))+'px "Microsoft YaHei",sans-serif';
+      ctx.textAlign='left';
+      for(let r=0;r<sb.rows;r++){
+        const cumAfter=(rowBase+r+1)*cols;
+        const k=Math.floor(cumAfter/100);
+        const cumBefore=cumAfter-cols;
+        if(k*100>cumBefore&&k*100<=cumAfter){
+          const labelY=gy+(r+1)*pitch-gapV/2;
+          ctx.fillText(String(k*100)+'字',px(gx+0.6),px(labelY));
+        }
+      }
+      ctx.textAlign='center';
     }else if(sb.type==='grid-en'){
       ctx.strokeStyle='#999';ctx.lineWidth=Math.max(0.5,px(0.18));
       for(let i=0;i<sb.rows;i++){
@@ -684,7 +710,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
 function pageRegDigits(reg,page){return (page.regDigits||regDigitsOf(page))||5}
 function regDigitsOf(page){return page.regDigits||5}
 function regDigitsW(reg,page){return reg.colW*pageRegDigits(reg,page)}
-function regBottom(reg){return reg.rowsY[9]+2.2}
+function regBottom(reg){return reg.rowsY[9]+3.4}
 function pagePerScore(tpl,layout,page){return layout.perScore||2}
 function pageRegDigits2(page){return page.regDigits||5}
 
@@ -720,7 +746,7 @@ async function qrPayloadFor(layout,tpl,page){
   });
   const slice={v:1,p:tpl.paper||'A4',o:tpl.orient||'portrait',w:layout.w,h:layout.h,rd:layout.regDigits,
     ps:layout.perScore,t:page.title,id:tpl.id||'',pg:page.footer.n,np:page.footer.m,info:page.info?1:0,
-    a:a,r:page.reg?{x:r1(page.reg.x),y:r1(page.reg.y),dy:r2(page.reg.rowsY[1]-page.reg.rowsY[0]),b:page.reg.bubble,col:page.reg.colW}:null,
+    a:a,r:page.reg?{x:r1(page.reg.x),y:r1(page.reg.y),dy:r2(page.reg.rowsY[1]-page.reg.rowsY[0]),ry0:r2(page.reg.rowsY[0]-page.reg.y),b:page.reg.bubble,col:page.reg.colW}:null,
     gs:gs,ss:ss};
   const json=JSON.stringify(slice);
   let payload='';
@@ -761,8 +787,9 @@ async function qrParsePayload(data){
   const o=JSON.parse(json);
   if(o.gs||o.a){  /* 紧凑格式还原为页面版式 */
     const rowsY=[];
-    const rdy=(o.r&&o.r.dy&&isFinite(o.r.dy))?o.r.dy:4.2;
-    if(o.r)for(let i=0;i<10;i++)rowsY.push(o.r.y+13.5+i*rdy);
+    const rdy=(o.r&&o.r.dy&&isFinite(o.r.dy))?o.r.dy:4.4;
+    const ry0=(o.r&&isFinite(o.r.ry0))?o.r.ry0:12.6;
+    if(o.r)for(let i=0;i<10;i++)rowsY.push(o.r.y+ry0+i*rdy);
     const page={w:o.w,h:o.h,title:o.t,info:o.info?{x:14,y:32,w:44,h:58}:null,
       notes:o.info?{x:o.w-60,y:32,w:46,h:58}:null,
       reg:o.r?{x:o.r.x,y:o.r.y,colW:o.r.col,grid:8,rowsY:rowsY,bubble:o.r.b,label:'准 考 证 号'}:null,
