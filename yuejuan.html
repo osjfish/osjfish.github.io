@@ -419,13 +419,13 @@ function layoutTemplate(tpl){
     numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   const pages=[];
   const contentTop=94, contentBottom=h-36;
-  const qr={x:w-36,y:h-30,size:16};
+  const qr={x:w-48,y:36,size:30};
 
   const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
     return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&tpl.showInfo!==false)?{x:M,y:33,w:44,h:54.6}:null,
-      notes:(pi===0&&tpl.showInfo!==false)?{x:w-M-46,y:33,w:46,h:54.6}:null,
-      reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:qr,anchors:anchors,footer:{n:pi+1,m:0}};
+      notes:null,
+      reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,anchors:anchors,footer:{n:pi+1,m:0}};
   }
   /* 无考号区页面顶部从 38mm 开始（标题下方），避免大片空白；首页 94mm */
   const pageTopFor=function(pi){return (pi===0||regEvery)?contentTop:38};
@@ -579,7 +579,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
   ctx.fillStyle='#777';ctx.textAlign='center';
   for(let c=0;c<pageRegDigits(reg,page);c++){
     const cx=reg.x+c*reg.colW;
-    ctx.fillText(String(c+1),px(cx+reg.grid/2),px(reg.numY));
+    ctx.fillText(String(c+1),px(cx+reg.colW/2),px(reg.numY));
   }
   /* 标题「准 考 证 号」 */
   ctx.fillStyle='#000';ctx.font=Math.max(9,Math.round(px(3.1)))+'px "Microsoft YaHei",sans-serif';
@@ -587,7 +587,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
   for(let c=0;c<pageRegDigits(reg,page);c++){
     const cx=reg.x+c*reg.colW;
     ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
-    ctx.strokeRect(px(cx),px(reg.y),px(reg.grid),px(reg.grid));
+    ctx.strokeRect(px(cx+(reg.colW-reg.grid)/2),px(reg.y),px(reg.grid),px(reg.grid));
   }
   reg.rowsY.forEach(function(ry,i){
     for(let c=0;c<pageRegDigits(reg,page);c++){
@@ -659,12 +659,15 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       const cell=Math.min(8,innerW/cols);
       const gw=cols*cell, gx=sb.x+(sb.w-gw)/2, gy=sb.y+4+(sb.headH||0);
       if(sb.headH){
-        /* 可选「题目」栏：学生在此写作文标题 */
+        /* 可选「题目」栏：居中、横线长约框宽一半 */
+        const lineLen=(sb.w-26)/2;
+        const labelW=16;
+        const startX=sb.x+(sb.w-(labelW+lineLen))/2;
         ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.28));
-        ctx.beginPath();ctx.moveTo(px(sb.x+13),px(sb.y+9.5));ctx.lineTo(px(sb.x+sb.w-5),px(sb.y+9.5));ctx.stroke();
+        ctx.beginPath();ctx.moveTo(px(startX+labelW),px(sb.y+9.5));ctx.lineTo(px(startX+labelW+lineLen),px(sb.y+9.5));ctx.stroke();
         ctx.fillStyle='#000';ctx.font='bold '+Math.max(9,Math.round(px(3.2)))+'px "Microsoft YaHei",sans-serif';
-        ctx.textAlign='left';
-        ctx.fillText('题  目：',px(sb.x+5),px(sb.y+7));
+        ctx.textAlign='center';
+        ctx.fillText('题  目：',px(startX+labelW/2),px(sb.y+7));
       }
       const cellH=8, gapV=1.2, pitch=cellH+gapV;
       ctx.strokeStyle='#bbb';ctx.lineWidth=Math.max(0.5,px(0.16));
@@ -676,7 +679,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       }
       /* 行与行之间的缝隙内标注：每满100字 */
       const rowBase=(sb.rowStart||0);
-      ctx.fillStyle='#8a8a8a';ctx.font=Math.max(4.5,Math.round(px(1.5)))+'px "Microsoft YaHei",sans-serif';
+      ctx.fillStyle='#8a8a8a';ctx.font=Math.max(5,Math.round(px(2)))+'px "Microsoft YaHei",sans-serif';
       ctx.textAlign='left';
       for(let r=0;r<sb.rows;r++){
         const cumAfter=(rowBase+r+1)*cols;
@@ -684,7 +687,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
         const cumBefore=cumAfter-cols;
         if(k*100>cumBefore&&k*100<=cumAfter){
           const labelY=gy+(r+1)*pitch-gapV/2;
-          ctx.fillText(String(k*100)+'字',px(gx+0.6),px(labelY));
+          ctx.fillText(String(k*100)+'字',px(gx+gw+1.2),px(labelY));
         }
       }
       ctx.textAlign='center';
@@ -750,7 +753,8 @@ async function qrPayloadFor(layout,tpl,page){
   });
   const slice={v:1,p:tpl.paper||'A4',o:tpl.orient||'portrait',w:layout.w,h:layout.h,rd:layout.regDigits,
     ps:layout.perScore,t:page.title,id:tpl.id||'',pg:page.footer.n,np:page.footer.m,info:page.info?1:0,
-    a:a,r:page.reg?{x:r1(page.reg.x),y:r1(page.reg.y),dy:r2(page.reg.rowsY[1]-page.reg.rowsY[0]),ry0:r2(page.reg.rowsY[0]-page.reg.y),b:page.reg.bubble,col:page.reg.colW}:null,
+    a:a,qr:page.qr?{x:r1(page.qr.x),y:r1(page.qr.y),s:page.qr.size}:null,
+    r:page.reg?{x:r1(page.reg.x),y:r1(page.reg.y),dy:r2(page.reg.rowsY[1]-page.reg.rowsY[0]),ry0:r2(page.reg.rowsY[0]-page.reg.y),b:page.reg.bubble,col:page.reg.colW}:null,
     gs:gs,ss:ss};
   const json=JSON.stringify(slice);
   let payload='';
@@ -798,7 +802,7 @@ async function qrParsePayload(data){
       notes:o.info?{x:o.w-60,y:32,w:46,h:58}:null,
       reg:o.r?{x:o.r.x,y:o.r.y,colW:o.r.col,grid:8,rowsY:rowsY,bubble:o.r.b,label:'准 考 证 号'}:null,
       regDigits:o.rd,groups:[],subjective:[],footer:{n:o.pg,m:o.np},
-      anchors:[],qr:{x:o.w-36,y:o.h-30,size:16}};
+      anchors:[],qr:o.qr?{x:o.qr.x,y:o.qr.y,size:o.qr.s}:null};
     const fl=a=>{const out=[];for(let i=0;i<a.length;i+=3)out.push({x:a[i],y:a[i+1],s:a[i+2]});return out};
     page.anchors=fl(o.a);
     (o.gs||[]).forEach(function(g){
@@ -1777,7 +1781,7 @@ async function tplEditorHTML(tplId){
     +'<div><label class="f-lb">客观题每题分值</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="perScore" type="number" step="0.5" value="'+esc(t.perScore)+'"></div>'
     +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">显示姓名/班级/座位号框</label>'
     +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="showInfo"'+(t.showInfo!==false?' checked':'')+'>'
-    +'<span class="kv" style="margin-left:8px">（页面左栏手写信息 + 右栏注意事项，仅首页）</span></div>'
+    +'<span class="kv" style="margin-left:8px">（页面左上角信息框，仅首页；右上角为版式二维码）</span></div>'
     +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">每页重复显示准考证号</label>'
     +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="regEveryPage"'+(t.regEveryPage===true?' checked':'')+'>'
     +'<span class="kv" style="margin-left:8px">默认<b>仅首页</b>：第2页起只印标题/页码/二维码，识别时自动沿用上一页考号；如需逐张独立识别可选此项</span></div>'
