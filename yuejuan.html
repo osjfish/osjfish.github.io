@@ -420,10 +420,11 @@ function layoutTemplate(tpl){
   const contentTop=94, contentBottom=h-36;
   const qr={x:w-36,y:h-30,size:16};
 
+  const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
     return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&tpl.showInfo!==false)?{x:M,y:32,w:44,h:58}:null,
       notes:(pi===0&&tpl.showInfo!==false)?{x:w-M-46,y:32,w:46,h:58}:null,
-      reg:reg,regDigits:regDigits,groups:[],subjective:[],qr:qr,anchors:anchors,footer:{n:pi+1,m:0}};
+      reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:qr,anchors:anchors,footer:{n:pi+1,m:0}};
   }
   let pg=newPage(0); pages.push(pg);
   let curY=contentTop;
@@ -503,7 +504,7 @@ function presetTemplates(){
   ];
 }
 function newTemplate(name){
-  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regDigits:5,perScore:2,choiceGroups:[],subjective:[],createdAt:now()};
+  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regEveryPage:false,regDigits:5,perScore:2,choiceGroups:[],subjective:[],createdAt:now()};
 }
 
 /* ---------- mm→px 渲染 ---------- */
@@ -561,8 +562,11 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     }
     if(line)ctx.fillText(line,px(r.x+2.5),px(y));
   }
-  /* 考号区 */
+  /* 考号区（仅首页；如需每页可开启模板选项） */
   const reg=page.reg;
+  if(!reg){
+    ctx.textAlign='center';
+  }else{
   ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
   ctx.strokeRect(px(reg.x-2.5),px(reg.y-3),px(regDigitsW(reg,page)+5),px(regBottom(reg)-reg.y+3+2.5));
   ctx.fillStyle='#000';ctx.font=Math.max(8,Math.round(px(3)))+'px "Microsoft YaHei",sans-serif';
@@ -591,6 +595,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       ctx.fillRect(px(cx-0.4),px(ry-1),px(0.8),px(2));
     }
   });
+  }
   ctx.textAlign='center';
   /* 选择题组 */
   page.groups.forEach(function(g){
@@ -711,7 +716,7 @@ async function qrPayloadFor(layout,tpl,page){
   });
   const slice={v:1,p:tpl.paper||'A4',o:tpl.orient||'portrait',w:layout.w,h:layout.h,rd:layout.regDigits,
     ps:layout.perScore,t:page.title,id:tpl.id||'',pg:page.footer.n,np:page.footer.m,info:page.info?1:0,
-    a:a,r:{x:r1(page.reg.x),y:r1(page.reg.y),dy:r2(page.reg.rowsY[1]-page.reg.rowsY[0]),b:page.reg.bubble,col:page.reg.colW},
+    a:a,r:page.reg?{x:r1(page.reg.x),y:r1(page.reg.y),dy:r2(page.reg.rowsY[1]-page.reg.rowsY[0]),b:page.reg.bubble,col:page.reg.colW}:null,
     gs:gs,ss:ss};
   const json=JSON.stringify(slice);
   let payload='';
@@ -752,11 +757,11 @@ async function qrParsePayload(data){
   const o=JSON.parse(json);
   if(o.gs||o.a){  /* 紧凑格式还原为页面版式 */
     const rowsY=[];
-    const rdy=(o.r.dy&&isFinite(o.r.dy))?o.r.dy:4.2;
-    for(let i=0;i<10;i++)rowsY.push(o.r.y+13.5+i*rdy);
+    const rdy=(o.r&&o.r.dy&&isFinite(o.r.dy))?o.r.dy:4.2;
+    if(o.r)for(let i=0;i<10;i++)rowsY.push(o.r.y+13.5+i*rdy);
     const page={w:o.w,h:o.h,title:o.t,info:o.info?{x:14,y:32,w:44,h:58}:null,
       notes:o.info?{x:o.w-60,y:32,w:46,h:58}:null,
-      reg:{x:o.r.x,y:o.r.y,colW:o.r.col,grid:8,rowsY:rowsY,bubble:o.r.b,label:'准 考 证 号'},
+      reg:o.r?{x:o.r.x,y:o.r.y,colW:o.r.col,grid:8,rowsY:rowsY,bubble:o.r.b,label:'准 考 证 号'}:null,
       regDigits:o.rd,groups:[],subjective:[],footer:{n:o.pg,m:o.np},
       anchors:[],qr:{x:o.w-36,y:o.h-30,size:16}};
     const fl=a=>{const out=[];for(let i=0;i<a.length;i+=3)out.push({x:a[i],y:a[i+1],s:a[i+2]});return out};
@@ -1228,11 +1233,14 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     if(cropData){try{layoutSlice=await qrParsePayload(cropData);qrFound=true}catch(e){}}
   }
   const pg2=layoutSlice||page;
-  const reg=pg2.reg;
+  const reg=pg2.reg||null;
   const regDigitsN=(pg2.regDigits!=null)?pg2.regDigits:page.regDigits;
-  /* 考号识别（含同步条行校正） */
+  /* 考号识别（含同步条行校正；无考号区页面跳过并向组装阶段沿用上一页考号） */
   let studentNo='',regFlags=[],regPts=[],regDBG={marks:null,deltas:null,expY:null,tx:0};
-  for(let c=0;c<regDigitsN;c++){
+  if(!reg){
+    regFlags=['本页无考号区'];
+  }
+  for(let c=0;reg&&c<regDigitsN;c++){
     const cx=reg.x+c*reg.colW;
     const timingX=cx+reg.colW+0.7;
     const expMarks=reg.rowsY.map(function(ry){return H(timingX,ry)});
@@ -1310,7 +1318,7 @@ async function scanExamPages(exam,files,onProgress){
   const layout=layoutTemplate(tpl);
   const items=await filesToCanvases(files,2200);
   const results=[];
-  let idx=0;
+  let idx=0,lastNo='';
   for(const it of items){
     const pageIdx=Math.min(layout.pages.length-1,(it.pageNo||1)-1);
     let res;
@@ -1323,6 +1331,9 @@ async function scanExamPages(exam,files,onProgress){
       continue;
     }
     const blob=await canvasToJpeg(it.cv,0.88);
+    /* 无考号区页面：沿用本批上一识别页的考号（页序即学生分组） */
+    if(!res.studentNo&&lastNo)res.studentNo=lastNo;
+    if(res.studentNo)lastNo=res.studentNo;
     const pageRec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:it.pageNo,
       blob:blob,thumb:canvasDataURL(canvasToThumb(it.cv,220),0.7),
       meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
@@ -1387,19 +1398,21 @@ function simulatePageCanvas(tpl,layout,page,pageIdx,exam,student,rnd,qrCv){
   ctx.scale(1.008+rnd()*0.005,0.994+rnd()*0.004);
   ctx.translate(-cx,-cy);
   ctx.drawImage(base,0,0);
-  /* 考号涂写（与页面同处形变空间，保证识别/裁剪几何一致） */
+  /* 考号涂写（与页面同处形变空间，保证识别/裁剪几何一致；仅首页或开启每页准考证号时） */
   const reg=page.reg;
-  const no=String(student.no||'').padStart(page.regDigits||5,'0');
-  for(let c=0;c<no.length;c++){
-    const digit=parseInt(no[c],10);
-    if(isNaN(digit))continue;
-    /* 第4名学生缺1位、第7名学生整行不涂 → 演示「考号异常」复核 */
-    const simSkip=(student.__si===3&&c===1)||student.__si===6;
-    if(!simSkip){
-      const bxmm=reg.x+c*reg.colW+(reg.colW-reg.bubble)/2;
-      ctx.fillStyle='#111';
-      ctx.fillRect(px(bxmm),px(reg.rowsY[digit]-reg.bubble/2),px(reg.bubble),px(reg.bubble));
-      ctx.strokeRect(px(bxmm),px(reg.rowsY[digit]-reg.bubble/2),px(reg.bubble),px(reg.bubble));
+  if(reg){
+    const no=String(student.no||'').padStart(page.regDigits||5,'0');
+    for(let c=0;c<no.length;c++){
+      const digit=parseInt(no[c],10);
+      if(isNaN(digit))continue;
+      /* 第4名学生缺1位、第7名学生整行不涂 → 演示「考号异常」复核 */
+      const simSkip=(student.__si===3&&c===1)||student.__si===6;
+      if(!simSkip){
+        const bxmm=reg.x+c*reg.colW+(reg.colW-reg.bubble)/2;
+        ctx.fillStyle='#111';
+        ctx.fillRect(px(bxmm),px(reg.rowsY[digit]-reg.bubble/2),px(reg.bubble),px(reg.bubble));
+        ctx.strokeRect(px(bxmm),px(reg.rowsY[digit]-reg.bubble/2),px(reg.bubble),px(reg.bubble));
+      }
     }
   }
   /* 客观题涂卡 */
@@ -1489,6 +1502,7 @@ async function simulateScan(exam){
     const stu=students[si];
     if(stu.__si==null)stu.__si=si;
     const rnd=mulberry32(seedFrom(exam.id+stu.no));
+    let lastNo='';
     for(let pIdx=0;pIdx<layout.pages.length;pIdx++){
       const page=layout.pages[pIdx];
       let qrCv=null;
@@ -1496,6 +1510,11 @@ async function simulateScan(exam){
       const {cv}=simulatePageCanvas(tpl,layout,page,pIdx,exam,stu,rnd,qrCv);
       const blob=await canvasToJpeg(cv,0.88);
       const res=await recognizeCanvas(cv,layout,pIdx,{});
+      /* 无考号区页面沿用本学生已识别考号 */
+      if(!page.reg){
+        if(res.studentNo)lastNo=res.studentNo;
+        else if(lastNo){res.studentNo=lastNo;res.regFlags=['本页无考号区，沿用考号 '+lastNo];}
+      }else if(res.studentNo)lastNo=res.studentNo;
       const rec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:pIdx+1,
         blob:blob,thumb:canvasDataURL(canvasToThumb(cv,240),0.7),
         meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
@@ -1720,6 +1739,9 @@ async function tplEditorHTML(tplId){
     +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">显示姓名/班级/座位号框</label>'
     +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="showInfo"'+(t.showInfo!==false?' checked':'')+'>'
     +'<span class="kv" style="margin-left:8px">（页面左栏手写信息 + 右栏注意事项，仅首页）</span></div>'
+    +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">每页重复显示准考证号</label>'
+    +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="regEveryPage"'+(t.regEveryPage===true?' checked':'')+'>'
+    +'<span class="kv" style="margin-left:8px">默认<b>仅首页</b>：第2页起只印标题/页码/二维码，识别时自动沿用上一页考号；如需逐张独立识别可选此项</span></div>'
     +'</div></div>'
     +'<div class="card"><h3>选择题组（客观题 · 自动分列排版 + 同步条）</h3>'+cg
     +'<button class="btn btn-sm" data-act="tpl-cg-add" data-id="'+t.id+'">＋ 添加选择题组</button></div>'
@@ -2585,6 +2607,7 @@ Object.assign(ACTS,{
 /* 重识别单页：更新 page 记录 + 重建该页主观题裁剪 */
 async function redoPage(p,cv,layout,opts){
   const res=await recognizeCanvas(cv,layout,p.meta.pageIdx||0,opts);
+  if(!res.studentNo&&p.studentNo){res.studentNo=p.studentNo;res.regFlags=['沿用考号 '+p.studentNo];}
   const blob=await canvasToJpeg(cv,0.88);
   const oldNo=p.studentNo;
   p.studentNo=res.studentNo||'';
