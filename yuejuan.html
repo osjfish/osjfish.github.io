@@ -785,6 +785,21 @@ async function compactSliceFor(layout,tpl,page,level){
 }
 
 /* ---------- 二维码 v3：二进制紧凑版式（确定性几何由骨架还原，仅携带差异：选择题组+主观题区） ---------- */
+
+/* 版式指纹：只识别“打印版与当前模板是否一致”，几何本体由模板（批内）提供 */
+async function layoutHash(layout,tpl,page){
+  try{
+    let json='';
+    const test=await compactSliceFor(layout,tpl,page,3);
+    json=JSON.stringify(test);
+    let h1=0x811c9dc5;
+    for(let i=0;i<json.length;i++){
+      h1^=json.charCodeAt(i);
+      h1=(h1*0x01000193)>>>0;
+    }
+    return h1.toString(16);
+  }catch(e){return ''}
+}
 function qrPackBytes(tpl,layout,page){
   const b=[];
   const P={A4:1,A3:2,B4:3,'8K':4}[tpl.paper]||1;
@@ -866,30 +881,8 @@ function qrSkeleton(w,h,rd,pg,np,info){
     anchors:anchors,footer:{n:pg,m:np}};
 }
 async function qrPayloadFor(layout,tpl,page){
-  /* v3 二进制紧凑版式：~30-120字符（25-45模块，34mm 印刷 0.75-1.3mm/模块，极易扫描） */
-  try{
-    const bytes=qrPackBytes(tpl,layout,page);
-    const b='DTZ1|3|'+b64FromBytes(bytes);
-    if(b.length<=140)return b;
-  }catch(e){}
-  /* 旧版 JSON 分档（兜底） */
-  let fallback='';
-  for(let level=3;level>=1;level--){
-    try{
-      const slice=await compactSliceFor(layout,tpl,page,level);
-      const json=JSON.stringify(slice);
-      if(typeof CompressionStream!=='undefined'&&typeof TextEncoder!=='undefined'){
-        const cs=new CompressionStream('deflate-raw');
-        const res=await new Response(new Blob([json]).stream().pipeThrough(cs)).blob();
-        const buf=await res.arrayBuffer();
-        const b='DTZ1|1|'+b64FromBytes(new Uint8Array(buf));
-        if(b.length<=225)return b;
-      }
-      if(!fallback)fallback='DTZ1|0|'+b64FromBytes(new TextEncoder().encode(json));
-    }catch(e){}
-  }
-  if(fallback&&fallback.length<=225)return fallback;
-  return 'DTZ1|2|'+encodeURIComponent(tpl.id||'')+'|'+layout.regDigits+'|'+layout.pages.length;
+  /* 最小化二维码：几何全部由模板（批内）提供，仅带 模板ID + 版式指纹 */
+  return 'DTZ1|2|'+encodeURIComponent(tpl.id||'')+'|'+layout.regDigits+'|'+layout.pages.length+'|'+(await layoutHash(layout,tpl,page));
 }
 async function qrParsePayload(data){
   data=String(data||'').trim();
@@ -908,7 +901,7 @@ async function qrParsePayload(data){
   }
   if(flag==='2'){
     const rest=s.slice(sep+1).split('|');
-    return {minimal:true,tplId:decodeURIComponent(rest[0]||''),regDigits:parseInt(rest[1],10)||5,pages:parseInt(rest[2],10)||1};
+    return {minimal:true,tplId:decodeURIComponent(rest[0]||''),regDigits:parseInt(rest[1],10)||5,pages:parseInt(rest[2],10)||1,hash:(rest[3]||'')};
   }
   const b64=s.slice(sep+1);
   const bytes=bytesFromB64(b64);
@@ -1499,8 +1492,16 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       const mtpl=await dbGet('templates',layoutSlice.tplId);
       if(mtpl){
         const ml=layoutTemplate(mtpl);
-        layoutSlice=ml.pages[Math.min(pageIdx,ml.pages.length-1)];
-      }else layoutSlice=null;
+        const pgSel=ml.pages[Math.min(pageIdx,ml.pages.length-1)];
+        if(layoutSlice.hash){
+          const hm=await layoutHash(ml,mtpl,pgSel);
+          if(hm&&hm!==layoutSlice.hash)flags.push('模板与打印版式不一致（版式指纹不匹配）：卡面可能来自旧版本模板，请核对或按当前模板重新打印');
+        }
+        layoutSlice=pgSel;
+      }else{
+        layoutSlice=null;
+        flags.push('未找到二维码中的模板（已按当前考试模板解析）');
+      }
     }catch(e){layoutSlice=null}
   }
   /* 锚点检测：先全局搜索四角（兼容照片背景/未充满画面/倾斜），再用预期位置窗口兜底 */
@@ -3876,7 +3877,7 @@ async function backupImport(file){
 
 /*__YJ_MORE__*/
 /* 调试钩子（供自动化校验/排障使用） */
-window.__yjDbg={recognizeCanvas:recognizeCanvas,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,cropQuad:cropQuad,dist:dist,groupQChoices:groupQChoices,qBubbleGeom:qBubbleGeom,cropViaH:cropViaH,
+window.__yjDbg={recognizeCanvas:recognizeCanvas,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,cropQuad:cropQuad,dist:dist,groupQChoices:groupQChoices,qBubbleGeom:qBubbleGeom,cropViaH:cropViaH,layoutHash:layoutHash,qrPackBytes:qrPackBytes,qrUnpackBytes:qrUnpackBytes,
   qrPayloadFor:qrPayloadFor,qrFromCanvas:qrFromCanvas,qrFromCrop:qrFromCrop,makeQRCanvas:makeQRCanvas,qrParsePayload:qrParsePayload,
   dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs'])dbClear(s).catch(()=>{});return 'ok'},
   detectRowMarks:detectRowMarks,rowDeltas:rowDeltas,inkRatio:inkRatio,solveHomo:solveHomo,omr:omr,
