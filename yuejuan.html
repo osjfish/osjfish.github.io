@@ -1400,183 +1400,6 @@ async function scanExamPages(exam,files,onProgress){
   return results;
 }
 
-/* ---------- 卡面答题绘制（模拟扫描） ---------- */
-function mulberry32(seed){
-  let a=seed>>>0;
-  return function(){
-    a|=0;a=a+0x6D2B79F5|0;
-    let t=Math.imul(a^a>>>15,1|a);
-    t=t+Math.imul(t^t>>>7,61|t)^t;
-    return ((t^t>>>14)>>>0)/4294967296;
-  };
-}
-function seedFrom(str){
-  let s=0;
-  for(let i=0;i<str.length;i++)s=(s*31+str.charCodeAt(i))>>>0;
-  return s||1;
-}
-function drawFilledBubble(ctx,px, bxmm,bymm,bw,bh,fill){
-  ctx.fillStyle=fill||'#111';
-  ctx.fillRect(px(bxmm),px(bymm-bh/2),px(bw),px(bh));
-}
-function simulatePageCanvas(tpl,layout,page,pageIdx,exam,student,rnd,qrCv){
-  const longSide=2600;
-  const dpi=longSide*25.4/Math.max(layout.w,layout.h);
-  const px=function(m){return m*dpi/25.4};
-  const base=renderPageCanvas(tpl,layout,page,dpi,qrCv||null);
-  const cv=document.createElement('canvas');
-  cv.width=Math.round(px(layout.w));cv.height=Math.round(px(layout.h));
-  const ctx=cv.getContext('2d');
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.imageSmoothingEnabled=true;
-  if(ctx.imageSmoothingQuality)ctx.imageSmoothingQuality='high';
-  /* 轻微形变（旋转0.4°+2%缩放+平移），考验单应校正 */
-  ctx.save();
-  const cx=cv.width/2,cy=cv.height/2;
-  ctx.translate(cx,cy);
-  ctx.rotate((rnd()-0.5)*0.008);
-  ctx.scale(1.008+rnd()*0.005,0.994+rnd()*0.004);
-  ctx.translate(-cx,-cy);
-  ctx.drawImage(base,0,0);
-  /* 考号涂写（与页面同处形变空间，保证识别/裁剪几何一致；仅首页或开启每页准考证号时） */
-  const reg=page.reg;
-  if(reg){
-    const no=String(student.no||'').padStart(page.regDigits||5,'0');
-    for(let c=0;c<no.length;c++){
-      const digit=parseInt(no[c],10);
-      if(isNaN(digit))continue;
-      /* 第4名学生缺1位、第7名学生整行不涂 → 演示「考号异常」复核 */
-      const simSkip=(student.__si===3&&c===1)||student.__si===6;
-      if(!simSkip){
-        const bxmm=reg.x+c*reg.colW+(reg.colW-reg.bubble)/2;
-        ctx.fillStyle='#111';
-        ctx.fillRect(px(bxmm),px(reg.rowsY[digit]-reg.bubble/2),px(reg.bubble),px(reg.bubble));
-        ctx.strokeRect(px(bxmm),px(reg.rowsY[digit]-reg.bubble/2),px(reg.bubble),px(reg.bubble));
-      }
-    }
-  }
-  /* 客观题涂卡 */
-  page.groups.forEach(function(g){
-    for(let r=0;r<g.rows;r++)for(let c=0;c<g.cols;c++){
-      const qn=g.first+c*g.rows+r;
-      if(qn>g.first+g.count-1)continue;
-      const ans=exam.answers&&exam.answers[qn];
-      const rowY=g.y0+2.5+r*g.dy;
-      if(!ans){
-        if(rnd()<0.35){ /* 3成未答留作空白样本 */ }
-        continue;
-      }
-      const ch=String(ans).toUpperCase().charCodeAt(0)-65;
-      let useCh=ch;
-      const r1=rnd();
-      if(r1<0.02){useCh=(ch+1)%g.choices;}                         /* 2% 涂错 */
-      else if(r1>=0.02&&r1<0.055){ctx.fillStyle='#111';            /* 3.5% 多涂 */
-        const bxmm2=g.x0+9+((ch+1)%g.choices)*g.dxc+g.size[0]/2;
-        ctx.fillRect(px(bxmm2-g.size[0]/2),px(rowY-g.size[1]/2),px(g.size[0]),px(g.size[1]));}
-      if(r1>=0.055&&r1<0.072){useCh=-1;}                            /* 1.7% 模糊（只涂一角）→ 待复核 */
-      const bxmm=g.x0+9+useCh*g.dxc+g.size[0]/2;
-      if(useCh>=0){
-        if(r1>=0.055&&r1<0.072){
-          ctx.fillStyle='#111';
-          ctx.fillRect(px(bxmm-g.size[0]/2),px(rowY-g.size[1]/2),px(g.size[0]*0.38),px(g.size[1]*0.8));
-        }else{
-          ctx.fillStyle='#111';
-          ctx.fillRect(px(bxmm-g.size[0]/2),px(rowY-g.size[1]/2),px(g.size[0]),px(g.size[1]));
-          ctx.strokeRect(px(bxmm-g.size[0]/2),px(rowY-g.size[1]/2),px(g.size[0]),px(g.size[1]));
-        }
-      }
-    }
-  });
-  /* 主观题作答涂抹 */
-  page.subjective.forEach(function(sb){
-    const n=Math.min(sb.rows*4,26);
-    ctx.strokeStyle='#3a3a3a';
-    for(let i=0;i<n;i++){
-      ctx.lineWidth=Math.max(1,px(0.35));
-      ctx.beginPath();
-      const x=rnd()*sb.w*0.9+sb.x+5;
-      const y=rnd()*sb.h*0.8+sb.y+4;
-      ctx.moveTo(px(x),px(y));
-      ctx.lineTo(px(x+Math.min(20,rnd()*18)),px(y+(rnd()*2-1)));
-      ctx.stroke();
-    }
-    if(sb.type==='grid-cn'){
-      ctx.strokeStyle='#2d2d2d';
-      for(let i=0;i<Math.min(sb.rows*8,70);i++){
-        ctx.lineWidth=Math.max(1,px(0.3));
-        ctx.beginPath();
-        const x=rnd()*sb.w*0.86+sb.x+6;
-        const y=rnd()*sb.h*0.85+sb.y+5;
-        ctx.moveTo(px(x),px(y));
-        ctx.lineTo(px(x+4.5+rnd()*2),px(y));
-        ctx.stroke();
-      }
-    }
-  });
-  ctx.restore();
-  return {cv:cv,dpi:dpi};
-}
-async function simulateScan(exam){
-  const tpl=await dbGet('templates',exam.templateId);
-  if(!tpl)throw new Error('模板不存在');
-  const students=await dbByIdx('students','byClass',exam.classId);
-  if(!students.length)throw new Error('该班级没有学生，请先在「班级学生」导入名单');
-  const layout=layoutTemplate(tpl);
-  /* 无答案时自动生成模拟答案 */
-  if(!exam.answers||!Object.keys(exam.answers).length){
-    exam.answers={};
-    layout.pages.forEach(function(p){p.groups.forEach(function(g){
-      for(let q=g.first;q<g.first+g.count;q++)exam.answers[q]=String.fromCharCode(65+Math.floor((q*7)%g.choices));
-    })});
-    exam.answersAuto=true;
-    await dbPut('exams',exam);
-  }
-  const dbOldPages=await dbByIdx('pages','byExam',exam.id);
-  const oldCrops=await dbAll('crops');
-  for(const p of dbOldPages)await dbDel('pages',p.id);
-  for(const c of oldCrops)if(c.examId===exam.id)await dbDel('crops',c.id);
-  let done=0;
-  const total=students.length*layout.pages.length;
-  const records=[];
-  for(let si=0;si<students.length;si++){
-    const stu=students[si];
-    if(stu.__si==null)stu.__si=si;
-    const rnd=mulberry32(seedFrom(exam.id+stu.no));
-    let lastNo='';
-    for(let pIdx=0;pIdx<layout.pages.length;pIdx++){
-      const page=layout.pages[pIdx];
-      let qrCv=null;
-      try{qrCv=await makeQRCanvas(await qrPayloadFor(layout,tpl,page))}catch(e){}
-      const {cv}=simulatePageCanvas(tpl,layout,page,pIdx,exam,stu,rnd,qrCv);
-      const blob=await canvasToJpeg(cv,0.88);
-      const res=await recognizeCanvas(cv,layout,pIdx,{});
-      /* 无考号区页面沿用本学生已识别考号 */
-      if(!page.reg){
-        if(res.studentNo)lastNo=res.studentNo;
-        else if(lastNo){res.studentNo=lastNo;res.regFlags=['本页无考号区，沿用考号 '+lastNo];}
-      }else if(res.studentNo)lastNo=res.studentNo;
-      const rec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:pIdx+1,
-        blob:blob,thumb:canvasDataURL(canvasToThumb(cv,240),0.7),
-        meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
-          perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:pIdx,
-          H:res.H?res.H.h:null,srcFile:'模拟扫描'}};
-      await dbPut('pages',rec);
-      if(res.crops)for(const cp of res.crops){
-        const cid=exam.id+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
-        await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,pageId:rec.id,
-          studentNo:res.studentNo||'(未识别)',qno:cp.qno,part:cp.part,score:cp.score,
-          blob:await canvasToJpeg(cp.cv,0.85),thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
-          scoreVal:null,aiScore:null,aiReason:null,marked:null,markedBy:'',flag:''});
-      }
-      records.push(rec);
-      done++;
-      if(scanCtx&&scanCtx.onProgress)scanCtx.onProgress(done,total,stu);
-    }
-  }
-  return records;
-}
-
-
 /* ============================================================
    第四段：数据汇总 / 首页 / 模板管理
    ============================================================ */
@@ -1641,7 +1464,7 @@ async function examStatusLabel(examId){
       if(crops.length)gradDone=gradDone+1;
     }
   }
-  if(!pages.length)return {badge:badge('warn','待扫描'),label:'尚未扫描（可模拟扫描体验全流程）'};
+  if(!pages.length)return {badge:badge('warn','待扫描'),label:'尚未扫描'};
   if(rev.locate.length||rev.reg.length||rev.q.length)return {badge:badge('err','待复核 '+(rev.locate.length+rev.reg.length+rev.q.length)),label:'有项目待复核，先在「扫描识别」处理'};
   if(meta&&meta.subjList.length&&gradDone<gradTotal)return {badge:badge('info','阅卷中'),label:'主观题待阅'};
   return {badge:badge('ok','已完成'),label:'考试已完成'};
@@ -1664,8 +1487,7 @@ async function renderHome(){
   +'<button class="btn btn-g" data-act="home-quick" data-to="exam">🗂️ 新建考试</button>'
   +'<button class="btn btn-o" data-act="home-quick" data-to="scan">📷 扫描识别</button>'
   +'</div>'
-  +'<div class="tip">流程：<b>①</b>「答题卡模板」设计并导出 PDF 打印（请选 <b>100%/实际大小</b>）→ <b>②</b>「班级学生」导入名单（考号=卡上涂写号）→ <b>③</b>「考试管理」录入答案建考试 → <b>④</b>「扫描识别」上传扫描件/照片，或点<b>「模拟扫描」</b>自动生成全班模拟卡并识别 → <b>⑤</b>「阅卷工作台」按题人工打分（可选 AI 建议）→ <b>⑥</b>「成绩分析」成绩册 + 统计图表 + CSV 导出。<br>'
-  +'<b style="color:var(--zhu)">没有打印机? </b>导入班级学生 → 新建考试 → 在「扫描识别」页点「模拟扫描」，即可走通 生成→识别→复核→阅卷→出分 完整闭环。</div></div>';
+  +'<div class="tip">流程：<b>①</b>「答题卡模板」设计并导出 PDF 打印（请选 <b>100%/实际大小</b>）→ <b>②</b>「班级学生」导入名单（考号=卡上涂写号）→ <b>③</b>「考试管理」录入答案建考试 → <b>④</b>「扫描识别」上传扫描件/照片 → <b>⑤</b>「阅卷工作台」按题人工打分（可选 AI 建议）→ <b>⑥</b>「成绩分析」成绩册 + 统计图表 + CSV 导出。</div></div>';
   let examCards='';
   if(exams.length){
     examCards='<div class="card"><h3>最近考试</h3><div class="exam-grid">';
@@ -2248,7 +2070,7 @@ async function wizRender(){
         const sc=wiz.subjective[s.qno]||{};
         return esc(String(s.qno))+'（'+esc(sc.score!=null?sc.score:s.score)+'分'+(sc.points?'·已写评分要点':'·<span style="color:var(--danger)">缺评分要点</span>')+'）';
       }).join('　')+'<br>'
-      +'<b>流程：</b>保存后 → 「扫描识别」上传扫描件或点「模拟扫描」→ 复核 → 阅卷 → 成绩</div>';
+      +'<b>流程：</b>保存后 → 「扫描识别」上传扫描件 → 复核 → 阅卷 → 成绩</div>';
   }
   const foot=''+'<button class="btn" data-act="wiz-cancel">取消</button>'
     +(wiz.step>1?'<button class="btn" data-act="wiz-prev">← 上一步</button>':'')
@@ -2348,16 +2170,15 @@ async function renderScan(){
     +'<div class="f-row">'
     +'<button class="btn btn-p" data-act="scan-pick-files">📤 选择扫描件（PDF/图片，可多选）</button>'
     +'<input type="file" id="scanFiles" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tif,.webp" style="display:none">'
-    +'<button class="btn btn-g" data-act="scan-simulate">🧪 模拟扫描（生成全班模拟卡并识别）</button>'
     +'<button class="btn btn-d" data-act="scan-clear">🗑 清空本场扫描结果</button>'
-    +'<span class="tip">扫描件按页顺序对应模板页；识别用「6 锚点 + 同步条 + 单应校正」，页内二维码会自描述版式。</span>'
+    +'<span class="tip">扫描件按页顺序对应模板页；识别用「6 锚点 + 同步条 + 单应校正」，第 1 页二维码自描述版式。</span>'
     +'</div>'
     +'<div id="scanProgBox" style="margin-top:10px;display:none"><div class="prog-line"><span id="scanProgTxt"></span><div class="progress" style="flex:1"><div id="scanProgBar" style="width:0%"></div></div></div><div id="scanLog" class="tip"></div></div>'
     +'</div>';
   /* 复核汇总 */
   html+='<div class="card"><h3>识别结果（'+pages.length+' 页）</h3>';
   if(!pages.length){
-    html+=emptyBox('📷','尚未扫描。上传实体扫描件/照片，或用「模拟扫描」体验完整流程（会为每名学生生成涂卡 + 作答 + 轻度形变，模拟真实打印扫描）。');
+    html+=emptyBox('📷','尚未扫描。请上传真实扫描件/照片（按页顺序对应模板页：第1页+续页…）。');
   }else{
     const okPages=pages.filter(function(p){return p.meta&&p.meta.status==='ok'}).length;
     const noRec=pages.filter(function(p){return p.studentNo&&p.studentNo.indexOf('_')<0&&p.studentNo.indexOf('?')<0}).length;
@@ -2414,34 +2235,6 @@ Object.assign(ACTS,{
     await dbDel('pages',p.id);
     const crops=await dbAll('crops');
     for(const c of crops)if(c.examId===p.examId&&c.pageId===p.id)await dbDel('crops',c.id);
-    renderScan();
-  },
-  'scan-simulate':async function(){
-    if(scanCtx&&scanCtx.running){toast('正在扫描/识别中，请稍候','err');return}
-    const ex=await dbGet('exams',ui.scanExam);
-    const tpl=await dbGet('templates',ex.templateId);
-    const st=await dbByIdx('students','byClass',ex.classId);
-    if(!st.length){toast('该班级没有学生，请先导入名单','err');go('class');return}
-    const pages=await dbByIdx('pages','byExam',ex.id);
-    const ok=await dlgConfirm('模拟扫描','将用「'+esc(tpl.name)+'」为 '+st.length+' 名学生生成模拟答题卡（含随机作答与轻微形变），'
-      +'然后自动走 二维码读取→锚点定位→同步条校正→OMR 识别→主观题切割 全流程。'
-      +(pages.length?'<br><br>本场已有 '+pages.length+' 页扫描结果，会先清空。模拟答案若未录入将自动生成。':'')
-      +'<br><br><b>注意：</b>请先在下一步新建考试时录入答案，或系统自动生成。','开始模拟');
-    if(!ok)return;
-    if(pages.length)await scanClearAll(ex.id);
-    const box=$('scanProgBox');
-    box.style.display='block';
-    scanCtx={examId:ex.id,running:true,onProgress:function(done,total){
-      $('scanProgBar').style.width=Math.round(done/total*100)+'%';
-      $('scanProgTxt').textContent='模拟识别中 '+done+'/'+total;
-      $('scanLog').textContent='最近：'+done;
-    }};
-    try{
-      await simulateScan(ex);
-      toast('模拟扫描完成，共 '+st.length*Math.max(1,(await examMeta(ex)).layout.pages.length)+' 页已识别','ok');
-    }catch(err){toast('模拟扫描失败：'+err.message,'err')}
-    box.style.display='none';
-    scanCtx.running=false;
     renderScan();
   },
   'scan-empty':function(){}
@@ -2695,7 +2488,7 @@ async function renderGrade(){
   const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
   if(!ui.gradeExam||!(exams.find(function(e){return e.id===ui.gradeExam})))ui.gradeExam=exams.length?exams[0].id:null;
   if(!ui.gradeExam){
-    $('page').innerHTML='<div class="card">'+emptyBox('✍️','没有考试。请先创建考试并扫描识别（或模拟扫描）生成主观题裁剪图。')
+    $('page').innerHTML='<div class="card">'+emptyBox('✍️','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
       +'<button class="btn btn-p" data-act="go-exam">去创建考试</button></div>';
     return;
   }
@@ -3637,9 +3430,8 @@ async function backupImport(file){
 
 /*__YJ_MORE__*/
 /* 调试钩子（供自动化校验/排障使用） */
-window.__yjDbg={recognizeCanvas:recognizeCanvas,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,simulateScan:simulateScan,cropQuad:cropQuad,dist:dist,
+window.__yjDbg={recognizeCanvas:recognizeCanvas,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,cropQuad:cropQuad,dist:dist,
   qrPayloadFor:qrPayloadFor,qrFromCanvas:qrFromCanvas,qrFromCrop:qrFromCrop,makeQRCanvas:makeQRCanvas,qrParsePayload:qrParsePayload,
-  simulatePageCanvas:simulatePageCanvas,mulberry32:mulberry32,seedFrom:seedFrom,
   dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs'])dbClear(s).catch(()=>{});return 'ok'},
   detectRowMarks:detectRowMarks,rowDeltas:rowDeltas,inkRatio:inkRatio,solveHomo:solveHomo,omr:omr,
   renderPageCanvas:renderPageCanvas,renderPagesAsync:renderPagesAsync,canvasDataURL:canvasDataURL,
