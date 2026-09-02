@@ -1336,11 +1336,36 @@ function rowDeltas(marks,expYs){
   }
   return deltas;
 }
+
+/* Otsu 页面自适应阈值：对全部涂点 ink 聚类，取代固定 0.45/0.25（弱光/墨色偏浅更稳） */
+function otsuInkThreshold(vals){
+  const V=101,hist=new Uint32Array(V);
+  let sum=0,n=0;
+  for(let i=0;i<vals.length;i++){
+    let k=Math.round(vals[i]*V-0.5);
+    if(k<0)k=0;if(k>=V)k=V-1;
+    hist[k]++;sum+=k;n++;
+  }
+  if(n<8)return null;
+  let wB=0,sumB=0,best=0,bestT=-1;
+  for(let t=0;t<V;t++){
+    wB+=hist[t];
+    if(!wB)continue;
+    const wF=n-wB;
+    if(!wF)break;
+    sumB+=t*hist[t];
+    const mB=sumB/wB,mF=(sum-sumB)/wF;
+    const between=wB*wF*(mB-mF)*(mB-mF);
+    if(between>best){best=between;bestT=t;}
+  }
+  if(bestT<0)return null;
+  return bestT/V;
+}
 function judgeQuestion(inks,high,low){
   const hs=[],mids=[];
   inks.forEach(function(x){if(x.ink>=high)hs.push(x);else if(x.ink>low)mids.push(x)});
   if(hs.length===1)return {verdict:'OK',choice:String(hs[0].c)};
-  if(hs.length>1)return {verdict:'MULTI',choice:null};
+  if(hs.length>1)return {verdict:'MULTI',choice:hs.map(function(x){return String(x.c)}).sort().join('')};
   if(mids.length)return {verdict:'REVIEW',choice:null};
   return {verdict:'BLANK',choice:null};
 }
@@ -1562,6 +1587,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   const regDigitsN=(pg2.regDigits!=null)?pg2.regDigits:page.regDigits;
   /* 考号识别（含同步条行校正；无考号区页面跳过并向组装阶段沿用上一页考号） */
   let studentNo='',regFlags=[],regPts=[],regDBG={marks:null,deltas:null,expY:null,tx:0};
+  let allInks=[];   /* 全页涂点 ink 收集（页面级自适应阈值） */
   if(!reg){
     regFlags=['本页无考号区'];
   }
@@ -1578,11 +1604,9 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       const p=H(bxmm,reg.rowsY[dg]);
       const ink=inkRatio(bin,cv.width,cv.height,p.x,p.y+deltas[dg],Math.max(2,reg.bubble/2*smm*0.8));
       inks.push({c:String(dg),ink:ink});
+      allInks.push(ink);
     }
-    const j=judgeDigit(inks,omr.inkHigh,omr.inkLow);
-    regPts.push({c:c,j:j,inks:inks});
-    if(j.ok)studentNo+=j.digit;
-    else{studentNo+=j.reason==='空白'?'_':'?';regFlags.push('考号第'+(c+1)+'位'+j.reason);}
+    regPts.push({c:c,j:null,inks:inks,raw:true});
   }
   if(!studentNo||studentNo.indexOf('_')>=0||studentNo.indexOf('?')>=0)regFlags.push('考号异常（'+studentNo+'）');
   /* 考号人工改判覆盖 */
@@ -1615,13 +1639,39 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
           const p=H(bxmm,rowYmm);
           const ink=inkRatio(bin,cv.width,cv.height,p.x,p.y+deltas[rr],Math.max(2,qg.bw/2*smm*0.8));
           inks.push({c:String.fromCharCode(65+ch),ink:ink});
+          allInks.push(ink);
         }
-        const j=judgeQuestion(inks,omr.inkHigh,omr.inkLow);
-        perQ.push({qno:qn,choice:j.choice,verdict:j.verdict,
-          inks:inks.map(function(x){return Math.round(x.ink*100)/100})});
+        perQ.push({qno:qn,raw:inks});
       }
     }
   });
+  /* 页面级自适应阈值（Otsu 聚类）；极端情形回退到设置默认 */
+  let inkHigh=omr.inkHigh,inkLow=omr.inkLow;
+  try{
+    const t=otsuInkThreshold(allInks);
+    if(t!=null){
+      inkHigh=Math.max(0.32,Math.min(0.92,t+0.10));
+      inkLow=Math.max(0.12,Math.min(0.4,t-0.10));
+    }
+  }catch(e){}
+  /* 客观题判定回填（≥2 涂点按 MULTI 记，多选由判分阶段按答案集合比对） */
+  for(const qi of perQ){
+    const j=judgeQuestion(qi.raw,inkHigh,inkLow);
+    qi.choice=j.choice;
+    qi.verdict=j.verdict;
+    qi.inks=qi.raw.map(function(x){return Math.round(x.ink*100)/100});
+    delete qi.raw;
+  }
+  /* 考号判定回填 */
+  let no2='';
+  regPts.forEach(function(rp){
+    const j=judgeDigit(rp.inks,inkHigh,inkLow);
+    rp.j=j;delete rp.raw;
+    if(j.ok)no2+=j.digit;
+    else no2+=(j.reason==='空白'?'_':'?');
+  });
+  if(reg)studentNo=no2;
+  if(reg&&(!studentNo||studentNo.indexOf('_')>=0||studentNo.indexOf('?')>=0))regFlags.push('考号异常（'+studentNo+'）');
   /* 主观题切割 */
   const crops=[];
   for(const sb of pg2.subjective){
@@ -2345,6 +2395,7 @@ async function examWizardOpen(examId){
     perScore:ex?ex.perScore:null,
     answers:ex?JSON.parse(JSON.stringify(ex.answers||{})):{},
     perQScore:ex&&ex.perQScore?JSON.parse(JSON.stringify(ex.perQScore)):{},
+  multi:ex&&ex.qMulti?JSON.parse(JSON.stringify(ex.qMulti)):{},
     perScore:ex?ex.perScore:null,
     subjective:ex?JSON.parse(JSON.stringify(ex.subjective||{})):{}
   };
@@ -2373,14 +2424,17 @@ async function wizRender(){
     let cells='';
     meta.choiceQnos.forEach(function(qn,i){
       const a=answers[qn]||'';
+      const aArr=Array.isArray(a)?a:((a&&!wiz.multi[qn])?[a]:[]);
+      const isMulti=!!(wiz.multi&&wiz.multi[qn]);
       const nOpt=(meta.choiceOpts&&meta.choiceOpts[qn])||4;
       let opts='';
       for(let ci=0;ci<nOpt;ci++){
         const L=String.fromCharCode(65+ci);
-        opts+='<span class="opt'+(a===L?' on':'')+'" data-act="wiz-ans" data-q="'+qn+'" data-v="'+L+'">'+L+'</span>';
+        opts+='<span class="opt'+((aArr.indexOf(L)>=0)?' on':'')+'" data-act="wiz-ans" data-q="'+qn+'" data-v="'+L+'">'+L+'</span>';
       }
       const qs=(wiz.perQScore&&wiz.perQScore[qn]!=null)?wiz.perQScore[qn]:'';
-      cells+='<div class="qcell"><div class="qn">第 '+qn+' 题<input class="inp" style="width:46px;padding:2px 4px;margin-left:6px" data-on="wiz-qscore" data-q="'+qn+'" type="number" step="0.5" min="0" value="'+esc(qs)+'" title="本题分值（留空=默认）"></div><div class="opts">'+opts+'</div></div>';
+      
+      cells+='<div class="qcell"><div class="qn">第 '+qn+' 题<input class="inp" style="width:46px;padding:2px 4px;margin-left:6px" data-on="wiz-qscore" data-q="'+qn+'" type="number" step="0.5" min="0" value="'+esc(qs)+'" title="本题分值（留空=默认）"><button class="btn btn-sm'+(isMulti?' btn-p':'')+'" data-act="wiz-multi" data-q="'+qn+'" style="margin-left:4px;padding:2px 6px">'+(isMulti?'多选':'单选')+'</button></div><div class="opts">'+opts+'</div></div>';
     });
     let subjHtml='';
     meta.subjList.forEach(function(sq){
@@ -2402,7 +2456,8 @@ async function wizRender(){
     body='<div class="kv" style="line-height:2">'
       +'<b>考试：</b>'+esc(wiz.name)+'<br>'
       +'<b>班级：</b>'+esc(cls?cls.name:'')+'　<b>模板：</b>'+esc(tpl.name)+'<br>'
-      +'<b>客观题：</b>'+meta.choiceQnos.length+' 题，已录 '+ansN+' 题，'+(wiz.perQScore&&Object.keys(wiz.perQScore).length?('其中 '+Object.keys(wiz.perQScore).length+' 题自定义分值'):('每题 '+esc(wiz.perScore)+' 分'))+'<br>'
+      +(wiz.multi&&Object.keys(wiz.multi).length?'<span class="kv">多选 '+Object.keys(wiz.multi).length+' 题</span>　':'')
+  +'<b>客观题：</b>'+meta.choiceQnos.length+' 题，已录 '+ansN+' 题，'+(wiz.perQScore&&Object.keys(wiz.perQScore).length?('其中 '+Object.keys(wiz.perQScore).length+' 题自定义分值'):('每题 '+esc(wiz.perScore)+' 分'))+'<br>'
       +'<b>主观题：</b>'+meta.subjList.map(function(s){
         const sc=wiz.subjective[s.qno]||{};
         return esc(String(s.qno))+'（'+esc(sc.score!=null?sc.score:s.score)+'分'+(sc.points?'·已写评分要点':'·<span style="color:var(--danger)">缺评分要点</span>')+'）';
@@ -2429,15 +2484,33 @@ Object.assign(ACTS,{
   'wiz-ans':async function(el){
     const qn=el.dataset.q;
     const v=el.dataset.v;
-    const cur=wiz.answers[qn]||'';
-    if(cur===v)delete wiz.answers[qn];
-    else wiz.answers[qn]=v;
+    if(wiz.multi&&wiz.multi[qn]){
+      const arr=Array.isArray(wiz.answers[qn])?wiz.answers[qn].slice():[];
+      const i=arr.indexOf(v);
+      if(i>=0)arr.splice(i,1);else arr.push(v);
+      arr.sort();
+      if(arr.length)wiz.answers[qn]=arr;else delete wiz.answers[qn];
+    }else{
+      const cur=wiz.answers[qn];
+      if(Array.isArray(cur))wiz.answers[qn]=v;
+      else if(cur===v)delete wiz.answers[qn];
+      else wiz.answers[qn]=v;
+    }
     const cell=el.closest('.qcell');
     if(cell){
       cell.querySelectorAll('.opt').forEach(function(o){
-        o.classList.toggle('on',wiz.answers[qn]===o.dataset.v);
+        const cur2=wiz.answers[qn];
+        const on=Array.isArray(cur2)?cur2.indexOf(o.dataset.v)>=0:cur2===o.dataset.v;
+        o.classList.toggle('on',on);
       });
     }
+  },
+  'wiz-multi':function(el){
+    const qn=el.dataset.q;
+    if(!wiz.multi)wiz.multi={};
+    wiz.multi[qn]=!wiz.multi[qn];
+    if(!wiz.multi[qn]){delete wiz.multi[qn];delete wiz.answers[qn];}
+    wizRender();
   },
   'wiz-qscore':function(el){
     const q=el.dataset.q;
@@ -2474,6 +2547,7 @@ Object.assign(ACTS,{
     rec.perScore=wiz.perScore||meta.layout.perScore||2;
     rec.answers=wiz.answers;
     rec.perQScore=(wiz.perQScore&&Object.keys(wiz.perQScore).length)?wiz.perQScore:null;
+    rec.qMulti=(wiz.multi&&Object.keys(wiz.multi).length)?wiz.multi:null;
     rec.subjective=wiz.subjective;
     rec.createdAt=ex?ex.createdAt:today();
     await dbPut('exams',rec);
@@ -3285,9 +3359,13 @@ async function computeScorebook(examId){
       const verdict=ov?ov.verdict:q.verdict;
       const choice=ov?ov.choice:q.choice;
       let tf;
-      if(verdict==='OK'){
-        const ans=String((exam.answers||{})[qn]!=null?(exam.answers[qn]):'').toUpperCase();
-        tf=choice===ans?'RIGHT':'WRONG';
+      if(verdict==='OK'||verdict==='MULTI'){
+        /* 单选答案=单字母；多选答案=数组；集合比对，全对才得满分 */
+        const rawAns=(exam.answers||{})[qn];
+        const ansArr=rawAns==null?[]:(Array.isArray(rawAns)?rawAns.map(function(s){return String(s).toUpperCase()}):String(rawAns).toUpperCase().split(''));
+        const selArr=choice?String(choice).split(''):[];
+        const same=(ansArr.length===selArr.length)&&ansArr.slice().sort().join('')===selArr.slice().sort().join('');
+        tf=same&&ansArr.length?'RIGHT':'WRONG';
       }else tf=verdict;
       if(tf==='RIGHT')objScore+=scoreOf(qn);
       obj[qn]={verdict:tf,choice:choice,full:scoreOf(qn)};
