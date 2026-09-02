@@ -2649,6 +2649,8 @@ async function renderScan(){
     +'</div>'
     +'<div class="f-row">'
     +'<button class="btn btn-p" data-act="scan-pick-files">选择扫描件（PDF/图片，可多选）</button>'
+    +'<button class="btn btn-g" data-act="scan-shoot">拍照识别</button>'
+    +'<input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none">'
     +'<input type="file" id="scanFiles" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tif,.webp" style="display:none">'
     +'<button class="btn btn-d" data-act="scan-clear"> 清空本场扫描结果</button>'
     +'<span class="tip">扫描件按页顺序对应模板页；识别用「6 锚点 + 同步条 + 单应校正」，第 1 页二维码自描述版式。</span>'
@@ -2691,12 +2693,61 @@ async function renderScan(){
   }
   html+='</div>';
   $('page').innerHTML=html;
-  afterRender(function(){bindFileInput('scanFiles',function(files){runScanUpload(files)})});
+  afterRender(function(){
+    bindFileInput('scanFiles',function(files){runScanUpload(files)});
+    bindFileInput('captureInput',function(files){runScanUpload(files)});
+  });
 }
 Object.assign(ACTS,{
   'go-exam':function(){go('exam')},
   'scan-pick':async function(el){ui.scanExam=el.value;renderScan()},
   'scan-pick-files':function(){const f=$('scanFiles');if(f)f.click()},
+  'scan-shoot':function(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      toast('当前环境不支持相机遇，已打开系统相机/文件选择','ok');
+      const f=$('captureInput');if(f)f.click();
+      return;
+    }
+    dlg('<div class="kv" style="margin-bottom:6px">手机方向与试卷方向一致，卡片四角完整、无反光强阴影；桌面背景不影响。</div>'
+      +'<div style="position:relative;max-width:480px;margin:0 auto;background:#000;border-radius:10px;overflow:hidden">'
+      +'<video id="shotVideo" autoplay playsinline muted style="width:100%;display:block"></video>'
+      +'<canvas id="shotOverlay" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>'
+      +'</div>'
+      +'<div class="f-row" style="justify-content:space-between;margin-top:10px">'
+      +'<label class="kv" style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="shotAuto" checked> 四点检测到自动拍摄</label>'
+      +'<div id="shotStatusTxt" class="kv" style="color:var(--txt2)"></div>'
+      +'</div>',
+      {title:'拍照识别 · 实时定位',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="shot-take">拍照识别</button>'});
+    shotAuto=true;
+    (function(){const a=$('shotAuto');if(a)a.addEventListener('change',function(){shotAuto=a.checked})})();
+    (function(){
+      const v=$('shotVideo'),ov=$('shotOverlay');
+      if(!v||!ov)return;
+      v.addEventListener('loadedmetadata',function(){
+        ov.width=v.videoWidth;ov.height=v.videoHeight;
+        ov.style.position='absolute';ov.style.left='0';ov.style.top='0';
+      });
+      const fit=function(){
+        const cw=v.clientWidth||480,ch=v.clientHeight||360;
+        ov.width=cw;ov.height=ch;
+      };
+      fit();setTimeout(fit,300);
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920}},audio:false})
+        .then(function(stream){
+          shotStream=stream;v.srcObject=stream;
+          v.play().catch(function(){});
+          shotTimer=setInterval(function(){shotDetectOnce(v,ov)},350);
+          setTimeout(fit,800);
+        })
+        .catch(function(err){
+          shotStop();dlgClose();
+          toast('未获取到相机权限（'+(err.name||err.message||'')+'）。已改为系统相机/文件选择。','ok');
+          const f=$('captureInput');if(f)f.click();
+        });
+    })();
+  },
+  'shot-take':function(){shotCapture()},
+  'shot-auto':function(){},
   'scan-clear':async function(){
     const ex=await dbGet('exams',ui.scanExam);
     const ok=await dlgConfirm('清空扫描','删除「'+esc(ex.name)+'」的所有扫描页与裁剪图、复核记录？<br>（不影响学生名单、答案与成绩设置）','清空');
@@ -2728,6 +2779,73 @@ async function scanClearAll(examId){
   for(const r of revs)if(r.examId===examId)await dbDel('revs',r.id);
 }
 /* 上传文件绑定由 renderScan 内的 afterRender 完成 */
+
+/* ---------- 相机拍摄（对标 Pro：取景框+实时锚点反馈；4点即拍） ---------- */
+let shotStream=null,shotTimer=null,shotBusy=false,shotAuto=true;
+function shotStop(){
+  if(shotTimer){clearInterval(shotTimer);shotTimer=null;}
+  if(shotStream){try{shotStream.getTracks().forEach(function(t){t.stop()})}catch(e){}
+    shotStream=null;}
+}
+function shotDetectOnce(video,ov){
+  try{
+    const w=video.videoWidth,h=video.videoHeight;
+    if(!w||!h)return;
+    const k=640/Math.max(w,h);
+    const fw=Math.round(w*k),fh=Math.round(h*k);
+    const cv=document.createElement('canvas');cv.width=fw;cv.height=fh;
+    const ctx=cv.getContext('2d');
+    ctx.drawImage(video,0,0,fw,fh);
+    const gray=toGray(cv);
+    const bin=binarize(gray.gray,graysW(gray),graysH(gray),0.75,15);
+    const det=detectAnchorsGlobal(bin,fw,fh);
+    const o=ov.getContext('2d');
+    o.clearRect(0,0,ov.width,ov.height);
+    const ox=ov.width/fw,oy=ov.height/fh;
+    if(det){
+      const n=det.tri?3:4;
+      o.strokeStyle=det.tri?'#e6913c':'#25b968';
+      o.lineWidth=3;
+      det.pts.forEach(function(pt){
+        o.strokeRect(pt.x*ox-8,pt.y*oy-8,16,16);
+      });
+      shotStatus('已找到 '+n+' 个定位点'+(det.tri?'（缺一角，自动外推）':'')+'，保持稳定',det.tri?'warn':'ok');
+      if(!det.tri&&shotAuto&&!shotBusy)shotCapture();
+    }else{
+      o.strokeStyle='rgba(120,220,140,.6)';
+      o.lineWidth=2;
+      o.strokeRect(ov.width*0.08,ov.height*0.08,ov.width*0.84,ov.height*0.84);
+      shotStatus('请将答题卡四角对准绿框（背景/倾斜不影响自动定位）','');
+    }
+  }catch(e){}
+}
+function graysW(g){return g.w}
+function graysH(g){return g.h}
+function shotStatus(txt,cls){
+  const el=$('shotStatusTxt');
+  if(el){el.textContent=txt;el.className='kv'+(cls?' bd-'+cls:'');}
+}
+function shotCapture(){
+  const video=$('shotVideo');
+  if(!video||shotBusy)return;
+  shotBusy=true;
+  try{
+    const MAXL=2400;
+    const w=video.videoWidth,h=video.videoHeight;
+    const k=Math.min(1,MAXL/Math.max(w,h));
+    const cv=document.createElement('canvas');
+    cv.width=Math.round(w*k);cv.height=Math.round(h*k);
+    cv.getContext('2d').drawImage(video,0,0,cv.width,cv.height);
+    cv.toBlob(function(blob){
+      const file=new File([blob],'camera_'+Date.now()+'.jpg',{type:'image/jpeg'});
+      shotStop();dlgClose();
+      setTimeout(function(){runScanUpload([file]);setTimeout(function(){scanCtx&&scanCtx.running},0)},120);
+      shotBusy=false;
+    },'image/jpeg',0.9);
+  }catch(e){
+    shotStop();dlgClose();toast('拍摄失败：'+(e.message||String(e)),'err');shotBusy=false;
+  }
+}
 async function runScanUpload(files){
   if(scanCtx&&scanCtx.running){toast('正在扫描/识别中，请稍候','err');return}
   const ex=await dbGet('exams',ui.scanExam);
