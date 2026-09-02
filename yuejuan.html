@@ -416,7 +416,7 @@ function layoutTemplate(tpl){
   const regRowsY=[];
   for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
   const reg={x:regX,y:33,colW:colW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
-    numY:26.2,labelY:29.6,boxTop:24.5,label:'准 考 证 号'};
+    numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   const pages=[];
   const contentTop=94, contentBottom=h-36;
   const qr={x:w-36,y:h-30,size:16};
@@ -464,6 +464,7 @@ function layoutTemplate(tpl){
     const type=sub.type||'lines';
     const cols=(type==='grid-cn')?Math.max(10,Math.min(40,sub.cols||20)):null;
     const rowH=(type==='grid-cn')?(Math.min(8,166/cols)+1.2):(type==='grid-en')?5:8;
+    const headH=(type==='grid-cn'&&sub.titleLine)?13:0;
     const totalRows=(type==='grid-cn'&&sub.count)?Math.max(1,Math.ceil(sub.count/cols)):Math.max(1,sub.rows||3);
     const fullMax=Math.max(1,Math.floor((contentBottom-((regEvery)?contentTop:38)-13)/rowH));
     /* 分页：每页尽量填满（首页按剩余空间，之后每页按整页容量，不做均衡拆分） */
@@ -477,10 +478,11 @@ function layoutTemplate(tpl){
         forcePage();
         take=Math.min(remaining,fullMax);
       }
-      const boxH=take*rowH+6;
+      const partHead=(part===0)?headH:0;
+      const boxH=take*rowH+6+partHead;
       const sx=M+2, sw=contentW-4, sy=curY+7;
       pg.subjective.push({qno:sub.qno||('主观'+(part+1)),score:sub.score||10,type:type,rows:take,rowH:rowH,
-        cols:cols,rowStart:partRowStart,
+        cols:cols,rowStart:partRowStart,headH:partHead,
         part:part,label:(sub.label||'主观题')+(part>0?'（续第'+(part+1)+'部分）':''),x:sx,y:sy,w:sw,h:boxH});
       remaining-=take; part++; partRowStart+=take;
       curY+=13+boxH;
@@ -498,7 +500,7 @@ function presetTemplates(){
       subjective:[{qno:'二',score:30,type:'lines',rows:3,label:'二、解答题'}]},
     {name:'语文作文卡',paper:'A4',orient:'portrait',title:'语文答题卡',showInfo:true,regDigits:5,perScore:2,
       choiceGroups:[{first:1,count:10,choices:4,label:'一、选择题'}],
-      subjective:[{qno:'二',score:6,type:'lines',rows:2,label:'二、填空题'},{qno:'三',score:50,type:'grid-cn',cols:20,count:880,label:'三、作文题（880字）'}]},
+      subjective:[{qno:'二',score:6,type:'lines',rows:2,label:'二、填空题'},{qno:'三',score:50,type:'grid-cn',cols:20,count:880,titleLine:true,label:'三、作文题（880字）'}]},
     {name:'英语答题卡（60题+作文）',paper:'A4',orient:'portrait',title:'英语答题卡',showInfo:true,regDigits:5,perScore:1.5,
       choiceGroups:[{first:1,count:30,choices:4,label:'一、选择题'},{first:31,count:30,choices:4,label:'二、选择题'}],
       subjective:[{qno:'三',score:25,type:'grid-en',rows:10,label:'三、书面表达'}]},
@@ -655,7 +657,15 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     }else if(sb.type==='grid-cn'){
       const cols=Math.max(10,Math.min(40,sb.cols||20));
       const cell=Math.min(8,innerW/cols);
-      const gw=cols*cell, gx=sb.x+(sb.w-gw)/2, gy=sb.y+4;
+      const gw=cols*cell, gx=sb.x+(sb.w-gw)/2, gy=sb.y+4+(sb.headH||0);
+      if(sb.headH){
+        /* 可选「题目」栏：学生在此写作文标题 */
+        ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.28));
+        ctx.beginPath();ctx.moveTo(px(sb.x+13),px(sb.y+9.5));ctx.lineTo(px(sb.x+sb.w-5),px(sb.y+9.5));ctx.stroke();
+        ctx.fillStyle='#000';ctx.font='bold '+Math.max(9,Math.round(px(3.2)))+'px "Microsoft YaHei",sans-serif';
+        ctx.textAlign='left';
+        ctx.fillText('题  目：',px(sb.x+5),px(sb.y+7));
+      }
       const cellH=8, gapV=1.2, pitch=cellH+gapV;
       ctx.strokeStyle='#bbb';ctx.lineWidth=Math.max(0.5,px(0.16));
       for(let r=0;r<sb.rows;r++){
@@ -736,7 +746,7 @@ async function qrPayloadFor(layout,tpl,page){
     return [g.first,g.count,g.choices,g.cols,g.rows,r1(g.x0),r1(g.y0),r2(g.dxq),r2(g.dy),r2(g.dxc),g.size[0],g.size[1]];
   });
   const ss=page.subjective.map(function(s){
-    return [s.qno,s.score,s.type,s.rows,r2(s.rowH),r1(s.x),r1(s.y),r1(s.w),r1(s.h),s.part,s.cols||null,s.rowStart||0];
+    return [s.qno,s.score,s.type,s.rows,r2(s.rowH),r1(s.x),r1(s.y),r1(s.w),r1(s.h),s.part,s.cols||null,s.rowStart||0,s.headH||0];
   });
   const slice={v:1,p:tpl.paper||'A4',o:tpl.orient||'portrait',w:layout.w,h:layout.h,rd:layout.regDigits,
     ps:layout.perScore,t:page.title,id:tpl.id||'',pg:page.footer.n,np:page.footer.m,info:page.info?1:0,
@@ -797,7 +807,7 @@ async function qrParsePayload(data){
     });
     (o.ss||[]).forEach(function(s){
       page.subjective.push({qno:s[0],score:s[1],type:s[2],rows:s[3],rowH:s[4],x:s[5],y:s[6],w:s[7],h:s[8],part:s[9],
-        cols:s[10]||null,rowStart:s[11]||0,label:'主观题'});
+        cols:s[10]||null,rowStart:s[11]||0,headH:s[12]||0,label:'主观题'});
     });
     page.perScore=o.ps;
     return page;
@@ -1746,6 +1756,7 @@ async function tplEditorHTML(tplId){
       +'<span class="kv" title="中文作文格：每行格数（默认20）">每行格数</span><input class="inp" style="width:64px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="cols" type="number" value="'+esc(s.cols||20)+'">'
       +'<span class="kv" title="中文作文格：总格数/总字数，填了则行数自动算（默认880，可留空）">总格数</span><input class="inp" style="width:70px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="count" type="number" value="'+esc(s.count!=null?s.count:'')+'">'
       +'<span class="kv">标题</span><input class="inp" style="flex:1;min-width:140px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="label" value="'+esc(s.label||'')+'">'
+      +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap" title="作文格顶部预留「题目：＿＿」供学生写标题">题目栏<input type="checkbox" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="titleLine" '+(s.titleLine?'checked':'')+'></label>'
       +'<button class="btn btn-sm btn-d" data-act="tpl-sub-del" data-id="'+t.id+'" data-i="'+i+'">✕</button></div>';
   }).join('');
   return '<div class="f-row" style="margin-bottom:12px">'
@@ -1909,6 +1920,7 @@ Object.assign(ACTS,{
     const f=el.dataset.f;
     if(f==='count'){const v=parseFloat(el.value);s.count=(Number.isFinite(v)&&v>0)?Math.round(v):null;}
     else if(f==='cols'){s.cols=Math.max(10,Math.min(40,Math.round(parseFloat(el.value)||20)));}
+    else if(el.type==='checkbox'){s[f]=el.checked;}
     else s[f]=el.type==='number'?(parseFloat(el.value)||0):el.value;
     await dbPut('templates',t);
   },
