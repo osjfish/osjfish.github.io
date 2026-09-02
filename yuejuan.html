@@ -427,10 +427,12 @@ function layoutTemplate(tpl){
       notes:(pi===0&&tpl.showInfo!==false)?{x:w-M-46,y:33,w:46,h:54.6}:null,
       reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:qr,anchors:anchors,footer:{n:pi+1,m:0}};
   }
+  /* 无考号区页面顶部从 38mm 开始（标题下方），避免大片空白；首页 94mm */
+  const pageTopFor=function(pi){return (pi===0||regEvery)?contentTop:38};
   let pg=newPage(0); pages.push(pg);
-  let curY=contentTop;
-  function pageBreak(need){ if(curY+need<=contentBottom)return; pg=newPage(pages.length); pages.push(pg); curY=contentTop; }
-  function forcePage(){ pg=newPage(pages.length); pages.push(pg); curY=contentTop; }
+  let curY=pageTopFor(0);
+  function pageBreak(need){ if(curY+need<=contentBottom)return; pg=newPage(pages.length); pages.push(pg); curY=pageTopFor(pages.length-1); }
+  function forcePage(){ pg=newPage(pages.length); pages.push(pg); curY=pageTopFor(pages.length-1); }
   /* 选择题组（超高自动拆分为多个子组跨页，题号连续） */
   const maxRowsPerPage=Math.max(1,Math.floor((contentBottom-contentTop-13)/5));
   (tpl.choiceGroups||[]).forEach(function(gp){
@@ -463,7 +465,7 @@ function layoutTemplate(tpl){
     const cols=(type==='grid-cn')?Math.max(10,Math.min(40,sub.cols||20)):null;
     const rowH=(type==='grid-cn')?(Math.min(8,166/cols)+1.2):(type==='grid-en')?5:8;
     const totalRows=(type==='grid-cn'&&sub.count)?Math.max(1,Math.ceil(sub.count/cols)):Math.max(1,sub.rows||3);
-    const fullMax=Math.max(1,Math.floor((contentBottom-contentTop-13)/rowH));
+    const fullMax=Math.max(1,Math.floor((contentBottom-((regEvery)?contentTop:38)-13)/rowH));
     /* 分页：每页尽量填满（首页按剩余空间，之后每页按整页容量，不做均衡拆分） */
     let remaining=totalRows, part=0, partRowStart=0;
     while(remaining>0){
