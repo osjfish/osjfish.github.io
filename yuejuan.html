@@ -266,12 +266,13 @@ function openDB(){
   });
 }
 function reqp(req){return new Promise(function(res,rej){req.onsuccess=function(){res(req.result)};req.onerror=function(){rej(req.error)}})}
-const dbPut=async function(store,obj){const t=db.transaction(store,'readwrite');await reqp(t.objectStore(store).put(obj))};
-const dbGet=async function(store,key){const t=db.transaction(store,'readonly');return reqp(t.objectStore(store).get(key))};
-const dbAll=async function(store){const t=db.transaction(store,'readonly');return reqp(t.objectStore(store).getAll())};
-const dbByIdx=async function(store,idx,val){const t=db.transaction(store,'readonly');return reqp(t.objectStore(store).index(idx).getAll(val))};
-const dbDel=async function(store,key){const t=db.transaction(store,'readwrite');await reqp(t.objectStore(store).delete(key))};
-const dbClear=async function(store){const t=db.transaction(store,'readwrite');await reqp(t.objectStore(store).clear())};
+async function ensureDB(){if(!db)db=await openDB();return db}
+const dbPut=async function(store,obj){const d=await ensureDB();const t=d.transaction(store,'readwrite');await reqp(t.objectStore(store).put(obj))};
+const dbGet=async function(store,key){const d=await ensureDB();const t=d.transaction(store,'readonly');return reqp(t.objectStore(store).get(key))};
+const dbAll=async function(store){const d=await ensureDB();const t=d.transaction(store,'readonly');return reqp(t.objectStore(store).getAll())};
+const dbByIdx=async function(store,idx,val){const d=await ensureDB();const t=d.transaction(store,'readonly');return reqp(t.objectStore(store).index(idx).getAll(val))};
+const dbDel=async function(store,key){const d=await ensureDB();const t=d.transaction(store,'readwrite');await reqp(t.objectStore(store).delete(key))};
+const dbClear=async function(store){const d=await ensureDB();const t=d.transaction(store,'readwrite');await reqp(t.objectStore(store).clear())};
 
 /* ---------- 模态框 ---------- */
 let mResolve=null;
@@ -339,8 +340,8 @@ document.addEventListener('change',function(e){
 
 /* ---------- 导航 ---------- */
 const TABS=[
-  ['home','','首页'],['tpl','','答题卡模板'],['class','','班级学生'],['exam','️','考试管理'],
-  ['scan','','扫描识别'],['grade','️','阅卷工作台'],['score','','成绩分析'],['set','️','设置']
+  ['home','首','首页'],['tpl','模','答题卡模板'],['class','班','班级学生'],['exam','考','考试管理'],
+  ['scan','扫','扫描识别'],['grade','阅','阅卷工作台'],['score','绩','成绩分析'],['set','设','设置']
 ];
 const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级与学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩与分析',set:'设置'};
 function renderNav(){
@@ -1774,6 +1775,7 @@ async function examMeta(exam){
 }
 async function examReviewCount(examId){
   const {exam,pages,revs}=await examData(examId);
+  const examDataX={qMulti:exam&&exam.qMulti};
   const items={locate:[],reg:[],q:[]};
   pages.forEach(function(p){
     const m=p.meta||{};
@@ -1783,11 +1785,66 @@ async function examReviewCount(examId){
     if(m.status==='ok'&&m.perQ){
       (m.perQ).forEach(function(q){
         const ov=revs.find(function(r){return r.studentNo===p.studentNo&&r.qno===q.qno&&r.type==='q'});
-        if(!ov&&q.verdict==='REVIEW')items.q.push({studentNo:p.studentNo,qno:q.qno,inks:q.inks});
+        const isMultiQ=examDataX&&examDataX.qMulti&&examDataX.qMulti[q.qno];
+        const needRev=(q.verdict==='REVIEW')||(!isMultiQ&&q.verdict==='MULTI');
+        if(!ov&&needRev)items.q.push({studentNo:p.studentNo,qno:q.qno,inks:q.inks,verdict:q.verdict,choice:q.choice});
       });
     }
   });
   return items;
+}
+
+/* 批量状态：一次读取 page/crop/rev 集合，逐场统计（替代逐场 4 次全库扫描） */
+async function examStatusMap(examIds){
+  const {pagesAll,cropsAll,revsAll}=await (async function(){
+    const [a,b,c]=await Promise.all([dbAll('pages'),dbAll('crops'),dbAll('revs')]);
+    return {pagesAll:a,cropsAll:b,revsAll:c};
+  })();
+  const exams=await dbAll('exams');
+  const tplCache={};
+  async function metaOf(exam){
+    if(!exam.templateId)return null;
+    if(tplCache[exam.templateId]===undefined){
+      const t=await dbGet('templates',exam.templateId);
+      tplCache[exam.templateId]=t?layoutTemplate(t).pages.length:null;
+    }
+    return tplCache[exam.templateId];
+  }
+  const map={};
+  for(const ex of exams){
+    const pages=pagesAll.filter(function(p){return p.examId===ex.id});
+    const crops=cropsAll.filter(function(c){return c.examId===ex.id});
+    const revs=revsAll.filter(function(r){return r.examId===ex.id});
+    const rev={locate:[],reg:[],q:[]};
+    pages.forEach(function(p){
+      const m=p.meta||{};
+      if(m.status!=='ok')rev.locate.push(p);
+      const flags=(m.flags||[]).join('|');
+      if(flags.indexOf('考号异常')>=0)rev.reg.push(p);
+      if(m.status==='ok'&&m.perQ){
+        (m.perQ).forEach(function(q){
+          const ov=revs.find(function(r){return r.studentNo===p.studentNo&&r.qno===q.qno&&r.type==='q'});
+          const isMultiQ=ex.qMulti&&ex.qMulti[q.qno];
+          const need=(q.verdict==='REVIEW')||(!isMultiQ&&q.verdict==='MULTI');
+          if(!ov&&need)rev.q.push({studentNo:p.studentNo,qno:q.qno,inks:q.inks,verdict:q.verdict,choice:q.choice});
+        });
+      }
+    });
+    const pagesN=pages.length;
+    let gradDone=0,gradTotal=0;
+    const subjList=(await (async function(){return await (await examMeta(ex)).subjList||[]})())||[];
+    for(const sq of subjList){
+      const done=crops.some(function(c){return String(c.qno)===String(sq.qno)&&c.scoreVal!=null});
+      gradTotal++;if(done)gradDone++;
+    }
+    let badgeTxt,labelTxt;
+    if(!pagesN){badgeTxt=badge('warn','待扫描');labelTxt='尚未扫描';}
+    else if(rev.locate.length||rev.reg.length||rev.q.length){badgeTxt=badge('err','待复核 '+(rev.locate.length+rev.reg.length+rev.q.length));labelTxt='有项目待复核';}
+    else if(subjList.length&&gradDone<gradTotal){badgeTxt=badge('info','阅卷中');labelTxt='主观题待阅';}
+    else{badgeTxt=badge('ok','已完成');labelTxt='已完成';}
+    map[ex.id]={badge:badgeTxt,label:labelTxt,rev:rev};
+  }
+  return map;
 }
 async function examStatusLabel(examId){
   const {exam,pages}=await examData(examId);
@@ -1837,12 +1894,14 @@ async function renderHome(){
   }).join('')
   +'</div>'
   +'<div class="tip" style="margin-top:10px">打印提示：导出 PDF 后务必选 <b>「实际大小 / 100%」</b>；手机拍摄时手机方向与试卷方向一致、四角完整可见；识别详情页可打开「识别框选」查看每个涂点的识别状态（绿=已识别，红/橙=不清晰）。</div></div>';
+  let statusMap={};
+  try{statusMap=await examStatusMap(exams.map(function(e){return e.id}))}catch(e){}
   let examCards='';
   if(exams.length){
     examCards='<div class="card"><h3>最近考试</h3><div class="exam-grid">';
     for(const ex of exams.slice(0,6)){
-      const st=await examStatusLabel(ex.id);
       const cls=classes.find(function(c){return c.id===ex.classId});
+      const st=statusMap[ex.id]||{badge:badge('gray','—'),label:'—'};
       examCards+='<div class="exam-card">'
         +'<div class="t"><span>'+esc(ex.name)+'</span>'+st.badge+'</div>'
         +'<div class="meta">'+esc(cls?cls.name:'（班级已删）')+'　·　'+esc(ex.templateName||'')+'<br>'+esc(ex.createdAt||'')+'<br><b>'+esc(st.label)+'</b></div>'
@@ -2339,8 +2398,10 @@ async function renderExam(){
     html+='<div class="card">'+emptyBox('️','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
   }else{
     const cards=[];
+    let statusMap={};
+    try{statusMap=await examStatusMap(exams.map(function(e){return e.id}))}catch(e){}
     for(const ex of exams){
-      const st=await examStatusLabel(ex.id);
+      const st=statusMap[ex.id]||{badge:badge('gray','—'),label:'—'};
       cards.push('<div class="exam-card">'
         +'<div class="t"><span>'+esc(ex.name)+'</span>'+st.badge+'</div>'
         +'<div class="meta"><b>'+esc(ex.className||'（班级已删）')+'</b>　·　'+esc(ex.templateName||'')+'　·　'+esc(ex.createdAt||'')+'<br>'
