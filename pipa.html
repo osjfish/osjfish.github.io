@@ -138,11 +138,8 @@
   .texttools button:hover{background:var(--teal); color:#fff}
   .texttools button.off{opacity:.5}
   .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
-  .fulltext.vertical{writing-mode:vertical-rl; columns:auto; height:min(72vh,640px); column-gap:26px; overflow-x:auto}
   .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
   .pl span{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
-  .fulltext.vertical .pl{margin:0 0 0 20px; font-size:18px; letter-spacing:.12em}
-  .fulltext.vertical .pl span{vertical-align:baseline; position:relative; top:-2px; font-size:11px}
   .xu-block b{color:var(--red-deep)}
   .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
   .pl.reciteline:hover{background:rgba(168,135,79,.1)}
@@ -335,7 +332,7 @@
   .xu-sub{font-size:calc(14.8px*var(--fs))}
   .xu-trans{font-size:calc(15px*var(--fs))}
   .pl{font-size:calc(17px*var(--fs))}
-  .fulltext.vertical .pl{font-size:calc(18px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
   .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
   .v-trans{font-size:calc(15.2px*var(--fs))}
   details .d-body{font-size:calc(14.6px*var(--fs))}
@@ -394,7 +391,6 @@
         <option value="250">250%</option>
         <option value="300">300%</option>
       </select>
-      <button id="btnV" title="竖排/横排原文">竖排</button>
       <button id="btnPrint">打印</button>
     </div>
   </div>
@@ -433,7 +429,7 @@
 <!-- ================= 原文 ================= -->
 <section id="text">
   <div class="sec-head"><h2>原 文</h2><span class="no">序 · 诗</span></div>
-  <div class="sec-sub">默读全篇，先看序，再读诗。下方可切换<b>背诵模式</b>（仅显示每句首字，点击任意句可显示/隐藏该句），或切换<b>竖排</b>。</div>
+  <div class="sec-sub">默读全篇，先看序，再读诗。下方可切换<b>背诵模式</b>（仅显示每句首字，点击任意句可显示/隐藏该句）。</div>
   <div class="texttools">
     <button id="btnRecite">背诵模式</button>
     <button id="btnShowAll" class="off" style="display:none">显示全部</button>
@@ -1220,18 +1216,11 @@
   }, {passive:true});
   document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
 
-  /* ---------- 竖排/横排 ---------- */
-  var ft = document.getElementById('fulltext');
-  var btnV = document.getElementById('btnV');
-  btnV.addEventListener('click', function(){
-    var on = ft.classList.toggle('vertical');
-    btnV.textContent = on ? '横排' : '竖排';
-  });
-
   /* ---------- 背诵模式：仅显示每句首字，点击显示/隐藏该句 ---------- */
   var btnRecite = document.getElementById('btnRecite');
   var btnShowAll = document.getElementById('btnShowAll');
   var reciting = false;
+  var ft = document.getElementById('fulltext');
   var lines = ft.querySelectorAll('.pl');
   lines.forEach(function(line){
     line.dataset.orig = line.innerHTML;
