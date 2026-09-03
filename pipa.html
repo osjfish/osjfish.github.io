@@ -98,7 +98,11 @@
     border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
   }
   .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
-  .nav .tool button.zoomv{min-width:52px; text-align:center}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
 
   /* ========== 主体 ========== */
   .wrap{max-width:960px; margin:0 auto; padding:0 18px}
@@ -177,11 +181,11 @@
     background:var(--card); border:1px solid var(--line); border-radius:12px;
     margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
   }
-  .v-top{display:flex; align-items:baseline; gap:10px}
+  .v-top{display:flex; align-items:center; gap:12px}
   .v-no{
     flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
-    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:28px; height:28px;
-    display:flex; align-items:center; justify-content:center; transform:translateY(4px);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
   }
   .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
   .v-line b{color:var(--red-deep); font-weight:700}
@@ -249,47 +253,6 @@
   .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
   .g-item dd{color:var(--ink2)}
 
-  /* 诵读 */
-  .song-cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px}
-  .song-cols .box{margin:0}
-  .beat{font-family:var(--font-kai); font-size:16.5px; letter-spacing:1px; background:rgba(168,135,79,.1); border-radius:8px; padding:8px 12px; margin:6px 0}
-
-  /* 默写 */
-  .fill-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:10px 0; font-size:15.5px}
-  .fill-row .pre{padding:6px 10px; background:#fff; border-radius:8px; color:var(--ink2)}
-  .fill-row input{
-    font-family:var(--font-kai); font-size:16px; padding:6px 12px; border:1px solid var(--line);
-    border-radius:8px; background:#fff; width:auto; min-width:170px; max-width:100%; color:var(--ink); outline:none; flex:0 1 auto;
-  }
-  .fill-row input:focus{border-color:var(--teal)}
-  .fill-row button{
-    border:1px solid var(--teal); color:var(--teal); background:#fff; border-radius:8px;
-    padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s; flex:0 0 auto;
-  }
-  .fill-row button:hover{background:var(--teal); color:#fff}
-  .fill-row .res{font-size:14px}
-  .fill-row .res.ok{color:#2e7d4f}
-  .fill-row .res.bad{color:var(--red)}
-  .beat u{text-decoration:none; font-weight:700; color:var(--red-deep)}
-
-  /* 小测 */
-  .q{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin:0 0 14px}
-  .qt{font-size:15.2px; color:var(--ink); margin-bottom:10px}
-  .qt b{font-family:var(--font-kai); color:var(--red-deep); margin-right:6px}
-  .opts{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px}
-  .opt{
-    text-align:left; font-size:14.5px; border:1px solid var(--line); background:#fff;
-    border-radius:8px; padding:8px 14px; cursor:pointer; transition:.15s; color:var(--ink2);
-  }
-  .opt:hover{border-color:var(--teal); color:var(--teal)}
-  .opt.right{background:rgba(46,125,79,.12); border-color:#2e7d4f; color:#225c3b}
-  .opt.wrong{background:rgba(140,47,43,.1); border-color:var(--red); color:var(--red-deep)}
-  .q .ans{
-    display:none; margin-top:10px; font-size:14px; color:var(--ink2);
-    background:rgba(168,135,79,.1); border-radius:8px; padding:8px 12px; border-left:3px solid var(--gold);
-  }
-  .q .ans.show{display:block}
-
   footer{
     margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
     text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
@@ -305,19 +268,38 @@
 
   /* 打印 */
   @media print{
-    .nav,.hero .moon,.hero .stars,.hero .reed,.hero .river,.tool,.top-btn{display:none!important}
-    .hero{min-height:auto; background:#fff!important; color:#222; padding:20px 0}
-    .hero-title{color:#222; text-shadow:none; height:auto}
-    .hero-side{color:#555}
-    body{background:#fff}
-    .verse{break-inside:avoid; box-shadow:none}
+    .nav,.hero .moon,.hero .stars,.hero .reed,.hero .river,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
     details{display:block}
-    details .d-body{padding-left:16px}
-    .fame-card{background:#fff; color:#333; border:1px solid #ccc}
-    .fame-card .f-line{color:#111}
-    .fame-card p{color:#444}
-    .texttools button{display:none}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+    footer .tip{color:#000!important}
   }
+
   @media(max-width:680px){
     .fulltext{columns:1}
     .hero{min-height:64vh}
@@ -333,6 +315,38 @@
     .box{padding:14px}
     .lead{padding:16px 18px}
   }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .fulltext.vertical .pl{font-size:calc(18px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
 </style>
 </head>
 <body>
@@ -372,14 +386,15 @@
     <a href="#jielu">解读</a>
     <a href="#app">赏析</a>
     <a href="#acc">积累</a>
-    <a href="#quiz">练习</a>
     <div class="tool">
-      <button id="btnZm" title="减小字体">A−</button>
-      <button id="btnZp" title="增大字体">A＋</button>
-      <button id="btnZr" class="zoomv" title="重置字体大小">100%</button>
-      <button id="btnAll" title="展开/收起全部译文赏析">展开</button>
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
       <button id="btnV" title="竖排/横排原文">竖排</button>
-      <button id="btnRead" title="用浏览器语音朗读全诗">朗读</button>
       <button id="btnPrint">打印</button>
     </div>
   </div>
@@ -691,7 +706,7 @@
   <div class="verse" id="v14" data-i="21">
     <div class="v-top"><span class="v-no">14</span><div class="v-line">间关莺语花底滑，幽咽泉流冰下难。</div></div>
     <details open><summary>注释</summary><div class="d-body">
-      <span class="term">间关（jiān guān）</span>：形容鸟声婉转（拟声）。<span class="term">花底</span>：花下、花丛间。<span class="term">滑</span>：形容乐声轻快流利。<span class="term">幽咽（yè）</span>：低微哽咽，如水流暗咽。<span class="term">冰下难</span>：像泉水在冰层下艰难地流动。"难"，艰涩不畅。（版本异文：一作"水下滩""冰下滩""水下难"。）
+      <span class="term">间关（jiàn guān）</span>：形容鸟声婉转（拟声）。<span class="term">花底</span>：花下、花丛间。<span class="term">滑</span>：形容乐声轻快流利。<span class="term">幽咽（yè）</span>：低微哽咽，如水流暗咽。<span class="term">冰下难</span>：像泉水在冰层下艰难地流动。"难"，艰涩不畅。（版本异文：一作"水下滩""冰下滩""水下难"。）
     </div></details>
     <div class="v-trans"><b>译文</b>：像黄莺在花丛下婉转啼鸣，轻快流利；又像泉水在冰层下流动，幽咽艰涩。</div>
     <details open><summary>赏析</summary><div class="d-body"><p>乐声由壮转柔、由春转寒。"间关"双声叠韵，状莺声之和美悦耳；"花底滑"一个"滑"字写尽轻畅流走；下半句骤然转冷，"幽咽"二字如见其吞咽，"冰下难"的"难"字比"缓"更沉重——是泉水的难，也是人世间的难。两句之内一滑一涩，乐声的娇婉与心绪的沉滞同时涌来，妙不可言。</p></div><div class="tags"><span>比喻</span><span>叠韵</span><span>炼字</span><span>异文考</span></div></details>
@@ -1155,7 +1170,7 @@
         <tr><td class="kai">霓裳</td><td>ní cháng</td><td>"裳"读 cháng，不读 shang</td></tr>
         <tr><td class="kai">六幺</td><td>yāo</td><td>勿写作"六么"</td></tr>
         <tr><td class="kai">嘈嘈 / 切切</td><td>cáo / qiè</td><td>"切"于此处读 qiè</td></tr>
-        <tr><td class="kai">间关</td><td>jiān guān</td><td>"间"读 jiān</td></tr>
+        <tr><td class="kai">间关</td><td>jiàn guān</td><td>"间"读 jiàn（大陆辞书主流读音；亦见 jiān 之说）</td></tr>
         <tr><td class="kai">幽咽</td><td>yè</td><td>"咽"读 yè，不读 yàn、yān</td></tr>
         <tr><td class="kai">迸</td><td>bèng</td><td>"迸"音 bèng，勿读 bìng</td></tr>
         <tr><td class="kai">绡 / 钿 / 篦</td><td>xiāo / diàn / bì</td><td>均为偏旁易混字</td></tr>
@@ -1169,160 +1184,12 @@
 
 <div class="divider"></div>
 
-<!-- ================= 练习 ================= -->
-<section id="quiz">
-  <div class="sec-head"><h2>练 习</h2><span class="no">默写 · 小测 · 诵读</span></div>
-
-  <div class="box">
-    <h3>默写自测</h3>
-    <div class="fill-row"><span class="pre">① 大弦嘈嘈如急雨，</span><input data-answer="小弦切切如私语" placeholder="填下句"><button>检查</button><span class="res"></span></div>
-    <div class="fill-row"><span class="pre">② 银瓶乍破水浆迸，</span><input data-answer="铁骑突出刀枪鸣" placeholder="填下句"><button>检查</button><span class="res"></span></div>
-    <div class="fill-row"><span class="pre">③ 同是天涯沦落人，</span><input data-answer="相逢何必曾相识" placeholder="填下句"><button>检查</button><span class="res"></span></div>
-    <div class="fill-row"><span class="pre">④ 座中泣下谁最多？</span><input data-answer="江州司马青衫湿" placeholder="填下句"><button>检查</button><span class="res"></span></div>
-    <p class="note">提示：默写首抓名句与名物词（霓裳、六幺、钿头银篦、呕哑嘲哳、青衫），并注意"荻""浔""湓""篦""阑干"等字。</p>
-  </div>
-
-  <div class="box">
-    <h3>课堂小测</h3>
-    <div class="q">
-      <div class="qt"><b>1</b>下列词语中，加点字注音完全正确的一项是（　）</div>
-      <div class="opts">
-        <button data-ok>浔阳（xún）· 荻花（dí）· 六幺（yāo）</button>
-        <button>霓裳（ní shang）· 间关（jiàn）· 迸（bìng）</button>
-        <button>幽咽（yān）· 钿头（tián）· 嘲哳（cháo）</button>
-        <button>呕哑（ōu yā）· 谪居（dí）· 琵篦（pí）</button>
-      </div>
-      <div class="ans">答案：A。B项裳应读 cháng、间读 jiān、迸读 bèng；C项咽读 yè、钿读 diàn、嘲读 zhāo；D项谪读 zhé。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>2</b>"主人下马客在船"一句使用的修辞手法是（　）</div>
-      <div class="opts">
-        <button>比喻</button>
-        <button data-ok>互文</button>
-        <button>借代</button>
-        <button>夸张</button>
-      </div>
-      <div class="ans">答案：B。互文：主人与客人一同下马、一同上船（教学通行说法）。一说为实写，考试如问"修辞"取互文。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>3</b>白居易被贬江州司马的直接原因是（　）</div>
-      <div class="opts">
-        <button>与元稹结党，朋比为奸</button>
-        <button data-ok>越职言事：宰相被刺后先于谏官上疏请捕凶贼，遭权贵忌恨</button>
-        <button>写作《长恨歌》触怒宫廷</button>
-        <button>母亲病丧居丧失礼</button>
-      </div>
-      <div class="ans">答案：B。元和十年（815）宰相武元衡被藩镇刺客所杀，白居易时任左赞善大夫，率先上疏请捕凶贼，被劾"越职言事"；又有人借其母卒时所写《赏花》《新井》诗构陷，遂贬江州司马。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>4</b>"间关莺语花底滑，幽咽泉流冰下难"主要运用的修辞是（　）</div>
-      <div class="opts">
-        <button>对比与排比</button>
-        <button data-ok>比喻（以声喻声）与叠韵拟声</button>
-        <button>借代与反语</button>
-        <button>引用与设问</button>
-      </div>
-      <div class="ans">答案：B。"间关""幽咽"均为拟声叠韵词，两句以莺语、泉流喻乐声，一滑一涩，写乐声流转与凝滞。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>5</b>"别有幽愁暗恨生，此时无声胜有声"的艺术效果在于（　）</div>
-      <div class="opts">
-        <button>对比新旧两段的音量差别</button>
-        <button data-ok>以虚写实、以无声写有声，写出乐声中断时情感最深的"留白"</button>
-        <button>夸张写弦断之惊</button>
-        <button>白描写听众的表情</button>
-      </div>
-      <div class="ans">答案：B。声止而情涌，"无声"的静默恰是幽愁暗恨最浓之处，是虚实结合的艺术高峰。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>6</b>"东舟西舫悄无言，唯见江心秋月白"在诗中的作用是（　）</div>
-      <div class="opts">
-        <button>交代第二天清晨的景物</button>
-        <button data-ok>侧面烘托乐曲的感染，以景结情，余味悠然</button>
-        <button>表明作者不堪忍受音乐</button>
-        <button>为后文自述身世作铺垫的唯一直写</button>
-      </div>
-      <div class="ans">答案：B。满座无言是听者之静，秋月白是天地之静——以景结情，余韵不尽。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>7</b>全诗点明主旨的句子是（　）</div>
-      <div class="opts">
-        <button>大弦嘈嘈如急雨，小弦切切如私语</button>
-        <button>别有幽愁暗恨生，此时无声胜有声</button>
-        <button data-ok>同是天涯沦落人，相逢何必曾相识</button>
-        <button>座中泣下谁最多？江州司马青衫湿</button>
-      </div>
-      <div class="ans">答案：C。"同是天涯沦落人"将琵琶女身世与诗人迁谪合二为一，是全诗主旨句；"青衫湿"是情感的落点。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>8</b>"同是天涯沦落人"中的两个"沦落人"分别指（　）</div>
-      <div class="opts">
-        <button>指诗人与客人</button>
-        <button>指琵琶女与其丈夫</button>
-        <button>指善才与秋娘</button>
-        <button data-ok>指琵琶女（色衰沦落）与诗人（迁谪沦落）</button>
-      </div>
-      <div class="ans">答案：D。一为色衰嫁商、独守空船的歌妓；一为直言获罪、谪居无乐的司马。双线在此交汇。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>9</b>"商人重利轻别离"中"重""轻"的用法是（　）</div>
-      <div class="opts">
-        <button>古今异义，词义转移</button>
-        <button data-ok>形容词的意动用法：以财利为重、以离别为轻</button>
-        <button>使动用法：使财利重，使别离轻</button>
-        <button>通假用法，二字皆借为"众""廪"</button>
-      </div>
-      <div class="ans">答案：B。形容词意动，即"认为……重/轻"，为辨析活用题常考点。</div>
-    </div>
-
-    <div class="q">
-      <div class="qt"><b>10</b>下列对《琵琶行》分析不正确的一项是（　）</div>
-      <div class="opts">
-        <button>全诗以音乐描写为中心，通过比喻、叠词、通感把乐声写得形神兼备</button>
-        <button>结构上明写琵琶女身世、暗写诗人迁谪，双线交织，终归"同是天涯"</button>
-        <button>语言通俗流畅，又不失典雅，名句皆后世传诵</button>
-        <button data-ok>"江州司马青衫湿"中"青衫"实指青绿色礼服，表现诗人奉职勤勉之态</button>
-      </div>
-      <div class="ans">答案：D。"青衫"指唐代低级文官八九品服色，诗人以此自伤贬谪失意，非"勤勉"之意。</div>
-    </div>
-  </div>
-
-  <div class="box">
-    <h3>诵读指导</h3>
-    <div class="song-cols">
-      <div>
-        <h3 style="font-size:17px;margin-top:10px">节拍示例</h3>
-        <div class="beat">浔阳江头 / 夜送客，枫叶荻花 / 秋瑟瑟。</div>
-        <div class="beat">大弦 / 嘈嘈 / 如急雨，小弦 / 切切 / 如私语。</div>
-        <div class="beat">同是 / 天涯 / 沦落人，相逢 / 何必 / 曾相识！</div>
-        <div class="beat">座中 / 泣下 / 谁最多？江州 / 司马 / <u>青衫湿</u>。</div>
-        <p class="note">七言诗按四三（或二二三）节拍朗读；末句"青衫湿"三字宜缓读重收，余音可止于此。</p>
-      </div>
-      <div>
-        <h3 style="font-size:17px;margin-top:10px">语气与情感</h3>
-        <p>起段（第1—8联）：<b>低缓</b>——秋夜送客，一叹一停，如烟月朦胧。</p>
-        <p>乐声段（第9—19联）：<b>起伏</b>——先轻后重、先缓后急；至"凝绝"一顿，于"无声胜有声"处长作留白；"银瓶乍破"陡起，至"裂帛"戛然而止。</p>
-        <p>身世段（第20—31联）：<b>沉痛平叙</b>——语速放慢，节哀自重。</p>
-        <p>末段（第32—44联）：<b>由沉入悲</b>——"同是天涯"句为一波高潮，字字掷地；"青衫湿"收束，声微而意长。</p>
-        <p class="note">重读提示：情、恨、声、月、白、空、寒、泪、湿——皆为全诗情感与意象之关纽。</p>
-      </div>
-    </div>
-  </div>
-</section>
 
 <footer>
   <div class="kai">《琵琶行》逐句解读 · 教学课件</div>
   <div>文本以统编高中语文教材通行本为准，注释综合教材与通行训诂，个别异文（冰下难/滩、善才服/伏、六百一十六/十二言）均已标注。</div>
   <div>白居易 · 唐（772—846）· 元和十一年（816）作于江州</div>
-  <div class="tip">可打印：点击右上「打印」即可输出适合课堂使用的纸质课件；A− / A＋ 可调整整体字号。</div>
+  <div class="tip">可打印：点击右上「打印」输出紧凑黑白纯文本课件；导航「字号」可在 100%–300% 间调整正文字体大小。</div>
 </footer>
 </main>
 
@@ -1334,17 +1201,6 @@
 
   /* ---------- 拼音数据（与各句逐字对齐，标点亦作一个 token） ---------- */
 
-  /* ---------- 字体大小（可调整，持久化） ---------- */
-  var zoom = parseFloat(localStorage.getItem('pipa_zoom')) || 1;
-  function applyZoom(){
-    document.body.style.zoom = zoom;
-    document.getElementById('btnZr').textContent = Math.round(zoom * 100) + '%';
-    try { localStorage.setItem('pipa_zoom', String(zoom)); } catch(e){}
-  }
-  document.getElementById('btnZm').addEventListener('click', function(){ zoom = Math.max(0.8, +(zoom - 0.05).toFixed(2)); applyZoom(); });
-  document.getElementById('btnZp').addEventListener('click', function(){ zoom = Math.min(1.3, +(zoom + 0.05).toFixed(2)); applyZoom(); });
-  document.getElementById('btnZr').addEventListener('click', function(){ zoom = 1; applyZoom(); });
-  applyZoom();
 
   /* ---------- 导航高亮 ---------- */
   var secs = document.querySelectorAll('main section[id]');
@@ -1363,16 +1219,6 @@
     top.style.opacity = (window.scrollY > 500) ? '1' : '0';
   }, {passive:true});
   document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
-
-  /* ---------- 全部展开/收起 ---------- */
-  var btnAll = document.getElementById('btnAll');
-  var allOpen = true;
-  btnAll.textContent = '收起';
-  btnAll.addEventListener('click', function(){
-    allOpen = !allOpen;
-    document.querySelectorAll('.verse details').forEach(function(d){ d.open = allOpen; });
-    btnAll.textContent = allOpen ? '收起' : '展开';
-  });
 
   /* ---------- 竖排/横排 ---------- */
   var ft = document.getElementById('fulltext');
@@ -1434,70 +1280,26 @@
     btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
   });
 
-  /* ---------- 朗读 ---------- */
-  var reading = false; var btnRead = document.getElementById('btnRead');
-  btnRead.addEventListener('click', function(){
-    if (reading){ speechSynthesis.cancel(); reading = false; btnRead.textContent = '朗读'; return; }
-    if (!('speechSynthesis' in window)){ btnRead.textContent = '不支持'; return; }
-    var text = Array.prototype.map.call(lines, function(p){ return p.textContent.trim(); }).join('。');
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'zh-CN'; u.rate = 0.85; u.pitch = 1;
-    var voices = speechSynthesis.getVoices();
-    var zh = voices.filter(function(v){ return /zh|Chinese/i.test(v.lang + ' ' + v.name); });
-    if (zh.length) u.voice = zh[0];
-    u.onend = function(){ reading = false; btnRead.textContent = '朗读'; };
-    u.onerror = function(){ reading = false; btnRead.textContent = '朗读'; };
-    speechSynthesis.cancel(); reading = true; btnRead.textContent = '停止';
-    speechSynthesis.speak(u);
+  /* ---------- 正文字体大小（100%–300%，持久化） ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('pipa_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('pipa_fs', this.value); } catch(e){}
   });
 
-  /* ---------- 打印（临时展开 + 重置缩放） ---------- */
-  var saved = []; var savedZoom = 1;
+  /* ---------- 打印（临时展开全部详情，输出紧凑黑白纯文本） ---------- */
+  var saved = [];
   window.addEventListener('beforeprint', function(){
-    savedZoom = zoom;
-    document.body.style.zoom = '';
     saved = [];
     document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
   });
   window.addEventListener('afterprint', function(){
     saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
-    applyZoom();
   });
   document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
-
-  /* ---------- 默写填空 ---------- */
-  document.querySelectorAll('.fill-row').forEach(function(row){
-    var input = row.querySelector('input');
-    var btn = row.querySelector('button');
-    var res = row.querySelector('.res');
-    function check(){
-      var ans = (input.dataset.answer || '').replace(/\s+/g,'');
-      var val = (input.value || '').replace(/\s+/g,'').replace(/[《》，。！？]/g,'');
-      var ok = val === ans;
-      res.className = 'res ' + (ok ? 'ok' : 'bad');
-      res.textContent = ok ? '√ 正确' : ('✗ 参考：' + ans);
-    }
-    btn.addEventListener('click', check);
-    input.addEventListener('keydown', function(e){ if (e.key === 'Enter') check(); });
-  });
-
-  /* ---------- 小测 ---------- */
-  document.querySelectorAll('.q').forEach(function(q){
-    var opts = q.querySelectorAll('.opt, .opts button');
-    var ans = q.querySelector('.ans');
-    var done = false;
-    opts.forEach(function(b){
-      b.addEventListener('click', function(){
-        if (done) return;
-        done = true;
-        opts.forEach(function(x){
-          if (x.hasAttribute('data-ok')) x.classList.add('right');
-          else x.classList.add('wrong');
-        });
-        ans.classList.add('show');
-      });
-    });
-  });
 })();
 </script>
 </body>
