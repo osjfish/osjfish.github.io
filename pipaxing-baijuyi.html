@@ -62,11 +62,11 @@
     position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
     border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
   }
-  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:calc(8px*var(--fs)) calc(14px*var(--fs)); overflow-x:auto; scrollbar-width:none}
   .nav-in::-webkit-scrollbar{display:none}
   .nav a{
     flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:calc(14px*var(--fs)); letter-spacing:1px;
-    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+    padding:calc(6px*var(--fs)) calc(12px*var(--fs)); border-radius:8px; white-space:nowrap; transition:.2s;
   }
   .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
   .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
@@ -1664,6 +1664,7 @@
     </div>
   </div>
   <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
     <button class="primary" id="dictShow">显示答案</button>
     <button id="dictNext">下一题</button>
   </div>
@@ -1955,6 +1956,7 @@
   var dictTip = document.getElementById('dictTip');
   var dictShow = document.getElementById('dictShow');
   var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
   var dictExit = document.getElementById('dictExit');
   var dictFsMinus = document.getElementById('dictFsMinus');
   var dictFsPlus = document.getElementById('dictFsPlus');
@@ -1998,6 +2000,8 @@
     dictAnsBox.hidden = true;
     dictShow.textContent = '显示答案';
     dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
   }
 
   dictShow.addEventListener('click', function(){
@@ -2009,6 +2013,11 @@
     if (!dictState) return;
     if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
     dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
   });
   dictExit.addEventListener('click', dictClose);
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
