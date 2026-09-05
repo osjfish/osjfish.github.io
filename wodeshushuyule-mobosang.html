@@ -1,0 +1,1221 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《我的叔叔于勒》莫泊桑</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">法国 · 莫泊桑</div>
+  <h1 class="hero-title">我的叔叔于勒</h1>
+</header>
+
+<nav class="nav"><div class="nav-in"><a href="#bg">背景</a><a href="#jielu">解读</a><a href="#app">赏析</a><a href="#acc">积累</a><a href="#practice">练习</a><div class="tool"><select id="fsSel" class="fs-sel" title="正文字体大小"><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="250">250%</option><option value="300">300%</option></select><button id="btnAll">展开</button><button id="btnRecite">背诵</button><button id="btnPrint">打印</button></div></div></nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+<div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+<div class="lead">
+<p>《我的叔叔于勒》是法国作家莫泊桑的短篇小说代表作之一，1883年发表于《高卢人日报》。课文节选自《义务教育教科书·语文·九年级上册》，主要依据赵少侯译本改写。</p>
+<p>小说通过若瑟夫回忆少年时一家哲尔赛岛之旅中偶遇卖牡蛎的于勒的故事，写出了小人物在金钱社会中的命运浮沉，把“金钱如何挤压亲情”这一主题刻画得入木三分，是世界短篇小说史上的经典之作。</p>
+</div><div class="box"><h3>作者简介</h3>
+<p>莫泊桑（1850—1893），法国批判现实主义作家。出身没落贵族，曾参加普法战争，后在福楼拜指导下勤奋写作，以《羊脂球》一举成名。一生创作短篇小说三百余篇、长篇小说六部。</p>
+<p>他与契诃夫、欧·亨利并称“世界三大短篇小说家”，代表作有《羊脂球》《项链》《我的叔叔于勒》《漂亮朋友》等。其小说构思精巧、细节传神，尤擅以小人物写大社会。</p>
+</div><div class="box"><h3>写作背景</h3>
+<p><b>金钱时代：</b>19世纪后期，法国资本主义迅速发展，小资产阶级普遍贫困又渴望发财，人与人（乃至亲人）的关系日渐金钱化。菲利普一家对发财叔叔态度的两极翻转，正是这一时代病态的缩影。</p>
+<p><b>若瑟夫视角：</b>小说以少年若瑟夫的回忆展开。孩子的眼睛未经世故，恰恰看得最真——父母变脸的丑态与十个小费的温暖，都因这双眼睛而格外分明。成年后的若瑟夫“拿五法郎银币给要饭的”式的善意，正是这段记忆的回声。</p>
+<p><b>译本与课文：</b>课文以赵少侯译本为基础改写，删去了原作开头（“我”自述给乞丐银币的缘起）与结尾（于勒发迹归来认亲的另一种结局），使故事更集中于“船上偶遇”这一高潮，主题更凝练。</p>
+</div><div class="box media-box"><h3>视听</h3><div class="media-grid">
+<div class="media"><h4>《我的叔叔于勒》课文朗读（部编九上）</h4><iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1Zf4y1X7vq&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="【课文朗读】《我的叔叔于勒-莫泊桑》-小说-部编人教版九年级语文上册"></iframe><a href="https://www.bilibili.com/video/BV1Zf4y1X7vq" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button></div>
+<div class="media"><h4>课本剧《我的叔叔于勒》</h4><iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1Yh4y1h7Y6&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课本剧——《我的叔叔于勒》(东风五中九六班一号剧组倾情出演）"></iframe><a href="https://www.bilibili.com/video/BV1Yh4y1h7Y6" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button></div>
+</div></div></section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+<div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 词语 · 手法</span></div>
+<div class="sec-sub">全文按盼于勒、赞于勒、遇于勒、躲于勒分四部分。点击生词可看注释，展开卡片可看内容概括与手法分析。</div>
+<button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+<div id="fulltext" class="poem" style="display:none">
+<div class="pl">我小时候，家在勒阿佛尔，并不是有钱的人家，也就是刚刚够生活罢了。我父亲做着事，很晚才从办公室回来，挣的钱不多。我有两个姐姐。</div>
+<div class="pl">我母亲对我们的拮据生活感到非常痛苦。那时家里样样都要节省，有人请吃饭是从来不敢答应的，以免回请；买日用品也是常常买减价的，买拍卖的底货；姐姐的长袍是自己做的，买十五个铜子一米的花边，常常要在价钱上计较半天。</div>
+<div class="pl">可是每星期日，我们都要衣冠整齐地到海边栈桥上去散步。那时候，只要一看见从远方回来的大海船进港口来，父亲总要说他那句永不变更的话：</div>
+<div class="pl">“唉！如果于勒竟在这只船上，那会叫人多么惊喜呀！”</div>
+<div class="pl">父亲的弟弟于勒叔叔，那时候是全家唯一的希望，在这以前则是全家的恐怖。</div>
+<div class="pl">据说他当初行为不正，糟蹋钱。在穷人家，这是最大的罪恶。在有钱的人家，一个人好玩乐无非算作糊涂荒唐，大家笑嘻嘻地称他一声“花花公子”。在生活困难的人家，一个人要是逼得父母动老本，那就是坏蛋，就是流氓，就是无赖了。于勒叔叔把自己应得的部分遗产吃得一干二净之后，还大大占用了我父亲应得的那一部分。</div>
+<div class="pl">人们按照当时的惯例，把他送上从勒阿佛尔到纽约的商船，打发他到美洲去。</div>
+<div class="pl">我这位于勒叔叔一到那里就做上了不知什么买卖，不久就写信来说，他赚了点儿钱，并且希望能够赔偿我父亲的损失。这封信使我们家里人深切感动。于勒，大家都认为分文不值的于勒，一下子成了正直的人，有良心的人。</div>
+<div class="pl">有一位船长又告诉我们，说于勒已经租了一所大店铺，做着一桩很大的买卖。</div>
+<div class="pl">两年后又接到第二封信，信上说：“亲爱的菲利普，我给你写这封信，免得你担心我的健康。我身体很好。买卖也好。明天我就动身到南美去作长期旅行。也许要好几年不给你写信。如果真不给你写信，你也不必担心。我发了财就会回勒阿佛尔的。我希望为期不远，那时我们就可以一起快活地过日子了。”</div>
+<div class="pl">这封信成了我们家里的福音书，有机会就要拿出来念，见人就拿出来给他看。</div>
+<div class="pl">果然，十年之久，于勒叔叔没再来信。可是父亲的希望却与日俱增。母亲也常常说：“只要这个好心的于勒一回来，我们的境况就不同了。他可真算得一个有办法的人。”</div>
+<div class="pl">于是每星期日，一看见大轮船喷着黑烟从天边驶过来，父亲总是重复他那句永不变更的话：</div>
+<div class="pl">“唉！如果于勒竟在这只船上，那会叫人多么惊喜呀！”</div>
+<div class="pl">那时候大家简直好像马上就会看见他挥着手帕喊着：“喂！菲利普！”</div>
+<div class="pl">对于叔叔回国这桩十拿九稳的事，大家还拟定了上千种计划，甚至计划到要用这位叔叔的钱置一所别墅。我不敢肯定父亲对于这个计划是不是进行了商谈。</div>
+<div class="pl">我大姐那时28岁，二姐26岁。她们老找不着对象，这是全家都十分发愁的事。</div>
+<div class="pl">终于有一个看中二姐的人上门来了。他是公务员，没有什么钱，但是诚实可靠。我总认为这个青年之所以不再迟疑而下决心求婚，是因为有一天晚上我们给他看了于勒叔叔的信。</div>
+<div class="pl">我们家赶忙答应了他的请求，并且决定在举行婚礼之后全家到哲尔赛岛去游玩一次。哲尔赛岛是穷人们最理想的游玩的地方。这个小岛是属英国管的。路并不远，乘小轮船渡过海，便到了。因此，一个法国人只要航行两个小时，就可以到一个邻国，看看这个国家的民族，并且研究一下这个不列颠国旗覆盖着的岛上的风俗习惯。</div>
+<div class="pl">哲尔赛的旅行成了我们的心事，成了我们时时刻刻的渴望和梦想。后来我们终于动身了。我们上了轮船，离开栈桥，在一片平静的好似绿色大理石桌面的海上驶向远处。正如那些不常旅行的人们一样，我们感到快活而骄傲。</div>
+<div class="pl">父亲忽然看见两位先生在请两位打扮得漂亮的太太吃牡蛎。一个衣服褴褛的年老水手拿小刀一下撬开牡蛎，递给两位先生，再由他们递给两位太太。她们的吃法很文雅，用一方小巧的手帕托着牡蛎，头稍向前伸，免得弄脏长袍；然后嘴很快地微微一动，就把汁水吸进去，牡蛎壳扔到海里。</div>
+<div class="pl">毫无疑义，父亲是被这种高贵的吃法打动了，走到我母亲和两个姐姐身边问：“你们要不要我请你们吃牡蛎？”</div>
+<div class="pl">母亲有点迟疑不决，她怕花钱；但是两个姐姐赞成。母亲于是很不痛快地说：“我怕伤胃，你只给孩子们买几个好了，可别太多，吃多了要生病的。”然后转过身对着我，又说：“至于若瑟夫，他用不着吃这种东西，别把男孩子惯坏了。”</div>
+<div class="pl">我只好留在母亲身边，觉得这种不同的待遇十分不公道。我一直盯着父亲，看他郑重其事地带着两个女儿和女婿向那个衣服褴褛的年老水手走去。</div>
+<div class="pl">我父亲突然好像不安起来，他向旁边走了几步，瞪着眼看了看挤在卖牡蛎的身边的女儿女婿，就赶紧向我们走来，他的脸色十分苍白，两只眼也跟寻常不一样。他低声对我母亲说：“真奇怪！这个卖牡蛎的怎么这样像于勒？”</div>
+<div class="pl">母亲有点莫名其妙，就问：“哪个于勒？”</div>
+<div class="pl">父亲说：“就……就是我的弟弟呀。……如果我不知道他现在是在美洲，有很好的地位，我真会以为就是他哩。”</div>
+<div class="pl">我母亲也怕起来了，吞吞吐吐地说：“你疯了！既然你知道不是他，为什么这样胡说八道？”</div>
+<div class="pl">可是父亲还是放不下心，他说：“克拉丽丝，你去看看吧！最好还是你去把事情弄个清楚，你亲眼去看看。”</div>
+<div class="pl">母亲站起来去找她两个女儿。我也端详了一下那个人。他又老又脏，满脸皱纹，眼光始终不离开他手里的活儿。</div>
+<div class="pl">母亲回来了。我看出她在哆嗦。她很快地说：“我想就是他。去跟船长打听一下吧。可要多加小心，别叫这个小子又回来吃咱们！”</div>
+<div class="pl">父亲赶紧走去。我这次可跟着他走了，心里异常紧张。父亲客客气气地和船长搭上话，一面恭维，一面打听有关他职业上的事情，例如哲尔赛是否重要，有何出产，人口多少，风俗习惯怎样，土地性质怎样等等。后来谈到我们搭乘的这只“特快号”，随即谈到全船的船员。最后我父亲终于说：“您船上有一个卖牡蛎的，那个人倒很有趣。您知道这个家伙的底细吗？”</div>
+<div class="pl">船长本已不耐烦我父亲那番谈话，就冷冷地回答说：“他是个法国老流氓，去年我在美洲碰到他，就把他带回祖国。据说他在勒阿佛尔还有亲属，不过他不愿回到他们身边，因为他欠了他们的钱。他叫于勒……姓达尔芒司，——也不知还是达尔汪司，总之是跟这差不多的那么一个姓。听说他在那边阔绰过一个时期，可是您看他今天已经落到什么田地！”</div>
+<div class="pl">我父亲脸色早已煞白，两眼呆直，哑着嗓子说：“啊！啊！原来如此……如此……我早就看出来了！……谢谢您，船长。”</div>
+<div class="pl">他回到我母亲身旁，是那么神色张皇。母亲赶紧对他说：“你先坐下吧！别叫他们看出来。”</div>
+<div class="pl">他坐在长凳上，结结巴巴地说：“是他，真是他！”然后他就问：“咱们怎么办呢？”母亲马上回答道：“应该把孩子们领开。若瑟夫既然已经知道，就让他去把他们找回来。最要留心的是别叫咱们女婿起疑心。”</div>
+<div class="pl">父亲神色很狼狈，低声嘟囔着：“出大乱子了！”</div>
+<div class="pl">母亲突然暴怒起来，说：“我就知道这个贼是不会有出息的，早晚会回来重新拖累我们的。现在把钱交给若瑟夫，叫他去把牡蛎钱付清。已经够倒霉的了，要是被那个讨饭的认出来，这船上可就热闹了。咱们到那头去，注意别叫那人挨近我们！”她说完就站起来，给了我一个五法郎的银币，就走开了。我问那个卖牡蛎的人：“应该付您多少钱，先生？”</div>
+<div class="pl">他答道：“两法郎五十生丁。”</div>
+<div class="pl">我把五法郎的银币给了他，他找了钱。</div>
+<div class="pl">我看了看他的手，那是一只满是皱痕的水手的手。我又看了看他的脸，那是一张又老又穷苦的脸，满脸愁容，狼狈不堪。我心里默念道：“这是我的叔叔，父亲的弟弟，我的亲叔叔。”</div>
+<div class="pl">我给了他十个铜子的小费。他赶紧谢我：“上帝保佑您，我的年轻的先生！”</div>
+<div class="pl">等我把两法郎交给父亲，母亲诧异起来，就问：“吃了三个法郎？这是不可能的。”</div>
+<div class="pl">我说：“我给了他十个铜子的小费。”我母亲吓了一跳，直望着我说：“你简直是疯了！拿十个铜子给这个人，给这个流氓！”她没再往下说，因为父亲指着女婿对她使了个眼色。</div>
+<div class="pl">后来大家都不再说话。在我们面前，天边远处仿佛有一片紫色的阴影从海里钻出来。那就是哲尔赛岛了。</div>
+<div class="pl">我们回来的时候改乘圣玛洛船，以免再遇见他。</div>
+</div><div class="verse-list" id="verseList">
+<div class="part-head"><span class="p-num">第一部分</span><h3>开端 · 盼于勒</h3><span class="range">第1–4段</span></div>
+<div class="part-overview">贫困之家把全部希望寄托在“发财”的于勒身上，每星期日的栈桥远望成了全家的仪式。</div>
+<div class="verse" id="l1" data-i="0">
+  <div class="v-top"><span class="v-no">1</span><div class="v-line">我小时候，家在<span class="anno-word" data-note="法国西北部海滨城市，译名又作勒阿弗尔">勒阿佛尔</span>，并不是有钱的人家，也就是刚刚够生活罢了。我父亲做着事，很晚才从办公室回来，挣的钱不多。我有两个姐姐。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">交代“我”家的贫困：父亲收入微薄，母亲操持拮据的家计，一家五口仅够糊口。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>开篇第一句即点明“并不是有钱的人家”，为全文的金钱主题定下基调。以九岁“我”的口吻回忆，叙事亲切而冷静；勒阿佛尔这座海港小城，也为下文“海边栈桥散步”“盼船”的情节埋下地理伏笔。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l2" data-i="1">
+  <div class="v-top"><span class="v-no">2</span><div class="v-line">我母亲对我们的拮据生活感到非常痛苦。那时家里样样都要节省，有人请吃饭是从来不敢答应的，以免回请；买日用品也是常常买减价的，买拍卖的<span class="anno-word" data-note="卖剩的陈旧存货">底货</span>；姐姐的长袍是自己做的，买十五个铜子一米的花边，常常要在价钱上计较半天。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">写家中的节俭到了极点：不敢应酬、只买减价货、为花边价钱计较半天。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>连用“不敢答应”“常常买减价”“计较半天”三个细节，把小市民家庭的窘迫写具体、写辛酸。母亲后来在船上对十个小费也要“疯了”般呵斥，正源于这长年拮据——细节前后呼应，人物性格有根。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l3" data-i="2">
+  <div class="v-top"><span class="v-no">3</span><div class="v-line">可是每星期日，我们都要衣冠整齐地到海边<span class="anno-word" data-note="桥形的码头。读 zhàn">栈桥</span>上去散步。那时候，只要一看见从远方回来的大海船进港口来，父亲总要说他那句永不变更的话：<br><br>“唉！如果于勒竟在这只船上，那会叫人多么惊喜呀！”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">每星期日全家衣冠整齐到海边栈桥散步，父亲总念叨那句永不变更的话：如果于勒竟在这只船上……</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“衣冠整齐地散步”是贫困中的体面，更是盼富的仪式。“永不变更的话”一句台词反复出现，盼望之切与虚荣之深并见。一个“竟”字，把于勒发财归来视作近乎奇迹的期盼——希望全部系于一人，讽刺已含其中。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第二部分</span><h3>发展 · 赞于勒</h3><span class="range">第5–19段</span></div>
+<div class="part-overview">于勒由“全家的恐怖”变成“全家的希望”，两封信喂饱了十年的发财幻想，连婚事也系于其上。</div>
+<div class="verse" id="l4" data-i="3">
+  <div class="v-top"><span class="v-no">4</span><div class="v-line">父亲的弟弟于勒叔叔，那时候是全家唯一的希望，在这以前则是全家的<span class="anno-word" data-note="这里指于勒败家拖累全家带来的灾祸阴影">恐怖</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">于勒地位骤变：从前是全家的恐怖，如今是全家唯一的希望。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“恐怖”与“希望”两个词冰火两重天，把亲情的价值判定系于钱财多寡——一句话立起全文的对照结构。此句是理解小说主题的钥匙：在于勒身上，家人爱的是钱，不是人。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l5" data-i="4">
+  <div class="v-top"><span class="v-no">5</span><div class="v-line">据说他当初行为不正，<span class="anno-word" data-note="浪费。读 zāo tà">糟蹋</span>钱。在穷人家，这是最大的罪恶。在有钱的人家，一个人好玩乐无非算作糊涂荒唐，大家笑嘻嘻地称他一声“花花公子”。在生活困难的人家，一个人要是逼得父母动<span class="anno-word" data-note="原本的积蓄">老本</span>，那就是坏蛋，就是流氓，就是无赖了。于勒叔叔把自己应得的部分遗产吃得一干二净之后，还大大占用了我父亲应得的那一部分。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">于勒年轻时行为不正、糟蹋钱，吃光自己应得的遗产，还占用父亲的份额，被视为坏蛋、流氓、无赖。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>连用“坏蛋”“流氓”“无赖”三个贬词，写出世俗对败家者的苛酷评判——评判标准只有钱。而在有钱人家，同样行为不过是“糊涂荒唐”，两相对照，金钱社会的是非标准之荒诞不言自明。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l6" data-i="5">
+  <div class="v-top"><span class="v-no">6</span><div class="v-line">人们按照当时的<span class="anno-word" data-note="一向的做法，常规。惯，习以为常">惯例</span>，把他送上从勒阿佛尔到纽约的商船，打发他到美洲去。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">于勒被打发到美洲去。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“按照惯例”四字冷峻至极：把亲人扫地出门竟成社会通行做法。寥寥一句叙事，与后文船长“冷冷地”介绍于勒遥相呼应——于勒的今天，就是这个“惯例”的产物。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l7" data-i="6">
+  <div class="v-top"><span class="v-no">7</span><div class="v-line">我这位于勒叔叔一到那里就做上了不知什么买卖，不久就写信来说，他赚了点儿钱，并且希望能够<span class="anno-word" data-note="因自己的行动使他人受损失而给予补偿。读 péi cháng">赔偿</span>我父亲的损失。这封信使我们家里人深切感动。于勒，大家都认为分文不值的于勒，一下子成了正直的人，有良心的人。<br><br>有一位船长又告诉我们，说于勒已经租了一所大店铺，做着一桩很大的买卖。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">于勒来信说赚了钱、愿意赔偿损失，还租了大店铺做大买卖——于勒一下子从分文不值变成正直的、有良心的人。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“大家都认为分文不值的于勒”与“正直的人，有良心的人”叠用反复，评价随钱而变，人性之扭曲尽出。两封信没写一个字的书信细节，只凭船长传闻便信之凿凿，盼富心切已到轻信的地步。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l8" data-i="7">
+  <div class="v-top"><span class="v-no">8</span><div class="v-line">两年后又接到第二封信，信上说：“亲爱的菲利普，我给你写这封信，免得你担心我的健康。我身体很好。买卖也好。明天我就动身到南美去作长期旅行。也许要好几年不给你写信。如果真不给你写信，你也不必担心。我发了财就会回勒阿佛尔的。我希望为期不远，那时我们就可以一起快活地过日子了。”<br><br>这封信成了我们家里的<span class="anno-word" data-note="基督教指《新约》全书首四卷，记载耶稣生平言行。这里比喻好消息、精神支柱">福音书</span>，有机会就要拿出来念，见人就拿出来给他看。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">于勒第二封信许诺发财归来、全家快活度日，这封信成了家里的福音书，有机会就念、就给人看。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“福音书”之喻辛辣：宗教信仰让位于发财幻想，一封信成了全家的精神支柱。信中“为期不远”“快活地过日子”给了这个家庭十年幻想——而于勒此后十年杳无音信，幻想与真相的距离越拉越大。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l9" data-i="8">
+  <div class="v-top"><span class="v-no">9</span><div class="v-line">果然，十年之久，于勒叔叔没再来信。可是父亲的希望却<span class="anno-word" data-note="随着时间的推移一天天增长，形容增长得很快">与日俱增</span>。母亲也常常说：“只要这个好心的于勒一回来，我们的境况就不同了。他可真算得一个有办法的人。”<br><br>于是每星期日，一看见大轮船喷着黑烟从天边驶过来，父亲总是重复他那句永不变更的话：<br><br>“唉！如果于勒竟在这只船上，那会叫人多么惊喜呀！”<br><br>那时候大家简直好像马上就会看见他挥着手帕喊着：“喂！菲利普！”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">十年无信而希望与日俱增；每星期日看大轮船，父亲重复那句永不变更的话，家人仿佛已看见于勒挥手喊“喂！菲利普！”</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>十年等待写成喜剧化的想象：“挥着手帕喊着”是全家的集体白日梦。母亲的口头禅“好心的于勒”“有办法的人”与后文“这个贼”“这个流氓”形成命运般的对照——同一人同一家人，前后判若云泥。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l10" data-i="9">
+  <div class="v-top"><span class="v-no">10</span><div class="v-line">对于叔叔回国这桩十拿九稳的事，大家还拟定了上千种计划，甚至计划到要用这位叔叔的钱置一所<span class="anno-word" data-note="住宅外另建的园林游憩处所。读 bié shù">别墅</span>。我不敢肯定父亲对于这个计划是不是进行了商谈。<br><br>我大姐那时28岁，二姐26岁。她们老找不着对象，这是全家都十分发愁的事。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">全家拟定上千种用叔叔钱置产的计划；两个姐姐因家贫老大难嫁，全家发愁。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“上千种计划”写尽拜金社会的白日梦，讽刺入木三分。姐姐婚事之难，为二姐婚事与于勒信的关系埋线——婚姻也成了金钱的期货，人性在钱面前的异化层层铺开。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l11" data-i="10">
+  <div class="v-top"><span class="v-no">11</span><div class="v-line">终于有一个看中二姐的人上门来了。他是公务员，没有什么钱，但是诚实可靠。我总认为这个青年之所以不再<span class="anno-word" data-note="犹豫，拿不定主意">迟疑</span>而下决心求婚，是因为有一天晚上我们给他看了于勒叔叔的信。<br><br>我们家赶忙答应了他的请求，并且决定在举行婚礼之后全家到哲尔赛岛去游玩一次。哲尔赛岛是穷人们最理想的游玩的地方。这个小岛是属英国管的。路并不远，乘小轮船渡过海，便到了。因此，一个法国人只要航行两个小时，就可以到一个邻国，看看这个国家的民族，并且研究一下这个不列颠国旗覆盖着的岛上的风俗习惯。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">一个公务员看中二姐下决心求婚（全家认为与于勒的信有关）；婚礼后全家决定去哲尔赛岛游玩。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“我总认为……是因为”一句含蓄点破：连婚姻都是于勒的“钱”促成的。哲尔赛岛之游是情节的转场设计——把一家人从日常环境移到海上，为“偶遇”搭好舞台，结构上匠心独具。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第三部分</span><h3>高潮 · 遇于勒</h3><span class="range">第20–44段</span></div>
+<div class="part-overview">哲尔赛岛之旅撞上真相：卖牡蛎的老水手就是于勒。确认、布防、付钱，金钱与亲情正面交锋。</div>
+<div class="verse" id="l12" data-i="11">
+  <div class="v-top"><span class="v-no">12</span><div class="v-line">哲尔赛的旅行成了我们的<span class="anno-word" data-note="心里盘算、放不下的事，多指为难之事">心事</span>，成了我们时时刻刻的渴望和梦想。后来我们终于动身了。我们上了轮船，离开栈桥，在一片平静的好似绿色大理石桌面的海上驶向远处。正如那些不常旅行的人们一样，我们感到快活而骄傲。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">哲尔赛岛之游终于成行：轮船驶向大海，全家人感到快活而骄傲。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“平静得好似绿色大理石桌面的海上”是全文少有的诗意笔墨——此刻的幸福是真的，正因幸福如此真实，随后的幻灭才更惨烈。风景之美与人情之丑即将同船上演。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l13" data-i="12">
+  <div class="v-top"><span class="v-no">13</span><div class="v-line">父亲忽然看见两位先生在请两位打扮得漂亮的太太吃<span class="anno-word" data-note="一种海产贝类，肉味鲜美。读 mǔ lì">牡蛎</span>。一个衣服<span class="anno-word" data-note="（衣服）破烂。读 lán lǚ">褴褛</span>的年老水手拿小刀一下<span class="anno-word" data-note="把东西拨开或掀起来。读 qiào">撬</span>开牡蛎，递给两位先生，再由他们递给两位太太。她们的吃法很文雅，用一方小巧的手帕托着牡蛎，头稍向前伸，免得弄脏长袍；然后嘴很快地微微一动，就把汁水吸进去，牡蛎壳扔到海里。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">父亲看见两位先生请漂亮太太吃牡蛎的“高贵”场面，卖牡蛎的正是衣服褴褛的年老水手。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>细节描写精到：小刀撬壳、手帕托蛎、头伸汁吸、壳扔海里——一套动作写得优雅悠然，令父亲“被打动”。虚荣者仰慕的正是这套做派；而褴褛水手悄然入画，命运的重逢在无人察觉中完成。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l14" data-i="13">
+  <div class="v-top"><span class="v-no">14</span><div class="v-line">毫无疑义，父亲是被这种高贵的吃法打动了，走到我母亲和两个姐姐身边问：“你们要不要我请你们吃牡蛎？”<br><br>母亲有点<span class="anno-word" data-note="拿不定主意">迟疑不决</span>，她怕花钱；但是两个姐姐赞成。母亲于是很不痛快地说：“我怕伤胃，你只给孩子们买几个好了，可别太多，吃多了要生病的。”然后转过身对着我，又说：“至于若瑟夫，他用不着吃这种东西，别把男孩子惯坏了。”<br><br>我只好留在母亲身边，觉得这种不同的待遇十分不公道。我一直盯着父亲，看他<span class="anno-word" data-note="形容对待事情非常严肃认真">郑重其事</span>地带着两个女儿和女婿向那个衣服褴褛的年老水手走去。<br><br>我父亲突然好像不安起来，他向旁边走了几步，瞪着眼看了看挤在卖牡蛎的身边的女儿女婿，就赶紧向我们走来，他的脸色十分苍白，两只眼也跟寻常不一样。他低声对我母亲说：“真奇怪！这个卖牡蛎的怎么这样像于勒？”<br><br>母亲有点<span class="anno-word" data-note="没有人能说明它的奥妙，表示事情很奇怪，使人不明白">莫名其妙</span>，就问：“哪个于勒？”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">父亲提议请吃牡蛎；母亲怕花钱推给孩子们，又特意不让“我”吃；父亲请吃时郑重其事地走向卖牡蛎的，随即脸色苍白地回来，低声说那人很像于勒。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>一问一答见尽家庭权力的微妙：母亲“只给孩子们买”“别把男孩子惯坏了”，省钱省到连孩子也要分等。父亲由“郑重其事”到“脸色十分苍白”，转折如悬崖——几步路之间，十年的发财梦撞上了现实。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l15" data-i="14">
+  <div class="v-top"><span class="v-no">15</span><div class="v-line">父亲说：“就……就是我的弟弟呀。……如果我不知道他现在是在美洲，有很好的地位，我真会以为就是他哩。”<br><br>我母亲也怕起来了，<span class="anno-word" data-note="形容有顾虑，不敢直说或说话含混不清">吞吞吐吐</span>地说：“你疯了！既然你知道不是他，为什么这样胡说八道？”<br><br>可是父亲还是放不下心，他说：“克拉丽丝，你去看看吧！最好还是你去把事情弄个清楚，你亲眼去看看。”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">父亲结结巴巴不敢认，母亲骂他胡说八道；可父亲放不下心，让妻子亲自去把事情弄清楚。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“就……就是我的弟弟呀”的口吃，写尽惶恐——怕的已不是狼来的惊吓，而是财富幻想的坍塌。母亲的斥责是掩耳盗铃式的自我保护；但“可是父亲还是放不下心”一句，把悬而未决的恐惧吊足，情节张力拉满。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l16" data-i="15">
+  <div class="v-top"><span class="v-no">16</span><div class="v-line">母亲站起来去找她两个女儿。我也<span class="anno-word" data-note="仔细地看。读 duān xiáng">端详</span>了一下那个人。他又老又脏，满脸皱纹，眼光始终不离开他手里的活儿。<br><br>母亲回来了。我看出她在<span class="anno-word" data-note="身体颤动。读 duō suo">哆嗦</span>。她很快地说：“我想就是他。去跟船长打听一下吧。可要多加小心，别叫这个小子又回来吃咱们！”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">母亲去看两个女儿，“我”端详那个人：又老又脏，满脸皱纹；母亲回来时在哆嗦，压低声音说“我想就是他”，叮嘱多加小心。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“我”的端详是全篇第一次正面凝视于勒——又老又脏、满脸皱纹，与信中发了财的于勒判若两人。母亲“哆嗦”与“很快地说”把惊恐写成动作；一句“别叫这个小子又回来吃咱们”，亲情在金钱面前的底线彻底击穿。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l17" data-i="16">
+  <div class="v-top"><span class="v-no">17</span><div class="v-line">父亲赶紧走去。我这次可跟着他走了，心里异常紧张。父亲客客气气地和船长搭上话，一面<span class="anno-word" data-note="为讨好而赞扬">恭维</span>，一面打听有关他职业上的事情，例如哲尔赛是否重要，有何出产，人口多少，风俗习惯怎样，土地性质怎样等等。后来谈到我们搭乘的这只“特快号”，随即谈到全船的船员。最后我父亲终于说：“您船上有一个卖牡蛎的，那个人倒很有趣。您知道这个家伙的底细吗？”<br><br>船长本已不耐烦我父亲那番谈话，就冷冷地回答说：“他是个法国老流氓，去年我在美洲碰到他，就把他带回祖国。据说他在勒阿佛尔还有亲属，不过他不愿回到他们身边，因为他欠了他们的钱。他叫于勒……姓达尔芒司，——也不知还是达尔汪司，总之是跟这差不多的那么一个姓。听说他在那边<span class="anno-word" data-note="宽阔，阔气。读 chuò">阔绰</span>过一个时期，可是您看他今天已经落到什么田地！”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">父亲客客气气与船长搭话，绕着弯子打听“特快号”船员，最后问出卖牡蛎者的底细；船长冷冷道出于勒就是那个欠了亲人钱的法国老流氓。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>父亲打听之迂回——先恭维、再谈船、后问人——把不敢确认又必须确认的心理写足。船长“冷冷地”与父亲“客客气气”对照，人事的炎凉全在语气里。真相至此水落石出：于勒不仅没发财，且依然“欠了他们的钱”。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l18" data-i="17">
+  <div class="v-top"><span class="v-no">18</span><div class="v-line">我父亲脸色早已<span class="anno-word" data-note="由于恐惧、气愤或极度虚弱而面色极白，没有血色。读 shà">煞白</span>，两眼呆直，哑着嗓子说：“啊！啊！原来如此……如此……我早就看出来了！……谢谢您，船长。”<br><br>他回到我母亲身旁，是那么神色张皇。母亲赶紧对他说：“你先坐下吧！别叫他们看出来。”<br><br>他坐在长凳上，结结巴巴地说：“是他，真是他！”然后他就问：“咱们怎么办呢？”母亲马上回答道：“应该把孩子们领开。若瑟夫既然已经知道，就让他去把他们找回来。最要留心的是别叫咱们女婿起疑心。”<br><br>父亲神色很狼狈，低声<span class="anno-word" data-note="连续不断地小声自言自语。读 dū nang">嘟囔</span>着：“出大乱子了！”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">父亲脸色煞白、两眼呆直，回到母亲身旁神色张皇；母亲安排对策：领开孩子、提防女婿起疑心；父亲低声嘟囔：“出大乱子了！”</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“啊！啊！原来如此……如此……”的破碎语言，是精神大厦崩塌的声音。母亲第一反应不是认亲而是布防——防的是亲情，怕的是破财。“最要留心的是别叫咱们女婿起疑心”一句最堪回味：连女儿的幸福也可作抵押。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l19" data-i="18">
+  <div class="v-top"><span class="v-no">19</span><div class="v-line">母亲突然<span class="anno-word" data-note="非常愤怒">暴怒</span>起来，说：“我就知道这个贼是不会有出息的，早晚会回来重新拖累我们的。现在把钱交给若瑟夫，叫他去把牡蛎钱付清。已经够倒霉的了，要是被那个讨饭的认出来，这船上可就热闹了。咱们到那头去，注意别叫那人挨近我们！”她说完就站起来，给了我一个五法郎的银币，就走开了。我问那个卖牡蛎的人：“应该付您多少钱，先生？”<br><br>他答道：“两法郎五十生丁。”<br><br>我把五法郎的银币给了他，他找了钱。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">母亲暴怒大骂于勒是“贼”“讨饭的”，指派若瑟夫去付钱；“我”问价两法郎五十生丁，付了五法郎银币。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“我就知道这个贼是不会有出息的”——骂声与十年前“好心的于勒”对号入座，评价的切换只需一个“没钱”。让未成年的若瑟夫去付钱，是她唯一的“体面”设计；而这恰恰给了“我”直面叔叔、看清那张脸的机会——憎恨的安排成了亲情的通道。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l20" data-i="19">
+  <div class="v-top"><span class="v-no">20</span><div class="v-line">我看了看他的手，那是一只满是<span class="anno-word" data-note="皱纹。文中形容手上的痕迹">皱痕</span>的水手的手。我又看了看他的脸，那是一张又老又穷苦的脸，满脸愁容，<span class="anno-word" data-note="困顿窘迫得不能忍受，形容非常窘迫的样子">狼狈不堪</span>。我心里默念道：“这是我的叔叔，父亲的弟弟，我的亲叔叔。”<br><br>我给了他十个铜子的小费。他赶紧谢我：“上帝保佑您，我的年轻的先生！”<br><br>等我把两法郎交给父亲，母亲<span class="anno-word" data-note="觉得十分奇怪。读 chà">诧异</span>起来，就问：“吃了三个法郎？这是不可能的。”<br><br>我说：“我给了他十个铜子的小费。”我母亲吓了一跳，直望着我说：“你简直是疯了！拿十个铜子给这个人，给这个流氓！”她没再往下说，因为父亲指着女婿对她使了个眼色。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”看着叔叔满是皱痕的手和穷苦的脸，心里默念“这是我的叔叔，父亲的弟弟，我的亲叔叔”，给了他十个小费；母亲因多付三法郎大骂“我”疯了。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>全文情感的最高点。“这是我的叔叔，父亲的弟弟，我的亲叔叔”三个同位语层层叠进，是孩子以亲情对抗金钱的沉默宣言。十个小费与“上帝保佑您”，是全篇唯一的暖色；母亲的“疯了”与父亲的眼色，把冷酷写到最后一刻。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第四部分</span><h3>结局 · 躲于勒</h3><span class="range">第45–46段</span></div>
+<div class="part-overview">改乘圣玛洛船，以免再遇见他——金钱对亲情的放逐以最冷静的一笔完成。</div>
+<div class="verse" id="l21" data-i="20">
+  <div class="v-top"><span class="v-no">21</span><div class="v-line">后来大家都不再说话。在我们面前，天边远处仿佛有一片<span class="anno-word" data-note="哲尔赛岛在海天间呈紫色阴影；紫色冷暗，与全家人此刻的心情相合">紫色的阴影</span>从海里钻出来。那就是哲尔赛岛了。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">船上不再有人说话，远处的哲尔赛岛化作一片紫色的阴影。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>归途静默与来时“快活而骄傲”对照成哀。风景描写的象征意味极浓：哲尔赛岛没有消失，只是成了阴影——梦醒了，财富幻灭之后，一家人面对的是冷却的人心。以景结情，含而不露。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l22" data-i="21">
+  <div class="v-top"><span class="v-no">22</span><div class="v-line">我们回来的时候改乘<span class="anno-word" data-note="以法国海港圣玛洛命名的船只">圣玛洛船</span>，以免再遇见他。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">回国时全家改乘圣玛洛船，以免再遇见于勒。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>结尾只有一句，却余味最长：多花一笔船钱也要躲开亲弟弟，“以免再遇见他”是全文最冷的收束。金钱对亲情的放逐至此完成；小说在孩子的记忆里定格，而记忆本身就是对成人世界的无声审判。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+</div></section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+<div class="sec-head"><h2>赏 析</h2><span class="no">人物 · 艺术 · 名句</span></div>
+<div class="box"><h3>人物赏析</h3><div class="fame">
+<div class="fame-card"><div class="f-line">菲利普夫妇：金钱社会里的“正常人”</div><p>盼望于勒时，他们是念念不忘“永不变更的话”的痴人；确认于勒落魄时，他们是瞬间变脸的冷人。父亲要请吃牡蛎的虚荣、母亲骂于勒是“贼”的尖刻、防女婿起疑的算计——他们并非天性大恶，而是被贫困与金钱法则双重挤压的“正常人”。正是这种人人可解的自私，才更令人心惊。</p></div>
+<div class="fame-card"><div class="f-line">若瑟夫：未泯的童心</div><p>“这是我的叔叔，父亲的弟弟，我的亲叔叔”——三个短语，是孩子用亲情对成人金钱法则的朴素反驳。多付的十个小费小得可怜，却是全篇唯一不被金钱计算的行为。以他作叙事者，冷漠的世界才有一双干净的眼睛作证。</p></div>
+<div class="fame-card"><div class="f-line">于勒：命运的浮标</div><p>从败家子到“美国富翁”再到卖牡蛎的老水手，于勒自己始终没有出场辩白一句——他只是家人口中随钱翻覆的形象。给亲人写信许诺赔偿、不愿回来“因为欠了他们的钱”，这个潦倒者身上反倒有几分羞耻与体面。他是金钱天平上的砝码，也是时代悲剧的注脚。</p></div>
+</div></div><div class="box"><h3>艺术特色</h3><div class="fame">
+<div class="fame-card"><div class="f-line">双重对比，一线贯穿</div><p>于勒贫→富→贫的命运线，与菲利普夫妇惧→盼→憎的态度线，一明一暗、同步翻转。“恐怖—希望”“分文不值—正直有良心”“这个好心的于勒—这个贼”，评价词的每一次切换都是一次鞭挞。</p></div>
+<div class="fame-card"><div class="f-line">悬念与巧合的设计</div><p>于勒究竟怎样了？悬念吊足前半篇；哲尔赛岛之旅偏偏与穷途潦倒的于勒同船——巧合而不突兀：恰因漂泊的老水手才会在这条贫民航线卖牡蛎。巧合承载必然，情节的戏剧性与主题的必然性兼得。</p></div>
+<div class="fame-card"><div class="f-line">细节传神，语言见人</div><p>“那是一只满是皱痕的水手的手”，一个特写胜过千言；“就……就是我的弟弟呀”的结巴、“啊！啊！原来如此……”的破碎、“你们要不要我请你们吃牡蛎”的客套——人物的话各有其腔，性格全在声口之中。</p></div>
+<div class="fame-card"><div class="f-line">第一人称与儿童视角</div><p>全篇是若瑟夫的回忆。孩子不懂得“该不该认”，只觉得“不同的待遇十分不公道”——视角的单纯与事件的冷酷互相映照，批判的力量反而更强。开头的“我”与结尾的“以免再遇见他”，都经由这双眼睛完成。</p></div>
+<div class="fame-card"><div class="f-line">以景结情的结尾</div><p>“天边远处仿佛有一片紫色的阴影从海里钻出来”——哲尔赛岛还是那个岛，只是成了阴影。冷色调的风景与全家人冷却的心互为映照，不着一字议论，失望与无奈尽在景中。</p></div>
+</div></div><div class="box"><h3>名句赏析</h3><div class="fame">
+<div class="fame-card"><div class="f-line">唉！如果于勒竟在这只船上，那会叫人多么惊喜呀！</div><p>全文两次出现、前后呼应的“永不变更的话”。一个“竟”字道尽侥幸与奢望，一句台词把全家的盼富心理定格成漫画。后来于勒真的就在船上，这句台词却成了最尖锐的反讽。</p></div>
+<div class="fame-card"><div class="f-line">这是我的叔叔，父亲的弟弟，我的亲叔叔。</div><p>三个同位短语层层递进，是全文情感的顶点。同一个人，在父亲那里是“弟弟”，在“我”这里是“叔叔、亲叔叔”——称呼的重复不是啰嗦，而是孩子在用血缘的链条对抗金钱的法则，庄严而心酸。</p></div>
+<div class="fame-card"><div class="f-line">我们回来的时候改乘圣玛洛船，以免再遇见他。</div><p>全文的结穴。“以免再遇见他”六个字，把金钱对亲情的放逐写得平静而彻底：多花的船钱可以承受，认回一个穷弟弟却万万不能。不叙哀而哀尽在其中，是世界短篇结尾艺术的名例。</p></div>
+</div></div><div class="box"><h3>主题思想</h3>
+<p>小说以菲利普夫妇对于勒态度的前后变化为线索，写出了一个普通家庭在贫困与发财梦之间的翻覆：盼于勒、赞于勒、遇于勒、躲于勒，亲疏冷暖全由金钱决定。</p>
+<p>作品批判的锋芒指向金钱至上的社会：在那里，亲兄弟可以沦为“贼”，亲情可以被一个银币收买。而若瑟夫的十个小费提醒我们——在金钱法则之外，人还应有同情与尊严。这正是小说超越时代的价值所在。</p>
+</div></section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+<div class="sec-head"><h2>积 累</h2><span class="no">字词 · 读音 · 人物 · 手法</span></div>
+<div class="box"><div class="acc-cat"><h3>重点字词读音</h3>
+<div class="acc-item"><span class="acc-w">拮据</span><span class="acc-d">jié jū，手头紧</span></div>
+<div class="acc-item"><span class="acc-w">栈桥</span><span class="acc-d">zhàn qiáo，桥形码头</span></div>
+<div class="acc-item"><span class="acc-w">别墅</span><span class="acc-d">bié shù，郊外供游憩的房屋</span></div>
+<div class="acc-item"><span class="acc-w">牡蛎</span><span class="acc-d">mǔ lì，海产贝类</span></div>
+<div class="acc-item"><span class="acc-w">褴褛</span><span class="acc-d">lán lǚ，衣服破烂</span></div>
+<div class="acc-item"><span class="acc-w">撬开</span><span class="acc-d">qiào kāi，拨开、掀动</span></div>
+<div class="acc-item"><span class="acc-w">煞白</span><span class="acc-d">shà bái，面色极白</span></div>
+<div class="acc-item"><span class="acc-w">嘟囔</span><span class="acc-d">dū nang，连续小声自语</span></div>
+<div class="acc-item"><span class="acc-w">阔绰</span><span class="acc-d">kuò chuò，阔气</span></div>
+<div class="acc-item"><span class="acc-w">诧异</span><span class="acc-d">chà yì，十分奇怪</span></div>
+<div class="acc-item"><span class="acc-w">糟蹋</span><span class="acc-d">zāo tà，浪费</span></div>
+<div class="acc-item"><span class="acc-w">端详</span><span class="acc-d">duān xiáng，仔细地看</span></div>
+<div class="acc-item"><span class="acc-w">哆嗦</span><span class="acc-d">duō suo，身体颤动</span></div>
+<div class="acc-item"><span class="acc-w">张皇</span><span class="acc-d">zhāng huáng，惊慌</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>重点词语理解</h3>
+<div class="acc-item"><span class="acc-w">福音书</span><span class="acc-d">比喻带来希望与安慰的消息，文中指于勒的第二封信</span></div>
+<div class="acc-item"><span class="acc-w">与日俱增</span><span class="acc-d">随着时间的推移一天天增长</span></div>
+<div class="acc-item"><span class="acc-w">十拿九稳</span><span class="acc-d">比喻很有把握</span></div>
+<div class="acc-item"><span class="acc-w">郑重其事</span><span class="acc-d">形容对待事情非常严肃认真</span></div>
+<div class="acc-item"><span class="acc-w">狼狈不堪</span><span class="acc-d">困顿窘迫得不能忍受</span></div>
+<div class="acc-item"><span class="acc-w">莫名其妙</span><span class="acc-d">事情奇怪，使人不明白</span></div>
+<div class="acc-item"><span class="acc-w">暴怒</span><span class="acc-d">非常愤怒</span></div>
+<div class="acc-item"><span class="acc-w">皱纹·皱痕</span><span class="acc-d">皱纹指脸上的纹路；皱痕文中形容手上痕迹</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>人物形象</h3>
+<div class="acc-item"><span class="acc-w">菲利普</span><span class="acc-d">虚荣、怯懦，盼富则念“永不变更的话”，遇穷则“出大乱子了”</span></div>
+<div class="acc-item"><span class="acc-w">克拉丽丝（母亲）</span><span class="acc-d">精明、刻薄、主意多：从“好心的于勒”到“这个贼”，转变一步到位</span></div>
+<div class="acc-item"><span class="acc-w">若瑟夫</span><span class="acc-d">纯真、善良，富有同情心，是全文的目光与良心</span></div>
+<div class="acc-item"><span class="acc-w">于勒</span><span class="acc-d">命运浮沉的底层人物：败家—致富—潦倒，始终缺席自己的故事</span></div>
+<div class="acc-item"><span class="acc-w">二姐与女婿</span><span class="acc-d">婚姻被于勒的“信”促成，是金钱社会婚姻观的缩影</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>写作手法</h3>
+<div class="acc-item"><span class="acc-w">双重对比</span><span class="acc-d">于勒的命运线与菲利普夫妇的态度线同步翻转</span></div>
+<div class="acc-item"><span class="acc-w">悬念巧合</span><span class="acc-d">盼而不知其果为悬念，哲尔赛岛同船为巧合</span></div>
+<div class="acc-item"><span class="acc-w">细节特写</span><span class="acc-d">满是皱痕的水手的手、又老又穷苦的脸</span></div>
+<div class="acc-item"><span class="acc-w">第一人称视角</span><span class="acc-d">以少年若瑟夫的回忆展开，目光单纯而见真</span></div>
+<div class="acc-item"><span class="acc-w">以景结情</span><span class="acc-d">紫色阴影的哲尔赛岛，收束全篇的失望与冷意</span></div>
+</div></div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+<div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+<div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+<div class="ptools"><button data-mode="word" data-rand="5">随机五组字形</button><button data-mode="word" data-all="1">全部字形</button><button data-mode="note" data-rand="5">随机五组词语</button><button data-mode="note" data-all="1">全部词语</button></div></section>
+
+<footer>
+  <div class="kai">《我的叔叔于勒》</div>
+  <div>莫泊桑 · 法国（1850—1893）· 部编版九年级上册</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('yule_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('yule_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+</script>
+<script>
+var DICT_WORDS = [{"w": "拮据", "py": "jié jū", "q": "我母亲对我们的□□生活感到非常痛苦", "tip": "两字均为提手旁（扌），义为手头紧；勿写「结据」"}, {"w": "糟蹋", "py": "zāo tà", "q": "据说他当初行为不正，□□钱", "tip": "「糟」米字旁，「蹋」足字旁，义为浪费；勿写「遭塌」"}, {"w": "栈", "py": "zhàn", "q": "我们都要衣冠整齐地到海边□桥上去散步", "tip": "「栈」木字旁，栈桥指桥形码头，读 zhàn；勿写「践」「浅」"}, {"w": "别墅", "py": "bié shù", "q": "甚至计划到要用这位叔叔的钱置一所□□", "tip": "「墅」野字底，读 shù；勿读 yě、勿写「野」"}, {"w": "褴褛", "py": "lán lǚ", "q": "一个衣服□□的年老水手", "tip": "两字均为衣字旁（衤），义为衣服破烂；勿写「蓝缕」"}, {"w": "撬", "py": "qiào", "q": "拿小刀一下□开牡蛎", "tip": "「撬」提手旁（扌）加毳，义为拨开、掀动，读 qiào"}, {"w": "牡蛎", "py": "mǔ lì", "q": "两位先生在请两位打扮得漂亮的太太吃□□", "tip": "「牡」牛字旁读 mǔ，「蛎」虫字旁读 lì；海产贝类"}, {"w": "阔绰", "py": "chuò", "q": "听说他在那边□□过一个时期", "tip": "「绰」绞丝旁，义为宽绰、阔气，读 chuò；勿读 zhuó"}, {"w": "煞白", "py": "shà bái", "q": "我父亲脸色早已□□，两眼呆直", "tip": "「煞」此处读 shà，义为极白；勿写「杀白」"}, {"w": "嘟囔", "py": "dū nang", "q": "父亲神色很狼狈，低声□□着", "tip": "两字均为口字旁，义为连续小声自语；“囔”读轻声"}, {"w": "诧异", "py": "chà yì", "q": "等我把两法郎交给父亲，母亲□□起来", "tip": "「诧」言字旁，义为惊讶，读 chà；勿写「姹」「宅」"}, {"w": "端详", "py": "duān xiáng", "q": "我也□□了一下那个人", "tip": "「详」言字旁，义为仔细地看；勿写「瑞祥」"}, {"w": "哆嗦", "py": "duō suo", "q": "母亲回来了。我看出她在□□", "tip": "两字均为口字旁，义为身体颤动；“嗦”读轻声"}, {"w": "狼狈", "py": "láng bèi", "q": "父亲神色很□□，低声嘟囔着", "tip": "两字均为反犬旁（犭），义为困顿窘迫；勿写「浪贝」"}];
+var DICT_NOTES = [{"w": "拮据", "a": "手头紧，经济境况不好。读 jié jū", "q": "我母亲对我们的拮据生活感到非常痛苦"}, {"w": "底货", "a": "卖剩的陈旧存货", "q": "买日用品也是常常买减价的，买拍卖的底货"}, {"w": "栈桥", "a": "桥形的码头。栈，读 zhàn", "q": "我们都要衣冠整齐地到海边栈桥上去散步"}, {"w": "竟", "a": "居然，表示出乎意料", "q": "唉！如果于勒竟在这只船上"}, {"w": "糟蹋", "a": "浪费。读 zāo tà", "q": "据说他当初行为不正，糟蹋钱"}, {"w": "老本", "a": "原本的积蓄", "q": "一个人要是逼得父母动老本"}, {"w": "福音书", "a": "基督教指《新约》全书首四卷，记载耶稣生平言行。这里比喻好消息、精神支柱", "q": "这封信成了我们家里的福音书"}, {"w": "与日俱增", "a": "随着时间的推移一天天增长，形容增长得很快", "q": "可是父亲的希望却与日俱增"}, {"w": "十拿九稳", "a": "比喻很有把握", "q": "对于叔叔回国这桩十拿九稳的事"}, {"w": "别墅", "a": "住宅外另建的园林游憩处所。墅，读 shù", "q": "甚至计划到要用这位叔叔的钱置一所别墅"}, {"w": "迟疑不决", "a": "拿不定主意", "q": "母亲有点迟疑不决，她怕花钱"}, {"w": "郑重其事", "a": "形容对待事情非常严肃认真", "q": "看他郑重其事地带着两个女儿和女婿"}, {"w": "褴褛", "a": "（衣服）破烂。读 lán lǚ", "q": "一个衣服褴褛的年老水手"}, {"w": "撬", "a": "把东西拨开或掀起来。读 qiào", "q": "拿小刀一下撬开牡蛎"}, {"w": "牡蛎", "a": "一种海产贝类，肉味鲜美。读 mǔ lì", "q": "两位先生在请两位打扮得漂亮的太太吃牡蛎"}, {"w": "莫名其妙", "a": "没有人能说明它的奥妙，表示事情很奇怪，使人不明白", "q": "母亲有点莫名其妙，就问"}, {"w": "端详", "a": "仔细地看。读 duān xiáng", "q": "我也端详了一下那个人"}, {"w": "哆嗦", "a": "身体颤动。读 duō suo", "q": "我看出她在哆嗦"}, {"w": "恭维", "a": "为讨好而赞扬", "q": "一面恭维，一面打听有关他职业上的事情"}, {"w": "阔绰", "a": "宽阔，阔气。绰，读 chuò", "q": "听说他在那边阔绰过一个时期"}, {"w": "煞白", "a": "由于恐惧、气愤或极度虚弱而面色极白，没有血色。煞，读 shà", "q": "我父亲脸色早已煞白，两眼呆直"}, {"w": "张皇", "a": "惊慌，慌张。同“惶”", "q": "他回到我母亲身旁，是那么神色张皇"}, {"w": "嘟囔", "a": "连续不断地小声自言自语。读 dū nang", "q": "父亲神色很狼狈，低声嘟囔着"}, {"w": "暴怒", "a": "非常愤怒", "q": "母亲突然暴怒起来"}, {"w": "拖累", "a": "牵累，使受牵连", "q": "早晚会回来重新拖累我们的"}, {"w": "皱痕", "a": "皱纹。文中形容手上的痕迹", "q": "那是一只满是皱痕的水手的手"}, {"w": "狼狈不堪", "a": "困顿窘迫得不能忍受，形容非常窘迫的样子", "q": "那是一张又老又穷苦的脸，满脸愁容，狼狈不堪"}, {"w": "默念", "a": "默读；默默地思考", "q": "我心里默念道"}, {"w": "诧异", "a": "觉得十分奇怪。读 chà", "q": "等我把两法郎交给父亲，母亲诧异起来"}, {"w": "紫色阴影", "a": "哲尔赛岛在海天间呈冷暗的紫色，与全家人幻灭后的心情相合", "q": "仿佛有一片紫色的阴影从海里钻出来"}, {"w": "勒阿佛尔", "a": "法国西北部海滨城市，译名又作勒阿弗尔", "q": "我小时候，家在勒阿佛尔"}, {"w": "赔偿", "a": "因自己的行动使他人受损失而给予补偿。读 péi cháng", "q": "他赚了点儿钱，并且希望能够赔偿我父亲的损失"}, {"w": "心事", "a": "心里盘算、放不下的事，多指为难之事", "q": "哲尔赛的旅行成了我们的心事"}, {"w": "圣玛洛船", "a": "以法国海港圣玛洛命名的船只", "q": "我们回来的时候改乘圣玛洛船"}];
+</script>
+
+</body>
+</html>
