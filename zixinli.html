@@ -214,7 +214,17 @@ function App() {
   const [argument, setArgument] = useStickyState(INITIAL_ARGUMENT, 'luxun-argument');
   const [response, setResponse] = useStickyState('', 'luxun-response');
   const [feedback, setFeedback] = useStickyState('', 'luxun-feedback');
-  const [model, setModel] = useStickyState('deepseek-v4-flash-vision-exp', 'luxun-model');
+  const [model, setModel] = useStickyState('deepseek-v4-flash', 'luxun-model');
+  const modelSafe = model === 'deepseek-v4-pro' ? 'deepseek-v4-pro' : 'deepseek-v4-flash';
+  const friendlyError = (err) => {
+    const msg = String((err && err.message) || err);
+    if (/401|Authentication/i.test(msg)) return '密钥无效或已失效：请到「系统设置」重新填写 DeepSeek API Key。';
+    if (/402|Insufficient Balance|余额/i.test(msg)) return '账户余额不足：请前往 DeepSeek 开放平台（platform.deepseek.com）充值后重试。';
+    if (/400/.test(msg) && /model/i.test(msg)) return '所选模型暂不可用（可能已被平台调整）：请到「系统设置」更换推导引擎。';
+    if (/429|rate/i.test(msg)) return '请求过于频繁，被限流了：请稍等片刻再试。';
+    if (/Failed to fetch|NetworkError|network|断绝/i.test(msg)) return '网络连接失败：请检查网络后重试。';
+    return '出了些问题：' + msg;
+  };
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -222,7 +232,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const handleGenerateFallacy = async () => {
     if (!apiKey.trim()) {
-      alert("请先输入 DeepSeek API Key");
+      alert("请先填写 DeepSeek API Key（见「系统设置」标签页）");
       return;
     }
     setGenerating(true);
@@ -246,13 +256,16 @@ function App() {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: model,
+          model: modelSafe,
           messages: [{
             role: 'user',
             content: systemPrompt
           }],
-          ...(model === 'deepseek-v4-pro' ? {
-            reasoning_effort: 'high'
+          ...(modelSafe === 'deepseek-v4-pro' ? {
+            thinking: {
+              type: 'enabled',
+              reasoning_effort: 'high'
+            }
           } : {
             temperature: 0.8
           })
@@ -265,7 +278,7 @@ function App() {
       const data = await fetchResult.json();
       setArgument(data.choices[0].message.content);
     } catch (err) {
-      alert(`网络出了些问题：${err.message}`);
+      alert(friendlyError(err));
     } finally {
       setGenerating(false);
     }
@@ -273,7 +286,7 @@ function App() {
   const handleSubmit = async () => {
     if (!response.trim() || loading) return;
     if (!apiKey.trim()) {
-      alert("请先输入 DeepSeek API Key");
+      alert("请先填写 DeepSeek API Key（见「系统设置」标签页）");
       return;
     }
     setLoading(true);
@@ -317,10 +330,13 @@ ${argument}
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: model,
+          model: modelSafe,
           messages: messages,
-          ...(model === 'deepseek-v4-pro' ? {
-            reasoning_effort: 'high'
+          ...(modelSafe === 'deepseek-v4-pro' ? {
+            thinking: {
+              type: 'enabled',
+              reasoning_effort: 'high'
+            }
           } : {
             temperature: 0.7
           })
@@ -333,7 +349,7 @@ ${argument}
       const data = await fetchResult.json();
       setFeedback(data.choices[0].message.content);
     } catch (err) {
-      setFeedback(`先生有言：出了些岔子，怕是网络断绝了。${err.message}`);
+      setFeedback('【系统提示】' + friendlyError(err));
     } finally {
       setLoading(false);
     }
@@ -895,14 +911,14 @@ ${argument}
   }, "DeepSeek \u5F00\u653E\u5E73\u53F0"), " \u7533\u8BF7\u3002")), React.createElement("div", null, React.createElement("label", {
     className: "block text-xl font-bold text-[#2c2420] mb-4"
   }, "\u63A8\u6F14\u5F15\u64CE"), React.createElement("select", {
-    value: model,
+    value: modelSafe,
     onChange: e => setModel(e.target.value),
     className: "w-full max-w-md bg-[#fcfbf9] border-2 border-[#d3c8ba] outline-none text-[#2c2420] font-sans py-3 px-4 shadow-sm focus:border-[#8a1f1f] transition-colors cursor-pointer"
   }, React.createElement("option", {
-    value: "deepseek-v4-flash-vision-exp"
-  }, "DeepSeek Flash (\u901F\u5EA6\u8F83\u5FEB)"), React.createElement("option", {
+    value: "deepseek-v4-flash"
+  }, "DeepSeek Flash（通用 · 速度快）"), React.createElement("option", {
     value: "deepseek-v4-pro"
-  }, "DeepSeek Pro (\u6DF1\u5165\u601D\u8003)")))))))));
+  }, "DeepSeek Pro（深入思考）")))))))));
 }
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(App, null));
