@@ -1937,7 +1937,8 @@ async function examStatusMap(examIds){
       }
     });
     let gradDone=0,gradTotal=0;
-    const subjList=await subjOf(ex);
+    let subjList=[];
+    try{subjList=await subjOf(ex);}catch(e){subjList=[];} /* 单场模板异常不影响其他考试状态 */
     for(const sq of subjList){
       const done=crops.some(function(c){return String(c.qno)===String(sq.qno)&&c.scoreVal!=null});
       gradTotal++;if(done)gradDone++;
@@ -2173,10 +2174,20 @@ Object.assign(ACTS,{
   'tpl-save':async function(el){
     const t=await dbGet('templates',el.dataset.id);
     try{
+      /* 题号重复校验：重复的客观题号会印两遍、录两遍答案 */
+      const qs=normalizeQuestions(t);
+      const seen={},dups=[];
+      qs.forEach(function(q){
+        if(q.t==='obj'){const k='obj'+q.qno;if(seen[k])dups.push('客观 '+q.qno);seen[k]=true;}
+        else if(q.qno){const k='s'+q.qno;if(seen[k])dups.push('主观 '+q.qno);seen[k]=true;}
+      });
+      if(dups.length){
+        const ok=await dlgConfirm('题号重复','以下题号在清单中重复：<b>'+esc(dups.join('、'))+'</b><br>重复题目会被重复排版、重复录答案，建议先修改题号。','仍要保存');
+        if(!ok)return;
+      }
       const lay=layoutTemplate(t);
       await dbPut('templates',t);
-      const qs=normalizeQuestions(t);
-      toast('已保存：'+lay.pages.length+' 页 / '+qs.filter(function(q){return q.t==='obj'}).length+' 道客观题 / '+qs.filter(function(q){return q.t==='subj'}).length+' 道主观题','ok');
+      toast('已保存：'+lay.pages.length+' 页 / '+qs.filter(function(q){return q.t==='obj'}).length+' 道客观题 / '+qs.filter(function(q){return q.t==='subj'}).length+' 道主观题'+(dups.length?('（含 '+dups.length+' 个重复题号）'):''),'ok');
     }catch(err){toast('排版校验失败：'+err.message,'err')}
     renderTpl();
   },
@@ -2247,9 +2258,15 @@ Object.assign(ACTS,{
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-q-batch':function(el){
+  'tpl-q-batch':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    let defFirst=1;
+    if(t){
+      const qs=normalizeQuestions(t);
+      qs.forEach(function(q){if(q.t==='obj'&&Number(q.qno)>=defFirst)defFirst=Number(q.qno)+1;});
+    }
     dlg('<div class="f-grid">'
-      +'<div><label class="f-lb">起始题号</label><input class="inp" id="qBatchFirst" type="number" value="1"></div>'
+      +'<div><label class="f-lb">起始题号</label><input class="inp" id="qBatchFirst" type="number" value="'+defFirst+'"></div>'
       +'<div><label class="f-lb">数量</label><input class="inp" id="qBatchCount" type="number" value="10"></div>'
       +'<div><label class="f-lb">选项数</label><select class="inp" id="qBatchChoices">'
       +[2,3,4,5,6].map(function(x){return '<option value="'+x+'"'+(x===4?' selected':'')+'>'+x+'</option>'}).join('')
