@@ -542,7 +542,7 @@ function layoutTemplate(tpl){
     }
   });
   /* 主观题（按清单顺序，超出页面自动分页切分） */
-  subjDefs.forEach(function(sub){
+  subjDefs.forEach(function(sub,si){
     const type=sub.type||'lines';
     const cols=(type==='grid-cn')?Math.max(10,Math.min(40,sub.cols||20)):null;
     const rowH=(type==='grid-cn')?(Math.min(8,166/cols)+1.2):(type==='grid-en')?5:8;
@@ -551,6 +551,8 @@ function layoutTemplate(tpl){
     const fullMax=Math.max(1,Math.floor((contentBottom-((regEvery)?contentTop:38)-13)/rowH));
     /* 分页：每页尽量填满（首页按剩余空间，之后每页按整页容量，不做均衡拆分） */
     let remaining=totalRows, part=0, partRowStart=0;
+    /* 主观题默认题号按“清单中第几道主观题”编号，避免多道未命名主观题互相撞号 */
+    const subjQno=sub.qno||('主观题'+(si+1));
     while(remaining>0){
       const avail=contentBottom-curY-13;
       let take;
@@ -563,7 +565,7 @@ function layoutTemplate(tpl){
       const partHead=(part===0)?headH:0;
       const boxH=take*rowH+6+partHead;
       const sx=M+2, sw=contentW-4, sy=curY+7;
-      pg.subjective.push({qno:sub.qno||('主观'+(part+1)),score:sub.score||10,type:type,rows:take,rowH:rowH,
+      pg.subjective.push({qno:subjQno,score:sub.score||10,type:type,rows:take,rowH:rowH,
         cols:cols,rowStart:partRowStart,headH:partHead,
         part:part,label:(sub.label||'主观题')+(part>0?'（续第'+(part+1)+'部分）':''),x:sx,y:sy,w:sw,h:boxH});
       remaining-=take; part++; partRowStart+=take;
@@ -2158,6 +2160,8 @@ Object.assign(ACTS,{
     const t=newTemplate(p.name);
     Object.assign(t,JSON.parse(JSON.stringify(p)));
     t.id=uid('tpl_');t.createdAt=today();
+    /* 预设是旧结构（选择题组+主观题区），立即固化为逐题清单，否则空 questions 会盖掉预设内容 */
+    t.questions=normalizeQuestions({choiceGroups:t.choiceGroups,subjective:t.subjective});
     await dbPut('templates',t);
     dlgClose();
     ui.tplEdit=t.id;
