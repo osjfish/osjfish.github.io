@@ -366,6 +366,12 @@
   footer{font-size:calc(13px*var(--fs))}
   .media h4{font-size:calc(16.5px*var(--fs))}
   .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
 </style>
 </head>
 <body>
@@ -1883,14 +1889,35 @@
     btnAll.textContent = allOpen ? '一键收起' : '一键展开';
   });
 
-  /* ---------- 视频全屏播放 ---------- */
+  /* ---------- 视频伪全屏 ---------- */
   document.querySelectorAll('.fsbtn').forEach(function(btn){
     btn.addEventListener('click', function(){
       var f = document.getElementById(btn.dataset.target);
       if (!f) return;
-      if (f.requestFullscreen) f.requestFullscreen();
-      else if (f.webkitRequestFullscreen) f.webkitRequestFullscreen();
-      else if (f.msRequestFullscreen) f.msRequestFullscreen();
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
     });
   });
 
