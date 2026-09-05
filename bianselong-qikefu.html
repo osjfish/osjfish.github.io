@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《变色龙》契诃夫</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">俄国 · 契诃夫</div>
+  <h1 class="hero-title">变色龙</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+    <p>《变色龙》是俄国作家契诃夫1884年创作的短篇小说，后收入小说集《苦恼》。小说通过警官奥楚蔑洛夫处理“狗咬人”案件时态度的六次变化，淋漓尽致地刻画了一个见风使舵、趋炎附势的沙皇专制走狗形象，以辛辣的讽刺笔调揭露了沙皇俄国警察制度的虚伪与反动。</p>
+    <p>全篇仅两千余字，人物只有一个警官、一个巡警、一个首饰匠、一条狗和一群围观者，场景只在一个市场广场。然而就在这极小的篇幅里，契诃夫以“变色龙”为题，以军大衣的穿脱为线索，以对话推动情节，写出了一个时代的病态——在权力面前，人可以瞬间变色，尊严与正义可以随时出卖。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>契诃夫（1860—1904），俄国伟大的小说家、戏剧家，世界级短篇小说巨匠。出身于小商人家庭，早年靠当家庭教师和给杂志写幽默小品维持生计，1884年毕业于莫斯科大学医学系。他的小说以简练、冷峻、幽默著称，善于从日常生活中发掘悲剧，代表作有《变色龙》《套中人》《苦恼》《万卡》《第六病室》等，戏剧有《樱桃园》《万尼亚舅舅》《三姊妹》等。</p>
+    <p style="margin-top:10px;color:var(--ink2)">《变色龙》写于1884年，当时契诃夫二十四岁，正在莫斯科大学学医。这篇小说最初发表在幽默杂志《碎片》上，署名“安托沙·契洪杰”（契诃夫早期笔名）。它是契诃夫早期幽默短篇小说的代表作，也是世界文学史上讽刺艺术的经典之作。</p>
+  </div>
+  <div class="box">
+    <h3>时代背景</h3>
+    <p>19世纪80年代的俄国，正处于沙皇亚历山大三世统治的最黑暗时期。1881年亚历山大二世被民意党人刺杀后，新沙皇加强了专制统治，警察权力膨胀，告密之风盛行，社会弥漫着恐怖与虚伪的气氛。沙皇的警察制度是维护专制统治的工具，警官对上谄媚、对下欺压，是当时社会的一大痼疾。</p>
+    <p style="margin-top:8px">小说中的市场广场是沙皇俄国社会的缩影：商店饭馆“无精打采地敞着”“就跟许多饥饿的嘴巴一样”，经济凋敝，民生困苦；而一个小小的警官却可以在广场上作威作福，随意判定一条狗的生死和一个人的是非——权力的蛮横与社会的病态，尽在其中。</p>
+  </div>
+  <div class="box">
+    <h3>标题含义</h3>
+    <p>“变色龙”本是蜥蜴类动物（避役），皮肤颜色能随环境变化而改变，以保护自己。小说以“变色龙”为题，比喻奥楚蔑洛夫这类见风使舵、趋炎附势的人——他们没有原则，没有立场，一切以权力的风向为转移，就像变色龙随环境变色一样。</p>
+    <p style="margin-top:8px">标题的讽刺意味贯穿全文：奥楚蔑洛夫在处理狗咬人案件时，随着“狗的主人是谁”这一信息的变化，态度前后翻转六次，比变色龙变色还要迅速、还要彻底。标题既是对主人公的画像，也是对整个沙皇官场病态的概括。</p>
+  </div>
+  <div class="box">
+    <h3>人物表</h3>
+    <p>奥楚蔑洛夫：警官，小说主人公。“奥楚蔑洛夫”在俄语中意为“疯癫的”，暗示其精神的病态。他穿着新的军大衣，提着小包，是沙皇警察制度的化身。</p>
+    <p style="margin-top:8px">赫留金：首饰匠，被狗咬伤的人。“赫留金”在俄语中意为“猪的呼噜声”，暗示其庸俗可笑。他是小市民的典型，既不幸又庸俗。</p>
+    <p style="margin-top:8px">叶尔德林：巡警，奥楚蔑洛夫的随从，火红色头发，端着盛满醋栗的筛子。</p>
+    <p style="margin-top:8px">普洛诃尔：将军家的厨师，最终确认狗的主人身份。</p>
+    <p style="margin-top:8px">席加洛夫将军：从未出场，但其名字决定了奥楚蔑洛夫的态度变化，是“不在场的权力”的象征。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>【课文朗读】《变色龙/契诃夫》-部编人教版九年级语文下册</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1UC4y1t78i&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="【课文朗读】《变色龙/契诃夫》-部编人教版九年级语文下册"></iframe>
+        <a href="https://www.bilibili.com/video/BV1UC4y1t78i" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>      <div class="media">
+        <h4>【课本剧】华师一附中2018年课本剧大赛第一名作品——变色龙</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1aPwqeXEDi&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="【课本剧】华师一附中2018年课本剧大赛第一名作品——变色龙"></iframe>
+        <a href="https://www.bilibili.com/video/BV1aPwqeXEDi" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 词语 · 手法</span></div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+    <div class="pl">警官奥楚蔑洛夫穿着新的军大衣，提着小包，穿过市场的广场。他身后跟着一个火红色头发的巡警，端着一个筛子，盛满了没收来的醋栗。四下里一片沉静。广场上一个人也没有。商店和饭馆的门无精打采地敞着，面对着上帝创造的这个世界，就跟许多饥饿的嘴巴一样；门口连一个乞丐也没有。</div>
+    <div class="pl">“好哇，你咬人？该死的东西！”奥楚蔑洛夫忽然听见叫喊声，“伙计们，别放走它！这年月，咬人可不行！逮住它！哎哟……哎哟！”传来了狗的尖叫声。奥楚蔑洛夫向那边一瞧，看见从商人彼楚金的木柴厂里跑出来一条狗，用三条腿一颠一颠地跑着，不住地回头瞧。它后边跟着追来一个人，穿着浆硬的花布衬衫和敞着怀的坎肩。他追上狗，身子往前一探，扑倒在地下，抓住了狗的后腿。又传来了狗的叫声，还有人的叫喊：“别放走它！”有人从商店里探出头来，脸上还带着睡意。木柴厂四周很快就聚了一群人，仿佛一下子从地底下钻出来的。</div>
+    <div class="pl">“好像出乱子了，长官！”巡警说。奥楚蔑洛夫把身子微微往左边一转，迈步往人群那边走过去。在木柴厂门口，他看见那个敞开了坎肩的人举起右手，把一个血淋淋的手指头伸给人们看。他那半醉的脸上现出这样的神气：“我要揭你的皮，坏蛋！”就连那手指头也像是一面胜利的旗帜。奥楚蔑洛夫认出这人是首饰匠赫留金。这个案子的“罪犯”呢，坐在人群中央的地上，前腿劈开，浑身发抖——原来是一条白毛的小猎狗，脸尖尖的，背上有块黄斑。它那含泪的眼睛流露出悲苦和恐怖的神情。</div>
+    <div class="pl">“这儿到底出了什么事？”奥楚蔑洛夫挤进人群里去，问道，“你在这儿干什么？你究竟为什么举着那个手指头？……谁在嚷？”</div>
+    <div class="pl">“长官，我好好地走我的路，没招谁没惹谁……”赫留金开口了，拿手罩在嘴上，咳嗽一下，“我正在跟密特里·密特里奇谈木柴的事，忽然，这个贱畜生无缘无故就把这手指头咬了一口……您得原谅我，我是做工的人，我做的是细致的活儿。这得叫他们赔我一笔钱才成，因为也许我要有一个礼拜不能用这个手指头啦……长官，就连法律上也没有那么一条，说是人受了畜生的害就该忍着。要是人人都这么让畜生乱咬一阵，那在这世界上也没个活头了。”</div>
+    <div class="pl">“嗯！不错……”奥楚蔑洛夫严厉地说，咳了一声，拧起眉头，“不错……这是谁家的狗？我绝不轻易放过这件事！我要拿点颜色出来给那些放出狗来到处乱跑的人看看。那些老爷既然不愿意遵守法令，现在就得管管他们。等到他，那个混蛋，受了罚，拿出钱来，他才会知道放出这种狗来，放出这种野畜生来，会有什么下场。我要好好地教训他一顿！叶尔德林，”警官对巡警说，“去调查一下，这是谁的狗，打个报告上来！这条狗呢，把它弄死好了。马上去办，别拖！这多半是条疯狗……请问，这到底是谁家的狗？”</div>
+    <div class="pl">“这好像是席加洛夫将军家的狗。”人群里有个人说。</div>
+    <div class="pl">“席加洛夫将军？哦！……叶尔德林，帮我把大衣脱下来……真要命，天这么热，看样子多半要下雨了……只是有一件事我还不懂：它怎么会咬着你的？”奥楚蔑洛夫对赫留金说，“难道它够得着你的手指头？它是那么小；你呢，却长得这么魁梧！你那手指头一定是给小钉子弄破的，后来却异想天开，想得到一笔什么赔偿费了。你这种人啊……是出了名的！我可知道你们这些鬼东西是什么玩意儿！”</div>
+    <div class="pl">“长官，他本来是开玩笑，把烟卷戳到狗的脸上去；狗呢——可不肯做傻瓜，就咬了他一口……他是个荒唐的家伙，长官！”“胡说，独眼鬼！你什么也没看见，你为什么胡说？他老人家是明白人，看得出来到底谁胡说，谁像当着上帝的面一样凭良心说话；要是我说了谎，那就让调解法官审问我好了。他的法律上说得明白，现在大家都平等啦。不瞒您说，我的兄弟就在当宪兵……”“少说废话！”</div>
+    <div class="pl">“不对，这不是将军家里的狗……”巡警深思地说，“将军家里没有这样的狗。他家的狗，全是大猎狗。”“你拿得准吗？”“拿得准，长官。”</div>
+    <div class="pl">“我也知道。将军家里都是些名贵的、纯种的狗；这条狗呢，鬼才知道是什么玩意儿！毛色既不好，模样也不中看，完全是个下贱胚子。居然有人养这种狗！这人的脑子上哪儿去啦？要是这样的狗在彼得堡或者莫斯科让人碰见，你们猜猜看，结果会怎样？那儿的人可不管什么法律不法律，一眨眼的工夫就叫它断了气！你呢，赫留金，受了害，我们绝不能不管。得好好教训他们一下！是时候了。”</div>
+    <div class="pl">“不过也说不定就是将军家的狗……”巡警把他的想法说出来，“它的脸上又没写着……前几天我在将军家院子里看见过这样的一条狗。”“没错儿，将军家的！”人群里有人说。</div>
+    <div class="pl">“哦！……叶尔德林老弟，给我穿上大衣吧……好像起风了，挺冷……你把这条狗带到将军家里去，问问清楚。就说这狗是我找着，派人送上的。告诉他们别再把狗放到街上来了。说不定这是条名贵的狗；可要是每个猪崽子都拿烟卷戳到它的鼻子上去，那它早就毁了。狗是娇贵的动物……你这混蛋，把手放下来！不用把你那蠢手指头伸出来！怪你自己不好！……”</div>
+    <div class="pl">“将军家的厨师来了，问他好了——喂，普洛诃尔！过来吧，老兄，上这儿来！瞧瞧这条狗，是你们家的吗？”</div>
+    <div class="pl">“瞎猜！我们那儿从来没有这样的狗！”“那就用不着白费工夫再上那儿去问了，”奥楚蔑洛夫说，“这是条野狗！用不着白费工夫说空话了。既然普洛诃尔说这是野狗，那它就是野狗。弄死它算了。”</div>
+    <div class="pl">“这不是我们的狗，”普洛诃尔接着说，“这是将军的哥哥的狗。他哥哥是前几天才到这儿来的。我们将军不喜欢这种小猎狗，他哥哥却喜欢。”</div>
+    <div class="pl">“他哥哥来啦？是乌拉吉米尔·伊凡尼奇吗？”奥楚蔑洛夫问，整个脸上洋溢着含笑的温情，“哎呀，天！我还不知道呢！他是上这儿来住一阵就走吗？”“是来住一阵的。”“哎呀，天！他是惦记他的兄弟了……可我还不知道呢！这么说，这是他老人家的狗？高兴得很……把它带走吧。这小狗还不赖，怪伶俐的，一口就咬破了这家伙的手指头！哈哈哈……得了，你干什么发抖呀？呜呜……呜呜……这坏蛋生气了……好一条小狗……”</div>
+    <div class="pl">普洛诃尔喊一声那条狗的名字，带着它从木柴厂走了。那群人就对着赫留金哈哈大笑。</div>
+    <div class="pl">“我早晚要收拾你！”奥楚蔑洛夫向他恐吓说，裹紧大衣，接着穿过市场的广场径自走了。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+      <div class="part-head"><span class="p-num">第一部分</span><h3>开场 · 市场沉寂</h3><span class="range">第 1 段</span></div>
+      <div class="part-overview">警官奥楚蔑洛夫出场，描写市场广场的沉寂与凋敝，为“狗咬人”事件铺垫压抑的社会环境。</div>
+      <div class="verse" id="l1" data-i="0">
+        <div class="v-top"><span class="v-no">1</span><div class="v-line">警官奥楚蔑洛夫穿着新的<span class="anno-word" data-note="沙皇警官的制服，权力的象征；全文穿脱四次，暗示态度变化">军大衣</span>，提着小包，穿过市场的广场。他身后跟着一个火红色头发的<span class="anno-word" data-note="沙皇警察制度中的低级警员，协助警官执法">巡警</span>，端着一个筛子，盛满了<span class="anno-word" data-note="把犯罪或违规的财物强制收归公有">没收</span>来的<span class="anno-word" data-note="（cù lì）俄国常见的浆果，味酸，可生食或制果酱">醋栗</span>。四下里一片沉静。广场上一个人也没有。商店和饭馆的门<span class="anno-word" data-note="形容不高兴、不振作，没有精神">无精打采</span>地<span class="anno-word" data-note="开着、打开着，不关闭">敞着</span>，面对着<span class="anno-word" data-note="反语，指当时黑暗的俄国社会">上帝创造的这个世界</span>，就跟许多<span class="anno-word" data-note="比喻商店饭馆敞着的门，既写经济凋敝，又暗示社会的吞噬性">饥饿的嘴巴</span>一样；门口连一个<span class="anno-word" data-note="靠乞讨为生的人">乞丐</span>也没有。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">警官奥楚蔑洛夫穿着新军大衣、提着小包穿过市场广场，身后跟着端醋栗的巡警；广场一片沉寂，商店饭馆的门无精打采地敞着，像饥饿的嘴巴，门口连乞丐也没有。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>开篇即交代主人公与环境。“新军大衣”是权力的象征——奥楚蔑洛夫穿着它招摇过市，而这件大衣将在全文中穿脱四次，成为他态度变化的“晴雨表”。“盛满了没收来的醋栗”的细节，暗示巡警以权谋私、鱼肉百姓。环境描写极为冷峻：“无精打采地敞着”“饥饿的嘴巴”“连一个乞丐也没有”——经济凋敝、民生困苦，一个死气沉沉的沙皇俄国社会跃然纸上。“上帝创造的这个世界”是反语，饱含对现实的讽刺。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第二部分</span><h3>案发 · 狗咬人</h3><span class="range">第 2–3 段</span></div>
+      <div class="part-overview">狗咬人事件爆发：赫留金追狗扑倒，人群迅速聚集；奥楚蔑洛夫走近查看，认出首饰匠赫留金和“罪犯”小猎狗。</div>
+      <div class="verse" id="l2" data-i="1">
+        <div class="v-top"><span class="v-no">2</span><div class="v-line">“<span class="anno-word" data-note="这里是反语，表示愤怒、斥责">好哇</span>，你咬人？<span class="anno-word" data-note="骂人的话，表示愤恨">该死的东西</span>！”奥楚蔑洛夫忽然听见叫喊声，“<span class="anno-word" data-note="对同伴的称呼，相当于_LQ_大伙儿_RQ_">伙计们</span>，别放走它！<span class="anno-word" data-note="这世道、这时候（含感叹意味）">这年月</span>，咬人可不行！<span class="anno-word" data-note="（dǎi）捉、捕，抓住">逮</span>住它！<span class="anno-word" data-note="叹词，表示痛苦或惊讶">哎哟</span>……<span class="anno-word" data-note="叹词，表示痛苦或惊讶">哎哟</span>！”传来了狗的<span class="anno-word" data-note="尖锐地叫">尖叫</span>声。奥楚蔑洛夫向那边<span class="anno-word" data-note="一看、瞥一眼">一瞧</span>，看见从商人彼楚金的<span class="anno-word" data-note="锯木厂、木材加工厂">木柴厂</span>里跑出来一条狗，用三条腿<span class="anno-word" data-note="一瘸一拐，走路不稳的样子">一颠一颠</span>地跑着，<span class="anno-word" data-note="不停地、一直">不住地</span><span class="anno-word" data-note="回头看">回头瞧</span>。它后边跟着追来一个人，穿着<span class="anno-word" data-note="用浆糊浸泡使布料硬挺">浆硬</span>的<span class="anno-word" data-note="印花布做的衬衫">花布衬衫</span>和<span class="anno-word" data-note="衣襟敞开，露出胸口">敞着怀</span>的<span class="anno-word" data-note="（kǎn jiān）不带袖子的上衣，背心">坎肩</span>。他追上狗，身子往前一<span class="anno-word" data-note="向前伸出（身体）">探</span>，<span class="anno-word" data-note="向前跌倒、扑到">扑倒</span>在地下，抓住了狗的<span class="anno-word" data-note="后面的腿">后腿</span>。又传来了狗的叫声，还有人的叫喊：“别放走它！”有人从商店里<span class="anno-word" data-note="从里面伸出头来看">探出头</span>来，脸上还带着<span class="anno-word" data-note="困倦想睡的感觉">睡意</span>。<span class="anno-word" data-note="锯木厂、木材加工厂">木柴厂</span>四周很快就聚了一群人，<span class="anno-word" data-note="好像、似乎">仿佛</span>一下子从<span class="anno-word" data-note="形容人出现得突然而迅速，像从地下冒出来一样">地底下钻出来</span>的。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫听见叫喊声，看见一条狗从木柴厂跑出来，用三条腿一颠一颠地跑；赫留金追上去扑倒狗，抓住后腿；人们从商店探出头，木柴厂四周很快聚了一群人。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>事件爆发，节奏骤然加快。狗“用三条腿一颠一颠地跑”——已被打伤，为后文“狗咬人”的真相（赫留金拿烟卷戳狗）埋下伏笔。赫留金“浆硬的花布衬衫”“敞着怀的坎肩”是小市民的典型装束。“仿佛一下子从地底下钻出来的”——围观群众出现得极快，写出了沙皇俄国社会“看客”的无聊与麻木：他们无事可做，一有热闹便蜂拥而至。“脸上还带着睡意”更见其生活的空虚。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l3" data-i="2">
+        <div class="v-top"><span class="v-no">3</span><div class="v-line">“好像<span class="anno-word" data-note="出了事、发生了纠纷">出乱子</span>了，<span class="anno-word" data-note="旧时对官员的尊称">长官</span>！”巡警说。奥楚蔑洛夫把身子<span class="anno-word" data-note="稍微、略微">微微</span>往左边一转，<span class="anno-word" data-note="抬脚向前走">迈步</span>往人群那边走过去。在木柴厂门口，他看见那个敞开了坎肩的人举起右手，把一个<span class="anno-word" data-note="形容鲜血不断流出的样子">血淋淋</span>的<span class="anno-word" data-note="手指">手指头</span>伸给人们看。他那<span class="anno-word" data-note="酒醉了一半，尚未全醉">半醉</span>的脸上现出这样的<span class="anno-word" data-note="神情、态度">神气</span>：“我要<span class="anno-word" data-note="骂人的话，意思是要狠狠教训你、扒你的皮">揭你的皮</span>，<span class="anno-word" data-note="骂人的话，指坏人">坏蛋</span>！”就连那<span class="anno-word" data-note="手指">手指头</span>也像是一面胜利的<span class="anno-word" data-note="旗子。这里比喻赫留金把受伤的手指当作炫耀和维权的标志">旗帜</span>。奥楚蔑洛夫认出这人是<span class="anno-word" data-note="制作金银首饰的工匠">首饰匠</span><span class="anno-word" data-note="人名音译（俄语意为_LQ_猪的呼噜声_RQ_，暗示其庸俗），不注释义">赫留金</span>。这个案子的“<span class="anno-word" data-note="有犯罪行为的人。加引号表示讽刺——狗并非真正的罪犯">罪犯</span>”呢，坐在人群中央的地上，前腿<span class="anno-word" data-note="分开、叉开">劈开</span>，<span class="anno-word" data-note="全身">浑身</span><span class="anno-word" data-note="因害怕或寒冷而身体颤动">发抖</span>——原来是一条白毛的小<span class="anno-word" data-note="用于打猎的狗，小猎狗是体型较小的猎犬品种">猎狗</span>，脸尖尖的，背上有块<span class="anno-word" data-note="黄色的斑点">黄斑</span>。它那<span class="anno-word" data-note="眼里含着泪水">含泪</span>的眼睛流露出<span class="anno-word" data-note="悲伤痛苦">悲苦</span>和<span class="anno-word" data-note="恐惧、害怕">恐怖</span>的神情。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">巡警报告出乱子，奥楚蔑洛夫走过去，看见赫留金举着血淋淋的手指头，神气像要“揭你的皮”，手指头像一面胜利的旗帜；“罪犯”是一条白毛小猎狗，坐在地上浑身发抖，眼神悲苦恐怖。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>这一段是“原告”与“被告”的首次“亮相”，对比极为鲜明。赫留金“血淋淋的手指头”“像是一面胜利的旗帜”——他把受伤当作维权的武器和炫耀的资本，小市民的庸俗与狡黠跃然纸上。“半醉的脸”暗示他可能酒后滋事。而“罪犯”加引号，本身就是讽刺：真正的罪犯不是狗，而是这个黑白颠倒的社会。小猎狗“浑身发抖”“含泪的眼睛”“悲苦和恐怖”——狗的无辜与恐惧，反衬出人的蛮横与虚伪。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第三部分</span><h3>告状 · 赫留金申诉</h3><span class="range">第 4–5 段</span></div>
+      <div class="part-overview">奥楚蔑洛夫询问案情，赫留金诉苦：自己好好走路被狗咬伤，要求赔偿，引用法律为自己辩护。</div>
+      <div class="verse" id="l4" data-i="3">
+        <div class="v-top"><span class="v-no">4</span><div class="v-line">“这儿到底出了什么事？”奥楚蔑洛夫<span class="anno-word" data-note="用力挤进去">挤进</span>人群里去，问道，“你在这儿干什么？你<span class="anno-word" data-note="到底、毕竟">究竟</span>为什么举着那个手指头？……谁在<span class="anno-word" data-note="喊叫、吵闹">嚷</span>？”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫挤进人群，连问三句：出了什么事、你在干什么、为什么举着手指头、谁在嚷。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>奥楚蔑洛夫的问话连用四个问句，摆出一副“秉公执法”的架势。“挤进人群”写其威严——他一来，人群自然让开。但这副公正的面具很快就会被撕下，此时的“严厉”与后文的“变色”形成强烈对比。省略号“……谁在嚷？”显示他装模作样、拖长声调的官腔。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l5" data-i="4">
+        <div class="v-top"><span class="v-no">5</span><div class="v-line">“长官，我好好地走我的路，<span class="anno-word" data-note="没有招惹任何人，形容安分守己">没招谁没惹谁</span>……”赫留金开口了，拿手<span class="anno-word" data-note="遮盖、捂住">罩</span>在嘴上，<span class="anno-word" data-note="喉部或气管受刺激而突然发声并吸气">咳嗽</span>一下，“我正在跟<span class="anno-word" data-note="人名音译，不注释义">密特里·密特里奇</span>谈木柴的事，忽然，这个<span class="anno-word" data-note="骂人的话，指卑鄙的牲畜。贱，卑鄙下贱；畜生，禽兽">贱畜生</span><span class="anno-word" data-note="没有任何原因或理由">无缘无故</span>就把这手指头咬了一口……您得<span class="anno-word" data-note="宽恕、谅解">原谅</span>我，我是<span class="anno-word" data-note="劳动者、靠手艺吃饭的人">做工的人</span>，我做的是<span class="anno-word" data-note="精细周密，不粗糙">细致</span>的活儿。这得叫他们<span class="anno-word" data-note="赔偿、补偿损失">赔</span>我<span class="anno-word" data-note="一笔款项">一笔钱</span>才成，因为也许我要有一个<span class="anno-word" data-note="星期（口语）">礼拜</span>不能用这个手指头啦……长官，就连<span class="anno-word" data-note="由国家制定或认可、靠强制力保证执行的行为规则">法律</span>上也没有那么一条，说是人受了<span class="anno-word" data-note="禽兽，这里骂狗">畜生</span>的害就该<span class="anno-word" data-note="忍受着、不反抗">忍着</span>。要是人人都这么让<span class="anno-word" data-note="禽兽，这里骂狗">畜生</span>乱咬一阵，那在这世界上也没个<span class="anno-word" data-note="活路、生活的出路和希望">活头</span>了。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">赫留金申诉：自己好好走路没招惹谁，正在跟人谈木柴的事，被这贱畜生无缘无故咬了手指；他是做工的人，做细致活儿，要求赔偿一笔钱，因为一个礼拜不能用手指；还引用法律说人受了畜生的害不该忍着。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>赫留金的告状写得极为精彩。“拿手罩在嘴上，咳嗽一下”——装腔作势，博取同情。“好好地走我的路，没招谁没惹谁”是他的自我辩护，但后文有人作证他拿烟卷戳狗脸，谎言不攻自破。“我是做工的人，我做的是细致的活儿”——以劳动者身份博取同情。“赔我一笔钱”才是他的真实目的：他不是要讨公道，而是要敲诈一笔。“就连法律上也没有那么一条”“现在大家都平等啦”（后文）——小市民也学会了用“法律”“平等”的话语为自己谋利，这本身就是对沙皇“法治”的讽刺。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第四部分</span><h3>初判 · 弄死野狗</h3><span class="range">第 6 段</span></div>
+      <div class="part-overview">奥楚蔑洛夫第一次判定：严厉表态，绝不轻易放过，要罚狗主人，命令巡警调查并弄死狗——此时他还不知道狗的主人是谁。</div>
+      <div class="verse" id="l6" data-i="5">
+        <div class="v-top"><span class="v-no">6</span><div class="v-line">“嗯！不错……”奥楚蔑洛夫<span class="anno-word" data-note="严肃而厉害，不宽容">严厉</span>地说，咳了一声，<span class="anno-word" data-note="皱起眉头，表示严肃、不悦或思考">拧起眉头</span>，“不错……这是谁家的狗？我绝不<span class="anno-word" data-note="随随便便、不慎重">轻易</span><span class="anno-word" data-note="宽恕、不加追究">放过</span>这件事！我要<span class="anno-word" data-note="口语，给点厉害看看，以示惩戒">拿点颜色出来</span>给那些放出狗来<span class="anno-word" data-note="到处乱跑、乱窜">到处乱跑</span>的人看看。那些<span class="anno-word" data-note="旧时对有地位、有身份的人的称呼">老爷</span>既然不愿意<span class="anno-word" data-note="依照规定行动，不违背">遵守</span><span class="anno-word" data-note="政权机关颁布的命令、指示等的统称">法令</span>，现在就得<span class="anno-word" data-note="管束、管教">管管</span>他们。等到他，那个<span class="anno-word" data-note="骂人的话，指不明事理、不讲道理的人">混蛋</span>，受了罚，拿出钱来，他才会知道放出这种狗来，放出这种野畜生来，会有什么<span class="anno-word" data-note="人的结局（多指不好的结局）">下场</span>。我要好好地<span class="anno-word" data-note="教育训诫，使对方改正错误">教训</span>他一顿！<span class="anno-word" data-note="人名音译，巡警的名字，不注释义">叶尔德林</span>，”警官对巡警说，“去<span class="anno-word" data-note="为了了解情况而进行考察">调查</span>一下，这是谁的狗，<span class="anno-word" data-note="写一份书面报告上报">打个报告</span>上来！这条狗呢，把它<span class="anno-word" data-note="弄死、处死（口语）">弄死</span>好了。马上去办，<span class="anno-word" data-note="不要拖延">别拖</span>！这<span class="anno-word" data-note="大概、很可能">多半</span>是条<span class="anno-word" data-note="患狂犬病的狗，比喻凶恶的人">疯狗</span>……请问，这到底是谁家的狗？”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫严厉表态：绝不轻易放过，要拿点颜色给放狗乱跑的人看，管管那些不遵守法令的老爷，等混蛋受了罚拿出钱来才知道下场；命令巡警叶尔德林去调查是谁家的狗、打报告上来，把狗弄死，别拖——多半是条疯狗。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>这是奥楚蔑洛夫的“原色”——在不知道狗主人身份时，他摆出一副公正严明、不畏权贵的架势。“严厉地说”“咳了一声”“拧起眉头”是官威的表演。“拿点颜色出来”“管管他们”“好好地教训他一顿”，语气强硬，仿佛真要为民做主。但注意他说“那些老爷既然不愿意遵守法令”——他嘴上说要管“老爷”，实际上一听到“将军”二字就立刻变色。“这多半是条疯狗”的判定，在不知道主人时是“疯狗”，知道主人后就变成“名贵的狗”“娇贵的动物”“伶俐的小狗”——对同一条狗的评价，随主人身份而变，这就是“变色龙”。结尾“请问，这到底是谁家的狗？”是全文的“扳机”，每一次回答都触发一次变色。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第五部分</span><h3>一变 · 将军家的狗</h3><span class="range">第 7–9 段</span></div>
+      <div class="part-overview">人群里有人说狗好像是席加洛夫将军家的。奥楚蔑洛夫立刻脱大衣、说天热，反咬赫留金敲诈；有人作证赫留金拿烟卷戳狗，赫留金辩解，奥楚蔑洛夫怒斥“少说废话”。</div>
+      <div class="verse" id="l7" data-i="6">
+        <div class="v-top"><span class="v-no">7</span><div class="v-line">“这好像是<span class="anno-word" data-note="人名音译，将军的姓，不注释义">席加洛夫</span><span class="anno-word" data-note="军衔，将官的统称；这里指有将军军衔的贵族，是权力的象征">将军</span>家的狗。”人群里有个人说。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">人群里有人说，这狗好像是席加洛夫将军家的。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>一句话，掀起全文第一次“变色”。这句话极短，却有千钧之力——“将军”二字就是权力的咒语，奥楚蔑洛夫的态度将因之瞬间翻转。说话人“人群里有个人”没有姓名，暗示这种“传话”在当时社会的普遍性：权力的信息通过小道消息传播，左右着执法者的判断。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l8" data-i="7">
+        <div class="v-top"><span class="v-no">8</span><div class="v-line">“席加洛夫将军？哦！……叶尔德林，帮我把大衣<span class="anno-word" data-note="取下、除去（衣物）">脱</span>下来……<span class="anno-word" data-note="口语，表示程度深，这里指热得厉害、难以忍受">真要命</span>，天这么热，<span class="anno-word" data-note="看起来、似乎">看样子</span><span class="anno-word" data-note="大概、大约">多半</span>要下雨了……只是有一件事我还不懂：它怎么会咬着你的？”奥楚蔑洛夫对赫留金说，“难道它<span class="anno-word" data-note="能够到、碰得到">够得着</span>你的手指头？它是那么小；你呢，却长得这么<span class="anno-word" data-note="（kuí wú）身体强壮高大">魁梧</span>！你那手指头一定是给<span class="anno-word" data-note="小的铁钉">小钉子</span><span class="anno-word" data-note="弄坏、刺破">弄破</span>的，后来却<span class="anno-word" data-note="形容想法离奇，不切实际">异想天开</span>，想得到一笔什么<span class="anno-word" data-note="赔偿损失的钱">赔偿费</span>了。你这种人啊……是<span class="anno-word" data-note="有名、著名（这里含贬义，指臭名远扬）">出了名</span>的！我可知道你们这些<span class="anno-word" data-note="骂人的话，指令人厌恶的人">鬼东西</span>是什么<span class="anno-word" data-note="东西、家伙（含轻蔑意味）">玩意儿</span>！”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫一听到将军的名字，立刻叫巡警帮他脱大衣，说天热要下雨；然后反咬赫留金：狗那么小够不着你的手指头，你长得这么魁梧，手指头一定是给小钉子弄破的，你异想天开想敲诈赔偿费，你们这种人是出了名的。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第一次变色，精彩绝伦。“席加洛夫将军？哦！……”——一个“哦”字，一个省略号，写尽了他的惊慌与转念。“帮我把大衣脱下来”是全文第一次脱大衣——不是因为天真热，而是因为心虚、冒汗，需要用脱大衣来掩饰态度的急转弯。“天这么热，看样子多半要下雨了”是拙劣的借口，前言不搭后语（热和下雨矛盾），恰恰暴露了他的慌乱。紧接着，对赫留金的态度从“受了害，我们绝不能不管”（后文）变成了“你异想天开，想得到一笔什么赔偿费”——受害者瞬间变成了敲诈者。“它是那么小；你呢，却长得这么魁梧”——同一条狗，刚才还是“疯狗”，现在就“那么小”了。对狗的评价和对人的态度，都随“将军”二字翻转。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l9" data-i="8">
+        <div class="v-top"><span class="v-no">9</span><div class="v-line">“长官，他本来是<span class="anno-word" data-note="用言语或行动戏弄人，不认真">开玩笑</span>，把<span class="anno-word" data-note="卷烟、香烟">烟卷</span><span class="anno-word" data-note="（chuō）用细长的东西向前触击、刺">戳</span>到狗的脸上去；狗呢——可<span class="anno-word" data-note="不愿意">不肯</span>做<span class="anno-word" data-note="智力低下、不明事理的人">傻瓜</span>，就咬了他一口……他是个<span class="anno-word" data-note="思想、言行错误到使人觉得奇怪的程度">荒唐</span>的家伙，长官！”“<span class="anno-word" data-note="瞎说、没有根据地乱说">胡说</span>，<span class="anno-word" data-note="骂人的话，指只有一只眼睛的人">独眼鬼</span>！你什么也没看见，你为什么<span class="anno-word" data-note="瞎说、没有根据地乱说">胡说</span>？他<span class="anno-word" data-note="对老年人或有身份的人的尊称，这里指奥楚蔑洛夫">老人家</span>是<span class="anno-word" data-note="懂事理、有见识的人">明白人</span>，看得出来到底谁<span class="anno-word" data-note="瞎说、没有根据地乱说">胡说</span>，谁像<span class="anno-word" data-note="在上帝面前（发誓用语），表示说真话">当着上帝的面</span>一样<span class="anno-word" data-note="凭着良心，本着良心">凭良心</span>说话；要是我说了谎，那就让<span class="anno-word" data-note="沙皇俄国的基层法官，处理轻微民事和刑事案件">调解法官</span><span class="anno-word" data-note="审讯、盘问">审问</span>我好了。他的法律上说得明白，现在大家都<span class="anno-word" data-note="人们在社会、政治、经济等方面享有同等权利">平等</span>啦。<span class="anno-word" data-note="不隐瞒、实话实说">不瞒</span>您说，我的兄弟就在当<span class="anno-word" data-note="某些国家的军事政治警察，权力很大">宪兵</span>……”“<span class="anno-word" data-note="不要说没用的话（怒斥语）">少说废话</span>！”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">有人作证赫留金拿烟卷戳狗脸，狗不肯做傻瓜就咬了他；赫留金骂证人独眼鬼胡说，说自己当着上帝的面凭良心说话，还引用法律说大家平等，兄弟当宪兵；奥楚蔑洛夫怒斥“少说废话”。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>这一段是小市民群像的精彩刻画。证人“把烟卷戳到狗的脸上去”揭穿了赫留金“无缘无故被咬”的谎言——原来他是咎由自取。赫留金的辩解更是可笑：“当着上帝的面一样凭良心说话”“现在大家都平等啦”“我的兄弟就在当宪兵”——他一会儿搬上帝，一会儿搬法律，一会儿搬当宪兵的兄弟，用尽一切可以利用的“权威”为自己撑腰，小市民的庸俗与狡黠暴露无遗。而奥楚蔑洛夫“少说废话”的怒斥，不是因为他查明了真相，而是因为他已经站到了“将军家的狗”一边——在权力面前，赫留金的“法律”“平等”“宪兵兄弟”全都不值一提。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第六部分</span><h3>二变 · 不是将军家的</h3><span class="range">第 10–11 段</span></div>
+      <div class="part-overview">巡警深思后说这不是将军家的狗，将军家全是大猎狗。奥楚蔑洛夫立刻骂狗是下贱胚子，说在彼得堡莫斯科一眨眼就叫它断气，又转而表示要为赫留金做主。</div>
+      <div class="verse" id="l10" data-i="9">
+        <div class="v-top"><span class="v-no">10</span><div class="v-line">“不对，这不是将军家里的狗……”巡警<span class="anno-word" data-note="深刻地思考、认真地考虑">深思</span>地说，“将军家里没有这样的狗。他家的狗，全是<span class="anno-word" data-note="大型的猎犬，体型较大">大猎狗</span>。”“你<span class="anno-word" data-note="有把握、确信">拿得准</span>吗？”“<span class="anno-word" data-note="有把握、确信">拿得准</span>，长官。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">巡警深思后说这不是将军家的狗，将军家全是大猎狗；奥楚蔑洛夫追问“你拿得准吗”，巡警确认“拿得准”。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第二次变色的“触发器”。巡警“深思地说”——他也在揣摩上意，不敢轻易表态。“全是大猎狗”是他的判断依据。奥楚蔑洛夫“你拿得准吗？”的追问，暴露了他的忐忑：他既怕得罪将军，又怕错放了“野狗”。巡警的“拿得准，长官”给了他“变色”的底气——但这份“准”很快又被下一句话推翻，形成又一次翻转。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l11" data-i="10">
+        <div class="v-top"><span class="v-no">11</span><div class="v-line">“我也知道。将军家里都是些<span class="anno-word" data-note="著名而且珍贵">名贵</span>的、<span class="anno-word" data-note="指血统纯正的动物品种">纯种</span>的狗；这条狗呢，<span class="anno-word" data-note="口语，谁也不知道、只有鬼才知道">鬼才知道</span>是什么玩意儿！<span class="anno-word" data-note="动物皮毛的颜色">毛色</span>既不好，<span class="anno-word" data-note="人的长相或物的样子。模，mú，不读 mó">模样</span>也<span class="anno-word" data-note="不好看、不美观（口语）">不中看</span>，完全是个下贱胚子。<span class="anno-word" data-note="竟然，表示出乎意料">居然</span>有人养这种狗！这人的<span class="anno-word" data-note="脑筋、思考能力">脑子</span><span class="anno-word" data-note="到哪里去了，这里指没长脑子、愚蠢">上哪儿去啦</span>？要是这样的狗在<span class="anno-word" data-note="即圣彼得堡，当时俄国的首都，现名圣彼得堡">彼得堡</span>或者<span class="anno-word" data-note="俄国城市，现俄罗斯首都">莫斯科</span>让人<span class="anno-word" data-note="遇到、遇见">碰见</span>，你们猜猜看，结果会怎样？那儿的人可不管什么法律不法律，<span class="anno-word" data-note="形容时间极短，瞬间">一眨眼</span>的工夫就叫它<span class="anno-word" data-note="死了、停止呼吸">断了气</span>！你呢，赫留金，受了害，我们<span class="anno-word" data-note="绝对不能不管，一定要管">绝不能不管</span>。得好好<span class="anno-word" data-note="教育训诫、惩戒">教训</span>他们一下！<span class="anno-word" data-note="到时候了、该采取行动了">是时候了</span>。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫骂这条狗：鬼才知道是什么玩意儿，毛色不好模样不中看，完全是下贱胚子，居然有人养这种狗；说在彼得堡或莫斯科，人不管什么法律，一眨眼就叫它断气；又对赫留金说受了害绝不能不管，得好好教训他们一下。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第二次变色，奥楚蔑洛夫从“脱大衣”的谄媚变回“严厉”。对同一条狗的评价，从“那么小”（可怜）变成“下贱胚子”（可憎）——“毛色既不好，模样也不中看”，刚才怎么没看出来？“鬼才知道是什么玩意儿”“这人的脑子上哪儿去啦”，骂得痛快淋漓。“彼得堡或者莫斯科”“不管什么法律不法律，一眨眼的工夫就叫它断了气”——表面是骂狗，实则暴露了沙皇俄国“法律”的虚伪：在首都，权贵可以随意处死一条狗而不受法律约束。而“你呢，赫留金，受了害，我们绝不能不管”——刚才还骂赫留金“异想天开”“敲诈”，现在又成了“受了害”的受害者。同一个人，同一件事，评价随狗的主人身份而变，这就是“变色龙”的本质。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第七部分</span><h3>三变 · 可能是将军家的</h3><span class="range">第 12–13 段</span></div>
+      <div class="part-overview">巡警又说也说不定就是将军家的狗，前几天在将军家院子里见过。奥楚蔑洛夫立刻穿大衣、说天冷，叫人把狗送到将军家，夸狗娇贵，骂赫留金蠢。</div>
+      <div class="verse" id="l12" data-i="11">
+        <div class="v-top"><span class="v-no">12</span><div class="v-line">“不过也<span class="anno-word" data-note="也许、可能、拿不准">说不定</span>就是将军家的狗……”巡警把他的想法说出来，“它的<span class="anno-word" data-note="口语，意思是狗的主人是谁不会写在狗脸上，无法从外表判断">脸上又没写着</span>……<span class="anno-word" data-note="几天前">前几天</span>我在将军家<span class="anno-word" data-note="房屋前后用墙或栅栏围起来的空地">院子</span>里看见过这样的一条狗。”“<span class="anno-word" data-note="没错、确实如此（口语）">没错儿</span>，将军家的！”人群里有人说。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">巡警又说也说不定就是将军家的狗，狗脸上又没写着，前几天在将军家院子里见过这样的狗；人群里有人附和“没错儿，将军家的”。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第三次变色的“触发器”。巡警“把他的想法说出来”——他刚才还“拿得准”说不是，现在又“说不定”说是，出尔反尔，比奥楚蔑洛夫好不了多少。“它的脸上又没写着”是一句绝妙的话：狗的身份无法从外表判断，全靠人说了算——这正是沙皇俄国社会的写照：是非曲直不看事实，只看权力归属。人群里有人“没错儿，将军家的”附和，看客们也在“变色”，他们的判断同样随风倒。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l13" data-i="12">
+        <div class="v-top"><span class="v-no">13</span><div class="v-line">“哦！……叶尔德林<span class="anno-word" data-note="对同辈中年轻者的亲切称呼">老弟</span>，给我<span class="anno-word" data-note="把衣服套在身上">穿上</span>大衣吧……好像<span class="anno-word" data-note="刮起风来了">起风了</span>，<span class="anno-word" data-note="很冷、相当冷">挺冷</span>……你把这条狗带到将军家里去，<span class="anno-word" data-note="问明白、问个究竟">问问清楚</span>。<span class="anno-word" data-note="就告诉、就说">就说</span>这狗是我<span class="anno-word" data-note="找到（口语）">找着</span>，<span class="anno-word" data-note="派人送去">派人送上</span>的。告诉他们别再把狗<span class="anno-word" data-note="放到大街上、放到外面">放到街上来</span>了。说不定这是条<span class="anno-word" data-note="著名而珍贵">名贵</span>的狗；可要是每个猪崽子都拿烟卷戳到它的<span class="anno-word" data-note="人和动物的嗅觉器官">鼻子</span>上去，那它<span class="anno-word" data-note="早就被毁了、早就完蛋了">早就毁了</span>。狗是<span class="anno-word" data-note="看得贵重、过分爱护，不容受委屈">娇贵</span>的动物……你这<span class="anno-word" data-note="骂人的话，指不明事理的人">混蛋</span>，把手放下来！不用把你那<span class="anno-word" data-note="愚笨、不聪明">蠢</span>手指头伸出来！<span class="anno-word" data-note="都怪你自己不好、责任在你">怪你自己不好</span>！……”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫叫巡警给他穿上大衣，说起风了挺冷；叫人把狗送到将军家，说狗是他找着派人送上的，叫他们别再放狗上街；说这说不定是条名贵的狗，要是每个猪崽子都拿烟卷戳它鼻子，它早就毁了，狗是娇贵的动物；又骂赫留金混蛋，叫他放下蠢手指头，怪他自己不好。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第三次变色，奥楚蔑洛夫“穿上大衣”——全文第二次穿大衣（第二次与大衣相关的动作）。刚才还“天热”脱大衣，现在又“起风了，挺冷”穿大衣，天气的变化全凭他的态度决定。“就说这狗是我找着，派人送上的”——他要抢功，把“没收“狗变成“送还”狗，向将军献媚。对狗的评价又变了：刚才还是“下贱胚子”，现在是“名贵的狗”“娇贵的动物”。对赫留金的态度也变了：刚才还“受了害，我们绝不能不管”，现在是“你这混蛋”“蠢手指头”“怪你自己不好”。“手指头”从“胜利的旗帜”变成了“蠢手指头”——同一个手指，评价随权力翻转。“猪崽子”骂赫留金，而“娇贵的动物”夸狗——在奥楚蔑洛夫的价值排序里，将军家的狗比一个首饰匠高贵得多。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第八部分</span><h3>四变 · 野狗</h3><span class="range">第 14–16 段</span></div>
+      <div class="part-overview">将军家的厨师普洛诃尔来了，说他们那儿从来没有这样的狗。奥楚蔑洛夫立刻判定这是野狗，弄死它算了。</div>
+      <div class="verse" id="l14" data-i="13">
+        <div class="v-top"><span class="v-no">14</span><div class="v-line">“将军家的<span class="anno-word" data-note="长于烹调、在厨房工作的人">厨师</span>来了，问他好了——喂，<span class="anno-word" data-note="人名音译，将军家厨师的名字，不注释义">普洛诃尔</span>！过来吧，<span class="anno-word" data-note="对男性的亲切称呼">老兄</span>，上这儿来！<span class="anno-word" data-note="看看、看一看">瞧瞧</span>这条狗，是你们家的吗？”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫看见将军家的厨师来了，叫普洛诃尔过来瞧瞧这条狗是不是他们家的。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>厨师的出现是全文的“终审”——他是将军家的人，他的话最有权威。奥楚蔑洛夫“喂，普洛诃尔！过来吧，老兄”——对将军家的厨师也用“老兄”称呼，极尽笼络之能事。“瞧瞧这条狗，是你们家的吗？”他把最终判定权交给了厨师，因为在沙皇俄国，“是谁家的狗”比“狗咬了谁”更重要。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l15" data-i="14">
+        <div class="v-top"><span class="v-no">15</span><div class="v-line">“<span class="anno-word" data-note="胡乱猜测、没有根据地猜">瞎猜</span>！我们那儿<span class="anno-word" data-note="从过去到现在一直、向来">从来</span>没有这样的狗！”“那就<span class="anno-word" data-note="不需要、没必要">用不着</span><span class="anno-word" data-note="白白浪费时间和精力">白费工夫</span>再上那儿去问了，”奥楚蔑洛夫说，“这是条<span class="anno-word" data-note="没有主人的狗、流浪狗">野狗</span>！<span class="anno-word" data-note="不需要、没必要">用不着</span><span class="anno-word" data-note="白白浪费时间和精力">白费工夫</span><span class="anno-word" data-note="说不切实际的话、说废话">说空话</span>了。<span class="anno-word" data-note="连词，用在上半句，表示先提出前提，后加以推论">既然</span>普洛诃尔说这是<span class="anno-word" data-note="没有主人的狗、流浪狗">野狗</span>，那它就是<span class="anno-word" data-note="没有主人的狗、流浪狗">野狗</span>。<span class="anno-word" data-note="把它弄死就算了（语气轻描淡写）">弄死它算了</span>。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">厨师说他们那儿从来没有这样的狗；奥楚蔑洛夫说用不着白费工夫再去问了，这是条野狗，既然普洛诃尔说这是野狗那它就是野狗，弄死它算了。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第四次变色。厨师一句“我们那儿从来没有这样的狗”，奥楚蔑洛夫立刻从“名贵的狗”“娇贵的动物”变回“野狗”。“既然普洛诃尔说这是野狗，那它就是野狗”——这是全文最荒诞的一句话：事实不重要，权威说什么就是什么。“野狗”的判定不需要证据，不需要调查，只需要“普洛诃尔说”。这正是沙皇专制制度“权大于法”的本质：法律和事实在权力面前一文不值。“弄死它算了”的语气轻描淡写，一条生命的存亡只在一句话之间。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第九部分</span><h3>五变 · 将军哥哥的狗</h3><span class="range">第 17–18 段</span></div>
+      <div class="part-overview">厨师接着说这是将军哥哥的狗，哥哥前几天才来，喜欢小猎狗。奥楚蔑洛夫满脸含笑温情，夸狗伶俐，甚至学狗叫逗狗。</div>
+      <div class="verse" id="l16" data-i="15">
+        <div class="v-top"><span class="v-no">16</span><div class="v-line">“这不是我们的狗，”普洛诃尔<span class="anno-word" data-note="连着、继续（说话）">接着</span>说，“这是将军的<span class="anno-word" data-note="兄长，同父母或同辈中年纪比自己大的男子">哥哥</span>的狗。他<span class="anno-word" data-note="兄长，同父母或同辈中年纪比自己大的男子">哥哥</span>是<span class="anno-word" data-note="几天前">前几天</span><span class="anno-word" data-note="刚刚到达">才到</span>这儿来的。我们将军不<span class="anno-word" data-note="对人或事物有好感">喜欢</span>这种小猎狗，他<span class="anno-word" data-note="兄长，同父母或同辈中年纪比自己大的男子">哥哥</span><span class="anno-word" data-note="表示转折，反而、倒">却</span><span class="anno-word" data-note="对人或事物有好感">喜欢</span>。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">普洛诃尔接着说这不是将军的狗，而是将军的哥哥的狗；哥哥前几天才到这儿来，将军不喜欢这种小猎狗，哥哥却喜欢。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第五次变色的“触发器”，也是全文最大的反转。“将军的哥哥的狗”——虽然不是将军本人的狗，但将军的哥哥同样是权贵，而且“前几天才到这儿来”，是贵客。厨师的话层层递进：先否定“我们的狗”，再肯定“将军的哥哥的狗”，把奥楚蔑洛夫刚刚“弄死它算了”的判定彻底推翻。这个情节的讽刺意味在于：狗的主人从“将军”变成“将军的哥哥”，身份更模糊了，但权力的威压丝毫未减——只要跟“将军”沾亲带故，就足以让一个警官变色。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l17" data-i="16">
+        <div class="v-top"><span class="v-no">17</span><div class="v-line">“他哥哥来啦？是<span class="anno-word" data-note="人名音译，将军哥哥的名字，不注释义">乌拉吉米尔·伊凡尼奇</span>吗？”奥楚蔑洛夫问，整个脸上<span class="anno-word" data-note="（yáng yì）情绪、气氛等充分流露">洋溢</span>着<span class="anno-word" data-note="带着笑容的温柔情感">含笑的温情</span>，“<span class="anno-word" data-note="叹词，表示惊讶或感叹">哎呀，天</span>！我还不知道呢！他是上这儿来<span class="anno-word" data-note="住一段时间">住一阵</span>就走吗？”“是来<span class="anno-word" data-note="住一段时间">住一阵</span>的。”“<span class="anno-word" data-note="叹词，表示惊讶或感叹">哎呀，天</span>！他是<span class="anno-word" data-note="心里老想着、挂念">惦记</span>他的<span class="anno-word" data-note="哥哥和弟弟，这里指将军">兄弟</span>了……可我还不知道呢！这么说，这是<span class="anno-word" data-note="对长辈或尊者的尊称">他老人家</span>的狗？<span class="anno-word" data-note="非常高兴">高兴得很</span>……把它带走吧。这小狗还<span class="anno-word" data-note="不错、挺好（口语）">不赖</span>，怪<span class="anno-word" data-note="（líng lì）聪明、灵活">伶俐</span>的，一口就咬破了<span class="anno-word" data-note="指赫留金（含轻蔑意味）">这家伙</span>的手指头！<span class="anno-word" data-note="笑声">哈哈哈</span>……<span class="anno-word" data-note="行了、算了（口语）">得了</span>，你干什么<span class="anno-word" data-note="因害怕或寒冷而身体颤动">发抖</span>呀？<span class="anno-word" data-note="模仿狗的叫声">呜呜</span>……<span class="anno-word" data-note="模仿狗的叫声">呜呜</span>……这<span class="anno-word" data-note="这里指狗（亲昵的骂法）">坏蛋</span><span class="anno-word" data-note="因不合心意而不愉快">生气</span>了……好一条小狗……”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫问是不是乌拉吉米尔·伊凡尼奇，整个脸上洋溢着含笑的温情；哎呀天，他还不知道，问是来住一阵就走吗；得知后说他惦记兄弟，这是他老人家的狗，高兴得很，叫把狗带走；夸小狗不赖、怪伶俐，一口就咬破了这家伙的手指头，哈哈哈；还学狗叫“呜呜”逗狗，说这坏蛋生气了，好一条小狗。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第五次变色，也是最无耻的一次。“整个脸上洋溢着含笑的温情”——刚才还“严厉”“拧起眉头”，现在满脸温情，变脸之快令人咋舌。“哎呀，天！我还不知道呢！”重复两次，夸张地表现惊喜与谄媚。“他老人家的狗”“高兴得很”——对一条狗的主人如此卑躬屈膝。对狗的评价达到顶峰：“还不赖”“怪伶俐的”“好一条小狗”——同一条狗，从“疯狗”“下贱胚子”“野狗”变成了“伶俐的小狗”。最荒诞的是“一口就咬破了这家伙的手指头！哈哈哈”——狗咬人居然成了值得夸奖的事，受害者赫留金成了“这家伙”。“呜呜……呜呜……这坏蛋生气了”——奥楚蔑洛夫居然学狗叫逗狗，一个警官的尊严荡然无存。这一幕把“媚上”写到了极致。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第十部分</span><h3>结尾 · 裹紧大衣</h3><span class="range">第 19–20 段</span></div>
+      <div class="part-overview">厨师带走狗，人群对着赫留金哈哈大笑。奥楚蔑洛夫恐吓赫留金“我早晚要收拾你”，裹紧大衣穿过广场径自走了。</div>
+      <div class="verse" id="l18" data-i="17">
+        <div class="v-top"><span class="v-no">18</span><div class="v-line">普洛诃尔<span class="anno-word" data-note="叫一声">喊一声</span>那条狗的<span class="anno-word" data-note="人或事物的名称">名字</span>，<span class="anno-word" data-note="领着、牵着">带着</span>它从木柴厂走了。<span class="anno-word" data-note="那一群围观的人">那群人</span>就<span class="anno-word" data-note="面向着">对着</span>赫留金<span class="anno-word" data-note="形容开怀大笑的样子">哈哈大笑</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">普洛诃尔喊了一声狗的名字，带着狗从木柴厂走了；那群围观的人就对着赫留金哈哈大笑。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>事件结束，狗被带走，而受害者赫留金成了被嘲笑的对象。“那群人就对着赫留金哈哈大笑”——看客们的“笑”是麻木的、残忍的。他们从头到尾没有判断是非，只是看热闹：一会儿附和“将军家的”，一会儿围观警官变色，最后嘲笑受害者。这“哈哈大笑”与《孔乙己》中酒客的哄笑异曲同工——都是看客文化的体现。在沙皇专制社会里，普通人既无力反抗权力，便以嘲笑更弱者为乐。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l19" data-i="18">
+        <div class="v-top"><span class="v-no">19</span><div class="v-line">“我<span class="anno-word" data-note="迟早、总有一天">早晚</span>要<span class="anno-word" data-note="整治、惩罚（口语）">收拾</span>你！”奥楚蔑洛夫向他<span class="anno-word" data-note="（kǒng hè）以要挟的话或手段威胁人。吓，hè，不读 xià">恐吓</span>说，<span class="anno-word" data-note="缠绕包扎得很紧，这里指把大衣裹严实">裹紧</span>大衣，接着<span class="anno-word" data-note="从一个地方经过到另一个地方">穿过</span>市场的<span class="anno-word" data-note="面积广阔的场地，多指城市中的公共场地">广场</span><span class="anno-word" data-note="表示自己直接行动，不顾及他人。径，jìng">径自</span>走了。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">奥楚蔑洛夫恐吓赫留金“我早晚要收拾你”，裹紧大衣，穿过市场广场径自走了。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>结尾余味无穷。“我早晚要收拾你”——奥楚蔑洛夫在将军家的狗面前卑躬屈膝，却对一个受害者发出恐吓，“媚上欺下”的本质暴露无遗。他不敢得罪将军，却可以随意欺压一个小市民。“裹紧大衣”是全文第四次与大衣相关的动作（脱→穿→裹紧），大衣从“新的”到“裹紧”，象征着他重新裹紧权力的外壳，恢复警官的威严。“径自走了”——他扬长而去，留下赫留金在人群的嘲笑中，案件不了了之。正义没有得到伸张，法律没有被执行，只有权力的意志在广场上回荡。这个结尾冷峻而深刻，与开篇“四下里一片沉静”形成呼应：一切归于沉寂，仿佛什么都没有发生过，但社会的病态已经暴露无遗。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">人物 · 艺术 · 名句</span></div>
+  <div class="box">
+    <h3>人物形象</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">奥楚蔑洛夫 —— 见风使舵的沙皇走狗</div>
+        <p>奥楚蔑洛夫是小说的主人公，一个沙皇俄国的警官。他的核心性格是“变色龙”式的见风使舵：在处理狗咬人案件时，随着“狗的主人是谁”这一信息的变化，态度前后翻转六次——不知道主人时是“疯狗”要弄死，听说将军家的就脱大衣反咬受害者，听说不是将军家的就骂狗下贱胚子，听说可能是将军家的就穿大衣夸狗娇贵，听说不是将军的就说是野狗弄死，听说将军哥哥的就满脸温情夸狗伶俐。他媚上欺下：对将军家的狗学狗叫逗乐，对受害者赫留金却恐吓“我早晚要收拾你”。军大衣的穿脱四次是他内心变化的“晴雨表”。奥楚蔑洛夫不是个别人，而是沙皇专制制度下整个官场病态的缩影。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">赫留金 —— 庸俗不幸的小市民</div>
+        <p>赫留金是一个首饰匠，被狗咬伤的“受害者”。他的形象具有两面性：一方面，他是沙皇专制社会的底层受害者，被狗咬了无人主持公道，最后还被人群嘲笑；另一方面，他又庸俗狡黠——拿烟卷戳狗脸自取其祸，却谎称“无缘无故被咬”，张口就要“赔我一笔钱”，还搬出“法律”“平等”“当宪兵的兄弟”为自己撑腰。他把受伤的手指头当作“胜利的旗帜”炫耀，小市民的庸俗与不幸集于一身。他既是被压迫者，又是压迫者的“后备军”——一旦有机会，他也会像奥楚蔑洛夫一样媚上欺下。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">围观群众 —— 麻木无聊的看客</div>
+        <p>木柴厂四周“一下子从地底下钻出来”的围观群众，是一群麻木的看客。他们“脸上还带着睡意”，生活空虚无聊，一有热闹就蜂拥而至。他们没有是非判断：一会儿附和“没错儿，将军家的”，一会儿围观警官变色，最后“对着赫留金哈哈大笑”。他们的“笑”是残忍的、麻木的——受害者的不幸成了他们的消遣。这群人与《孔乙己》中的酒客、《药》中的看客一脉相承，是契诃夫和鲁迅共同批判的“看客文化”的体现。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">巡警叶尔德林 —— 同样变色的随从</div>
+        <p>巡警叶尔德林是奥楚蔑洛夫的随从，火红色头发，端着“盛满了没收来的醋栗”的筛子。他同样是“变色龙”：先说“不对，这不是将军家里的狗”“拿得准”，转头又说“不过也说不定就是将军家的狗”。他的出尔反尔说明“变色”不是奥楚蔑洛夫一个人的毛病，而是整个沙皇警察体制的通病。“没收来的醋栗”的细节暗示他也以权谋私，是腐败警察制度的一部分。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>艺术特色</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">讽刺手法：夸张与对比</div>
+        <p>讽刺是这篇小说的灵魂。奥楚蔑洛夫在短短几分钟内态度翻转六次，对同一条狗的评价从“疯狗”“下贱胚子”“野狗”到“名贵的狗”“娇贵的动物”“伶俐的小狗”，夸张到了荒诞的地步。对比手法贯穿全文：受害者与“罪犯”的对比（赫留金的“血淋淋”与狗的“悲苦恐怖”）、对狗的评价前后对比、对赫留金的态度前后对比、军大衣穿脱的对比。夸张与对比共同制造出强烈的喜剧效果，而喜剧的外壳下是深刻的悲剧内核。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">细节描写：军大衣的穿脱四次</div>
+        <p>军大衣是全文最精妙的细节线索。奥楚蔑洛夫出场时“穿着新的军大衣”——权力的象征；第一次变色时“帮我把大衣脱下来”（天热）——掩饰心虚；第三次变色时“给我穿上大衣吧”（天冷）——重新披上权力的外壳；结尾“裹紧大衣”——恢复威严，扬长而去。大衣的穿脱四次，与态度的六次变化交织，成为人物内心活动的“晴雨表”。天气的“热”与“冷”全凭他的态度决定，前言不搭后语的借口（“天这么热，看样子多半要下雨了”）恰恰暴露了他的慌乱。一个道具，写尽了一个灵魂。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">以小见大：一条狗的案子折射一个时代</div>
+        <p>小说的全部情节只是一个警官处理“狗咬人”的小案件，人物只有寥寥数个，场景只在一个市场广场。然而就在这极小的篇幅里，契诃夫写出了沙皇专制社会的全貌：警察制度的虚伪与反动、官场的媚上欺下、小市民的庸俗麻木、法律的形同虚设、权力的蛮横霸道。一条狗的案子，折射出一个时代的病态。这种“以小见大”的手法，是契诃夫短篇小说的精髓——他总是从最平凡的日常生活中，发掘出最深刻的社会悲剧。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">对话推动情节：六次问答六次变色</div>
+        <p>小说几乎全部由对话构成，情节的推进完全靠对话中“狗的主人是谁”这一信息的变化。每一次关于狗主人的回答（“好像是将军家的”→“不是将军家的”→“说不定就是将军家的”→“我们那儿从来没有这样的狗”→“这是将军的哥哥的狗”），都触发奥楚蔑洛夫一次“变色”。对话不仅推动情节，更是刻画人物的主要手段：奥楚蔑洛夫的语言前倨后恭、出尔反尔；赫留金的语言庸俗狡黠、搬弄权威；巡警的语言模棱两可、出尔反尔。什么人说什么话，语言即性格。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">喜剧性与悲剧性结合</div>
+        <p>小说的表层是喜剧：奥楚蔑洛夫的六次变色荒诞可笑，脱大衣穿大衣的借口拙劣可笑，学狗叫逗狗的场面令人捧腹。但喜剧的外壳下是深刻的悲剧：一个警官可以如此随意地践踏法律与正义，一个受害者可以如此被嘲笑和恐吓，一个社会可以如此黑白颠倒。读者在发笑的同时，会感到一种彻骨的寒冷——这就是契诃夫式的“含泪的笑”。喜剧性与悲剧性的完美结合，使这篇小说超越了一般的讽刺小品，成为世界文学的经典。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>名句赏析</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">商店和饭馆的门无精打采地敞着，面对着上帝创造的这个世界，就跟许多饥饿的嘴巴一样。</div>
+        <p>开篇的环境描写，极为冷峻。“无精打采”拟人化，写出经济凋敝下店铺的死气沉沉。“上帝创造的这个世界”是反语，饱含对黑暗现实的讽刺。“饥饿的嘴巴”的比喻尤为精彩：敞着的门像一张张饥饿的嘴，既写店铺的萧条（没有顾客上门），又暗示这个社会本身就是一个吞噬一切的“饥饿的嘴巴”。一句话，写尽了沙皇俄国社会的贫困与压抑。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">就连那手指头也像是一面胜利的旗帜。</div>
+        <p>赫留金把被咬伤的手指头伸给人们看，作者说它“像是一面胜利的旗帜”。这个比喻辛辣而精准：赫留金不是在展示伤口，而是在炫耀“维权的资本”——他指望用这个伤口敲诈一笔赔偿费。“胜利的旗帜”与他“半醉的脸”“我要揭你的皮”的神气相呼应，活画出一个小市民的庸俗与狡黠。而在后文，这根手指又被奥楚蔑洛夫骂作“蠢手指头”——从“旗帜”到“蠢手指头”，同一个事物的评价随权力翻转，本身就是讽刺。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">既然普洛诃尔说这是野狗，那它就是野狗。</div>
+        <p>全文最荒诞的一句话。奥楚蔑洛夫不需要证据，不需要调查，只因为“普洛诃尔说”，就判定“那它就是野狗”。这句话赤裸裸地暴露了沙皇专制制度“权大于法”的本质：在权力面前，事实和法律都不重要，权威说什么就是什么。“既然……那……”的句式，把这种荒诞的逻辑表现得理直气壮，令人不寒而栗。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">这小狗还不赖，怪伶俐的，一口就咬破了这家伙的手指头！哈哈哈……</div>
+        <p>奥楚蔑洛夫得知狗是将军哥哥的之后，对狗的赞美达到了顶峰。“还不赖”“怪伶俐的”“好一条小狗”——同一条狗，之前还是“疯狗”“下贱胚子”“野狗”。最荒诞的是“一口就咬破了这家伙的手指头！哈哈哈”——狗咬人居然成了值得夸奖的事，受害者成了“这家伙”。“哈哈哈”的笑声里，是一个警官尊严的彻底丧失，也是权力对正义的彻底践踏。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">“我早晚要收拾你！”奥楚蔑洛夫向他恐吓说，裹紧大衣，接着穿过市场的广场径自走了。</div>
+        <p>结尾的“收拾”与“裹紧”“径自”三个动词，写尽了奥楚蔑洛夫的“媚上欺下”。他在将军家的狗面前学狗叫、满脸温情，对一个受害者却发出“我早晚要收拾你”的恐吓。“裹紧大衣”是全文第四次大衣动作——重新裹紧权力的外壳，恢复警官的威严。“径自走了”——扬长而去，案件不了了之。正义没有伸张，法律没有执行，只有权力的意志在广场上回荡。冷峻的结尾，与开篇“四下里一片沉静”形成呼应，余味无穷。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>《变色龙》通过警官奥楚蔑洛夫处理“狗咬人”案件时态度的六次变化，深刻批判了沙皇专制制度下警察制度的虚伪与反动，揭露了见风使舵、趋炎附势的官场病态，反映了小市民的庸俗与不幸，以及整个社会的麻木与冷漠。</p>
+    <p style="margin-top:10px">《变色龙》的讽刺不止于奥楚蔑洛夫一个人。巡警的出尔反尔、围观群众的随声附和与麻木嘲笑、赫留金的庸俗狡黠，共同构成了一个“变色”的社会——在沙皇专制制度下，几乎所有人都在根据权力的风向调整自己的立场和态度。“变色龙”不是一个人的病，而是一个时代的病。契诃夫以极冷静的笔触，写出了一个社会对正义和尊严的吞噬——最可怕的不是一个警官的无耻，而是所有人都对此习以为常，甚至以此为乐。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">词语 · 修辞 · 写法</span></div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">无精打采</span><span class="acc-d">形容不高兴、不振作，没有精神。“商店和饭馆的门无精打采地敞着”。</span></div>
+      <div class="acc-item"><span class="acc-w">醋栗(cù lì)</span><span class="acc-d">俄国常见的浆果，味酸，可生食或制果酱。“盛满了没收来的醋栗”。</span></div>
+      <div class="acc-item"><span class="acc-w">坎肩(kǎn jiān)</span><span class="acc-d">不带袖子的上衣，背心。“穿着浆硬的花布衬衫和敞着怀的坎肩”。</span></div>
+      <div class="acc-item"><span class="acc-w">魁梧(kuí wú)</span><span class="acc-d">身体强壮高大。“你呢，却长得这么魁梧”。</span></div>
+      <div class="acc-item"><span class="acc-w">戳(chuō)</span><span class="acc-d">用细长的东西向前触击、刺。“把烟卷戳到狗的脸上去”。</span></div>
+      <div class="acc-item"><span class="acc-w">异想天开</span><span class="acc-d">形容想法离奇，不切实际。“后来却异想天开，想得到一笔什么赔偿费了”。</span></div>
+      <div class="acc-item"><span class="acc-w">荒唐</span><span class="acc-d">思想、言行错误到使人觉得奇怪的程度。“他是个荒唐的家伙”。</span></div>
+      <div class="acc-item"><span class="acc-w">下贱胚(pēi)子</span><span class="acc-d">骂人的话，指卑贱的人或动物。胚子，人的质地、品性。“完全是个下贱胚子”。</span></div>
+      <div class="acc-item"><span class="acc-w">名贵</span><span class="acc-d">著名而且珍贵。“将军家里都是些名贵的、纯种的狗”。</span></div>
+      <div class="acc-item"><span class="acc-w">娇贵</span><span class="acc-d">看得贵重、过分爱护，不容受委屈。“狗是娇贵的动物”。</span></div>
+      <div class="acc-item"><span class="acc-w">伶俐(líng lì)</span><span class="acc-d">聪明、灵活。“这小狗还不赖，怪伶俐的”。</span></div>
+      <div class="acc-item"><span class="acc-w">洋溢(yáng yì)</span><span class="acc-d">情绪、气氛等充分流露。“整个脸上洋溢着含笑的温情”。</span></div>
+      <div class="acc-item"><span class="acc-w">恐吓(kǒng hè)</span><span class="acc-d">以要挟的话或手段威胁人。吓，hè，不读 xià。“奥楚蔑洛夫向他恐吓说”。</span></div>
+      <div class="acc-item"><span class="acc-w">径自</span><span class="acc-d">表示自己直接行动，不顾及他人。径，jìng。“接着穿过市场的广场径自走了”。</span></div>
+      <div class="acc-item"><span class="acc-w">悲苦</span><span class="acc-d">悲伤痛苦。“它那含泪的眼睛流露出悲苦和恐怖的神情”。</span></div>
+      <div class="acc-item"><span class="acc-w">恐怖</span><span class="acc-d">恐惧、害怕。“流露出悲苦和恐怖的神情”。</span></div>
+      <div class="acc-item"><span class="acc-w">模样</span><span class="acc-d">人的长相或物的样子。模，mú，不读 mó。“模样也不中看”。</span></div>
+      <div class="acc-item"><span class="acc-w">盛满</span><span class="acc-d">把东西放入容器。盛，chéng，不读 shèng。“盛满了没收来的醋栗”。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>课文用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">诃</span><span class="acc-d">读 hē，不读 kē。契诃夫，俄国作家。“变色龙”的作者。</span></div>
+      <div class="acc-item"><span class="acc-w">蔑</span><span class="acc-d">读 miè，不读 màn。奥楚蔑洛夫，小说主人公。</span></div>
+      <div class="acc-item"><span class="acc-w">栗</span><span class="acc-d">读 lì，不读 sù。醋栗，俄国浆果。与“粟”（sù，小米）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">筛</span><span class="acc-d">读 shāi，不读 shī。筛子，有孔的器具。</span></div>
+      <div class="acc-item"><span class="acc-w">坎</span><span class="acc-d">读 kǎn，不读 kàn。坎肩，背心。</span></div>
+      <div class="acc-item"><span class="acc-w">魁</span><span class="acc-d">读 kuí，不读 guǐ。魁梧，强壮高大。</span></div>
+      <div class="acc-item"><span class="acc-w">梧</span><span class="acc-d">读 wú，不读 wù。魁梧。</span></div>
+      <div class="acc-item"><span class="acc-w">戳</span><span class="acc-d">读 chuō，不读 lù。用细长东西触击。</span></div>
+      <div class="acc-item"><span class="acc-w">胚</span><span class="acc-d">读 pēi，不读 pī。胚子，质地、品性。与“坯”（pī，半成品）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">伶</span><span class="acc-d">读 líng，不读 lián。伶俐，聪明灵活。</span></div>
+      <div class="acc-item"><span class="acc-w">俐</span><span class="acc-d">读 lì，不读 lí。伶俐。</span></div>
+      <div class="acc-item"><span class="acc-w">溢</span><span class="acc-d">读 yì，不读 yìng。洋溢，充分流露。</span></div>
+      <div class="acc-item"><span class="acc-w">吓</span><span class="acc-d">多音字：恐吓 hè；吓唬 xià。文中“恐吓”读 hè。</span></div>
+      <div class="acc-item"><span class="acc-w">径</span><span class="acc-d">读 jìng，不读 jīn。径自，直接行动。</span></div>
+      <div class="acc-item"><span class="acc-w">模</span><span class="acc-d">多音字：模样 mú；模型 mó。文中“模样”读 mú。</span></div>
+      <div class="acc-item"><span class="acc-w">盛</span><span class="acc-d">多音字：盛满 chéng；兴盛 shèng。文中“盛满”读 chéng。</span></div>
+      <div class="acc-item"><span class="acc-w">崽</span><span class="acc-d">读 zǎi，不读 sī。猪崽子，幼小的动物。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>修辞方法</h3>
+      <div class="acc-item"><span class="acc-w">讽刺</span><span class="acc-d">小说最核心的手法。奥楚蔑洛夫六次变色、对同一条狗的评价前后矛盾，以夸张的方式揭露其见风使舵的本质。讽刺不是直接批评，而是通过人物自身的言行暴露其荒谬。</span></div>
+      <div class="acc-item"><span class="acc-w">夸张</span><span class="acc-d">奥楚蔑洛夫在几分钟内态度翻转六次，是夸张；脱大衣说“天热”、穿大衣说“天冷”，天气随态度变化，是夸张；学狗叫逗狗，是夸张。夸张使讽刺效果更强烈。</span></div>
+      <div class="acc-item"><span class="acc-w">对比</span><span class="acc-d">对狗的评价前后对比（疯狗→名贵→下贱→娇贵→野狗→伶俐）；对赫留金的态度前后对比（受害者→敲诈者→受害者→混蛋）；军大衣穿脱对比；赫留金的“血淋淋”与狗的“悲苦恐怖”对比。多重对比使人物形象和主题更加鲜明。</span></div>
+      <div class="acc-item"><span class="acc-w">比喻</span><span class="acc-d">“手指头像是一面胜利的旗帜”（比喻赫留金的炫耀）；“门就跟许多饥饿的嘴巴一样”（比喻店铺萧条与社会的吞噬性）；“变色龙”（比喻见风使舵的人）。</span></div>
+      <div class="acc-item"><span class="acc-w">细节描写</span><span class="acc-d">军大衣的穿脱四次（穿新大衣→脱→穿→裹紧）是全文最精妙的细节线索；“盛满了没收来的醋栗”暗示巡警以权谋私；“半醉的脸”暗示赫留金酒后滋事。细节虽少，字字传神。</span></div>
+      <div class="acc-item"><span class="acc-w">反语</span><span class="acc-d">“上帝创造的这个世界”（反语，讽刺黑暗现实）；“胜利的旗帜”（反语，讽刺赫留金的庸俗）；“这是条野狗！既然普洛诃尔说这是野狗，那它就是野狗”（反语，讽刺权大于法）。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">以小见大</span><span class="acc-d">一个“狗咬人”的小案件，写出沙皇专制社会的全貌。选材要“小”，开掘要“深”——从最平凡的日常生活中发掘最深刻的社会悲剧。</span></div>
+      <div class="acc-item"><span class="acc-w">对话刻画人物</span><span class="acc-d">小说几乎全部由对话构成，人物性格完全通过对话展现。奥楚蔑洛夫的前倨后恭、赫留金的庸俗狡黠、巡警的模棱两可，都在对话中暴露无遗。写人物要“心口如一”，什么人说什么话。</span></div>
+      <div class="acc-item"><span class="acc-w">细节贯穿全文</span><span class="acc-d">军大衣的穿脱四次，成为人物内心变化的“晴雨表”。一个道具贯穿全文，比直接描写心理更含蓄、更有力。写人叙事要善于找到一个“核心道具”，用它串联情节、暗示心理。</span></div>
+      <div class="acc-item"><span class="acc-w">喜剧外壳悲剧内核</span><span class="acc-d">用荒诞可笑的情节（六次变色、脱穿大衣、学狗叫）包裹深刻的社会悲剧。读者在发笑的同时感到彻骨的寒冷——“含泪的笑”比直接写悲更有力量。</span></div>
+      <div class="acc-item"><span class="acc-w">标题即主题</span><span class="acc-d">“变色龙”既是动物名，又是对主人公的比喻，更是对整个官场病态的概括。标题简洁有力，一语双关，贯穿全文。好的标题是文章的“眼睛”。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>文化常识</h3>
+      <div class="acc-item"><span class="acc-w">沙皇俄国</span><span class="acc-d">1547—1917年俄罗斯的君主专制国家，因皇帝称“沙皇”（恺撒的俄语音译）而得名。19世纪80年代亚历山大三世统治时期，专制统治加强，警察权力膨胀，社会黑暗。</span></div>
+      <div class="acc-item"><span class="acc-w">警官与巡警</span><span class="acc-d">沙皇俄国的警察制度是维护专制统治的工具。警官（奥楚蔑洛夫）有一定权力，巡警（叶尔德林）是其随从。警察对上谄媚、对下欺压，是当时社会的一大痼疾。</span></div>
+      <div class="acc-item"><span class="acc-w">军大衣</span><span class="acc-d">沙皇警官的制服，权力的象征。奥楚蔑洛夫穿着“新的军大衣”招摇过市，大衣的穿脱暗示其态度变化。</span></div>
+      <div class="acc-item"><span class="acc-w">将军</span><span class="acc-d">军衔，将官的统称。在沙皇俄国，将军是贵族阶层的代表，拥有极大的权力和威望。席加洛夫将军从未出场，但其名字决定了案件的走向。</span></div>
+      <div class="acc-item"><span class="acc-w">宪兵</span><span class="acc-d">某些国家的军事政治警察，权力很大，可干预民事案件。赫留金搬出“我的兄弟就在当宪兵”，试图借权力为自己撑腰。</span></div>
+      <div class="acc-item"><span class="acc-w">调解法官</span><span class="acc-d">沙皇俄国的基层法官，处理轻微的民事和刑事案件。赫留金说“让调解法官审问我好了”，以示自己“有理”。</span></div>
+      <div class="acc-item"><span class="acc-w">首饰匠</span><span class="acc-d">制作金银首饰的工匠，属于手工业者。赫留金的身份是“做工的人”，处于社会底层。</span></div>
+      <div class="acc-item"><span class="acc-w">木柴厂</span><span class="acc-d">锯木厂、木材加工厂。19世纪俄国城市中有许多木柴厂，是城市手工业和商业的一部分。</span></div>
+      <div class="acc-item"><span class="acc-w">醋栗</span><span class="acc-d">俄国常见的浆果，味酸，可生食或制果酱。巡警“盛满了没收来的醋栗”，暗示其以权谋私。</span></div>
+      <div class="acc-item"><span class="acc-w">彼得堡与莫斯科</span><span class="acc-d">彼得堡（圣彼得堡）是当时俄国的首都，莫斯科是俄国第二大城市。奥楚蔑洛夫说“在彼得堡或者莫斯科……一眨眼的工夫就叫它断了气”，暗示首都权贵可以随意处置“野狗”而不受法律约束。</span></div>
+      <div class="acc-item"><span class="acc-w">契诃夫(1860—1904)</span><span class="acc-d">俄国伟大的小说家、戏剧家，世界级短篇小说巨匠。代表作有《变色龙》《套中人》《苦恼》《万卡》《第六病室》等，戏剧有《樱桃园》《万尼亚舅舅》等。他的小说以简练、冷峻、幽默著称，善于从日常生活中发掘悲剧。</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">《变色龙》</div>
+  <div>契诃夫 · 俄国 · 选自《契诃夫小说选》</div>
+  <div>1884年作，最初发表于幽默杂志《碎片》</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('bianselong_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('bianselong_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "蔑", "py": "miè", "q": "警官奥楚□洛夫穿着新的军大衣", "tip": "「蔑」艹字头+四+戍，轻视；不读 màn，与「篾」（竹字头）区分"}, {"w": "栗", "py": "lì", "q": "盛满了没收来的醋□", "tip": "「栗」西+木，浆果；不读 sù，与「粟」（西米，小米）区分"}, {"w": "筛", "py": "shāi", "q": "端着一个□子，盛满了没收来的醋栗", "tip": "「筛」竹字头+师，有孔器具；不读 shī"}, {"w": "坎", "py": "kǎn", "q": "穿着浆硬的花布衬衫和敞着怀的□肩", "tip": "「坎」土字旁+欠，坑、低；不读 kàn"}, {"w": "肩", "py": "jiān", "q": "穿着浆硬的花布衬衫和敞着怀的坎□", "tip": "「肩」户+月，肩膀；与「肓」（huāng）区分"}, {"w": "魁", "py": "kuí", "q": "你呢，却长得这么□梧", "tip": "「魁」鬼字旁+斗，高大；不读 guǐ"}, {"w": "梧", "py": "wú", "q": "你呢，却长得这么魁□", "tip": "「梧」木字旁+吾，梧桐树；不读 wù"}, {"w": "戳", "py": "chuō", "q": "把烟卷□到狗的脸上去", "tip": "「戳」戈字旁+翟，用尖物触击；不读 lù"}, {"w": "胚", "py": "pēi", "q": "完全是个下贱□子", "tip": "「胚」月字旁+丕，初期发育的生物体；不读 pī，与「坯」（土字旁）区分"}, {"w": "伶", "py": "líng", "q": "这小狗还不赖，怪□俐的", "tip": "「伶」亻旁+令，聪明；不读 lián，与「怜」（忄旁）区分"}, {"w": "俐", "py": "lì", "q": "这小狗还不赖，怪伶□的", "tip": "「俐」亻旁+利，灵活；不读 lí"}, {"w": "溢", "py": "yì", "q": "整个脸上洋□着含笑的温情", "tip": "「溢」氵旁+益，充满而流出；不读 yìng"}, {"w": "吓", "py": "hè", "q": "奥楚蔑洛夫向他恐□说", "tip": "「吓」口字旁+下，威胁；多音字，恐吓 hè，不读 xià"}, {"w": "径", "py": "jìng", "q": "接着穿过市场的广场□自走了", "tip": "「径」彳旁+巠，直接；不读 jīn，与「经」（纟旁）区分"}, {"w": "崽", "py": "zǎi", "q": "可要是每个猪□子都拿烟卷戳到它的鼻子上去", "tip": "「崽」山+思+心，幼小的动物；不读 sī"}, {"w": "诃", "py": "hē", "q": "俄国作家契□夫", "tip": "「诃」言字旁+可，译音用字；不读 kē，与「呵」（口字旁）区分"}, {"w": "醋", "py": "cù", "q": "盛满了没收来的□栗", "tip": "「醋」酉字旁+昔，酸味调料；不读 zuò"}, {"w": "浆", "py": "jiāng", "q": "穿着□硬的花布衬衫", "tip": "「浆」水字旁+将，浓液；不读 jiàng，与「桨」（木字旁）区分"}, {"w": "敞", "py": "chǎng", "q": "商店和饭馆的门无精打采地□着", "tip": "「敞」攵旁+尚，打开；不读 cháng，与「敝」（bì，破旧）区分"}, {"w": "怖", "py": "bù", "q": "流露出悲苦和恐□的神情", "tip": "「怖」忄旁+布，害怕；不读 pù，与「布」（巾字旁）区分"}];
+var DICT_NOTES = [{"w": "无精打采", "a": "形容不高兴、不振作，没有精神", "q": "商店和饭馆的门无精打采地敞着"}, {"w": "醋栗", "a": "俄国常见的浆果，味酸，可生食或制果酱", "q": "盛满了没收来的醋栗"}, {"w": "坎肩", "a": "不带袖子的上衣，背心", "q": "穿着浆硬的花布衬衫和敞着怀的坎肩"}, {"w": "魁梧", "a": "身体强壮高大", "q": "你呢，却长得这么魁梧"}, {"w": "戳", "a": "用细长的东西向前触击、刺", "q": "把烟卷戳到狗的脸上去"}, {"w": "异想天开", "a": "形容想法离奇，不切实际", "q": "后来却异想天开，想得到一笔什么赔偿费了"}, {"w": "荒唐", "a": "思想、言行错误到使人觉得奇怪的程度", "q": "他是个荒唐的家伙，长官"}, {"w": "下贱胚子", "a": "骂人的话，指卑贱的人或动物。胚子，人的质地、品性", "q": "完全是个下贱胚子"}, {"w": "名贵", "a": "著名而且珍贵", "q": "将军家里都是些名贵的、纯种的狗"}, {"w": "娇贵", "a": "看得贵重、过分爱护，不容受委屈", "q": "狗是娇贵的动物"}, {"w": "伶俐", "a": "聪明、灵活", "q": "这小狗还不赖，怪伶俐的"}, {"w": "洋溢", "a": "情绪、气氛等充分流露", "q": "整个脸上洋溢着含笑的温情"}, {"w": "恐吓", "a": "以要挟的话或手段威胁人", "q": "奥楚蔑洛夫向他恐吓说"}, {"w": "径自", "a": "表示自己直接行动，不顾及他人", "q": "接着穿过市场的广场径自走了"}, {"w": "悲苦", "a": "悲伤痛苦", "q": "它那含泪的眼睛流露出悲苦和恐怖的神情"}, {"w": "恐怖", "a": "恐惧、害怕", "q": "流露出悲苦和恐怖的神情"}, {"w": "无缘无故", "a": "没有任何原因或理由", "q": "这个贱畜生无缘无故就把这手指头咬了一口"}, {"w": "拿点颜色出来", "a": "口语，给点厉害看看，以示惩戒", "q": "我要拿点颜色出来给那些放出狗来到处乱跑的人看看"}, {"w": "变色龙", "a": "蜥蜴类动物，皮肤颜色随环境变化；比喻见风使舵、趋炎附势的人", "q": "小说以「变色龙」为题，比喻奥楚蔑洛夫这类见风使舵的人"}, {"w": "军大衣", "a": "沙皇警官的制服，权力的象征；全文穿脱四次，暗示态度变化", "q": "警官奥楚蔑洛夫穿着新的军大衣"}];
+</script>
+
+</body>
+</html>
