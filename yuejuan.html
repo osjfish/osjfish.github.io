@@ -1679,6 +1679,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }
   /* 客观题 OMR */
   const perQ=[];
+  const syncMiss=[];
   pg2.groups.forEach(function(g){
     const gx0=g.x0,gid=g.label;
     const expTiming=gx0-2.2;
@@ -1686,6 +1687,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     for(let r=0;r<g.rows;r++)expMarks.push(H(expTiming,g.y0+2.5+r*g.dy));
     const marks=detectRowMarks(bin,cv.width,cv.height,expMarks,smm);
     let miss=marks.filter(function(m){return m===null}).length;
+    syncMiss.push({miss:miss,rows:g.rows,label:gid});
     if(miss>=Math.max(2,g.rows*0.4))flags.push(gid+'同步条缺失'+miss+'条');
     const deltas=rowDeltas(marks,expMarks.map(function(m){return m.y}));
     for(let rr=0;rr<g.rows;rr++){
@@ -1708,6 +1710,11 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       }
     }
   });
+  /* 所有组的同步条全部/大面积缺失 → 几何几乎必然错位（如被杂物四边形欺骗、拍错页），按定位失败处理，绝不静默输出 */
+  if(syncMiss.length&&syncMiss.every(function(s){return s.miss>=Math.max(2,s.rows*0.4)})){
+    return {ok:false,status:'locate_fail',
+      flags:['定位校验未通过：所有同步条均未找到（画面与版式严重不符，可能混入杂物或拍错页，请重拍）'],warn:detWarn};
+  }
   /* 页面级自适应阈值（Otsu 聚类）：仅当“空白簇/填涂簇”清晰可分时启用，
      且阈值围绕两簇均值构造，保证空白涂点（边框+字母墨量约 0.15-0.25）不被划入模糊区 */
   let inkHigh=omr.inkHigh,inkLow=omr.inkLow;
@@ -2776,7 +2783,8 @@ async function renderScan(){
           +'<td>'+(p.pageNo)+'</td>'
           +'<td><b>'+esc(p.studentNo||'—')+'</b></td>'
           +'<td>'+(ok?badge('ok','已识别'):badge('err','定位失败'))+'</td>'
-          +'<td class="kv">'+(m.qrFound?badge('info','[已读码]  读码')+' ':'')+flags.map(function(f){return badge('warn',esc(f))}).join(' ')+(flags.length?badge('gray','同步条'+((m.perQ||[]).filter(function(q){return q.verdict==='REVIEW'}).length+'待复核')):'')+'</td>'
+          +'<td class="kv">'+(m.qrFound?badge('info','已读码')+' ':'')+flags.map(function(f){return badge('warn',esc(f))}).join(' ')
+          +(()=>{const n=((m.perQ||[]).filter(function(q){return q.verdict==='REVIEW'}).length);return n?badge('gray','同步条'+n+'待复核'):''})()+'</td>'
           +'<td><button class="btn btn-sm" data-act="scan-page" data-id="'+p.id+'">查看</button> '
           +(ok?'<button class="btn btn-sm" data-act="scan-fix-reg" data-id="'+p.id+'">考号改判</button> ':'')
           +(ok?'<button class="btn btn-sm" data-act="scan-relocate" data-id="'+p.id+'">重新定位</button>':'')
@@ -2974,7 +2982,8 @@ async function pageMarkedImage(p){
     if(!tpl||!p.meta||!p.meta.H)return null;
     const layout=layoutTemplate(tpl);
     const page=layout.pages[p.meta.pageIdx||0];
-    const {cv}=await blobCanvas(p.blob,1400);
+    /* 必须按识别时的原始长边（2200）加载，H 矩阵坐标才是同一像素空间 */
+    const {cv}=await blobCanvas(p.blob,2200);
     const hh=p.meta.H;
     const H=function(x,y){const den=hh[6]*x+hh[7]*y+1;return {x:(hh[0]*x+hh[1]*y+hh[2])/den,y:(hh[3]*x+hh[4]*y+hh[5])/den}};
     const ctx=cv.getContext('2d');
@@ -3108,7 +3117,7 @@ Object.assign(ACTS,{
   /* 重新定位（手动 4 角） */
   'scan-relocate':async function(el){
     const p=await dbGet('pages',el.dataset.id);
-    const {cv}=await pageFull(p);
+    const cv=await pageFull(p);
     const thumbCv=canvasToThumb(cv,900);
     const big=canvasDataURL(thumbCv,0.85);
     const relScale=cv.width/(thumbCv.width||1);
