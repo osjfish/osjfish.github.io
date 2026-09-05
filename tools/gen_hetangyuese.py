@@ -250,8 +250,8 @@ def annotate(text):
 
 # ---------------- 题库 ----------------
 DICT_WORDS = [
- {"w":"蓊","py":"wěng","q":"荷塘四面，长着许多树，蓊□郁郁的","tip":"「蓊」草字头，草木茂盛；不要写成「翁」"},
- {"w":"郁","py":"yù","q":"荷塘四面，长着许多树，蓊蓊□郁的","tip":"「郁」右耳旁，茂盛、浓厚；不要写成「有」"},
+ {"w":"蓊蓊","py":"wěng wěng","q":"荷塘四面，长着许多树，□□郁郁的","tip":"「蓊」草字头，草木茂盛；不要写成「翁」"},
+ {"w":"郁郁","py":"yù yù","q":"荷塘四面，长着许多树，蓊蓊□□的","tip":"「郁」右耳旁，茂盛、浓厚；不要写成「有」"},
  {"w":"屑","py":"xiè","q":"沿着荷塘，是一条曲折的小煤□路","tip":"「屑」尸字头，碎末；不要写成「削」"},
  {"w":"僻","py":"pì","q":"这是一条幽□的路；白天也少人走","tip":"「僻」单人旁，偏远；不要丢掉单人旁写成「辟」"},
  {"w":"踱","py":"duó","q":"路上只我一个人，背着手□着","tip":"「踱」足字旁，慢步行走；不要写成「度」"},
@@ -269,7 +269,7 @@ DICT_WORDS = [
  {"w":"挨","py":"āi","q":"叶子本是肩并肩密密地□着","tip":"「挨」提手旁，靠近；不要写成「唉」"},
  {"w":"宛","py":"wǎn","q":"这便□然有了一道凝碧的波痕","tip":"「宛」宝盖头，仿佛；不要写成「婉」"},
  {"w":"凝","py":"níng","q":"这便宛然有了一道□碧的波痕","tip":"「凝」两点水，凝结；不要写成「疑」"},
- {"w":"脉","py":"mò","q":"叶子底下是脉□的流水","tip":"「脉」月字旁，脉脉读 mò mò；此处不读 mài"},
+ {"w":"脉脉","py":"mò mò","q":"叶子底下是□□的流水","tip":"「脉」月字旁，脉脉读 mò mò；此处不读 mài"},
  {"w":"泻","py":"xiè","q":"月光如流水一般，静静地□在这一片叶子和花上","tip":"「泻」三点水，倾泻；不要写成「泄」"},
  {"w":"乳","py":"rǔ","q":"叶子和花仿佛在牛□中洗过一样","tip":"「乳」左边是「孚」，不要写成「孔」"},
  {"w":"笼","py":"lǒng","q":"又像□着轻纱的梦","tip":"「笼」竹字头，笼罩；与「拢」（提手旁）区分"},
@@ -278,7 +278,7 @@ DICT_WORDS = [
  {"w":"参","py":"cēn","q":"落下□差的斑驳的黑影","tip":"「参」此处读 cēn（参差）；不要读成 cān"},
  {"w":"驳","py":"bó","q":"落下参差的斑□的黑影","tip":"「驳」马字旁，颜色不纯；不要写成「勃」"},
  {"w":"峭","py":"qiào","q":"□楞楞如鬼一般","tip":"「峭」山字旁，陡直；不要写成「俏」（单人旁）"},
- {"w":"楞","py":"léng","q":"峭□楞如鬼一般","tip":"「楞」木字旁，同「棱」；不要写成「愣」（竖心旁）"},
+ {"w":"楞楞","py":"léng léng","q":"峭□□如鬼一般","tip":"「楞」木字旁，同「棱」；不要写成「愣」（竖心旁）"},
  {"w":"倩","py":"qiàn","q":"弯弯的杨柳的稀疏的□影","tip":"「倩」单人旁，美丽；不要写成「靖」"},
  {"w":"梵","py":"fàn","q":"如□婀玲上奏着的名曲","tip":"「梵」木字底，梵婀玲即小提琴；不要写成「樊」"},
  {"w":"婀","py":"ē","q":"如梵□玲上奏着的名曲","tip":"「婀」女字旁，读 ē；不要写成「阿」"},
@@ -393,7 +393,7 @@ HTML = u'''<!DOCTYPE html>
 
 <header class="hero">
   <div class="hero-side">现代 · 朱自清</div>
-  <h1 class="hero-title">荷 塘 月 色</h1>
+  <h1 class="hero-title">荷塘月色</h1>
 </header>
 
 <nav class="nav">
@@ -445,9 +445,9 @@ HTML = u'''<!DOCTYPE html>
         <a href="https://www.bilibili.com/video/BV1zW4y1g7ZH" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
       </div>
       <div class="media">
-        <h4>舞剧《朱自清》·“橘子、荷塘”选段</h4>
-        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1fD4y1i72n&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="舞剧《朱自清》荷塘选段"></iframe>
-        <a href="https://www.bilibili.com/video/BV1fD4y1i72n" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+        <h4>《荷塘月色》课堂实录 · 锐评比喻</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1UD25BqEkY&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="《荷塘月色》高中语文课堂实录"></iframe>
+        <a href="https://www.bilibili.com/video/BV1UD25BqEkY" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
       </div>
     </div>
   </div>

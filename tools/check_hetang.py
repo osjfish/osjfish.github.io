@@ -24,8 +24,14 @@ print('part-head:',h.count('part-head'),'part-overview:',h.count('part-overview'
 w=json.loads(re.search(r'var DICT_WORDS = (\[.*?\]);',h,re.S).group(1))
 n=json.loads(re.search(r'var DICT_NOTES = (\[.*?\]);',h,re.S).group(1))
 print('words',len(w),'notes',len(n))
-bw=[x for x in w if not (len(x['w'])==1 and x['q'].count('\u25a1')==1 and x['tip'] and x['tip']!=x['w'])]
-print('bad word items:',bw)
+# 字形题自检：①答案字不能在例句中出现（泄题）②□数=答案字数 ③拼音音节数=答案字数
+leak=[x for x in w if any(c in x['q'] for c in x['w'])]
+print('LEAK(答案出现在例句):',[(x['w'],x['q']) for x in leak])
+nbox=[x for x in w if x['q'].count('\u25a1')!=len(x['w'])]
+print('BOX数不匹配:',[(x['w'],x['q']) for x in nbox])
+npy=[x for x in w if len(x['py'].split())!=len(x['w']) and len(x['py'].split())!=1]
+print('拼音音节数不匹配:',[(x['w'],x['py']) for x in npy])
+print('tip缺失或与答案重复:',[x['w'] for x in w if not x.get('tip') or x['tip']==x['w']])
 print('notes missing field:',[x for x in n if not(x.get('w') and x.get('a') and x.get('q'))])
 # 背诵全文段数
 print('fulltext pl:',h[h.index('id="fulltext"'):h.index('id="verseList"')].count('class="pl"'))
