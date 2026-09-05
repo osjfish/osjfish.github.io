@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import io,re,json
-p='hetang-yuese-zhuziqing.html'
+p='hetangyuese-zhuziqing.html'
 h=io.open(p,encoding='utf-8').read()
 print('size',len(h))
 need=['id="fulltext"','id="verseList"','id="btnAll"','id="btnRecite"','id="btnPrint"','id="fsSel"','id="btnShowAll"',
