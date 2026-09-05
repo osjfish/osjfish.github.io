@@ -155,7 +155,7 @@ table.tbl tr:hover td{background:#FBF8F3}
   <aside class="sj-side">
     <div class="sj-logo"><b>智能阅卷</b></div>
     <nav class="sj-nav" id="nav"></nav>
-    <div class="sj-side-foot">数据存于本地浏览器<br>请定期在「设置」导出备份<br><span style="color:#E6A23C">支持生成答题卡 → 扫描识别<br>→ 按题阅卷 → 成绩分析</span></div>
+    <div class="sj-side-foot">数据存于本地浏览器<br>请定期在「设置」导出备份<br><span style="color:#E6A23C">名单 → 答题卡 → 考试场次<br>→ 扫描 → 阅卷 → 成绩</span></div>
   </aside>
   <main class="sj-main">
     <header class="sj-top">
@@ -375,7 +375,7 @@ document.addEventListener('change',function(e){
 
 /* ---------- 导航 ---------- */
 const TABS=[
-  ['home','首页','首'],['tpl','答题卡模板','模板'],['class','班级学生','班级'],['exam','考试管理','考试'],
+  ['home','首页','首'],['class','班级学生','班级'],['tpl','答题卡模板','模板'],['exam','考试管理','考试'],
   ['scan','扫描识别','扫描'],['grade','阅卷工作台','阅卷'],['score','成绩分析','成绩'],['set','设置','设置']
 ];
 const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级与学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩与分析',set:'设置'};
@@ -450,6 +450,24 @@ function qBubbleGeom(g,qn,ch){
   const bw=Math.min(g.size[0],step-0.8);
   return {bx:g.x0+11+ch*step+(step-bw)/2+bw/2,count:n,bw:bw,bh:g.size[1],step:step};
 }
+/* 中文数字（组标题/默认主观题题号用） */
+function cnNum(n){
+  const c='一二三四五六七八九十';
+  if(n<=0)return String(n);
+  if(n<=10)return c[n-1];
+  if(n<20)return '十'+c[n-11];
+  return c[Math.floor(n/10)-1]+'十'+(n%10?c[n%10-1]:'');
+}
+/* 题目清单归一化：新模板用 questions 逐题数组；旧模板（选择题组+主观题区）自动推导，两边兼容 */
+function normalizeQuestions(tpl){
+  if(Array.isArray(tpl.questions))return tpl.questions;
+  const qs=[];
+  (tpl.choiceGroups||[]).forEach(function(g){
+    for(let q=g.first;q<g.first+g.count;q++)qs.push({t:'obj',qno:q,choices:(g.choicesQ&&g.choicesQ[q])?g.choicesQ[q]:g.choices});
+  });
+  (tpl.subjective||[]).forEach(function(s){qs.push({t:'subj',qno:s.qno,score:s.score,type:s.type,rows:s.rows,cols:s.cols,count:s.count,titleLine:s.titleLine,label:s.label});});
+  return qs;
+}
 function layoutTemplate(tpl){
   const wh=paperWH(tpl), w=wh.w, h=wh.h;
   const M=14, contentW=w-2*M;
@@ -485,11 +503,23 @@ function layoutTemplate(tpl){
   function pageBreak(need){ if(curY+need<=contentBottom)return; pg=newPage(pages.length); pages.push(pg); curY=pageTopFor(pages.length-1); }
   function forcePage(){ pg=newPage(pages.length); pages.push(pg); curY=pageTopFor(pages.length-1); }
   
-/* 选择题组（超高自动拆分为多个子组跨页，题号连续） */
+  /* 逐题清单 → 排版：客观题自动集中到答题卡开头（题号升序，选项数相同的连续题号合为一组），主观题按清单顺序排在其后 */
+  const qss=normalizeQuestions(tpl);
+  const objs=qss.filter(function(q){return q.t==='obj'}).sort(function(a,b){return a.qno-b.qno});
+  const objGroups=[];
+  objs.forEach(function(o){
+    const choices=Math.max(2,Math.min(6,o.choices||4));
+    const last=objGroups[objGroups.length-1];
+    if(last&&o.qno===last.first+last.count&&choices===last.choices)last.count++;
+    else objGroups.push({first:o.qno,count:1,choices:choices});
+  });
+  objGroups.forEach(function(gp,i){gp.label=cnNum(i+1)+'、选择题';});
+  const subjDefs=qss.filter(function(q){return q.t==='subj'});
+  /* 选择题组（超高自动拆分为多个子组跨页，题号连续） */
   const maxRowsPerPage=Math.max(1,Math.floor((contentBottom-contentTop-13)/5));
-  (tpl.choiceGroups||[]).forEach(function(gp){
-    const choices=Math.max(2,Math.min(6,gp.choices||4));
-    const total=Math.max(1,Math.min(200,gp.count||20));
+  objGroups.forEach(function(gp){
+    const choices=gp.choices;
+    const total=gp.count;
     const cellW=10;
     let cols=Math.max(1,Math.min(total,gp.cols||0));
     if(!gp.cols){cols=Math.max(1,Math.floor((contentW-6)/(cellW+choices*7.0+1)));}
@@ -497,8 +527,8 @@ function layoutTemplate(tpl){
     const x0=M+6, gridW=contentW-12;
     const dxq=gridW/cols;
     const dxc=Math.max(3.5,(dxq-cellW)/choices);
-    const label=(gp.label||('一、选择题'))+'';
-    let qFirst=gp.first||1, remaining=total, part=0;
+    const label=gp.label;
+    let qFirst=gp.first, remaining=total, part=0;
     while(remaining>0){
       const rows=Math.min(remaining,Math.max(1,Math.min(Math.ceil(remaining/cols),maxRowsPerPage)));
       const subCount=Math.min(remaining,rows*cols);
@@ -511,8 +541,8 @@ function layoutTemplate(tpl){
       qFirst+=subCount;remaining-=subCount;part++;
     }
   });
-  /* 主观题（超出页面自动分页切分） */
-  (tpl.subjective||[]).forEach(function(sub){
+  /* 主观题（按清单顺序，超出页面自动分页切分） */
+  subjDefs.forEach(function(sub){
     const type=sub.type||'lines';
     const cols=(type==='grid-cn')?Math.max(10,Math.min(40,sub.cols||20)):null;
     const rowH=(type==='grid-cn')?(Math.min(8,166/cols)+1.2):(type==='grid-en')?5:8;
@@ -561,12 +591,8 @@ function presetTemplates(){
   ];
 }
 
-function cgChoicesText(g){
-  if(!g.choicesQ)return '';
-  return Object.keys(g.choicesQ).map(function(k){return k+':'+g.choicesQ[k]}).join(',');
-}
 function newTemplate(name){
-  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regEveryPage:false,regDigits:5,perScore:2,choiceGroups:[],subjective:[],createdAt:now()};
+  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regEveryPage:false,regDigits:5,perScore:2,choiceGroups:[],subjective:[],questions:[],createdAt:now()};
 }
 
 /* ---------- mm→px 渲染 ---------- */
@@ -1048,7 +1074,7 @@ async function importTemplateJSON(file){
     const text=await file.text();
     const obj=JSON.parse(text);
     const tpl=obj.tpl||(obj.v&&obj.regDigits?obj:null);
-    if(!tpl||!Array.isArray(tpl.choiceGroups))throw new Error('文件格式不正确');
+    if(!tpl||(!Array.isArray(tpl.choiceGroups)&&!Array.isArray(tpl.questions)))throw new Error('文件格式不正确');
     tpl.id=uid('tpl_');tpl.createdAt=now();
     layoutTemplate(tpl);
     await dbPut('templates',tpl);
@@ -1951,9 +1977,9 @@ async function renderHome(){
   exams.sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
   const pagesTotal=await dbCount('pages');
   const steps=[
-    ['tpl','1','设计打印答题卡',tpls.length?('已有 '+tpls.length+' 个模板'):'从预设创建，导出 PDF（选 100% 打印）',''],
-    ['class','2','导入学生名单',students.length?('共 '+students.length+' 名学生'):'粘贴 / Excel（考号=卡上涂写号）',''],
-    ['exam','3','录入答案建考试',exams.length?('已有 '+exams.length+' 场考试'):'客观题答案 + 主观题分值/要点',''],
+    ['class','1','导入学生名单',students.length?('共 '+students.length+' 名学生'):'粘贴 / Excel（考号=卡上涂写号）',''],
+    ['tpl','2','设计打印答题卡',tpls.length?('已有 '+tpls.length+' 个模板'):'逐题添加主客观题，客观题自动集中排版（选择题 2-6 选项）',''],
+    ['exam','3','录入答案建考试',exams.length?('已有 '+exams.length+' 场考试'):'录入答案与评分标准（逐题分值/评分要点）',''],
     ['scan','4','上传扫描识别',pagesTotal?('已识别 '+pagesTotal+' 页'):'手机拍卡或扫描件（背景/倾斜可自动定位）',''],
     ['grade','5','按题阅卷','对主观题切割图逐份打分（键盘快捷操作）',''],
     ['score','6','成绩分析与导出','客观题得分率 / 主观题统计 / CSV+Excel','']
@@ -2015,12 +2041,13 @@ async function renderTpl(){
       const cards=[];
       for(const t of tpls){
         const lay=layoutTemplate(t);
-        const choiceN=lay.pages.reduce(function(a,p){return a+p.groups.reduce(function(b,g){return b+g.count},0)},0);
-        const subjN=lay.pages.reduce(function(a,p){return a+p.subjective.length},0);
+        const qsN=normalizeQuestions(t);
+        const choiceN=qsN.filter(function(q){return q.t==='obj'}).length;
+        const subjN=qsN.filter(function(q){return q.t==='subj'}).length;
         cards.push('<div class="card" style="display:flex;gap:14px;align-items:center">'
           +'<img class="tpl-thumb" data-act="tpl-preview" data-id="'+t.id+'" src="'+await tplThumb(t)+'" alt="">'
           +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+esc(t.name)+'</div>'
-          +'<div class="kv" style="margin:4px 0">'+(PAPER_NAMES[t.paper]||t.paper)+'　·　'+lay.pages.length+' 页　·　选择题 '+choiceN+' 题（'+(t.perScore||2)+'分/题）　·　主观题 '+subjN+' 区<br>考号 '+t.regDigits+' 位　·　标题：'+esc(t.title||'')+'　·　创建 '+esc(t.createdAt||'')+'</div>'
+          +'<div class="kv" style="margin:4px 0">'+(PAPER_NAMES[t.paper]||t.paper)+'　·　'+lay.pages.length+' 页　·　客观题 '+choiceN+' 题（默认'+(t.perScore||2)+'分/题）　·　主观题 '+subjN+' 题<br>考号 '+t.regDigits+' 位　·　标题：'+esc(t.title||'')+'　·　创建 '+esc(t.createdAt||'')+'</div>'
           +'<div class="kv">定位锚点 ×6　·　同步条行校正　·　二维码自描述版式（扫描自动识别排版，无需选模板）</div></div>'
           +'<div class="f-row" style="flex-shrink:0;flex-direction:column;align-items:stretch">'
           +'<button class="btn btn-s btn-p" data-act="tpl-edit" data-id="'+t.id+'">️ 编辑</button>'
@@ -2047,28 +2074,30 @@ async function tplThumb(tpl){
 async function tplEditorHTML(tplId){
   const t=await dbGet('templates',tplId);
   if(!t)return emptyBox('错误: ','模板不存在');
-  const cg=(t.choiceGroups||[]).map(function(g,i){
+  const qs=normalizeQuestions(t);
+  const qRows=qs.map(function(q,i){
+    const mv='<button class="btn btn-sm" data-act="tpl-q-up" data-id="'+t.id+'" data-i="'+i+'" title="上移"'+(i===0?' disabled':'')+'>↑</button>'
+      +'<button class="btn btn-sm" data-act="tpl-q-down" data-id="'+t.id+'" data-i="'+i+'" title="下移"'+(i===qs.length-1?' disabled':'')+'>↓</button>'
+      +'<button class="btn btn-sm btn-d" data-act="tpl-q-del" data-id="'+t.id+'" data-i="'+i+'" title="删除">✕</button>';
+    if(q.t==='obj'){
+      return '<div class="f-row" style="border:1px dashed var(--line);border-radius:9px;padding:8px;margin-bottom:8px">'
+        +badge('info','客观')+'<span class="kv">题号</span><input class="inp" style="width:70px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="qno" type="number" min="1" value="'+esc(q.qno)+'">'
+        +'<span class="kv">选项数</span><select class="inp" style="width:70px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="choices">'
+        +[2,3,4,5,6].map(function(x){return '<option value="'+x+'"'+((q.choices||4)===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select>'
+        +'<span class="kv">（选项数相同的连续题号排版时自动合为一组）</span>'
+        +'<span style="flex:1"></span>'+mv+'</div>';
+    }
     return '<div class="f-row" style="border:1px dashed var(--line);border-radius:9px;padding:8px;margin-bottom:8px">'
-      +'<span class="kv">起始题号</span><input class="inp" style="width:70px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="first" type="number" value="'+esc(g.first)+'">'
-      +'<span class="kv">题数</span><input class="inp" style="width:70px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="count" type="number" value="'+esc(g.count)+'">'
-      +'<span class="kv">选项</span><select class="inp" style="width:70px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="choices">'
-      +[4,5,6].map(function(x){return '<option value="'+x+'"'+(g.choices===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select>'
-      +'<span class="kv">组标题</span><input class="inp" style="flex:1;min-width:120px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="label" value="'+esc(g.label||'')+'">'
-      +'<span class="kv" title="指定部分题目选项数，如 15:5,25:5（留空=全部用上方选项数）">指定选项</span><input class="inp" style="width:120px" data-on="tpl-cgQ" data-id="'+t.id+'" data-i="'+i+'" value="'+esc(cgChoicesText(g))+'">'
-      +'<button class="btn btn-sm btn-d" data-act="tpl-cg-del" data-id="'+t.id+'" data-i="'+i+'">✕</button></div>';
-  }).join('');
-  const subj=(t.subjective||[]).map(function(s,i){
-    return '<div class="f-row" style="border:1px dashed var(--line);border-radius:9px;padding:8px;margin-bottom:8px">'
-      +'<span class="kv">题号</span><input class="inp" style="width:70px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="qno" value="'+esc(s.qno||'')+'">'
-      +'<span class="kv">满分</span><input class="inp" style="width:70px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="score" type="number" value="'+esc(s.score)+'">'
-      +'<span class="kv">类型</span><select class="inp" style="width:110px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="type">'
-      +[['lines','横线作答'],['grid-cn','中文作文格'],['grid-en','英文四线格']].map(function(x){return '<option value="'+x[0]+'"'+(s.type===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>'
-      +'<span class="kv">行数</span><input class="inp" style="width:70px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="rows" type="number" value="'+esc(s.rows||'')+'">'
-      +'<span class="kv" title="中文作文格：每行格数（默认20）">每行格数</span><input class="inp" style="width:64px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="cols" type="number" value="'+esc(s.cols||20)+'">'
-      +'<span class="kv" title="中文作文格：总格数/总字数，填了则行数自动算（默认880，可留空）">总格数</span><input class="inp" style="width:70px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="count" type="number" value="'+esc(s.count!=null?s.count:'')+'">'
-      +'<span class="kv">标题</span><input class="inp" style="flex:1;min-width:140px" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="label" value="'+esc(s.label||'')+'">'
-      +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap" title="作文格顶部预留「题目：＿＿」供学生写标题">题目栏<input type="checkbox" data-on="tpl-sub" data-id="'+t.id+'" data-i="'+i+'" data-f="titleLine" '+(s.titleLine?'checked':'')+'></label>'
-      +'<button class="btn btn-sm btn-d" data-act="tpl-sub-del" data-id="'+t.id+'" data-i="'+i+'">✕</button></div>';
+      +badge('ok','主观')+'<span class="kv">题号</span><input class="inp" style="width:64px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="qno" value="'+esc(q.qno||'')+'">'
+      +'<span class="kv">满分</span><input class="inp" style="width:64px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="score" type="number" step="0.5" value="'+esc(q.score)+'">'
+      +'<span class="kv">类型</span><select class="inp" style="width:110px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="type">'
+      +[['lines','横线作答'],['grid-cn','中文作文格'],['grid-en','英文四线格']].map(function(x){return '<option value="'+x[0]+'"'+(q.type===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>'
+      +'<span class="kv">行数</span><input class="inp" style="width:60px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="rows" type="number" value="'+esc(q.rows||'')+'">'
+      +'<span class="kv" title="中文作文格：每行格数（默认20）">每行格数</span><input class="inp" style="width:60px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="cols" type="number" value="'+esc(q.cols||20)+'">'
+      +'<span class="kv" title="中文作文格：总格数/总字数，填了则行数自动算（可留空）">总格数</span><input class="inp" style="width:64px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="count" type="number" value="'+esc(q.count!=null?q.count:'')+'">'
+      +'<span class="kv">标题</span><input class="inp" style="flex:1;min-width:120px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="label" value="'+esc(q.label||'')+'">'
+      +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap" title="作文格顶部预留「题目：＿＿」供学生写标题">题目栏<input type="checkbox" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="titleLine" '+(q.titleLine?'checked':'')+'></label>'
+      +mv+'</div>';
   }).join('');
   return '<div class="f-row" style="margin-bottom:12px">'
     +'<button class="btn btn-p" data-act="tpl-save" data-id="'+t.id+'"> 保存模板并重新排版</button>'
@@ -2093,10 +2122,14 @@ async function tplEditorHTML(tplId){
     +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="regEveryPage"'+(t.regEveryPage===true?' checked':'')+'>'
     +'<span class="kv" style="margin-left:8px">默认<b>仅首页</b>：第2页起只印标题/页码/二维码，识别时自动沿用上一页考号；如需逐张独立识别可选此项</span></div>'
     +'</div></div>'
-    +'<div class="card"><h3>选择题组（客观题 · 自动分列排版 + 同步条）</h3>'+cg
-    +'<button class="btn btn-sm" data-act="tpl-cg-add" data-id="'+t.id+'">＋ 添加选择题组</button></div>'
-    +'<div class="card"><h3>主观题区（横线 / 中文作文格 / 英文四线格 · 超高自动分页）</h3>'+subj
-    +'<button class="btn btn-sm" data-act="tpl-sub-add" data-id="'+t.id+'">＋ 添加主观题区</button></div>';
+    +'<div class="card"><h3>题目清单（逐题添加，主客观可任意混排）</h3>'
+    +'<div class="tip" style="margin-bottom:8px">客观题会自动集中排在答题卡开头：按题号升序、选项数相同的连续题号合为一组（每题 2-6 个选项）；主观题按清单顺序排在客观题之后。预览/保存后即可看到自动排版结果。</div>'
+    +(qRows||'<div class="kv" style="margin-bottom:8px">还没有题目。点击下方按钮逐题添加，或批量添加客观题。</div>')
+    +'<div class="f-row">'
+    +'<button class="btn btn-sm btn-p" data-act="tpl-q-add-obj" data-id="'+t.id+'">＋ 添加客观题</button>'
+    +'<button class="btn btn-sm btn-b" data-act="tpl-q-add-subj" data-id="'+t.id+'">＋ 添加主观题</button>'
+    +'<button class="btn btn-sm btn-o" data-act="tpl-q-batch" data-id="'+t.id+'">＋ 批量添加客观题</button>'
+    +'</div></div>';
 }
 Object.assign(ACTS,{
   'tpl-new':async function(){
@@ -2138,7 +2171,8 @@ Object.assign(ACTS,{
     try{
       const lay=layoutTemplate(t);
       await dbPut('templates',t);
-      toast('已保存：'+lay.pages.length+' 页 / '+t.choiceGroups.length+' 选择题组 / '+t.subjective.length+' 主观题区','ok');
+      const qs=normalizeQuestions(t);
+      toast('已保存：'+lay.pages.length+' 页 / '+qs.filter(function(q){return q.t==='obj'}).length+' 道客观题 / '+qs.filter(function(q){return q.t==='subj'}).length+' 道主观题','ok');
     }catch(err){toast('排版校验失败：'+err.message,'err')}
     renderTpl();
   },
@@ -2189,65 +2223,96 @@ Object.assign(ACTS,{
     renderTpl();
   },
   'tpl-import':function(){const f=$('tplImportFile');if(f)f.click()},
-  'tpl-cg-add':async function(el){
+  /* —— 逐题清单操作 —— */
+  'tpl-q-add-obj':async function(el){
     const t=await dbGet('templates',el.dataset.id);
-    const last=t.choiceGroups[t.choiceGroups.length-1];
-    const first=last?last.first+last.count:1;
-    t.choiceGroups.push({first:first,count:20,choices:4,label:'选择题'});
+    if(!t)return;
+    if(!t.questions)t.questions=normalizeQuestions(t);
+    let mx=0;
+    t.questions.forEach(function(q){if(q.t==='obj'&&Number(q.qno)>mx)mx=Number(q.qno)});
+    t.questions.push({t:'obj',qno:mx+1,choices:4});
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-cg-del':async function(el){
+  'tpl-q-add-subj':async function(el){
     const t=await dbGet('templates',el.dataset.id);
-    t.choiceGroups.splice(parseInt(el.dataset.i,10),1);
+    if(!t)return;
+    if(!t.questions)t.questions=normalizeQuestions(t);
+    const n=t.questions.filter(function(q){return q.t==='subj'}).length;
+    t.questions.push({t:'subj',qno:cnNum(n+2),score:10,type:'lines',rows:3,cols:20,count:null,titleLine:false,label:''});
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-sub-add':async function(el){
+  'tpl-q-batch':function(el){
+    dlg('<div class="f-grid">'
+      +'<div><label class="f-lb">起始题号</label><input class="inp" id="qBatchFirst" type="number" value="1"></div>'
+      +'<div><label class="f-lb">数量</label><input class="inp" id="qBatchCount" type="number" value="10"></div>'
+      +'<div><label class="f-lb">选项数</label><select class="inp" id="qBatchChoices">'
+      +[2,3,4,5,6].map(function(x){return '<option value="'+x+'"'+(x===4?' selected':'')+'>'+x+'</option>'}).join('')
+      +'</select></div></div>'
+      +'<div class="tip" style="margin-top:8px">批量追加客观题到题目清单；排版时选项数相同的连续题号自动合为一组。</div>',
+      {title:'批量添加客观题',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="tpl-q-batch-go" data-id="'+el.dataset.id+'">添加</button>'});
+  },
+  'tpl-q-batch-go':async function(el){
     const t=await dbGet('templates',el.dataset.id);
-    t.subjective.push({qno:'三',score:50,type:'grid-cn',cols:20,count:880,label:'作文题'});
+    if(!t)return;
+    if(!t.questions)t.questions=normalizeQuestions(t);
+    const first=Math.max(1,Math.round(parseFloat($('qBatchFirst').value)||1));
+    const n=Math.max(1,Math.min(300,Math.round(parseFloat($('qBatchCount').value)||10)));
+    const ch=Math.max(2,Math.min(6,parseInt($('qBatchChoices').value,10)||4));
+    for(let i=0;i<n;i++)t.questions.push({t:'obj',qno:first+i,choices:ch});
+    await dbPut('templates',t);
+    dlgClose();
+    toast('已添加 '+n+' 道客观题','ok');
+    renderTpl();
+  },
+  'tpl-q-del':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    if(!t.questions)t.questions=normalizeQuestions(t);
+    t.questions.splice(parseInt(el.dataset.i,10),1);
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-sub-del':async function(el){
+  'tpl-q-up':async function(el){
     const t=await dbGet('templates',el.dataset.id);
-    t.subjective.splice(parseInt(el.dataset.i,10),1);
+    if(!t)return;
+    if(!t.questions)t.questions=normalizeQuestions(t);
+    const i=parseInt(el.dataset.i,10);
+    if(i<=0)return;
+    const tmp=t.questions[i-1];t.questions[i-1]=t.questions[i];t.questions[i]=tmp;
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-cgQ':async function(el){
+  'tpl-q-down':async function(el){
     const t=await dbGet('templates',el.dataset.id);
-    const g=t.choiceGroups[parseInt(el.dataset.i,10)];
-    if(!g)return;
-    const q={};
-    String(el.value||'').split(/[,，;；]/).forEach(function(seg){
-      seg=seg.trim();
-      if(!seg)return;
-      const m=seg.split(':');
-      const qn=parseInt(m[0],10),n=parseInt(m[1],10);
-      if(Number.isFinite(qn)&&Number.isFinite(n)&&n>=2&&n<=6)q[qn]=n;
-    });
-    g.choicesQ=Object.keys(q).length?q:null;
+    if(!t)return;
+    if(!t.questions)t.questions=normalizeQuestions(t);
+    const i=parseInt(el.dataset.i,10);
+    if(i>=t.questions.length-1)return;
+    const tmp=t.questions[i+1];t.questions[i+1]=t.questions[i];t.questions[i]=tmp;
     await dbPut('templates',t);
+    renderTpl();
   },
-  'tpl-cg':async function(el){
+  'tpl-q':async function(el){
     const t=await dbGet('templates',el.dataset.id);
-    const g=t.choiceGroups[parseInt(el.dataset.i,10)];
-    if(!g)return;
-    const v=el.type==='number'?(parseFloat(el.value)||0):el.value;
-    g[el.dataset.f]=v;
-    if(el.dataset.f==='first')g.first=Math.max(1,Math.round(v));
-    await dbPut('templates',t);
-  },
-  'tpl-sub':async function(el){
-    const t=await dbGet('templates',el.dataset.id);
-    const s=t.subjective[parseInt(el.dataset.i,10)];
-    if(!s)return;
+    if(!t)return;
+    if(!t.questions)t.questions=normalizeQuestions(t);
+    const q=t.questions[parseInt(el.dataset.i,10)];
+    if(!q)return;
     const f=el.dataset.f;
-    if(f==='count'){const v=parseFloat(el.value);s.count=(Number.isFinite(v)&&v>0)?Math.round(v):null;}
-    else if(f==='cols'){s.cols=Math.max(10,Math.min(40,Math.round(parseFloat(el.value)||20)));}
-    else if(el.type==='checkbox'){s[f]=el.checked;}
-    else s[f]=el.type==='number'?(parseFloat(el.value)||0):el.value;
+    if(el.type==='checkbox'){q[f]=el.checked;}
+    else if(el.type==='number'){
+      const v=parseFloat(el.value);
+      if(f==='qno'&&q.t==='obj')q.qno=Math.max(1,Math.round(v)||1);
+      else if(f==='choices')q.choices=Math.max(2,Math.min(6,Math.round(v)||4));
+      else if(f==='score')q.score=Math.max(0,Number.isFinite(v)?v:0);
+      else if(f==='cols')q.cols=Math.max(10,Math.min(40,Math.round(v)||20));
+      else if(f==='count')q.count=(Number.isFinite(v)&&v>0)?Math.round(v):null;
+      else if(f==='rows')q.rows=Math.max(1,Math.round(v)||1);
+      else q[f]=v;
+    }
+    else q[f]=el.value;
     await dbPut('templates',t);
   },
   'tpl-field':async function(el){
