@@ -1596,21 +1596,33 @@
       if (line.dataset.shown === '1'){
         renderReciteLine(line);
       } else {
-        line.innerHTML = '<span class="rh">' + line.dataset.full.charAt(0) + '</span>' +
-          '<span class="rb">' + line.dataset.full.slice(1) + '</span>';
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
         line.dataset.shown = '1';
       }
     });
   });
   function renderReciteLine(line){
     var full = line.dataset.full;
-    line.innerHTML = '<span class="rh">' + full.charAt(0) + '</span>' +
-      '<span class="rb">' + new Array(full.length).join('＿') + '＿</span>';
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
     line.dataset.shown = '0';
   }
   btnRecite.addEventListener('click', function(){
     reciting = !reciting;
-    btnRecite.textContent = reciting ? '退出背诵' : '背诵';
+    btnRecite.textContent = reciting ? '原文' : '背诵';
     btnRecite.classList.toggle('off', !reciting);
     btnShowAll.style.display = reciting ? '' : 'none';
     var ft = document.getElementById('fulltext');
@@ -1652,7 +1664,7 @@
   btnAll.addEventListener('click', function(){
     allOpen = !allOpen;
     document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
-    btnAll.textContent = allOpen ? '一键收起' : '一键展开';
+    btnAll.textContent = allOpen ? '收起' : '展开';
   });
 
   /* ---------- 视频伪全屏 ---------- */
