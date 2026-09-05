@@ -23,7 +23,7 @@ html,body{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;background:var
 .sj-nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;color:#C8D1DC;font-size:14px;margin-bottom:2px;transition:.18s}
 .sj-nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
 .sj-nav-item.on{background:var(--zhu);color:#fff;box-shadow:0 3px 10px rgba(169,50,38,.4)}
-.sj-nav-item .ic{width:20px;text-align:center;font-size:15px}
+.sj-nav-item .sh{display:none;font-size:13px}
 .sj-side-foot{padding:12px 16px;font-size:11px;color:#7F8C9B;line-height:1.6;border-top:1px solid rgba(255,255,255,.08)}
 /* ===== 主区 ===== */
 .sj-main{flex:1;margin-left:200px;padding:0 26px 40px;min-width:0}
@@ -141,6 +141,7 @@ table.tbl tr:hover td{background:#FBF8F3}
 @media(max-width:900px){
   .sj-side{width:60px}
   .sj-side .sj-logo span,.sj-nav-item span.tx,.sj-side-foot{display:none}
+  .sj-nav-item span.sh{display:inline}
   .sj-nav-item{justify-content:center;padding:12px 4px}
   .sj-main{margin-left:60px;padding:0 10px 30px}
   .gwrap{flex-direction:column}
@@ -151,7 +152,7 @@ table.tbl tr:hover td{background:#FBF8F3}
 <body>
 <div class="sj-app">
   <aside class="sj-side">
-    <div class="sj-logo">「智能阅卷」 <b>智能阅卷</b></div>
+    <div class="sj-logo"><b>智能阅卷</b></div>
     <nav class="sj-nav" id="nav"></nav>
     <div class="sj-side-foot">数据存于本地浏览器<br>请定期在「设置」导出备份<br><span style="color:#E6A23C">支持生成答题卡 → 扫描识别<br>→ 按题阅卷 → 成绩分析</span></div>
   </aside>
@@ -245,7 +246,7 @@ let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:n
 let scanCtx=null;   // 扫描会话 {examId, total, done, status, logs}
 
 /* ---------- IndexedDB ---------- */
-const DB_NAME='yuejuan_db',DB_VER=1;
+const DB_NAME='yuejuan_db',DB_VER=2;
 let db=null;
 function openDB(){
   return new Promise(function(res,rej){
@@ -258,8 +259,10 @@ function openDB(){
       if(!d.objectStoreNames.contains('templates'))d.createObjectStore('templates',{keyPath:'id'});
       if(!d.objectStoreNames.contains('exams'))d.createObjectStore('exams',{keyPath:'id'});
       if(!d.objectStoreNames.contains('pages')){const s=d.createObjectStore('pages',{keyPath:'id'});s.createIndex('byExam','examId');}
-      if(!d.objectStoreNames.contains('crops')){const s=d.createObjectStore('crops',{keyPath:'id'});s.createIndex('byExamQ','exam_q');}
-      if(!d.objectStoreNames.contains('revs'))d.createObjectStore('revs',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('crops')){const s=d.createObjectStore('crops',{keyPath:'id'});s.createIndex('byExamQ','exam_q');s.createIndex('byExam','examId');}
+      else{const s=req.transaction.objectStore('crops');if(!s.indexNames.contains('byExam'))s.createIndex('byExam','examId');}
+      if(!d.objectStoreNames.contains('revs')){const s=d.createObjectStore('revs',{keyPath:'id'});s.createIndex('byExam','examId');}
+      else{const s=req.transaction.objectStore('revs');if(!s.indexNames.contains('byExam'))s.createIndex('byExam','examId');}
     };
     req.onsuccess=function(){db=req.result;res(db)};
     req.onerror=function(){rej(req.error)};
@@ -273,6 +276,37 @@ const dbAll=async function(store){const d=await ensureDB();const t=d.transaction
 const dbByIdx=async function(store,idx,val){const d=await ensureDB();const t=d.transaction(store,'readonly');return reqp(t.objectStore(store).index(idx).getAll(val))};
 const dbDel=async function(store,key){const d=await ensureDB();const t=d.transaction(store,'readwrite');await reqp(t.objectStore(store).delete(key))};
 const dbClear=async function(store){const d=await ensureDB();const t=d.transaction(store,'readwrite');await reqp(t.objectStore(store).clear())};
+/* 游标逐条挑取（不把整表含图片的记录一次性读进内存） */
+function dbCollect(store,idx,val,pick){
+  return new Promise(function(res,rej){
+    ensureDB().then(function(d){
+      const rq=d.transaction(store,'readonly').objectStore(store).index(idx).openCursor(IDBKeyRange.only(val));
+      const out=[];
+      rq.onsuccess=function(e){const c=e.target.result;if(!c)return res(out);out.push(pick?pick(c.value):c.value);c.continue()};
+      rq.onerror=function(){rej(rq.error)};
+    }).catch(rej);
+  });
+}
+function dbCount(store){
+  return new Promise(function(res,rej){
+    ensureDB().then(function(d){
+      const rq=d.transaction(store,'readonly').objectStore(store).count();
+      rq.onsuccess=function(){res(rq.result)};rq.onerror=function(){rej(rq.error)};
+    }).catch(rej);
+  });
+}
+/* 单事务批量删除 */
+function dbDelMany(store,keys){
+  if(!keys||!keys.length)return Promise.resolve();
+  return new Promise(function(res,rej){
+    ensureDB().then(function(d){
+      const t=d.transaction(store,'readwrite');
+      const os=t.objectStore(store);
+      keys.forEach(function(k){os.delete(k)});
+      t.oncomplete=function(){res()};t.onerror=function(){rej(t.error)};
+    }).catch(rej);
+  });
+}
 
 /* ---------- 模态框 ---------- */
 let mResolve=null;
@@ -285,7 +319,7 @@ function dlg(html,opts){
   $('mOverlay').hidden=false;
   box.style.width=opts.wide?'min(94vw,1100px)':'';
 }
-function dlgClose(){const ov=$('mOverlay');ov.hidden=true;$( 'mBox').innerHTML='';if(mResolve){const r=mResolve;mResolve=null;r(null);}}
+function dlgClose(){const ov=$('mOverlay');ov.hidden=true;$( 'mBox').innerHTML='';try{shotStop()}catch(e){}if(mResolve){const r=mResolve;mResolve=null;r(null);}}
 document.addEventListener('keydown',function(e){
   if(!$('mOverlay').hidden){
     if(e.key==='Escape'){dlgClose();return}
@@ -340,13 +374,13 @@ document.addEventListener('change',function(e){
 
 /* ---------- 导航 ---------- */
 const TABS=[
-  ['home','首','首页'],['tpl','模','答题卡模板'],['class','班','班级学生'],['exam','考','考试管理'],
-  ['scan','扫','扫描识别'],['grade','阅','阅卷工作台'],['score','绩','成绩分析'],['set','设','设置']
+  ['home','首页','首'],['tpl','答题卡模板','模板'],['class','班级学生','班级'],['exam','考试管理','考试'],
+  ['scan','扫描识别','扫描'],['grade','阅卷工作台','阅卷'],['score','成绩分析','成绩'],['set','设置','设置']
 ];
 const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级与学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩与分析',set:'设置'};
 function renderNav(){
   $('nav').innerHTML=TABS.map(function(t){
-    return '<div class="sj-nav-item '+(ui.tab===t[0]?'on':'')+'" data-act="nav" data-tab="'+t[0]+'"><span class="ic">'+t[1]+'</span><span class="tx">'+t[2]+'</span></div>';
+    return '<div class="sj-nav-item '+(ui.tab===t[0]?'on':'')+'" data-act="nav" data-tab="'+t[0]+'"><span class="tx">'+t[1]+'</span><span class="sh">'+t[2]+'</span></div>';
   }).join('');
 }
 function go(tab){
@@ -388,6 +422,8 @@ window.addEventListener('error',function(e){
   if(e&&e.message&&!String(e.message).match(/ResizeObserver/i))toast('脚本错误：'+e.message,'err');
 });
 window.__yjReady=openDB().then(function(){go(loadJSON(LS_UI,0)==='home'?'home':(loadJSON(LS_UI)&&loadJSON(LS_UI).tab)||'home')}).catch(function(err){console.error(err);toast('数据库打开失败：'+err.message,'err')});
+/* 请求持久化存储：防止 iOS/Safari 在空间压力下清空 IndexedDB 数据 */
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
 
 
 /* ============================================================
@@ -438,7 +474,7 @@ function layoutTemplate(tpl){
   const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
     return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&tpl.showInfo!==false)?{x:M,y:33,w:44,h:54.6}:null,
-      notes:null,
+      notes:(pi===0)?{x:M,y:h-35,w:contentW,h:18}:null,
       reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,anchors:anchors,footer:{n:pi+1,m:0}};
   }
   /* 无考号区页面顶部从 38mm 开始（标题下方），避免大片空白；首页 94mm */
@@ -576,13 +612,13 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     const r=page.notes;
     ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
     ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
-    ctx.textAlign='left';ctx.font=Math.max(6,Math.round(px(2.4)))+'px "Microsoft YaHei",sans-serif';
+    ctx.textAlign='left';ctx.font=Math.max(6,Math.round(px(2.2)))+'px "Microsoft YaHei",sans-serif';
     ctx.fillStyle='#333';
     let y=r.y+5;
     const full=NOTE_TEXT;
     let line='',li=0;
     for(let i=0;i<full.length;i++){
-      if((line.length+1)*2.4>r.w-5&&line){ctx.fillText(line,px(r.x+2.5),px(y));y+=3.3;if(y>r.y+r.h-2.5)break;line='';}
+      if((line.length+1)*2.2>r.w-5&&line){ctx.fillText(line,px(r.x+2.5),px(y));y+=3.2;if(y>r.y+r.h-2)break;line='';}
       line+=full[i];
     }
     if(line)ctx.fillText(line,px(r.x+2.5),px(y));
@@ -819,9 +855,9 @@ function qrPackBytes(tpl,layout,page){
   });
   b.push(0xFF,0xFE);
   page.subjective.forEach(function(s){
-    const qb=new TextEncoder().encode(String(s.qno||'').slice(0,6));
-    b.push(Math.min(qb.length,6));
-    for(let k=0;k<qb.length;k++)b.push(qb[k]);
+    const qb=new TextEncoder().encode(String(s.qno||''));
+    b.push(Math.min(qb.length,12));
+    for(let k=0;k<Math.min(qb.length,12);k++)b.push(qb[k]);
     b.push(Math.min(255,Math.round(s.score*2)),
       s.type==='grid-cn'?1:(s.type==='grid-en'?2:0),
       s.rows%256,Math.min(255,Math.round(s.rowH*2)),
@@ -856,6 +892,7 @@ function qrUnpackBytes(bytes){
   const types=['lines','grid-cn','grid-en'];
   while(i<bytes.length){
     const ql=u();
+    if(!(ql>0)||i+ql>bytes.length)throw new Error('二维码数据不完整（旧版载荷）');
     const qno=new TextDecoder().decode(bytes.subarray(i,i+ql));i+=ql;
     subj.push({qno:qno,score:u()/2,type:types[u()]||'lines',rows:u(),rowH:u()/2,
       x:u()/0.75,y:u()/0.75,w:u()/0.75,h:u()/0.75,
@@ -1544,20 +1581,20 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }
   if(!pts)pts=[null,null,null,null];
   const detWarn=det?det.warn:[];
-  if(pts.filter(function(p){return p}).length<4){
-    /* 用两个小锚 + 两点外推补角 */
-    let haveB=pts.map(function(p){return !!p});
-    const small=det.small;
-    if((haveB[0]===false||haveB[3]===false)&&small[0]){pts[0]=pts[0]||small[0];pts[3]=pts[3]||small[0];usedSmall=true;}
-    if((haveB[1]===false||haveB[2]===false)&&small[1]){pts[1]=pts[1]||small[1];pts[2]=pts[2]||small[1];usedSmall=true;}
+  /* 手动锚点优先（重定位救失败页），必须先于“定位失败”判定 */
+  if(opts.manualPts&&opts.manualPts.length>=4){
+    pts=opts.manualPts.slice(0,4).map(function(p){return {x:p.x,y:p.y}});
+  }else{
+    if(pts.filter(function(p){return p}).length<4){
+      /* 用两个小锚 + 两点外推补角 */
+      let haveB=pts.map(function(p){return !!p});
+      const small=det?det.small:[null,null];
+      if((haveB[0]===false||haveB[3]===false)&&small[0]){pts[0]=pts[0]||small[0];pts[3]=pts[3]||small[0];usedSmall=true;}
+      if((haveB[1]===false||haveB[2]===false)&&small[1]){pts[1]=pts[1]||small[1];pts[2]=pts[2]||small[1];usedSmall=true;}
+    }
   }
   let okCount=pts.filter(function(p){return p}).length;
   if(okCount<4){return {ok:false,status:'locate_fail',flags:['定位失败：锚点不足('+okCount+'/4)（照片请平正拍摄、四角完整可见）'],warn:detWarn}}
-  /* 手动锚点覆盖 */
-  if(opts.manualPts){
-    pts=opts.manualPts.slice(0,4);
-    flags.push(usedSmall?'以小锚辅助定位':null);
-  }
   const srcPts=geometry.anchors.slice(0,4).map(function(a){return {x:a.x+a.s/2,y:a.y+a.s/2}});
   let H=null;
   if(detGlobal&&detGlobal.tri&&detGlobal.tplIdx){
@@ -1568,6 +1605,24 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     flags.push('仅识别到 3 个定位点（第4角自动外推，透视较大时可能有少许偏差）');
   }else{
     H=solveHomo(srcPts,pts.map(function(p){return {x:p.x,y:p.y}}));
+  }
+  /* 全局匹配的模板一致性校验：用 2 个小锚验证，防止桌面杂物拼成的假四边形被当成答题卡 */
+  if(globalUsed&&geometry.anchors[4]&&geometry.anchors[5]){
+    let checked=0,bad=0;
+    [geometry.anchors[4],geometry.anchors[5]].forEach(function(a){
+      const e=H(a.x+a.s/2,a.y+a.s/2);
+      const theory=(a.s*0.667*sX)*(a.s*0.667*sY);
+      const r=findSolid(bin,cv.width,cv.height,e.x,e.y,a.s*sX*2.2,a.s*sY*2.2,theory*0.45,theory*2.1,0.72);
+      if(r){
+        checked++;
+        const d=Math.sqrt((r.x-e.x)*(r.x-e.x)+(r.y-e.y)*(r.y-e.y))/smm;
+        if(d>2.5)bad++;
+      }
+    });
+    if(checked>=1&&bad===checked){
+      return {ok:false,status:'locate_fail',
+        flags:['定位校验未通过：定位点与版式不符（画面中可能混入杂物，请调整拍摄角度/距离后重试）'],warn:detWarn};
+    }
   }
   /* 小锚残差校验（全局匹配下跳过） */
   const smallRef=det?det.small:[null,null];
@@ -1609,7 +1664,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     }
     regPts.push({c:c,j:null,inks:inks,raw:true});
   }
-  if(!studentNo||studentNo.indexOf('_')>=0||studentNo.indexOf('?')>=0)regFlags.push('考号异常（'+studentNo+'）');
+  /* 考号判定在下方回填阶段统一进行并按需标记“考号异常” */
   /* 考号人工改判覆盖 */
   if(opts&&opts.regOverride){
     studentNo=String(opts.regOverride).trim();
@@ -1646,13 +1701,22 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       }
     }
   });
-  /* 页面级自适应阈值（Otsu 聚类）；极端情形回退到设置默认 */
+  /* 页面级自适应阈值（Otsu 聚类）：仅当“空白簇/填涂簇”清晰可分时启用，
+     且阈值围绕两簇均值构造，保证空白涂点（边框+字母墨量约 0.15-0.25）不被划入模糊区 */
   let inkHigh=omr.inkHigh,inkLow=omr.inkLow;
   try{
     const t=otsuInkThreshold(allInks);
     if(t!=null){
-      inkHigh=Math.max(0.32,Math.min(0.92,t+0.10));
-      inkLow=Math.max(0.12,Math.min(0.4,t-0.10));
+      const below=[],above=[];
+      for(const v of allInks)(v<t?below:above).push(v);
+      if(below.length>=8&&above.length>=1){
+        const mean=function(a){let s=0;for(const x of a)s+=x;return s/a.length};
+        const m0=mean(below),m1=mean(above);
+        if(m1-m0>=0.25&&m0<=0.35&&m1>=0.45){
+          inkLow=Math.max(omr.inkLow,Math.min(0.35,m0+0.08));
+          inkHigh=Math.max(inkLow+0.1,Math.max(omr.inkHigh,Math.min(0.9,m1-0.12)));
+        }
+      }
     }
   }catch(e){}
   /* 客观题判定回填（≥2 涂点按 MULTI 记，多选由判分阶段按答案集合比对） */
@@ -1687,7 +1751,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
 }
 
 /* ---------- 扫描主流程（上传文件或模拟） ---------- */
-async function scanExamPages(exam,files,onProgress){
+async function scanExamPages(exam,files,onProgress,forcePage){
   const tpl=await dbGet('templates',exam.templateId);
   if(!tpl)throw new Error('模板不存在');
   const layout=layoutTemplate(tpl);
@@ -1695,7 +1759,7 @@ async function scanExamPages(exam,files,onProgress){
   const results=[];
   let idx=0,lastNo='';
   for(const it of items){
-    const pageIdx=Math.min(layout.pages.length-1,(it.pageNo||1)-1);
+    const pageIdx=(forcePage!=null&&forcePage>0)?Math.min(layout.pages.length-1,forcePage-1):Math.min(layout.pages.length-1,(it.pageNo||1)-1);
     let res;
     try{res=await recognizeCanvas(it.cv,layout,pageIdx,{})}
     catch(err){
@@ -1743,10 +1807,8 @@ async function scanExamPages(exam,files,onProgress){
 async function examData(examId){
   const exam=await dbGet('exams',examId);
   const pages=await dbByIdx('pages','byExam',examId);
-  const cropsAll=await dbAll('crops');
-  const crops=cropsAll.filter(function(c){return c.examId===examId});
-  const revsAll=await dbAll('revs');
-  const revs=revsAll.filter(function(r){return r.examId===examId});
+  const crops=await dbByIdx('crops','byExam',examId);
+  const revs=await dbByIdx('revs','byExam',examId);
   const students=exam?await dbByIdx('students','byClass',exam.classId):[];
   return {exam:exam,pages:pages,crops:crops,revs:revs,students:students};
 }
@@ -1763,7 +1825,12 @@ async function examMeta(exam){
       for(let q=g.first;q<g.first+g.count;q++)choiceQnos.push(q);
     });
     p.subjective.forEach(function(sb){
-      if(!seen[sb.qno]){seen[sb.qno]=true;subjList.push({qno:sb.qno,score:sb.score,type:sb.type,parts:[]});}
+      if(!seen[sb.qno]){
+        seen[sb.qno]=true;
+        /* 考试级满分覆盖模板默认（向导中可改），全链路计分/统计/AI 统一以 examMeta 输出为准 */
+        const exSc=(exam&&exam.subjective&&exam.subjective[sb.qno]&&Number(exam.subjective[sb.qno].score)>0)?Number(exam.subjective[sb.qno].score):sb.score;
+        subjList.push({qno:sb.qno,score:exSc,type:sb.type,parts:[]});
+      }
       subjList.find(function(s){return s.qno===sb.qno}).parts.push({pi:p.footer.n-1,part:sb.part,rows:sb.rows});
     });
   });
@@ -1794,27 +1861,24 @@ async function examReviewCount(examId){
   return items;
 }
 
-/* 批量状态：一次读取 page/crop/rev 集合，逐场统计（替代逐场 4 次全库扫描） */
+/* 批量状态：游标挑取元数据（不加载页图/裁剪图 blob），逐场统计 */
+const __pagePick=function(p){return {id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta}};
+const __cropPick=function(c){return {id:c.id,examId:c.examId,studentNo:c.studentNo,qno:c.qno,scoreVal:c.scoreVal,flag:c.flag,markedBy:c.markedBy}};
 async function examStatusMap(examIds){
-  const {pagesAll,cropsAll,revsAll}=await (async function(){
-    const [a,b,c]=await Promise.all([dbAll('pages'),dbAll('crops'),dbAll('revs')]);
-    return {pagesAll:a,cropsAll:b,revsAll:c};
-  })();
   const exams=await dbAll('exams');
-  const tplCache={};
-  async function metaOf(exam){
-    if(!exam.templateId)return null;
-    if(tplCache[exam.templateId]===undefined){
-      const t=await dbGet('templates',exam.templateId);
-      tplCache[exam.templateId]=t?layoutTemplate(t).pages.length:null;
-    }
-    return tplCache[exam.templateId];
+  const subjCache={};
+  async function subjOf(ex){
+    if(subjCache[ex.templateId])return subjCache[ex.templateId];
+    const m=await examMeta(ex);
+    const l=m?m.subjList:[];
+    subjCache[ex.templateId]=l;
+    return l;
   }
   const map={};
   for(const ex of exams){
-    const pages=pagesAll.filter(function(p){return p.examId===ex.id});
-    const crops=cropsAll.filter(function(c){return c.examId===ex.id});
-    const revs=revsAll.filter(function(r){return r.examId===ex.id});
+    const pages=await dbCollect('pages','byExam',ex.id,__pagePick);
+    const crops=await dbCollect('crops','byExam',ex.id,__cropPick);
+    const revs=await dbCollect('revs','byExam',ex.id);
     const rev={locate:[],reg:[],q:[]};
     pages.forEach(function(p){
       const m=p.meta||{};
@@ -1830,15 +1894,14 @@ async function examStatusMap(examIds){
         });
       }
     });
-    const pagesN=pages.length;
     let gradDone=0,gradTotal=0;
-    const subjList=(await (async function(){return await (await examMeta(ex)).subjList||[]})())||[];
+    const subjList=await subjOf(ex);
     for(const sq of subjList){
       const done=crops.some(function(c){return String(c.qno)===String(sq.qno)&&c.scoreVal!=null});
       gradTotal++;if(done)gradDone++;
     }
     let badgeTxt,labelTxt;
-    if(!pagesN){badgeTxt=badge('warn','待扫描');labelTxt='尚未扫描';}
+    if(!pages.length){badgeTxt=badge('warn','待扫描');labelTxt='尚未扫描';}
     else if(rev.locate.length||rev.reg.length||rev.q.length){badgeTxt=badge('err','待复核 '+(rev.locate.length+rev.reg.length+rev.q.length));labelTxt='有项目待复核';}
     else if(subjList.length&&gradDone<gradTotal){badgeTxt=badge('info','阅卷中');labelTxt='主观题待阅';}
     else{badgeTxt=badge('ok','已完成');labelTxt='已完成';}
@@ -1872,8 +1935,7 @@ async function renderHome(){
   const tpls=await dbAll('templates');
   const exams=await dbAll('exams');
   exams.sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
-    const allPages=await dbAll('pages');
-  const pagesTotal=allPages.length;
+  const pagesTotal=await dbCount('pages');
   const steps=[
     ['tpl','1','设计打印答题卡',tpls.length?('已有 '+tpls.length+' 个模板'):'从预设创建，导出 PDF（选 100% 打印）',''],
     ['class','2','导入学生名单',students.length?('共 '+students.length+' 名学生'):'粘贴 / Excel（考号=卡上涂写号）',''],
@@ -2652,6 +2714,10 @@ async function renderScan(){
     +'<button class="btn btn-g" data-act="scan-shoot">拍照识别</button>'
     +'<input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none">'
     +'<input type="file" id="scanFiles" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tif,.webp" style="display:none">'
+    +'<select class="inp" style="width:170px" data-on="scan-force" title="多页答题卡逐张拍照时，可指定本批文件全部对应模板的某一页">'
+    +'<option value="0">页序自动对应</option>'
+    +meta.layout.pages.map(function(p,i){return '<option value="'+(i+1)+'"'+((ui.scanForcePage||0)===(i+1)?' selected':'')+'>本批都是第'+(i+1)+'页</option>'}).join('')
+    +'</select>'
     +'<button class="btn btn-d" data-act="scan-clear"> 清空本场扫描结果</button>'
     +'<span class="tip">扫描件按页顺序对应模板页；识别用「6 锚点 + 同步条 + 单应校正」，第 1 页二维码自描述版式。</span>'
     +'</div>'
@@ -2701,6 +2767,7 @@ async function renderScan(){
 Object.assign(ACTS,{
   'go-exam':function(){go('exam')},
   'scan-pick':async function(el){ui.scanExam=el.value;renderScan()},
+  'scan-force':function(el){ui.scanForcePage=parseInt(el.value,10)||0},
   'scan-pick-files':function(){const f=$('scanFiles');if(f)f.click()},
   'scan-shoot':function(){
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
@@ -2718,7 +2785,7 @@ Object.assign(ACTS,{
       +'<div id="shotStatusTxt" class="kv" style="color:var(--txt2)"></div>'
       +'</div>',
       {title:'拍照识别 · 实时定位',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="shot-take">拍照识别</button>'});
-    shotAuto=true;
+    shotAuto=true;shotStable=0;
     (function(){const a=$('shotAuto');if(a)a.addEventListener('change',function(){shotAuto=a.checked})})();
     (function(){
       const v=$('shotVideo'),ov=$('shotOverlay');
@@ -2752,36 +2819,24 @@ Object.assign(ACTS,{
     const ex=await dbGet('exams',ui.scanExam);
     const ok=await dlgConfirm('清空扫描','删除「'+esc(ex.name)+'」的所有扫描页与裁剪图、复核记录？<br>（不影响学生名单、答案与成绩设置）','清空');
     if(!ok)return;
-    const pages=await dbByIdx('pages','byExam',ex.id);
-    for(const p of pages)await dbDel('pages',p.id);
-    const crops=await dbAll('crops');
-    for(const c of crops)if(c.examId===ex.id)await dbDel('crops',c.id);
-    const revs=await dbAll('revs');
-    for(const r of revs)if(r.examId===ex.id)await dbDel('revs',r.id);
+    await dbDelMany('pages',(await dbByIdx('pages','byExam',ex.id)).map(function(p){return p.id}));
+    await dbDelMany('crops',(await dbByIdx('crops','byExam',ex.id)).map(function(c){return c.id}));
+    await dbDelMany('revs',(await dbByIdx('revs','byExam',ex.id)).map(function(r){return r.id}));
     toast('已清空','ok');
     renderScan();
   },
   'scan-del-page':async function(el){
     const p=await dbGet('pages',el.dataset.id);
     await dbDel('pages',p.id);
-    const crops=await dbAll('crops');
-    for(const c of crops)if(c.examId===p.examId&&c.pageId===p.id)await dbDel('crops',c.id);
+    const crops=await dbByIdx('crops','byExam',p.examId);
+    await dbDelMany('crops',crops.filter(function(c){return c.pageId===p.id}).map(function(c){return c.id}));
     renderScan();
-  },
-  'scan-empty':function(){}
+  }
 });
-async function scanClearAll(examId){
-  const pages=await dbByIdx('pages','byExam',examId);
-  for(const p of pages)await dbDel('pages',p.id);
-  const crops=await dbAll('crops');
-  for(const c of crops)if(c.examId===examId)await dbDel('crops',c.id);
-  const revs=await dbAll('revs');
-  for(const r of revs)if(r.examId===examId)await dbDel('revs',r.id);
-}
 /* 上传文件绑定由 renderScan 内的 afterRender 完成 */
 
 /* ---------- 相机拍摄（对标 Pro：取景框+实时锚点反馈；4点即拍） ---------- */
-let shotStream=null,shotTimer=null,shotBusy=false,shotAuto=true;
+let shotStream=null,shotTimer=null,shotBusy=false,shotAuto=true,shotStable=0;
 function shotStop(){
   if(shotTimer){clearInterval(shotTimer);shotTimer=null;}
   if(shotStream){try{shotStream.getTracks().forEach(function(t){t.stop()})}catch(e){}
@@ -2810,8 +2865,13 @@ function shotDetectOnce(video,ov){
         o.strokeRect(pt.x*ox-8,pt.y*oy-8,16,16);
       });
       shotStatus('已找到 '+n+' 个定位点'+(det.tri?'（缺一角，自动外推）':'')+'，保持稳定',det.tri?'warn':'ok');
-      if(!det.tri&&shotAuto&&!shotBusy)shotCapture();
+      if(!det.tri&&shotAuto&&!shotBusy){
+        /* 连续 2 帧检测到才自动拍摄，避免移动中抢拍 */
+        shotStable++;
+        if(shotStable>=2)shotCapture();
+      }else if(det.tri)shotStable=0;
     }else{
+      shotStable=0;
       o.strokeStyle='rgba(120,220,140,.6)';
       o.lineWidth=2;
       o.strokeRect(ov.width*0.08,ov.height*0.08,ov.width*0.84,ov.height*0.84);
@@ -2832,6 +2892,7 @@ function shotCapture(){
   try{
     const MAXL=2400;
     const w=video.videoWidth,h=video.videoHeight;
+    if(!w||!h){shotBusy=false;return}
     const k=Math.min(1,MAXL/Math.max(w,h));
     const cv=document.createElement('canvas');
     cv.width=Math.round(w*k);cv.height=Math.round(h*k);
@@ -2849,7 +2910,8 @@ function shotCapture(){
 async function runScanUpload(files){
   if(scanCtx&&scanCtx.running){toast('正在扫描/识别中，请稍候','err');return}
   const ex=await dbGet('exams',ui.scanExam);
-  const ok=await dlgConfirm('开始识别','将扫描/识别 '+files.length+' 个文件（'+pagesEst(files)+' 页）。识别结果与现有页面共存，同页可删除重扫。','开始');
+  const forcePage=ui.scanForcePage||0;
+  const ok=await dlgConfirm('开始识别','将扫描/识别 '+files.length+' 个文件（'+pagesEst(files)+' 页）'+(forcePage?'，全部按「第'+forcePage+'页」解析':'')+'。识别结果与现有页面共存，同页可删除重扫。','开始');
   if(!ok)return;
   const box=$('scanProgBox');
   box.style.display='block';
@@ -2861,7 +2923,7 @@ async function runScanUpload(files){
     const res=await scanExamPages(ex,files,function(done,total){
       $('scanProgBar').style.width=Math.round(done/total*100)+'%';
       $('scanProgTxt').textContent='识别中 '+done+'/'+total;
-    });
+    },forcePage);
     toast('识别完成：'+res.length+' 页','ok');
   }catch(err){toast('识别失败：'+err.message,'err')}
   box.style.display='none';
@@ -2914,10 +2976,12 @@ async function pageMarkedImage(p){
         const q=perQmap[qn];
         if(!q)continue;
         const rowY=g.y0+2.5+r*g.dy;
-        for(let ch=0;ch<g.choices;ch++){
-          const bx=g.x0+c*g.dxq+9+ch*g.dxc+g.size[0]/2;
+        const nOpts=groupQChoices(g,qn);
+        for(let ch=0;ch<nOpts;ch++){
+          const qg=qBubbleGeom(g,qn,ch);
+          const bx=g.x0+c*g.dxq+(qg.bx-g.x0);
           const ink=(q.inks&&q.inks[ch]!=null)?q.inks[ch]:0;
-          mark(bx,rowY,g.size[0],g.size[1],ink,(q.choice===String.fromCharCode(65+ch))?'rgba(10,90,40,.95)':'');
+          mark(bx,rowY,qg.bw,qg.bh,ink,(q.choice&&q.choice.indexOf(String.fromCharCode(65+ch))>=0)?'rgba(10,90,40,.95)':'');
         }
       }
     });
@@ -2951,7 +3015,7 @@ Object.assign(ACTS,{
     const m=p.meta||{};
     const flags=(m.flags||[]).filter(function(f){return f&&f!=='null'});
     dlg('<div class="f-row" style="margin-bottom:10px">'
-      +badge((m.status==='ok')?'ok':'err',(m.status==='ok')?'已识别':'定位失败')
+      +badge((m.status==='ok')?'ok':'err',(m.status==='ok')?'已识别':(m.status==='error'?'解析失败':'定位失败'))
       +(m.qrFound?badge('info','已读取版式二维码'):badge('gray','未读码(按模板解析)'))
       +(flags.length?badge('warn','告警 '+flags.length):'')
       +'<label class="kv" style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="scanMarkOv" checked> 显示识别框选（<span style="color:var(--green)">绿=已识别</span>　<span style="color:var(--danger)">红/橙=不清晰</span>　<span style="color:#888">灰=空白</span>）</label>'
@@ -3001,8 +3065,7 @@ Object.assign(ACTS,{
     const sels=$('mBox').querySelectorAll('.regFixSel');
     let no='';
     sels.forEach(function(s){no+=s.value});
-    no=no.replace(/_/g,'');
-    if(!no){toast('考号不能为空','err');return}
+    if(no.indexOf('_')>=0){toast('请为每一位都选择数字（考号用于匹配名单，不能留空位）','err');return}
     const ok=await dlgConfirm('重识别','将以考号「'+esc(no)+'」重新识别第 '+p.pageNo+' 页（含主观题裁剪重建），确定？','开始');
     if(!ok)return;
     dlgClose();
@@ -3020,13 +3083,15 @@ Object.assign(ACTS,{
   'scan-relocate':async function(el){
     const p=await dbGet('pages',el.dataset.id);
     const {cv}=await pageFull(p);
-    const big=canvasDataURL(canvasToThumb(cv,900),0.85);
+    const thumbCv=canvasToThumb(cv,900);
+    const big=canvasDataURL(thumbCv,0.85);
+    const relScale=cv.width/(thumbCv.width||1);
     dlg('<div class="kv" style="margin-bottom:8px">请在页面大图上<b>按顺序点击 4 个锚点中心</b>：①左上 → ②右上 → ③右下 → ④左下。</div>'
       +'<div style="text-align:center"><div id="relWrap" style="position:relative;display:inline-block"><img id="relImg" src="'+big+'" style="max-width:640px;cursor:crosshair;border:1px solid var(--line);border-radius:8px"></div></div>'
       +'<div class="kv" id="relStatus" style="margin-top:8px"></div>',
       {title:'重新定位 · 第 '+p.pageNo+' 页',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="scan-rel-go" disabled id="relGoBtn">按 4 点重识别</button>'});
     const pts=[];
-    window.__yjRel={p:p,pts:pts};
+    window.__yjRel={p:p,pts:pts,scale:relScale};
     const img=$('relImg');
     const wrap=$('relWrap');
     const st=$('relStatus');
@@ -3060,7 +3125,9 @@ Object.assign(ACTS,{
       const tpl=await dbGet('templates',ex.templateId);
       const layout=layoutTemplate(tpl);
       const {cv}=await blobCanvas(p.blob,2200);
-      await redoPage(p,cv,layout,{manualPts:rel.pts});
+      /* 点击坐标在缩略图空间，先换算回原图像素尺度 */
+      const k=rel.scale||1;
+      await redoPage(p,cv,layout,{manualPts:rel.pts.map(function(pt){return {x:pt.x*k,y:pt.y*k}})});
       toast('已更新','ok');
       renderScan();
     }catch(err){toast('重识别失败：'+err.message,'err')}
