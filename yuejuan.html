@@ -94,6 +94,7 @@ table.tbl tr:hover td{background:#FBF8F3}
 .qcell .opts{display:flex;gap:4px}
 .qcell .opt{flex:1;padding:3px 0;text-align:center;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:#fff;font-size:12.5px;font-weight:700;color:#98A5B0}
 .qcell .opt.on{background:var(--zhu);color:#fff;border-color:var(--zhu)}
+.rev-tog.on{background:var(--zhu);border-color:var(--zhu);color:#fff}
 .qcell .opt.dim{opacity:.35}
 /* ===== 图表 ===== */
 .chart-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;overflow:hidden}
@@ -1523,6 +1524,12 @@ function blobURL(b){
   if(!u){u=URL.createObjectURL(b);__blobUrls.set(b,u);}
   return u;
 }
+/* 记录被替换的 Blob URL 并释放（旧图不再被引用时调用） */
+function releaseBlobURL(b){
+  if(!b)return;
+  const u=__blobUrls.get(b);
+  if(u){try{URL.revokeObjectURL(u)}catch(e){}__blobUrls.delete(b);}
+}
 
 /* ---------- 单页识别 ---------- */
 async function recognizeCanvas(cv,layout,pageIdx,opts){
@@ -2040,7 +2047,8 @@ async function tplEditorHTML(tplId){
       +'<span class="kv">选项</span><select class="inp" style="width:70px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="choices">'
       +[4,5,6].map(function(x){return '<option value="'+x+'"'+(g.choices===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select>'
       +'<span class="kv">组标题</span><input class="inp" style="flex:1;min-width:120px" data-on="tpl-cg" data-id="'+t.id+'" data-i="'+i+'" data-f="label" value="'+esc(g.label||'')+'">'
-      +'<button class="btn btn-sm btn-d" <span class="kv" title="指定部分题目选项数，如 15:5,25:5（留空=全部用上方选项数）">指定选项</span><input class="inp" style="width:120px" data-on="tpl-cgQ" data-id="'+t.id+'" data-i="'+i+'" value="'+esc(cgChoicesText(g))+'">data-act="tpl-cg-del" data-id="'+t.id+'" data-i="'+i+'">✕</button></div>';
+      +'<span class="kv" title="指定部分题目选项数，如 15:5,25:5（留空=全部用上方选项数）">指定选项</span><input class="inp" style="width:120px" data-on="tpl-cgQ" data-id="'+t.id+'" data-i="'+i+'" value="'+esc(cgChoicesText(g))+'">'
+      +'<button class="btn btn-sm btn-d" data-act="tpl-cg-del" data-id="'+t.id+'" data-i="'+i+'">✕</button></div>';
   }).join('');
   const subj=(t.subjective||[]).map(function(s,i){
     return '<div class="f-row" style="border:1px dashed var(--line);border-radius:9px;padding:8px;margin-bottom:8px">'
@@ -2286,7 +2294,12 @@ async function renderCls(){
   }
   const cls=classes.find(function(c){return c.id===ui.clsCur});
   const students=await dbByIdx('students','byClass',ui.clsCur);
-  students.sort(function(a,b){return String(a.no||'').localeCompare(String(b.no||''))});
+  /* 考号数字自然排序（1,2,10 而非 1,10,2）；非纯数字按字典序 */
+  students.sort(function(a,b){
+    const na=parseFloat(a.no),nb=parseFloat(b.no);
+    if(Number.isFinite(na)&&Number.isFinite(nb))return (na-nb)||String(a.no||'').localeCompare(String(b.no||''));
+    return String(a.no||'').localeCompare(String(b.no||''));
+  });
   html+='<div class="card"><h3>班级</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
     +classes.map(function(c){return '<span class="chip'+(c.id===ui.clsCur?' on':'')+'" data-act="cls-pick" data-id="'+c.id+'">'+esc(c.name)+'（'+(clsCounts[c.id]||0)+'人）</span>'}).join('')
     +'<span style="flex:1"></span>'
@@ -2374,16 +2387,25 @@ Object.assign(ACTS,{
   'stu-paste':async function(el){
     const text=$('stuPaste').value||'';
     if(!text.trim()){toast('请先粘贴名单','err');return}
-    let added=0;
-    text.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean).forEach(function(line){
+    const existing=await dbByIdx('students','byClass',el.dataset.id);
+    const byNo={};existing.forEach(function(s){if(s.no)byNo[String(s.no)]=s});
+    let added=0,updated=0;
+    for(const line of text.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean)){
       const parts=line.split(/[\t,，;；、\s]+/).filter(Boolean);
-      if(!parts.length)return;
+      if(!parts.length)continue;
       const name=parts[0],no=parts[1]||'',note=parts.slice(2).join(' ');
-      added++;
-      dbPut('students',{id:uid('stu_'),classId:el.dataset.id,no:no,name:name,note:note}).catch(function(){});
-    });
+      const ex=no?byNo[String(no)]:null;
+      if(ex){ex.name=name||ex.name;ex.note=note||ex.note;await dbPut('students',ex);updated++;}
+      else{
+        const rec={id:uid('stu_'),classId:el.dataset.id,no:no,name:name||no,note:note};
+        await dbPut('students',rec);
+        if(no)byNo[String(no)]=rec;
+        added++;
+      }
+    }
     $('stuPaste').value='';
-    setTimeout(function(){toast('已导入 '+added+' 名学生','ok');renderCls()},600);
+    toast('导入完成：新增 '+added+' 人，更新 '+updated+' 人','ok');
+    renderCls();
   },
   'stu-csv':async function(el){
     const st=await dbByIdx('students','byClass',ui.clsCur);
@@ -2428,7 +2450,9 @@ async function importStudentsExcel(file,classId){
       toast('导入失败：文件未包含「姓名」或「考号」列（请使用《考生信息表.xlsx》模板）','err');
       return;
     }
-    let added=0,numbad=0;
+    const existing=await dbByIdx('students','byClass',classId);
+    const byNo={};existing.forEach(function(s){if(s.no)byNo[String(s.no)]=s});
+    let added=0,numbad=0,updated=0;
     for(let i=hi+1;i<rows.length;i++){
       const r=rows[i];
       const name=String(r[ci.name]==null?'':r[ci.name]).trim();
@@ -2437,11 +2461,17 @@ async function importStudentsExcel(file,classId){
       if(!name&&!no)continue;
       if(!name){numbad++;continue}
       if(!no){numbad++;continue}
-      await dbPut('students',{id:uid('stu_'),classId:classId,no:no,name:name,note:note});
-      added++;
-      if(added>=200){toast('单次最多导入 200 人，已导入 200 人（其余忽略）','ok');break}
+      const ex=byNo[String(no)];
+      if(ex){ex.name=name;ex.note=note||ex.note;await dbPut('students',ex);updated++;}
+      else{
+        const rec={id:uid('stu_'),classId:classId,no:no,name:name,note:note};
+        await dbPut('students',rec);
+        byNo[String(no)]=rec;
+        added++;
+      }
+      if(added+updated>=400){toast('单次最多导入 400 人，已处理 400 行（其余忽略）','ok');break}
     }
-    toast('Excel 导入 '+added+' 名学生'+(numbad?('，跳过 '+numbad+' 行缺姓名/考号'):''),'ok');
+    toast('Excel 导入完成：新增 '+added+' 人，更新 '+updated+' 人'+(numbad?('，跳过 '+numbad+' 行缺姓名/考号'):''),'ok');
     renderCls();
   }catch(err){toast('Excel 导入失败：'+err.message,'err')}
 }
@@ -2494,12 +2524,9 @@ Object.assign(ACTS,{
     const ex=await dbGet('exams',el.dataset.id);
     const ok=await dlgConfirm('删除考试','删除「'+esc(ex.name)+'」？<br>该考试的扫描页、裁剪图、判分记录将一并删除（学生名单保留）。','删除');
     if(!ok)return;
-    const pages=await dbByIdx('pages','byExam',ex.id);
-    for(const p of pages)await dbDel('pages',p.id);
-    const crops=await dbAll('crops');
-    for(const c of crops)if(c.examId===ex.id)await dbDel('crops',c.id);
-    const revs=await dbAll('revs');
-    for(const r of revs)if(r.examId===ex.id)await dbDel('revs',r.id);
+    await dbDelMany('pages',(await dbByIdx('pages','byExam',ex.id)).map(function(p){return p.id}));
+    await dbDelMany('crops',(await dbByIdx('crops','byExam',ex.id)).map(function(c){return c.id}));
+    await dbDelMany('revs',(await dbByIdx('revs','byExam',ex.id)).map(function(r){return r.id}));
     await dbDel('exams',ex.id);
     toast('已删除','ok');
     renderExam();
@@ -2518,8 +2545,7 @@ async function examWizardOpen(examId){
     perScore:ex?ex.perScore:null,
     answers:ex?JSON.parse(JSON.stringify(ex.answers||{})):{},
     perQScore:ex&&ex.perQScore?JSON.parse(JSON.stringify(ex.perQScore)):{},
-  multi:ex&&ex.qMulti?JSON.parse(JSON.stringify(ex.qMulti)):{},
-    perScore:ex?ex.perScore:null,
+    multi:ex&&ex.qMulti?JSON.parse(JSON.stringify(ex.qMulti)):{},
     subjective:ex?JSON.parse(JSON.stringify(ex.subjective||{})):{}
   };
   wizRender();
@@ -3132,33 +3158,76 @@ Object.assign(ACTS,{
       renderScan();
     }catch(err){toast('重识别失败：'+err.message,'err')}
   },
-  /* 涂点待复核 */
+  /* 涂点待复核（多选题支持勾选多个选项后保存） */
   'scan-rev-q':async function(){
     const ex=await dbGet('exams',ui.scanExam);
     const rev=await examReviewCount(ex.id);
     if(!rev.q.length){toast('没有待复核的涂点','ok');return}
     const items=rev.q.slice(0,80);
+    const letters=['A','B','C','D','E','F'];
     const text=items.map(function(it,i){
-      const pages2=null;
-      return '<div class="scan-item" style="margin-bottom:6px"><div style="flex:1;min-width:220px">'
-        +'<div style="font-weight:700">考号 <b>'+esc(it.studentNo||'(未识别)')+'</b>　第 <b>'+(it.qno)+'</b> 题</div>'
-        +'<div class="kv">涂点密度：'+(it.inks||[]).map(function(x,k){return String.fromCharCode(65+k)+'='+Number(x).toFixed(2)}).join('　')+'</div></div>'
-        +'<div class="f-row">'+['A','B','C','D','E','F'].map(function(L){
-          return '<button class="btn btn-sm" data-act="rev-q-pick" data-key="'+esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno)+'" data-v="'+L+'">'+L+'</button>';
+      const key=esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno);
+      const isMulti=!!(ex.qMulti&&ex.qMulti[it.qno]);
+      let pickHtml;
+      if(isMulti){
+        pickHtml='<div data-multi="'+key+'" class="f-row">'+letters.map(function(L){
+          return '<button class="btn btn-sm rev-tog" data-act="rev-q-tog" data-v="'+L+'">'+L+'</button>';
+        }).join('')+'<button class="btn btn-sm btn-p" data-act="rev-q-multi-save" data-key="'+key+'">保存判定</button>'
+        +'<span class="kv">多选题：先勾选选项再保存</span></div>';
+      }else{
+        pickHtml='<div class="f-row">'+letters.map(function(L){
+          return '<button class="btn btn-sm" data-act="rev-q-pick" data-key="'+key+'" data-v="'+L+'">'+L+'</button>';
         }).join('')
-        +'<button class="btn btn-sm" data-act="rev-q-pick" data-key="'+esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno)+'" data-v="BLANK">空白</button>'
-        +'<button class="btn btn-sm btn-d" data-act="rev-q-pick" data-key="'+esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno)+'" data-v="MULTI">多涂</button>'
-        +'</div></div>';
+        +'<button class="btn btn-sm" data-act="rev-q-pick" data-key="'+key+'" data-v="BLANK">空白</button>'
+        +'<button class="btn btn-sm btn-d" data-act="rev-q-pick" data-key="'+key+'" data-v="MULTI">多涂</button>'
+        +'</div>';
+      }
+      return '<div class="scan-item" style="margin-bottom:6px"><div style="flex:1;min-width:220px">'
+        +'<div style="font-weight:700">考号 <b>'+esc(it.studentNo||'(未识别)')+'</b>　第 <b>'+(it.qno)+'</b> 题'+(isMulti?'（多选）':'')+'</div>'
+        +'<div class="kv">涂点密度：'+(it.inks||[]).map(function(x,k){return String.fromCharCode(65+k)+'='+Number(x).toFixed(2)}).join('　')+'</div></div>'
+        +pickHtml+'</div>';
     }).join('');
-    dlg(text,{title:'涂点待复核（'+rev.q.length+' 项，显示前 '+items.length+' 项）',wide:true});
+    dlg(text,{title:'涂点待复核（'+rev.q.length+' 项，显示前 '+items.length+' 项）',
+      foot:'<button class="btn" data-act="scan-rev-managed">管理人工改判（撤销）</button>',wide:true});
   },
+  'rev-q-tog':function(el){el.classList.toggle('on')},
   'rev-q-pick':async function(el){
     const key=el.dataset.key.split('|');
     const exId=key[0],no=key[1],qno=parseInt(key[2],10);
     const v=el.dataset.v;
     await dbPut('revs',{id:exId+'|'+no+'|q'+qno,examId:exId,studentNo:no,qno:qno,type:'q',
-      verdict:(v==='BLANK'||v==='MULTI')?v:'OK',choice:(v==='A'||v==='B'||v==='C'||v==='D')?v:null,at:timestamp(),by:'manual'});
+      verdict:(v==='BLANK'||v==='MULTI')?v:'OK',choice:/^[A-F]$/.test(v)?v:null,at:timestamp(),by:'manual'});
     toast('已判：'+esc(no)+' 第 '+qno+' 题 = '+esc(v)+(v.length===1?'（'+VERDICT_NAMES.OK+'）':''),'ok');
+    dlgClose();
+    renderScan();
+  },
+  'rev-q-multi-save':async function(el){
+    const key=el.dataset.key;
+    const box=document.querySelector('[data-multi="'+key+'"]');
+    if(!box)return;
+    const sel=Array.prototype.slice.call(box.querySelectorAll('.rev-tog.on')).map(function(b){return b.dataset.v}).sort();
+    if(!sel.length){toast('请先勾选选项','err');return}
+    const parts=key.split('|');
+    await dbPut('revs',{id:parts[0]+'|'+parts[1]+'|q'+parts[2],examId:parts[0],studentNo:parts[1],qno:parseInt(parts[2],10),type:'q',
+      verdict:'OK',choice:sel.join(''),at:timestamp(),by:'manual'});
+    toast('已判：'+esc(parts[1])+' 第 '+parts[2]+' 题 = '+sel.join(''),'ok');
+    dlgClose();
+    renderScan();
+  },
+  'scan-rev-managed':async function(){
+    const ex=await dbGet('exams',ui.scanExam);
+    const revs=(await dbByIdx('revs','byExam',ex.id)).slice().reverse();
+    if(!revs.length){toast('本场暂无人工改判记录','ok');return}
+    dlg(revs.map(function(r){
+      return '<div class="scan-item"><div style="flex:1">考号 <b>'+esc(r.studentNo||'(未识别)')+'</b>　第 '+(r.qno)+' 题　→　'
+        +esc(r.verdict==='OK'?(r.choice||'已涂'):(VERDICT_NAMES[r.verdict]||r.verdict))
+        +'<span class="kv">　'+esc(r.at||'')+'　'+esc(r.by||'')+'</span></div>'
+        +'<button class="btn btn-sm btn-d" data-act="rev-q-reset" data-id="'+esc(r.id)+'">恢复自动判定</button></div>';
+    }).join(''),{title:'人工改判记录（'+revs.length+' 条）',wide:true});
+  },
+  'rev-q-reset':async function(el){
+    await dbDel('revs',el.dataset.id);
+    toast('已恢复自动判定','ok');
     dlgClose();
     renderScan();
   },
@@ -3195,11 +3264,21 @@ async function redoPage(p,cv,layout,opts){
     perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:res.geometry.w,layoutH:res.geometry.h,
     pageIdx:p.meta.pageIdx,srcFile:p.meta.srcFile||'重新识别',H:res.H?res.H.h:null};
   await dbPut('pages',p);
-  /* 删除该页旧裁剪（按 pageId 级联，覆盖主观题多部分） */
-  const crops=await dbAll('crops');
-  for(const c of crops){
-    if(c.examId===p.examId&&c.pageId===p.id)await dbDel('crops',c.id);
+  /* 考号变更时，迁移该生的人工改判记录，避免复核记录变成孤儿 */
+  if(oldNo&&p.studentNo&&oldNo!==p.studentNo){
+    const revsAll=await dbByIdx('revs','byExam',p.examId);
+    for(const r of revsAll){
+      if(r.studentNo===oldNo){
+        await dbDel('revs',r.id);
+        r.studentNo=p.studentNo;
+        r.id=p.examId+'|'+p.studentNo+'|'+(r.type==='q'?'q'+r.qno:String(r.qno));
+        await dbPut('revs',r);
+      }
+    }
   }
+  /* 删除该页旧裁剪（按 pageId 级联，覆盖主观题多部分） */
+  const crops=await dbByIdx('crops','byExam',p.examId);
+  await dbDelMany('crops',crops.filter(function(c){return c.pageId===p.id}).map(function(c){return c.id}));
   /* 新裁剪 */
   if(res.crops)for(const cp of res.crops){
     const cid=p.examId+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
@@ -3232,8 +3311,8 @@ async function renderGrade(){
   if(!ui.gradeQno){
     const meta=await examMeta(ex);
     if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('错误: ','该考试使用的答题卡模板不存在或已删除。')+'</div>';return}
-    const cropsAll=await dbAll('crops');
-    const crops=cropsAll.filter(function(c){return c.examId===ex.id});
+    const cropsAll=await dbByIdx('crops','byExam',ex.id);
+    const crops=cropsAll;
     let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
       +'<select class="inp" style="width:220px" data-on="grade-pick">'
       +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>'
@@ -3271,8 +3350,8 @@ Object.assign(ACTS,{
   'grade-open-q':async function(el){
     const q=el.dataset.q;
     const ex=await dbGet('exams',ui.gradeExam);
-    const cropsAll=await dbAll('crops');
-    const list=cropsAll.filter(function(c){return c.examId===ex.id&&String(c.qno)===String(q)});
+    const cropsAll=await dbByIdx('crops','byExam',ex.id);
+    const list=cropsAll.filter(function(c){return String(c.qno)===String(q)});
     const uniq=[];
     list.forEach(function(c){if(uniq.indexOf(c.studentNo)<0)uniq.push(c.studentNo)});
     if(!uniq.length){toast('该题没有裁剪图，请先扫描识别','err');return}
@@ -3325,8 +3404,8 @@ Object.assign(ACTS,{
   'grade-ai-batch-open':async function(el){
     const q=el.dataset.q;
     const ex=await dbGet('exams',ui.gradeExam);
-    const cropsAll=await dbAll('crops');
-    const list=cropsAll.filter(function(c){return c.examId===ex.id&&String(c.qno)===String(q)});
+    const cropsAll=await dbByIdx('crops','byExam',ex.id);
+    const list=cropsAll.filter(function(c){return String(c.qno)===String(q)});
     const todo=[];
     list.forEach(function(c){if(c.scoreVal==null){const parts=list.filter(function(x){return x.studentNo===c.studentNo}).sort(function(a,b){return a.part-b.part});let found=false;todo.forEach(function(t){if(t.no===c.studentNo)found=true});if(!found)todo.push({no:c.studentNo,parts:parts});}});
     if(!todo.length){toast('该题没有未评分项','ok');return}
@@ -3343,11 +3422,13 @@ Object.assign(ACTS,{
       title:'AI 批量预阅 · 题 '+esc(String(q)),
       foot:'<button class="btn btn-d" data-act="ai-batch-stop">停止</button>'
     });
-    let done=0;
+    let next=0;
     async function worker(){
-      while(done<todo.length){
-        if(ctl.signal.aborted)return;
-        const it=todo[done];
+      while(!ctl.signal.aborted){
+        /* 同步段先认领下标再 await，避免两个 worker 重复处理/漏处理 */
+        const i=next;next++;
+        if(i>=todo.length)break;
+        const it=todo[i];
         try{
           const r=await aiSuggestItem(ex,it.parts,q,ctl);
           const full=it.parts[0].score;
@@ -3356,12 +3437,11 @@ Object.assign(ACTS,{
             c.aiScore=score;c.aiReason=(r.reason||'')+'\n【问题】'+(r.problems||'');
             await dbPut('crops',c);
           }
-          $('aiBatchTxt').textContent='已完成 '+(done+1)+'/'+todo.length+'（'+esc(it.no)+' → '+score+'）';
+          $('aiBatchTxt').textContent='已完成 '+(i+1)+'/'+todo.length+'（'+esc(it.no)+' → '+score+'）';
         }catch(err){
           if(err.name!=='AbortError')$('aiBatchLog').textContent='出错：'+err.message;
         }
-        done++;
-        $('aiBatchBar').style.width=Math.round(done/todo.length*100)+'%';
+        $('aiBatchBar').style.width=Math.round((i+1)/todo.length*100)+'%';
       }
       if(!ctl.signal.aborted){$('aiBatchLog').textContent='完成';toast('AI 预阅完成','ok');setTimeout(dlgClose,900);}
     }
@@ -3398,21 +3478,22 @@ async function gradeSetScore(v){
 }
 async function gradeSetScoreLocal(studentNo,v){
   const ex=await dbGet('exams',ui.gradeExam);
-  const cropsAll=await dbAll('crops');
-  const list=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===studentNo&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
+  const cropsAll=await dbByIdx('crops','byExam',ex.id);
+  const list=cropsAll.filter(function(c){return c.studentNo===studentNo&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
   for(const c of list){
     c.scoreVal=v;
     c.markedBy='manual';
     c.flag=(v==null)?'':c.flag;
-    if(v!=null)c.marked=await cropMarkedImage(c,v);
+    if(c.marked)releaseBlobURL(c.marked);
+    c.marked=(v!=null)?await cropMarkedImage(c,v):null;
     await dbPut('crops',c);
   }
 }
 async function gradeToggleFlag(flag){
   const no=gradeCtx.order[gradeCtx.idx];
   const ex=await dbGet('exams',ui.gradeExam);
-  const cropsAll=await dbAll('crops');
-  const list=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===no&&String(c.qno)===String(gradeCtx.qno)});
+  const cropsAll=await dbByIdx('crops','byExam',ex.id);
+  const list=cropsAll.filter(function(c){return c.studentNo===no&&String(c.qno)===String(gradeCtx.qno)});
   for(const c of list){
     c.flag=(flag==='F'&&c.flag==='F')?'':(flag==='G'&&c.flag==='G')?'':flag;
     await dbPut('crops',c);
@@ -3448,8 +3529,8 @@ async function renderGradeView(ex){
   if(no==null){ui.gradeQno=null;renderGrade();return}
   const students=await dbByIdx('students','byClass',ex.classId);
   const stu=students.find(function(s){return String(s.no)===String(no)});
-  const cropsAll=await dbAll('crops');
-  const parts=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===no&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
+  const cropsAll=await dbByIdx('crops','byExam',ex.id);
+  const parts=cropsAll.filter(function(c){return c.studentNo===no&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
   const sq=meta.subjList.find(function(s){return String(s.qno)===String(gradeCtx.qno)});
   const full=sq?sq.score:100;
   const cur=parts.length?parts[0].scoreVal:null;
@@ -3475,26 +3556,26 @@ async function renderGradeView(ex){
   scoreBtns+='<button class="gs dim" data-act="grade-clear-score">清零</button>';
   /* 缩略图 */
   const thumbs=gradeCtx.order.map(function(o,i){
-    const cc=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
+    const cc=cropsAll.filter(function(c){return c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
     const url=cc.length?blobURL(cc[0].blob):'';
     const st=cc.length&&cc[0].scoreVal!=null?cc[0].scoreVal:null;
     const fl=cc.length?cc[0].flag:'';
     return '<div class="gt'+(i===gradeCtx.idx?' on':'')+'" data-act="grade-jump" data-i="'+i+'" title="'+esc(o)+'">'
       +'<img src="'+url+'" style="'+(st!=null?'outline:2px solid var(--green);':'')+(fl==='F'?'outline:2px solid var(--warn);':fl==='G'?'outline:2px solid var(--zhu);':'')+'">'
-      +'<div class="kv" style="text-align:center;font-size:10px">'+(st!=null?('已阅 '+st):esc(o))+((fl)?(fl==='F'?'[商榷] ':'[优秀] '):'')+'</div></div>';
+      +'<div class="kv" style="text-align:center;font-size:10px">'+(st!=null?(esc(o)+'·'+st+'分'):esc(o))+(fl?(fl==='F'?'·商榷':'·优秀'):'')+'</div></div>';
   }).join('');
   $('page').innerHTML='<div class="f-row" style="margin-bottom:10px">'
     +'<button class="btn btn-s" data-act="grade-back">← 返回题列表</button>'
     +'<b>题 '+esc(String(gradeCtx.qno))+'</b><span class="kv">满分 '+full+' 分</span>'
     +'<span class="chip'+(gradeCtx.shuffle?' on':'')+'" data-act="grade-toggle-shuffle"> 随机打乱阅卷顺序</span>'
     +'<span style="flex:1"></span>'
-    +'<span class="kv">已阅 '+gradeCtx.order.filter(function(o){const cc=cropsAll.filter(function(c){return c.examId===ex.id&&c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)});return cc.length&&cc[0].scoreVal!=null}).length+' / '+gradeCtx.order.length+'</span>'
+    +'<span class="kv">已阅 '+gradeCtx.order.filter(function(o){const cc=cropsAll.filter(function(c){return c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)});return cc.length&&cc[0].scoreVal!=null}).length+' / '+gradeCtx.order.length+'</span>'
     +'</div><div class="gwrap">'
     +'<div class="gimg"><div class="kv" style="margin-bottom:6px">考号 <b>'+esc(no)+'</b>　姓名 <b>'+esc(stu?stu.name:'（未匹配名单）')+'</b>　'+(done?'当前 '+cur+' 分':'未评分')+'</div>'
     +imgs
     +'<div class="gthumbs">'+thumbs+'</div></div>'
     +'<div class="gside">'
-    +'<div style="font-weight:700;margin-bottom:6px">打分（键盘：数字输入 / Enter 下一份 / ←→ 前后 / F 待商榷 / G 优秀 / Del 清零）</div>'
+    +'<div style="font-weight:700;margin-bottom:6px">打分（数字输入 / Enter 写分并跳下一份 / ←→ 前后 / Del 清零；点击页面空白处后可用 F 待商榷 / G 优秀）</div>'
     +'<input class="inp" id="gradeManualInput" type="number" step="0.5" min="0" max="'+full+'" placeholder="手动输入 0-'+full+'" value="'+esc(cur!=null?cur:'')+'">'
     +'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-s btn-p" data-act="grade-manual" style="flex:1">写入</button>'
     +'<button class="btn btn-s" data-act="grade-clear-score" style="flex:1">清零</button></div>'
@@ -3511,14 +3592,18 @@ async function renderGradeView(ex){
     const inp=$('gradeManualInput');
     if(inp){
       inp.addEventListener('keydown',function(e){
-        if(e.key==='Enter'){ACTS['grade-manual'](inp);}
+        if(e.key==='Enter'){e.preventDefault();ACTS['grade-manual']();}
+        else if(e.key==='ArrowRight'){e.preventDefault();ACTS['grade-next']();}
+        else if(e.key==='ArrowLeft'){e.preventDefault();ACTS['grade-prev']();}
         e.stopPropagation();
       });
+      /* 写分后自动回到输入框并全选，保证连续录入不丢焦点 */
+      inp.focus();inp.select();
     }
   });
 }
 Object.assign(ACTS,{
-  'grade-manual':async function(el){
+  'grade-manual':async function(){
     const inp=$('gradeManualInput');
     if(!inp)return;
     const v=parseFloat(inp.value);
@@ -3528,6 +3613,8 @@ Object.assign(ACTS,{
     const sq=meta.subjList.find(function(s){return String(s.qno)===String(gradeCtx.qno)});
     const full=sq?sq.score:100;
     await gradeSetScoreLocal(gradeCtx.order[gradeCtx.idx],Math.min(full,Math.max(0,v)));
+    /* 写分后自动跳到下一份（最后一份停留原地） */
+    if(gradeCtx.idx<gradeCtx.order.length-1){gradeCtx.idx++;gradeCtx.buf='';}
     renderGrade();
   },
   'grade-clear-score':async function(){
@@ -3633,6 +3720,7 @@ async function computeScorebook(examId){
   meta.choiceQnos.forEach(function(qn){
     const s={ok:0,wrong:0,blank:0,multi:0,review:0,norec:0,n:0,rate:0,dist:{}};
     rows.forEach(function(r){
+      if(r.absent)return; /* 得分率按实考人数统计，缺考不计入分母 */
       const v=r.obj[qn];
       if(!v)return;
       s.n++;
@@ -3647,7 +3735,7 @@ async function computeScorebook(examId){
     perQStat[qn]=s;
   });
     const objFull=meta.choiceQnos.reduce(function(a,qn){return a+scoreOf(qn)},0);
-  return {exam:exam,meta:meta,rows:rows,perQStat:perQStat,perScore:perScore,objFull:objFull,scoreOf:scoreOf};return {exam:exam,meta:meta,rows:rows,perQStat:perQStat,perScore:perScore};
+  return {exam:exam,meta:meta,rows:rows,perQStat:perQStat,perScore:perScore,objFull:objFull,scoreOf:scoreOf};
 }
 async function renderScore(){
   const examsAll=await dbAll('exams');
@@ -3702,13 +3790,14 @@ async function renderScore(){
     const avg=list.length?list.reduce(function(a,c){return a+c.score},0)/list.length:0;
     let hist='';
     const bins=8;
+    const fmtN=function(v){return sq.score<15?(Math.round(v*10)/10):String(Math.round(v))};
     for(let b=0;b<bins;b++){
       const lo=(sq.score)*b/bins,hi=(sq.score)*(b+1)/bins;
       const cnt=list.filter(function(c){return c.score>lo&&c.score<=hi||(b===0&&c.score===0)}).length;
       const maxC=Math.max(1,Math.max.apply(null,Array.from({length:bins},function(_,i){
         return list.filter(function(c){const l2=sq.score*i/bins,h2=sq.score*(i+1)/bins;return c.score>l2&&c.score<=h2||(i===0&&c.score===0)}).length;
       })));
-      hist+='<div style="display:flex;gap:4px;margin:1px 0"><div style="width:70px;font-size:11px;color:var(--txt2);text-align:right">'+lo.toFixed(0)+'-'+hi.toFixed(0)+'</div><div style="flex:1;background:#F4F0E8;border-radius:4px"><div style="height:14px;background:var(--blue);border-radius:4px;width:'+Math.round(cnt/maxC*100)+'%"></div></div><div style="width:22px;font-size:11px">'+cnt+'</div></div>';
+      hist+='<div style="display:flex;gap:4px;margin:1px 0"><div style="width:70px;font-size:11px;color:var(--txt2);text-align:right">'+fmtN(lo)+'-'+fmtN(hi)+'</div><div style="flex:1;background:#F4F0E8;border-radius:4px"><div style="height:14px;background:var(--blue);border-radius:4px;width:'+Math.round(cnt/maxC*100)+'%"></div></div><div style="width:22px;font-size:11px">'+cnt+'</div></div>';
     }
     html+='<div style="margin-bottom:12px"><b>题 '+esc(String(sq.qno))+'</b>（满分 '+sq.score+'）：已阅 '+list.length+'/'
       +(cs.length)+'，平均 '+avg.toFixed(1)+'　'+(list.length&&((list.reduce(function(a,c){return a+(c.ai!=null?1:0)},0))))+' 份有 AI 分</div>'+hist;
@@ -4004,8 +4093,8 @@ async function aiSuggestItem(ex,parts,qno,ctl){
 }
 async function aiSuggestExam(examId,studentNo,qno){
   const ex=await dbGet('exams',examId);
-  const cropsAll=await dbAll('crops');
-  const parts=cropsAll.filter(function(c){return c.examId===examId&&c.studentNo===studentNo&&String(c.qno)===String(qno)}).sort(function(a,b){return a.part-b.part});
+  const cropsAll=await dbByIdx('crops','byExam',examId);
+  const parts=cropsAll.filter(function(c){return c.studentNo===studentNo&&String(c.qno)===String(qno)}).sort(function(a,b){return a.part-b.part});
   return aiSuggestItem(ex,parts,qno,null);
 }
 
@@ -4068,7 +4157,9 @@ async function renderSet(){
     try{
       if(navigator.storage&&navigator.storage.estimate){
         const est=await navigator.storage.estimate();
-        if(est&&$('storageInfo'))$('storageInfo').textContent='本应用已用 '+(est.usage/1048576).toFixed(1)+' MB / 配额约 '+(est.quota/1073741824).toFixed(1)+' GB';
+        let per='';
+        try{if(navigator.storage.persisted)per=(await navigator.storage.persisted())?' · 已持久化（不会因空间压力被自动清理）':' · 未持久化（建议允许网站持久化存储）';}catch(e){}
+        if(est&&$('storageInfo'))$('storageInfo').textContent='本应用已用 '+(est.usage/1048576).toFixed(1)+' MB / 配额约 '+(est.quota/1073741824).toFixed(1)+' GB'+per;
       }
     }catch(e){}
   });
@@ -4149,22 +4240,35 @@ async function backupExport(includeBlobs){
     toast('正在打包数据…');
     const pages=await dbAll('pages');
     const crops=await dbAll('crops');
-    const pack={app:'yuejuan',v:1,exportedAt:timestamp(),
+    const head={app:'yuejuan',v:1,exportedAt:timestamp(),
       data:{classes:await dbAll('classes'),students:await dbAll('students'),templates:await dbAll('templates'),exams:await dbAll('exams')},
       revs:await dbAll('revs')};
-    if(includeBlobs){
-      const b64p=function(blob){return new Promise(function(res){if(!blob)return res(null);const fr=new FileReader();fr.onload=function(){res(String(fr.result||'').split(',')[1]||'')};fr.onerror=function(){res(null)};fr.readAsDataURL(blob);})};
-      pack.pages=[];
-      for(const p of pages)pack.pages.push({id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta,b64:await b64p(p.blob),thumb:p.thumb||''});
-      pack.crops=[];
-      for(const c of crops)pack.crops.push({id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,
-        scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy,thumb:c.thumb||'',
-        b64:await b64p(c.blob),markedB64:await b64p(c.marked)});
-    }else{
-      pack.pages=pages.map(function(p){return {id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta}});
-      pack.crops=crops.map(function(c){return {id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy}});
+    if(!includeBlobs){
+      const pack={app:head.app,v:1,exportedAt:head.exportedAt,data:head.data,revs:head.revs,
+        pages:pages.map(function(p){return {id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta}}),
+        crops:crops.map(function(c){return {id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy}})};
+      download('智能阅卷备份_'+tsName()+'.json',JSON.stringify(pack),'application/json;charset=utf-8');
+      toast('备份已导出','ok');
+      return;
     }
-    download('智能阅卷备份_'+tsName()+'.json',JSON.stringify(pack),'application/json;charset=utf-8');
+    /* 完整备份：分块构造 JSON 并直接组装 Blob，避免把数百 MB 一次 stringify 成单个巨型字符串 */
+    const b64p=function(blob){return new Promise(function(res){if(!blob)return res(null);const fr=new FileReader();fr.onload=function(){res(String(fr.result||'').split(',')[1]||'')};fr.onerror=function(){res(null)};fr.readAsDataURL(blob);})};
+    const chunks=['{"app":"yuejuan","v":1,"exportedAt":'+JSON.stringify(head.exportedAt)+',"data":'+JSON.stringify(head.data)+',"revs":'+JSON.stringify(head.revs)+',"pages":['];
+    let first=true;
+    for(const p of pages){
+      chunks.push((first?'':',')+JSON.stringify({id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta,b64:await b64p(p.blob),thumb:p.thumb||''}));
+      first=false;
+    }
+    chunks.push('],"crops":[');
+    first=true;
+    for(const c of crops){
+      chunks.push((first?'':',')+JSON.stringify({id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,
+        scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy,thumb:c.thumb||'',
+        b64:await b64p(c.blob),markedB64:await b64p(c.marked)}));
+      first=false;
+    }
+    chunks.push(']}');
+    download('智能阅卷备份_'+tsName()+'.json',new Blob(chunks,{type:'application/json;charset=utf-8'}),'application/json;charset=utf-8');
     toast('备份已导出','ok');
   }catch(err){toast('导出失败：'+err.message,'err')}
 }
