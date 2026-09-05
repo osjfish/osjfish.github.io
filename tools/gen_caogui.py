@@ -12,7 +12,7 @@ def Q(s):
     return s.replace("_LQ_", LQ).replace("_RQ_", RQ)
 
 TEMPLATE = r"D:\App\Apps\hongmenyan-shiji.html"
-OUT = r"D:\App\Apps\caoguilunzhan.html"
+OUT = r"D:\App\Apps\caoguilunzhan-zuoqiuming.html"
 
 src = open(TEMPLATE, encoding="utf-8").read()
 css = re.search(r"<style>(.*?)</style>", src, re.S).group(1)

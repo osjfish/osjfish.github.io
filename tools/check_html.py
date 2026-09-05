@@ -2,7 +2,7 @@
 """Self-check for generated courseware HTML."""
 import re, json, sys
 
-path = sys.argv[1] if len(sys.argv) > 1 else r"D:\App\Apps\caoguilunzhan.html"
+path = sys.argv[1] if len(sys.argv) > 1 else r"D:\App\Apps\caoguilunzhan-zuoqiuming.html"
 src = open(path, encoding="utf-8").read()
 
 print("=== Structure ===")
