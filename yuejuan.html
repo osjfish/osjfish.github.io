@@ -480,19 +480,27 @@ function layoutTemplate(tpl){
     {x:12-sm/2,y:22-sm/2,s:sm},
     {x:w-12-sm/2,y:22-sm/2,s:sm}
   ];
-  const regDigits=Math.max(4,Math.min(12,tpl.regDigits||5));
-  const colW=11, regW=regDigits*colW, regX=Math.round((w-regW)/2);
+  const regDigits=Math.max(2,Math.min(12,tpl.regDigits||5));
+  const colW=11, regW=regDigits*colW;
+  const qr={x:w-52,y:34,size:34};
+  /* 考号区默认居中；位数多（≥9 位）时会与左上姓名框（右缘 58mm）或右上二维码（qr.x）重叠，
+     此时自动隐藏姓名框，并把考号区收进 [左边距, 二维码左侧] 内居中，避免涂点印进二维码 */
+  let regX=Math.round((w-regW)/2);
+  let infoHide=tpl.showInfo===false;
+  if(regX-2.5<58 || regX+regW+2.5>qr.x){
+    infoHide=true;
+    regX=Math.round(M+Math.max(0,(qr.x-4-M-regW)/2));
+  }
   const regRowsY=[];
   for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
   const reg={x:regX,y:33,colW:colW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
     numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   const pages=[];
   const contentTop=94, contentBottom=h-36;
-  const qr={x:w-52,y:34,size:34};
 
   const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
-    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&tpl.showInfo!==false)?{x:M,y:33,w:44,h:54.6}:null,
+    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&!infoHide)?{x:M,y:33,w:44,h:54.6}:null,
       notes:(pi===0)?{x:M,y:h-35,w:contentW,h:18}:null,
       reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,anchors:anchors,footer:{n:pi+1,m:0}};
   }
@@ -2116,11 +2124,11 @@ async function tplEditorHTML(tplId){
     +'<div><label class="f-lb">方向</label><select class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="orient">'
     +'<option value="portrait"'+(t.orient!=='landscape'?' selected':'')+'>竖版</option><option value="landscape"'+(t.orient==='landscape'?' selected':'')+'>横版</option></select></div>'
     +'<div><label class="f-lb">试卷标题</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="title" value="'+esc(t.title||'')+'"></div>'
-    +'<div><label class="f-lb">考号位数（4-12）</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="regDigits" type="number" min="4" max="12" value="'+esc(t.regDigits)+'"></div>'
+    +'<div><label class="f-lb">考号位数（2-12）</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="regDigits" type="number" min="2" max="12" value="'+esc(t.regDigits)+'"></div>'
     +'<div><label class="f-lb">客观题每题分值</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="perScore" type="number" step="0.5" value="'+esc(t.perScore)+'"></div>'
     +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">显示姓名/班级/座位号框</label>'
     +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="showInfo"'+(t.showInfo!==false?' checked':'')+'>'
-    +'<span class="kv" style="margin-left:8px">（页面左上角信息框，仅首页；右上角为版式二维码）</span></div>'
+    +'<span class="kv" style="margin-left:8px">（页面左上角信息框，仅首页；考号位数 ≥9 位时空间不足会自动隐藏，右上角为版式二维码）</span></div>'
     +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">每页重复显示准考证号</label>'
     +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="regEveryPage"'+(t.regEveryPage===true?' checked':'')+'>'
     +'<span class="kv" style="margin-left:8px">默认<b>仅首页</b>：第2页起只印标题/页码/二维码，识别时自动沿用上一页考号；如需逐张独立识别可选此项</span></div>'
@@ -2345,7 +2353,7 @@ Object.assign(ACTS,{
     else if(el.type==='number')v=parseFloat(el.value)||0;
     else v=el.value;
     t[f]=v;
-    if(f==='regDigits')t.regDigits=Math.max(4,Math.min(12,Math.round(v)));
+    if(f==='regDigits')t.regDigits=Math.max(2,Math.min(12,Math.round(v)));
     await dbPut('templates',t);
   }
 });
