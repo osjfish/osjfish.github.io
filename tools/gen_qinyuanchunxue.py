@@ -3,7 +3,7 @@
 import io, json, re, html
 
 SRC = r"D:\App\Apps\beiying-zhuziqing.html"
-OUT = r"D:\App\Apps\qinyuangchunxuexue-maozedong.html"
+OUT = r"D:\App\Apps\qinyuanchunxue-maozedong.html"
 LS_KEY = "qinyuan_fs"
 
 def annotate(text):

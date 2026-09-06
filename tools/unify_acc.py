@@ -305,7 +305,7 @@ def run():
               },
               merges=[('文言梳理', ['古今异义', '一词多义', '文言句式'])])
 
-    transform('qinyuangchunxuexue-maozedong.html', {'易错用字': '易错字音形'},
+    transform('qinyuanchunxue-maozedong.html', {'易错用字': '易错字音形'},
               ['文体与词牌', '易错字音形', '文言梳理', '修辞与手法', '文化常识'],
               {
                '文言梳理': item_box('文言梳理', [
