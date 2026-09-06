@@ -1587,18 +1587,24 @@ function realignGrid(cc,sb){
     const x0=(w*0.14)|0,x1=(w*0.86)|0,y0=(h*0.06)|0,y1=(h*0.94)|0;
     const dark=new Uint8Array(w*h);
     for(let i=0,j=0;i<d.length;i+=4,j++)dark[j]=((d[i]*3+d[i+1]*5+d[i+2]*2)/10)<205?1:0;
-    function linePositions(vert){
+    function linePositions(vert,expPitch){
       const len=vert?w:h,n=new Int32Array(len);
       if(vert){for(let x=0;x<w;x++){let c=0;for(let y=y0;y<y1;y++)c+=dark[y*w+x];n[x]=c;}}
       else{for(let y=0;y<h;y++){let c=0;for(let x=x0;x<x1;x++)c+=dark[y*w+x];n[y]=c;}}
       let tot=0;for(let i=0;i<len;i++)tot+=n[i];
       const mean=tot/len;
       if(mean<1)return null;
-      const th=Math.max(4,mean*0.42);
+      /* 阈值不能基于均值：横线在每一列都有贡献，会把均值/地板抬高到阈值之上，
+         导致线条之间的空白位也成"峰"（实测假周期≈真周期一半，自愈反而拉歪）。
+         改用 中位数(地板) 与 峰值(线) 的中点：仅真正的格线可过 */
+      let mx=0;for(let i=0;i<len;i++)if(n[i]>mx)mx=n[i];
+      const sorted=Array.from(n).sort(function(a,b){return a-b});
+      const median=sorted[len>>1];
+      const th=Math.max(4,(median+mx)*0.25);
       const pos=[];
       for(let i=2;i<len-2;i++){
         if(n[i]>=th&&n[i]>=n[i-1]&&n[i]>=n[i+1]&&n[i]>=n[i-2]&&n[i]>=n[i+2]){
-          if(pos.length===0||i-pos[pos.length-1]>Math.max(4,expRow*0.5))pos.push(i);
+          if(pos.length===0||i-pos[pos.length-1]>Math.max(4,expPitch*0.5))pos.push(i);
           else if(n[i]>n[pos[pos.length-1]])pos[pos.length-1]=i;
         }
       }
@@ -1612,7 +1618,7 @@ function realignGrid(cc,sb){
       if(real/delta<0.5||real/delta>1.9)return 0; /* 异常值保护 */
       return real/delta;
     }
-    const rows=linePositions(false), cols=linePositions(true);
+    const rows=linePositions(false,expRow), cols=linePositions(true,expCol);
     const ratioY=stretch(rows,expRow), ratioX=stretch(cols,expCol);
     if(!ratioY&&!ratioX)return null;
     const ky=ratioY?1/ratioY:1, kx=ratioX?1/ratioX:1; /* 实测行距偏小→放大 */
@@ -4642,6 +4648,7 @@ window.__yjDbg={recognizeCanvas:recognizeCanvas,layoutTemplate:layoutTemplate,bi
   qrPayloadFor:qrPayloadFor,qrFromCanvas:qrFromCanvas,qrFromCrop:qrFromCrop,makeQRCanvas:makeQRCanvas,qrParsePayload:qrParsePayload,
   dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs'])dbClear(s).catch(()=>{});return 'ok'},
   detectRowMarks:detectRowMarks,rowDeltas:rowDeltas,inkRatio:inkRatio,solveHomo:solveHomo,omr:omr,
+  realignGrid:realignGrid,gridAbnormal:gridAbnormal,gridPitchRatio:gridPitchRatio,
   renderPageCanvas:renderPageCanvas,renderPagesAsync:renderPagesAsync,canvasDataURL:canvasDataURL,
   canvasToThumb:canvasToThumb,
   getAll:function(s){return dbAll(s)},get:dbGet,examMeta:examMeta,computeScorebook:computeScorebook,pageRegDigits:pageRegDigits};
