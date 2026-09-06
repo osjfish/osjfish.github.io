@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《皇帝的新装》安徒生</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+
+  .acc-sub{font-family:var(--font-kai);font-weight:700;border-left:3px solid #b8934a;padding-left:8px;color:var(--teal-deep);margin:14px 0 6px;font-size:calc(16px*var(--fs))}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">丹麦·安徒生</div>
+  <h1 class="hero-title">皇帝的新装</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+    <p>1837年，丹麦作家安徒生发表了童话《皇帝的新装》。故事写一位酷爱新装的皇帝被两个骗子愚弄，穿上一件“不存在的衣服”举行游行大典，从大臣到百姓人人不敢说真话，最后由一个孩子戳穿骗局。文章以夸张的情节和辛辣的讽刺，揭露了封建统治阶级的虚伪、愚蠢和自欺欺人，也赞美了敢于说真话的纯真童心。</p>
+    <p>本文是统编版七年级上册第六单元的教读课文，是安徒生童话的代表作。学习时要把握童话想象与夸张的艺术特点，分析皇帝、大臣、骗子等人物形象，理解“说真话”的主题意义。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>安徒生（1805—1875），丹麦19世纪著名童话作家，世界文学童话的奠基人。出身于丹麦欧登塞城一个贫苦鞋匠家庭，自幼酷爱文学。1827年开始文学创作，1835年出版第一部童话集《讲给孩子们听的故事》，此后每年圣诞节出版一本新童话集，持续近四十年。</p>
+    <p style="margin-top:10px;color:var(--ink2)">安徒生一生创作童话160余篇，代表作有《皇帝的新装》《卖火柴的小女孩》《海的女儿》《丑小鸭》《拇指姑娘》等。其童话想象丰富、思想深刻、语言优美，既适合儿童阅读，也蕴含对社会现实的深刻批判，被译成150多种语言，在世界各地广为流传。</p>
+  </div>
+  <div class="box">
+    <h3>创作背景</h3>
+    <p>19世纪中叶的丹麦，在英国工业革命的冲击下，封建经济逐渐解体，社会矛盾日益尖锐。安徒生出身贫寒，对统治阶级的骄奢淫逸和虚伪愚蠢有深切的观察。</p>
+    <p style="margin-top:8px">《皇帝的新装》的故事原型来自西班牙中世纪民间故事，安徒生对其进行了创造性改写：将原来的“国王看不见衣服就不配做国王”改为“不称职或愚蠢的人看不见衣服”，并增加了“小孩说真话”的结尾，使故事的讽刺意味更加深刻，主题更加鲜明。</p>
+    <p style="margin-top:8px">文章以“新装”为线索，按照“爱新装—做新装—看新装—穿新装—展新装”的顺序展开情节，结构完整，层层递进。</p>
+  </div>
+  <div class="box">
+    <h3>文体知识</h3>
+    <p>童话是儿童文学的一种，通过丰富的想象、幻想和夸张来塑造形象、反映生活，对儿童进行思想教育。</p>
+    <p style="margin-top:8px">童话的基本特征：①想象丰富，常采用拟人、夸张等手法；②情节曲折，故事性强；③语言通俗生动，适合儿童阅读；④蕴含深刻的道理或教育意义。</p>
+    <p style="margin-top:8px">《皇帝的新装》是安徒生童话的代表作，充分体现了童话“想象与夸张”的艺术特点：骗子织出“不存在的布”、皇帝“穿”着不存在的衣服游行，这些夸张的情节既荒诞又合乎逻辑，具有强烈的讽刺效果。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>课文朗读《皇帝的新装》</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV15P4y1s77g&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课文朗读《皇帝的新装》"></iframe>
+        <a href="https://www.bilibili.com/video/BV15P4y1s77g" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>      <div class="media">
+        <h4>课本剧《皇帝的新装》</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1zmnEzRE2a&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课本剧《皇帝的新装》"></iframe>
+        <a href="https://www.bilibili.com/video/BV1zmnEzRE2a" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 词语 · 手法</span></div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+    <div class="pl">许多年前，有一个皇帝，为了穿得漂亮，不惜把所有的钱都花掉。他既不关心他的军队，也不喜欢去看戏，也不喜欢乘着马车去游公园——除非是为了去炫耀一下他的新衣服。他每一天每一点钟都要换一套衣服。人们提到他，总是说：“皇上在更衣室里。”</div>
+    <div class="pl">有一天，他的京城来了两个骗子，自称是织工，说能织出人间最美丽的布。这种布不仅色彩和图案都分外美观，而且缝出来的衣服还有一种奇怪的特性：任何不称职的或者愚蠢得不可救药的人，都看不见这衣服。</div>
+    <div class="pl">“那真是理想的衣服！”皇帝心里想，“我穿了这样的衣服，就可以看出在我的王国里哪些人不称职；我就可以辨别出哪些是聪明人，哪些是傻子。是的，我要叫他们马上为我织出这样的布来。”于是他付了许多现款给这两个骗子，好使他们马上开始工作。</div>
+    <div class="pl">他们摆出两架织布机，装作是在工作的样子，可是他们的织布机上连一点东西的影子也没有。他们急迫地请求发给他们一些最细的生丝和最好的金子。他们把这些东西都装进自己的腰包，只在那两架空织布机上忙忙碌碌，直到深夜。</div>
+    <div class="pl">“我倒很想知道衣料究竟织得怎样了。”皇帝想。不过，想起凡是愚蠢或不称职的人就看不见这布，心里的确感到不大自然。他相信自己是无须害怕的，但仍然觉得先派一个人去看看工作的进展情形比较妥当。全城的人都听说这织品有一种多么神奇的力量，所以大家也都渴望借这个机会测验一下：他们的邻人究竟有多么笨，或者有多么傻。</div>
+    <div class="pl">“我要派我诚实的老大臣到织工那儿去。”皇帝想，“他最能看出这布料是什么样子，因为他很有理智，就称职这点说，谁也不及他。”</div>
+    <div class="pl">这位善良的老大臣来到那两个骗子的屋子里，看见他们正在空织布机上忙碌地工作。</div>
+    <div class="pl">“愿上帝可怜我吧！”老大臣想，他把眼睛睁得特别大，“我什么东西也没有看见！”但是他没敢把这句话说出口来。</div>
+    <div class="pl">那两个骗子请他走近一点，同时指着那两架空织布机问他花纹是不是很美丽，色彩是不是很漂亮。可怜的老大臣眼睛越睁越大，仍然看不见什么东西，因为的确没有东西。</div>
+    <div class="pl">“我的老天爷！”他想，“难道我是愚蠢的吗？我从来没有怀疑过自己。这一点决不能让任何人知道。难道我是不称职的吗？不成！我决不能让人知道我看不见布料。”</div>
+    <div class="pl">“哎，您一点意见也没有吗？”一个正在织布的骗子说。</div>
+    <div class="pl">“哎呀，美极了！真是美极了！”老大臣一边说，一边从他的眼镜里仔细地看，“多么美的花纹！多么美的色彩！是的，我将要呈报皇上，我对这布料非常满意。”</div>
+    <div class="pl">“嗯，我们听了非常高兴。”两个骗子齐声说。于是他们就把色彩和稀有的花纹描述了一番，还加上些名词。老大臣注意地听着，以便回到皇帝那儿可以照样背出来。事实上他也这样做了。</div>
+    <div class="pl">这两个骗子又要了更多的钱，更多的生丝和金子，说是为了织布的需要。他们把这些东西全装进了腰包。</div>
+    <div class="pl">过了不久，皇帝又派了另外一位诚实的官员去看工作进行的情况。这位官员的运气并不比头一位大臣好：他看了又看，但是那两架空织布机上什么也没有，他什么东西也看不出来。</div>
+    <div class="pl">“你看这段布美不美？”两个骗子问。他们指着，描述着一些美丽的花纹——事实上它们并不存在。</div>
+    <div class="pl">“我并不愚蠢呀！”这位官员想，“这大概是我不配有现在这样好的官职吧。这也真够滑稽，但是我决不能让人看出来。”因此他就把他完全没看见的布称赞了一番，同时对他们保证说，他对这些美丽的色彩和巧妙的花纹感到很满意。“是的，那真是太美了！”他对皇帝说。</div>
+    <div class="pl">城里所有的人都在谈论着这美丽的布料。</div>
+    <div class="pl">皇帝很想亲自去看一次。他选了一群特别圈定的随员——其中包括已经去看过的那两位诚实的大臣。他就到那两个狡猾的骗子那里。这两个家伙正在以全副精力织布，但是一根丝的影子也看不见。</div>
+    <div class="pl">“您看这布华丽不华丽？”那两位诚实的官员说，“陛下请看：多么美的花纹！多么美的色彩！”他们指着那架空织布机，他们相信别人一定看得见布料。</div>
+    <div class="pl">“这是怎么一回事呢？”皇帝心里想，“我什么也没有看见！这可骇人听闻了。难道我是一个愚蠢的人吗？难道我不够资格当皇帝吗？这可是最可怕的事情。”</div>
+    <div class="pl">“哎呀，真是美极了！”皇帝说，“我十二分地满意！”</div>
+    <div class="pl">于是他就点头表示出他的满意。他仔细地看着织布机，他不愿说出什么也没看到。跟着他来的全体随员也仔细地看了又看，可是他们也没比别人看到更多的东西。他们像皇帝一样，也说：“哎呀，真是美极了！”他们向皇帝建议，用这新的、美丽的布料做成衣服，穿着这衣服去参加快要举行的游行大典。“这布是华丽的！精致的！无双的！”每人都随声附和着。每人都有说不出的快乐。皇帝赐给骗子“御聘织师”的头衔，封他们为爵士，并授予一枚可以挂在扣眼上的勋章。</div>
+    <div class="pl">第二天早上，游行大典就要举行了。头一天夜晚，两个骗子整夜点起十六支以上的蜡烛。人们可以看到他们是在赶夜工，要把皇帝的新衣完成。他们装作从织布机上取下布料，用两把大剪刀在空中裁了一阵子，同时用没有穿线的针缝了一通。最后，他们齐声说：“请看！新衣服缝好了！”</div>
+    <div class="pl">皇帝亲自带着一群最高贵的骑士们来了。两个骗子各举起一只手，好像拿着一件什么东西似的。他们说：“请看吧，这是裤子，这是袍子，这是外衣。”“这衣服轻柔得像蜘蛛网一样，穿的人会觉得好像身上没有什么东西似的，这也正是这些衣服的优点。”</div>
+    <div class="pl">“一点也不错。”所有的骑士都说。可是他们什么也看不见，因为什么东西也没有。</div>
+    <div class="pl">“现在请皇上脱下衣服，”两个骗子说，“好让我们在这个大镜子面前为您换上新衣。”</div>
+    <div class="pl">皇帝把他所有的衣服都脱下来了。两个骗子装作一件一件地把他们刚才缝好的新衣服交给他。他们在他的腰周围弄了一阵子，好像是为他系上一件什么东西似的——这就是后裙。皇上在镜子面前转了转身子，扭了扭腰肢。</div>
+    <div class="pl">“上帝，这衣服多么合身啊！裁得多么好看啊！”大家都说，“多么美的花纹！多么美的色彩！这真是一套贵重的衣服！”</div>
+    <div class="pl">“大家都在外面等待，准备好了华盖，以便举在陛下头顶上去参加游行大典。”典礼官说。</div>
+    <div class="pl">“对，我已经穿好了。”皇帝说，“这衣服合我的身吗？”于是他又在镜子面前把身子转动了一下，因为他要使大家觉得他在认真地观看他的美丽的新装。</div>
+    <div class="pl">那些托后裙的内臣都把手在地上东摸西摸，好像他们正在拾起衣裙似的。他们开步走，手中托着空气——他们不敢让人瞧出他们实在什么东西也没看见。</div>
+    <div class="pl">这样，皇帝就在那个富丽的华盖下游行起来了。站在街上和窗子里的人都说：“乖乖！皇上的新装真是漂亮！他上衣下面的后裙是多么美丽！这件衣服真合他的身材！”谁也不愿意让人知道自己什么也看不见，因为这样就会显出自己不称职，或是太愚蠢。皇帝所有的衣服从来没有获得过这样的称赞。</div>
+    <div class="pl">“可是他什么衣服也没穿呀！”一个小孩子最后叫了出来。</div>
+    <div class="pl">“上帝哟，你听这个天真的声音！”爸爸说。于是大家把这孩子讲的话私下里低声地传播开来。</div>
+    <div class="pl">“他并没穿什么衣服！有一个小孩子说他并没穿什么衣服呀！”</div>
+    <div class="pl">“他实在没穿什么衣服呀！”最后所有的百姓都说。皇帝有点儿发抖，因为他觉得百姓们所讲的话似乎是真的。不过他心里却这样想：“我必须把这游行大典举行完毕。”因此他摆出一副更骄傲的神气。他的内臣们跟在他后面走，手中托着一条并不存在的后裙。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+      <div class="part-head"><span class="p-num">第一部分</span><h3>皇帝爱新装 · 荒唐嗜好</h3><span class="range">第 1 段</span></div>
+      <div class="part-overview">开篇写皇帝酷爱新装到了荒唐的地步，为下文骗子行骗埋下伏笔。</div>
+      <div class="verse" id="l1" data-i="0">
+        <div class="v-top"><span class="v-no">1</span><div class="v-line">许多年前，有一个皇帝，为了穿得漂亮，不惜把所有的钱都花掉。他既不关心他的军队，也不喜欢去看戏，也不喜欢乘着马车去游公园——除非是为了去<span class="anno-word" data-note="（xuàn yào）夸耀、显示。炫，夸耀">炫耀</span>一下他的新衣服。他每一天每一点钟都要换一套衣服。人们提到他，总是说：“皇上在<span class="anno-word" data-note="更换衣服的房间">更衣室</span>里。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">写皇帝酷爱新装：不惜花掉所有钱财，不关心军国大事，只关心穿新衣，每时每刻都在换衣服。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>开篇用夸张手法写皇帝的荒唐嗜好：“不惜把所有的钱都花掉”“每一天每一点钟都要换一套衣服”，用程度副词和时间短语极力渲染；三个“不”构成排比，突出皇帝的不务正业；“皇上在更衣室里”一句以人们的口头禅收束，幽默中见讽刺，为下文骗子行骗提供合理依据。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第二部分</span><h3>骗子设骗局 · 愿者上钩</h3><span class="range">第 2–4 段</span></div>
+      <div class="part-overview">两个骗子来到京城，声称能织出有“奇怪特性”的布，皇帝大喜，付金让他们开工。</div>
+      <div class="verse" id="l2" data-i="1">
+        <div class="v-top"><span class="v-no">2</span><div class="v-line">有一天，他的京城来了两个<span class="anno-word" data-note="玩弄骗术的人。骗，欺骗">骗子</span>，<span class="anno-word" data-note="自己称呼自己、自己说是">自称</span>是<span class="anno-word" data-note="以织布为业的工匠">织工</span>，说能织出人间最美丽的布。这种布不仅色彩和图案都<span class="anno-word" data-note="格外、特别。分，fèn">分外</span>美观，而且缝出来的衣服还有一种奇怪的特性：任何不<span class="anno-word" data-note="（chèn zhí）思想水平和工作能力都能胜任所担任的职务。称，适合、相当">称职</span>的或者愚蠢得<span class="anno-word" data-note="病重到无法用药医治，比喻人或事物坏到无法挽救的地步。药，用药治疗">不可救药</span>的人，都看不见这衣服。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">两个骗子来到京城，自称能织出最美丽的布，且有“奇怪特性”：不称职或愚蠢的人看不见。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>骗子的骗局设计巧妙：抓住人性弱点——谁也不愿承认自己“不称职”或“愚蠢”。“不仅……而且……”递进句式，先以“最美丽”吸引皇帝，再以“奇怪特性”设下圈套；冒号后解释特性，为下文所有人不敢说真话埋下逻辑伏笔。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l3" data-i="2">
+        <div class="v-top"><span class="v-no">3</span><div class="v-line">“那真是<span class="anno-word" data-note="符合希望的、令人满意的">理想</span>的衣服！”皇帝心里想，“我穿了这样的衣服，就可以看出在我的王国里哪些人不称职；我就可以<span class="anno-word" data-note="根据不同事物的特点，在认识上加以区别。辨，分别">辨别</span>出哪些是聪明人，哪些是傻子。是的，我要叫他们马上为我织出这样的布来。”于是他付了许多<span class="anno-word" data-note="可以当时交付的货币。款，钱">现款</span>给这两个骗子，<span class="anno-word" data-note="以便、为了使">好使</span>他们马上开始工作。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝心中暗喜，认为穿上这件衣服就能辨别臣民的贤愚，于是付了许多钱给骗子。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>心理描写揭示皇帝的愚蠢与自私：他首先想到的不是衣服本身，而是“看出哪些人不称职”“辨别聪明人傻子”，把骗局当作维护统治的工具；两个“就可以”构成排比，写出皇帝的急切与得意；“付了许多现款”见其轻率，也为骗子的得寸进尺铺垫。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l4" data-i="3">
+        <div class="v-top"><span class="v-no">4</span><div class="v-line">他们摆出两架<span class="anno-word" data-note="用来织布的机器">织布机</span>，<span class="anno-word" data-note="假装。作，做">装作</span>是在工作的样子，可是他们的<span class="anno-word" data-note="用来织布的机器">织布机</span>上连一点东西的影子也没有。他们<span class="anno-word" data-note="马上需要、急切。迫，急切">急迫</span>地请求发给他们一些最细的<span class="anno-word" data-note="用茧缫制成的丝，未经纺制">生丝</span>和最好的金子。他们把这些东西都装进自己的<span class="anno-word" data-note="系在腰间的钱包，泛指个人的钱袋">腰包</span>，只在那两架空<span class="anno-word" data-note="用来织布的机器">织布机</span>上<span class="anno-word" data-note="形容事务繁杂、辛辛苦苦的样子">忙忙碌碌</span>，直到深夜。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">骗子摆出空织布机装模作样，却把生丝和金子全部装进腰包，只在空机上忙碌到深夜。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>对比手法写骗子的贪婪与狡诈：“装作是在工作”与“连一点东西的影子也没有”形成鲜明对比；“最细的生丝和最好的金子”与“装进自己的腰包”对照，揭露骗局本质；“忙忙碌碌，直到深夜”以动作描写写骗子的表演，极具讽刺意味。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第三部分</span><h3>老大臣看布 · 自欺欺人</h3><span class="range">第 5–13 段</span></div>
+      <div class="part-overview">皇帝派诚实的老大臣去看布料，老大臣什么也看不见，却因害怕被认为愚蠢或不称职而违心称赞。</div>
+      <div class="verse" id="l5" data-i="4">
+        <div class="v-top"><span class="v-no">5</span><div class="v-line">“我倒很想知道衣料<span class="anno-word" data-note="到底、毕竟。用在问句里表示追究">究竟</span>织得怎样了。”皇帝想。不过，想起凡是愚蠢或不称职的人就看不见这布，心里<span class="anno-word" data-note="完全确实、实在。的，dí">的确</span>感到不大自然。他相信自己是<span class="anno-word" data-note="不必、不需要。须，必须">无须</span>害怕的，但仍然觉得先派一个人去看看工作的进展情形比较<span class="anno-word" data-note="稳妥适当。妥，tuǒ">妥当</span>。全城的人都听说这<span class="anno-word" data-note="织成的物品，这里指布料">织品</span>有一种多么<span class="anno-word" data-note="非常奇妙">神奇</span>的力量，所以大家也都<span class="anno-word" data-note="迫切地希望。渴，迫切地">渴望</span>借这个机会<span class="anno-word" data-note="用仪器或其他办法检验。这里指试探">测验</span>一下：他们的邻人<span class="anno-word" data-note="到底、毕竟。用在问句里表示追究">究竟</span>有多么笨，或者有多么傻。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝想知道布料进度，却因害怕自己看不见而“不大自然”，决定先派老大臣去看；全城人也都想借此测验邻人。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>心理描写细腻入微：皇帝“的确感到不大自然”说明他内心也心虚，但“相信自己是无须害怕的”又写出他的自负与自欺；“先派一个人去”是皇帝的精明之处——让别人先试探；结尾写全城人都想“测验邻人”，说明自私与看客心态弥漫整个社会，为下文全民说谎铺垫。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l6" data-i="5">
+        <div class="v-top"><span class="v-no">6</span><div class="v-line">“我要派我诚实的<span class="anno-word" data-note="古代官职较高的大臣。臣，君主时代的官吏">老大臣</span>到织工那儿去。”皇帝想，“他最能看出这布料是什么样子，因为他很有<span class="anno-word" data-note="辨别是非、利害关系以及控制自己行为的能力">理智</span>，就称职这点说，谁也<span class="anno-word" data-note="不如、比不上。及，比得上">不及</span>他。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝决定派“诚实”的老大臣去，认为他有理智、最称职，一定能看出布料。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>反复强调“诚实”“有理智”“称职”，与下文老大臣说谎形成强烈反讽——越是皇帝信任的人，越不敢说真话；“谁也不及他”用最高级写皇帝对老大臣的信任，反衬出骗局的可怕：连最称职的人都逃不过人性的弱点。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l7" data-i="6">
+        <div class="v-top"><span class="v-no">7</span><div class="v-line">这位<span class="anno-word" data-note="心地好、和善。良，好">善良</span>的老大臣来到那两个骗子的屋子里，看见他们正在空织布机上忙碌地工作。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">老大臣来到骗子屋里，看见他们正在空织布机上忙碌。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>简短的叙事句，“善良”与下文的违心说谎形成对照；“空织布机”直接点明真相，与骗子的“忙碌地工作”形成对比，读者已知真相，而老大臣即将陷入困境，产生戏剧张力。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l8" data-i="7">
+        <div class="v-top"><span class="v-no">8</span><div class="v-line">“愿上帝<span class="anno-word" data-note="怜悯、值得怜悯。这里是祈求怜悯">可怜</span>我吧！”老大臣想，他把眼睛<span class="anno-word" data-note="张开（眼睛）">睁</span>得特别大，“我什么东西也没有看见！”但是他没敢把这句话说出口来。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">老大臣什么也没看见，心中大惊，但不敢说出口。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>心理描写与神态描写结合：“愿上帝可怜我吧”写出老大臣的震惊与恐惧；“眼睛睁得特别大”这一细节生动传神，极力想看清却什么也没有；“没敢把这句话说出口来”直接点出“不敢”——恐惧压倒了诚实，为下文说谎铺垫。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l9" data-i="8">
+        <div class="v-top"><span class="v-no">9</span><div class="v-line">那两个骗子请他走近一点，同时指着那两架空织布机问他<span class="anno-word" data-note="各种花纹的图案。纹，纹路">花纹</span>是不是很美丽，<span class="anno-word" data-note="颜色。彩，颜色">色彩</span>是不是很漂亮。可怜的老大臣眼睛越睁越大，仍然看不见什么东西，因为<span class="anno-word" data-note="完全确实">的确</span>没有东西。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">骗子请老大臣走近，指着空织布机问花纹和色彩；老大臣眼睛越睁越大，仍然什么也看不见。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>骗子的“请”“指着”“问”是精心设计的心理攻势——用肯定的语气引导对方承认；“可怜的老大臣”一句中“可怜”一语双关：既写他的窘迫，也暗含作者对他的嘲讽与同情；“眼睛越睁越大”呼应上文，反复写睁大眼睛却看不见，强化荒诞感；“因为的确没有东西”直接插入说明，打破叙事节奏，点明真相。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l10" data-i="9">
+        <div class="v-top"><span class="v-no">10</span><div class="v-line">“我的老天爷！”他想，“难道我是愚蠢的吗？我从来没有<span class="anno-word" data-note="疑惑、不很相信。疑，不信">怀疑</span>过自己。这一点<span class="anno-word" data-note="一定、坚决（副词）">决</span>不能让任何人知道。难道我是不称职的吗？不成！我<span class="anno-word" data-note="一定、坚决（副词）">决</span>不能让人知道我看不见布料。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">老大臣内心激烈斗争：怀疑自己是否愚蠢或不称职，但决不能让人知道自己看不见。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>大段心理描写，用两个“难道”反问句写出老大臣的自我怀疑；“从来没有怀疑过自己”与当下的动摇形成对比；“决不能让任何人知道”“决不能让人知道”反复强调，写出恐惧压倒理智的过程；“不成！”一句短促有力，是自我否定后的断然决定——选择说谎。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l11" data-i="10">
+        <div class="v-top"><span class="v-no">11</span><div class="v-line">“哎，您一点意见也没有吗？”一个正在织布的骗子说。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">骗子追问老大臣的意见，施加心理压力。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>简短的对话，“一点意见也没有吗”是骗子的试探与催促——用反问句逼迫对方表态；“正在织布的骗子”再次强调骗子在“空织布机”上表演，讽刺意味浓厚。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l12" data-i="11">
+        <div class="v-top"><span class="v-no">12</span><div class="v-line">“<span class="anno-word" data-note="叹词，表示惊讶或赞叹">哎呀</span>，美极了！真是美极了！”老大臣一边说，一边从他的眼镜里仔细地看，“多么美的花纹！多么美的色彩！是的，我将要<span class="anno-word" data-note="用公文报告上级。呈，恭敬地送上去">呈报</span>皇上，我对这布料非常<span class="anno-word" data-note="满足自己的愿望、符合自己的心意">满意</span>。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">老大臣违心大加称赞，说要呈报皇上自己对布料非常满意。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>语言描写与动作描写结合：“哎呀，美极了！真是美极了！”反复感叹，极力掩饰内心的恐慌；“从他的眼镜里仔细地看”这一细节极具讽刺——戴着眼镜仔细看“不存在的东西”，装模作样；两个“多么美”构成排比，谎话越说越顺；“呈报皇上”说明他不仅自己说谎，还要把谎言传给皇帝。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l13" data-i="12">
+        <div class="v-top"><span class="v-no">13</span><div class="v-line">“嗯，我们听了非常高兴。”两个骗子<span class="anno-word" data-note="一同发出声音。齐，同时">齐声</span>说。于是他们就把色彩和<span class="anno-word" data-note="很少有的、极少见的。稀，事物出现得少">稀有</span>的花纹<span class="anno-word" data-note="形象地叙述、描写。述，叙述">描述</span>了一番，还加上些名词。老大臣注意地听着，以便回到皇帝那儿可以<span class="anno-word" data-note="依照某个样子。照，依照">照样</span>背出来。事实上他也这样做了。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">骗子高兴，把“色彩和花纹”描述一番并加上名词；老大臣注意听，以便回去照样背给皇帝听。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>骗子“加上些名词”写其狡诈——用专业术语让谎言显得更真实；老大臣“注意地听着”“照样背出来”写其堕落——从被迫说谎到主动维护谎言；“事实上他也这样做了”一句冷峻收束，说明老大臣已经完全成为骗局的共谋者。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第四部分</span><h3>官员与皇帝 · 全员说谎</h3><span class="range">第 14–23 段</span></div>
+      <div class="part-overview">皇帝又派一位官员去看，官员同样违心称赞；皇帝亲自去看，也什么都看不见，却跟着大家一起称赞。</div>
+      <div class="verse" id="l14" data-i="13">
+        <div class="v-top"><span class="v-no">14</span><div class="v-line">这两个骗子又要了更多的钱，更多的生丝和金子，说是为了织布的需要。他们把这些东西全装进了腰包。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">骗子又要了更多的钱和生丝金子，全部装进腰包。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>两个“更多”反复，写骗子的贪得无厌；“说是为了织布的需要”是骗子的借口，与“全装进了腰包”形成对比，揭露骗局本质；本段承上启下，说明骗局在继续扩大。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l15" data-i="14">
+        <div class="v-top"><span class="v-no">15</span><div class="v-line">过了不久，皇帝又派了另外一位诚实的官员去看工作<span class="anno-word" data-note="事情按计划继续进行。这里指织布的进展">进行</span>的情况。这位官员的<span class="anno-word" data-note="命运、机遇。气，后缀">运气</span>并不比头一位大臣好：他看了又看，但是那两架空织布机上什么也没有，他什么东西也看不出来。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝又派一位诚实的官员去看，他同样什么也看不见。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>又派“诚实的官员”，与老大臣形成对照——说明不是个别人的问题，而是普遍的人性弱点；“运气并不比头一位大臣好”一句幽默，把“看不见布料”说成“运气不好”，暗含讽刺；“看了又看”写官员的努力与徒劳，与“什么也没有”形成对比。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l16" data-i="15">
+        <div class="v-top"><span class="v-no">16</span><div class="v-line">“你看这段布美不美？”两个骗子问。他们指着，描述着一些美丽的花纹——事实上它们并不存在。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">骗子问官员布美不美，指着描述着不存在的花纹。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>骗子的问话“美不美”是诱导式提问——预设了“布存在”的前提；“事实上它们并不存在”再次插入说明，打破叙事，直接点明真相，让读者看清骗局的荒诞；破折号表示转折说明。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l17" data-i="16">
+        <div class="v-top"><span class="v-no">17</span><div class="v-line">“我并不愚蠢呀！”这位官员想，“这大概是我<span class="anno-word" data-note="不够资格、不配享有。配，够得上">不配</span>有现在这样好的<span class="anno-word" data-note="官吏的职位。职，职务">官职</span>吧。这也真够<span class="anno-word" data-note="（huá jī）（言语、动作）引人发笑。这里指荒唐可笑">滑稽</span>，但是我决不能让人看出来。”因此他就把他完全没看见的布<span class="anno-word" data-note="用言语表达对人或事物的优点的喜爱。称，赞扬">称赞</span>了一番，同时对他们<span class="anno-word" data-note="担保、担保做到。证，证实">保证</span>说，他对这些美丽的色彩和巧妙的花纹感到很满意。“是的，那真是太美了！”他对皇帝说。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">官员心想自己并不愚蠢，大概是不配官职，但决不能让人看出来，于是违心称赞，并对皇帝说太美了。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>心理描写与老大臣如出一辙，说明这是普遍的人性弱点：“我并不愚蠢呀”是自我安慰，“不配有现在这样好的官职”是自我贬低，“决不能让人看出来”是恐惧下的选择；“滑稽”一词写官员自己也觉得荒唐，但仍选择说谎；“完全没看见的布”与“称赞了一番”对比，讽刺强烈；最后他也对皇帝说谎，谎言在层层传递中扩大。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l18" data-i="17">
+        <div class="v-top"><span class="v-no">18</span><div class="v-line">城里所有的人都在谈论着这美丽的布料。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">全城人都在谈论这“美丽的布料”。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>独句成段，写谎言已经传遍全城；“所有的人”强调范围之广，说明从宫廷到民间，人人都在谈论一个不存在的东西，为下文游行时全民说谎铺垫；“美丽的布料”加引号的意味——读者知道它并不存在。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l19" data-i="18">
+        <div class="v-top"><span class="v-no">19</span><div class="v-line">皇帝很想亲自去看一次。他选了一群特别<span class="anno-word" data-note="用圈画出来选定。圈，quān">圈定</span>的<span class="anno-word" data-note="随从的人员。随，跟从">随员</span>——其中包括已经去看过的那两位诚实的大臣。他就到那两个<span class="anno-word" data-note="（jiǎo huá）诡计多端、不可信任。狡，奸猾">狡猾</span>的骗子那里。这两个家伙正在以<span class="anno-word" data-note="全部的精力。全副，整套、全部">全副精力</span>织布，但是一根丝的影子也看不见。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝亲自带随员去看布料，包括两位已看过的大臣；骗子正全力织布，但一根丝也没有。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>特别圈定的随员“中包括”两位诚实的大臣“——皇帝有意让他们作证，而他们已经说谎，自然会继续圆谎，这是皇帝的”精明“，也是骗局得以维持的机制；”狡猾的骗子“”这两个家伙“称呼中见作者的贬斥；”以全副精力织布“与”一根丝的影子也看不见“形成极致对比，讽刺达到高潮。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l20" data-i="19">
+        <div class="v-top"><span class="v-no">20</span><div class="v-line">“您看这布<span class="anno-word" data-note="美丽而有光彩。丽，好看">华丽</span>不<span class="anno-word" data-note="美丽而有光彩。丽，好看">华丽</span>？”那两位诚实的官员说，“<span class="anno-word" data-note="对君主的尊称。陛，宫殿的台阶">陛下</span>请看：多么美的花纹！多么美的色彩！”他们指着那架空织布机，他们相信别人一定看得见布料。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">两位官员抢先称赞，请皇帝看花纹和色彩；他们指着空织布机，相信别人一定看得见。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>两位“诚实的官员”抢先开口，是因为他们已经说谎，必须继续圆谎——如果皇帝说看不见，他们的谎言就会被揭穿；“陛下”是对皇帝的尊称；两个“多么美”是他们从骗子那里“背”来的话；“他们相信别人一定看得见布料”一句深刻——说谎者不仅自己说谎，还真心相信别人能看见，自欺到了深信不疑的地步。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l21" data-i="20">
+        <div class="v-top"><span class="v-no">21</span><div class="v-line">“这是怎么一回事呢？”皇帝心里想，“我什么也没有看见！这可<span class="anno-word" data-note="（hài rén tīng wén）使人听了非常吃惊（多指社会上发生的坏事）。骇，惊吓、震惊">骇人听闻</span>了。难道我是一个愚蠢的人吗？难道我不够<span class="anno-word" data-note="从事某种活动所应具备的条件、身份等。格，标准">资格</span>当皇帝吗？这可是最可怕的事情。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝什么也没看见，心中大惊：难道自己愚蠢或不够资格当皇帝？这太可怕了。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>皇帝的心理与老大臣、官员如出一辙，说明这是普遍的人性弱点，连皇帝也不能免；“骇人听闻”程度最重——皇帝的恐惧比大臣更深，因为他不仅怕“不称职”，更怕“不够资格当皇帝”，这直接威胁到他的统治地位；两个“难道”反问，“最可怕的事情”收束，写出皇帝内心的极度恐慌。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l22" data-i="21">
+        <div class="v-top"><span class="v-no">22</span><div class="v-line">“哎呀，真是美极了！”皇帝说，“我<span class="anno-word" data-note="形容程度极深（比“十分”更甚）">十二分</span>地满意！”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝也违心称赞，表示十二分满意。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>与老大臣“哎呀，美极了”如出一辙，说明皇帝也选择了说谎；“十二分地满意”用程度副词极力强调，越夸张越显虚伪；皇帝一开口，就等于给骗局盖了“御印”，从此再无人敢说真话。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l23" data-i="22">
+        <div class="v-top"><span class="v-no">23</span><div class="v-line">于是他就点头表示出他的满意。他仔细地看着织布机，他不愿说出什么也没看到。跟着他来的全体随员也仔细地看了又看，可是他们也没比别人看到更多的东西。他们像皇帝一样，也说：“哎呀，真是美极了！”他们向皇帝建议，用这新的、美丽的布料做成衣服，穿着这衣服去参加快要举行的游行大典。“这布是华丽的！<span class="anno-word" data-note="精巧细致。致，精密">精致</span>的！<span class="anno-word" data-note="没有第二个、独一无二。双，两个">无双</span>的！”每人都<span class="anno-word" data-note="（suí shēng fù hè）别人说什么，自己跟着说什么，形容没有主见。附和，跟着别人说">随声附和</span>着。每人都有说不出的快乐。皇帝赐给骗子“<span class="anno-word" data-note="皇帝聘请的。御，指与皇帝有关的事物；聘，聘请">御聘</span>织师”的<span class="anno-word" data-note="（tóu xián）指官衔、学衔等称号。衔，称号">头衔</span>，封他们为<span class="anno-word" data-note="欧洲君主国的最低封号，不世袭，不在贵族之列。这里是比喻用法">爵士</span>，并<span class="anno-word" data-note="给予（勋章、奖状、学位等）。授，交付、给予">授予</span>一枚可以挂在<span class="anno-word" data-note="衣服上扣纽扣的孔眼">扣眼</span>上的<span class="anno-word" data-note="授给对国家有贡献的人的一种表示荣誉的证章。勋，功劳">勋章</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝和随员们都违心称赞，建议用这布做衣服参加游行大典；皇帝赐给骗子头衔、爵位和勋章。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>全员说谎的群像描写：皇帝“不愿说出”、随员“仔细地看了又看”却“没比别人看到更多”、人人都说“哎呀，真是美极了”——谎言从上到下蔓延；三个感叹句“华丽的！精致的！无双的！”短促有力，写出随员们争先恐后讨好的丑态；“随声附和”一针见血；“每人都有说不出的快乐”是反语——他们的快乐来自“幸好我不是愚蠢的人”的自我安慰，而非真正的快乐；皇帝赐头衔、封爵士、授勋章，用最高的荣誉奖励骗子，将讽刺推向极致。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第五部分</span><h3>游行大典 · 赤裸登场</h3><span class="range">第 24–33 段</span></div>
+      <div class="part-overview">游行大典前，骗子假装缝好新衣；皇帝脱下衣服“穿”上新装，在富丽的华盖下裸体游行，众人齐声称赞。</div>
+      <div class="verse" id="l24" data-i="23">
+        <div class="v-top"><span class="v-no">24</span><div class="v-line">第二天早上，<span class="anno-word" data-note="队伍在街上行进（多指庆祝活动）。游，从容地行走">游行</span><span class="anno-word" data-note="盛大隆重的典礼。典，典礼">大典</span>就要举行了。头一天夜晚，两个骗子整夜点起十六支以上的蜡烛。人们可以看到他们是在<span class="anno-word" data-note="在夜间加班干活。赶，加快行动">赶夜工</span>，要把皇帝的新衣完成。他们装作从织布机上取下布料，用两把大<span class="anno-word" data-note="使布、纸、绳等断开的器具，两刃交错。剪，用剪刀等使东西断开">剪刀</span>在空中<span class="anno-word" data-note="用刀、剪等把片状物分成若干部分">裁</span>了一阵子，同时用没有穿线的针<span class="anno-word" data-note="用针线连缀。缝，féng">缝</span>了一通。最后，他们齐声说：“请看！新衣服<span class="anno-word" data-note="用针线连缀。缝，féng">缝</span>好了！”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">游行前夜，骗子点起蜡烛赶夜工，装作取布、裁剪、缝纫，最后宣布新衣缝好了。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>骗子的表演达到极致：“整夜点起十六支以上的蜡烛”写其装模作样的排场；“装作取下布料”“在空中裁了一阵子”“用没有穿线的针缝了一通”三个动作描写，把“无中生有”的表演写得活灵活现；“没有穿线的针”这一细节尤为精妙——针上无线，却在“缝”，荒诞到了极点；“请看！新衣服缝好了！”骗子的宣告郑重其事，与“什么也没有”形成强烈反差。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l25" data-i="24">
+        <div class="v-top"><span class="v-no">25</span><div class="v-line">皇帝亲自带着一群最<span class="anno-word" data-note="达到高度道德水平的；地位高、生活优越的。这里指地位高">高贵</span>的<span class="anno-word" data-note="欧洲中世纪时受正式军事训练的骑兵，后成为贵族的称号。这里指皇帝的随从武官">骑士</span>们来了。两个骗子各举起一只手，好像拿着一件什么东西似的。他们说：“请看吧，这是裤子，这是<span class="anno-word" data-note="中式的长衣服。袍，长衣">袍子</span>，这是<span class="anno-word" data-note="穿在外面的衣服。外，外面">外衣</span>。”“这衣服<span class="anno-word" data-note="轻而柔和。柔，软">轻柔</span>得像<span class="anno-word" data-note="蜘蛛张的网，极轻极薄">蜘蛛网</span>一样，穿的人会觉得好像身上没有什么东西似的，这也正是这些衣服的<span class="anno-word" data-note="好处、长处（跟“缺点”相对）。优，优良">优点</span>。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝带骑士们来了，骗子举起空手装作拿着衣服，介绍裤子、袍子、外衣，并说衣服轻柔得像蜘蛛网。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>骗子“各举起一只手，好像拿着一件什么东西似的”——空手举物，动作越认真越显荒诞；“这是裤子，这是袍子，这是外衣”一一指认，煞有介事；“轻柔得像蜘蛛网一样”是骗子精心设计的解释——既然衣服“看不见”，就用“轻柔”来圆谎，而且“穿的人会觉得好像身上没有什么东西似的”一语双关，既是骗子的谎言，也是事实真相——皇帝确实什么也没穿，讽刺意味浓厚。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l26" data-i="25">
+        <div class="v-top"><span class="v-no">26</span><div class="v-line">“一点也不错。”所有的骑士都说。可是他们什么也看不见，因为什么东西也没有。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">骑士们都附和说不错，但他们什么也看不见。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>简短的段落，“一点也不错”是骑士们的随声附和；“可是他们什么也看不见，因为什么东西也没有”再次插入说明，冷峻地点破真相；骑士们的附和说明谎言已经渗透到每一个人，连皇帝身边的武士也不敢说真话。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l27" data-i="26">
+        <div class="v-top"><span class="v-no">27</span><div class="v-line">“现在请皇上脱下衣服，”两个骗子说，“好让我们在这个大<span class="anno-word" data-note="有光滑的平面、能照见形象的器具。镜，镜子">镜子</span>面前为您换上新衣。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">骗子请皇帝脱下衣服，在镜子前换上新衣。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>骗子的要求大胆而荒唐——让皇帝当众脱光衣服；“大镜子面前”是骗子的又一设计——让皇帝自己“看”到新衣，进一步强化自欺；皇帝竟然照做，说明他已经完全被骗局裹挟，身不由己。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l28" data-i="27">
+        <div class="v-top"><span class="v-no">28</span><div class="v-line">皇帝把他所有的衣服都脱下来了。两个骗子装作一件一件地把他们刚才缝好的新衣服交给他。他们在他的<span class="anno-word" data-note="人体胯上胁下的部分。腰，yāo">腰</span>周围弄了一阵子，好像是为他系上一件什么东西似的——这就是<span class="anno-word" data-note="后面的裙子（骗子编造的衣服部件）。裙，裙子">后裙</span>。皇上在镜子面前转了转身子，<span class="anno-word" data-note="转动、掉转。扭，niǔ">扭</span>了<span class="anno-word" data-note="转动、掉转。扭，niǔ">扭</span><span class="anno-word" data-note="腰身，指人的腰部。肢，人的胳膊、腿">腰肢</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝脱光衣服，骗子装作给他穿新衣，在他腰周围弄了一阵子说是后裙；皇帝在镜子前转身扭腰。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>皇帝“把他所有的衣服都脱下来了”——一国之君在臣子面前赤身裸体，荒诞至极；骗子“装作一件一件地”“交给他”“在腰周围弄了一阵子”动作描写细致，把“穿不存在的衣服”的过程写得煞有介事；“后裙”是骗子临时编造的名词，让谎言更具体；皇帝“转了转身子，扭了扭腰肢”是在“欣赏”自己的新衣，动作越认真越显滑稽可悲——他已经完全沉浸在自欺之中。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l29" data-i="28">
+        <div class="v-top"><span class="v-no">29</span><div class="v-line">“上帝，这衣服多么<span class="anno-word" data-note="（衣服）适合身材。合，符合">合身</span>啊！<span class="anno-word" data-note="裁剪，这里指剪裁的式样">裁</span>得多么好看啊！”大家都说，“多么美的花纹！多么美的色彩！这真是一套<span class="anno-word" data-note="价值高、值得重视。贵，价格高">贵重</span>的衣服！”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">大家齐声称赞衣服合身、好看、花纹美、色彩美，说是贵重的衣服。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>四个“多么”构成排比，写出众人争先恐后称赞的丑态；“合身”“裁得好看”是对“不存在的衣服”的具体评价，越具体越显荒诞；“贵重的衣服”与“什么也没有”形成对比；“大家都说”强调全员说谎，没有一个例外。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l30" data-i="29">
+        <div class="v-top"><span class="v-no">30</span><div class="v-line">“大家都在外面等待，准备好了<span class="anno-word" data-note="古代帝王出行时遮蔽阳光和风雨的伞盖。华，华丽；盖，器物上部有遮蔽作用的东西">华盖</span>，<span class="anno-word" data-note="用在下半句的开头，表示使下文所说的目的得以实现">以便</span>举在陛下头顶上去参加游行大典。”<span class="anno-word" data-note="掌管典礼事务的官员。典礼，郑重举行的仪式">典礼官</span>说。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">典礼官报告说华盖已准备好，请皇帝参加游行大典。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>典礼官的话推动情节发展——游行即将开始；“华盖”是古代帝王出行时遮蔽阳光和风雨的伞状器具，象征帝王的威严与尊贵，与皇帝赤身裸体形成强烈反差；典礼官也是说谎者之一，他“准备好了华盖”，却对皇帝的裸体视而不见。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l31" data-i="30">
+        <div class="v-top"><span class="v-no">31</span><div class="v-line">“对，我已经穿好了。”皇帝说，“这衣服合我的身吗？”于是他又在镜子面前把身子转动了一下，因为他要使大家觉得他在认真地观看他的美丽的新装。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝说已经穿好了，又在镜子前转身，要使大家觉得他在认真观看新装。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>皇帝“这衣服合我的身吗”是明知故问——他什么也没穿，却问“合身吗”，自欺到了极点；“又在镜子面前把身子转动了一下”呼应上文，反复写皇帝的表演；“因为他要使大家觉得他在认真地观看”直接点破皇帝的心理——他不是在看衣服，而是在表演“看衣服”，用表演来维持谎言。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l32" data-i="31">
+        <div class="v-top"><span class="v-no">32</span><div class="v-line">那些托后裙的<span class="anno-word" data-note="宫廷内的臣子、宦官。内，宫廷内">内臣</span>都把手在地上<span class="anno-word" data-note="这里摸摸，那里摸摸，形容装模作样。摸，用手接触">东摸西摸</span>，好像他们正在<span class="anno-word" data-note="捡起。拾，捡">拾起</span><span class="anno-word" data-note="衣服和裙子。裙，裙子">衣裙</span>似的。他们<span class="anno-word" data-note="开始走、迈步。开，开始">开步</span>走，手中托着空气——他们不敢让人瞧出他们实在什么东西也没看见。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">内臣们在地上东摸西摸，装作拾起后裙，开步走时手中托着空气。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>内臣“把手在地上东摸西摸”“拾起衣裙”“手中托着空气”三个动作描写，把“托不存在的后裙”的表演写得淋漓尽致；“东摸西摸”写其装模作样的慌乱；“托着空气”一语道破真相；破折号后解释原因——“他们不敢让人瞧出他们实在什么东西也没看见”，恐惧是所有谎言的根源。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l33" data-i="32">
+        <div class="v-top"><span class="v-no">33</span><div class="v-line">这样，皇帝就在那个<span class="anno-word" data-note="宏伟美丽。富，丰富；丽，好看">富丽</span>的华盖下<span class="anno-word" data-note="队伍在街上行进">游行</span>起来了。站在街上和窗子里的人都说：“<span class="anno-word" data-note="叹词，表示惊讶或赞叹">乖乖</span>！皇上的新装真是漂亮！他上衣下面的后裙是多么美丽！这件衣服真合他的<span class="anno-word" data-note="身体的高矮和胖瘦。材，资质、能力">身材</span>！”谁也不愿意让人知道自己什么也看不见，因为这样就会显出自己不称职，或是太愚蠢。皇帝所有的衣服从来没有获得过这样的称赞。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">皇帝在华盖下游行，街上和窗子里的人都齐声称赞新装漂亮；谁也不愿让人知道自己看不见。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>游行大典的高潮场景：“富丽的华盖”与赤身裸体的皇帝形成极致反差；“乖乖！”是口语化的赞叹，写出百姓的随声附和；三个称赞句排比，与上文大臣、骑士的称赞如出一辙，说明谎言已经全民化；“谁也不愿意让人知道自己什么也看不见”直接点破全民说谎的原因——恐惧；“皇帝所有的衣服从来没有获得过这样的称赞”是反语——“不存在的衣服”获得了最多的称赞，讽刺达到顶点。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第六部分</span><h3>小孩说真话 · 真相大白</h3><span class="range">第 34–37 段</span></div>
+      <div class="part-overview">一个孩子喊出“他什么衣服也没穿”，真相在百姓中传播；皇帝发抖却硬撑到底，内臣们继续托着不存在的后裙。</div>
+      <div class="verse" id="l34" data-i="33">
+        <div class="v-top"><span class="v-no">34</span><div class="v-line">“可是他什么衣服也没穿呀！”一个小孩子最后叫了出来。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">一个小孩子最后叫出了真相：皇帝什么衣服也没穿。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>全文的转折点！“可是”表示转折，孩子的话与所有人的称赞形成对比；“最后”说明孩子是在所有人都称赞之后才开口的——他没有被世俗的恐惧所束缚；“小孩子”身份至关重要——只有未被世俗污染的孩子才敢说真话，这是作者的精心安排；“叫了出来”写出孩子的天真率直，不假思索。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l35" data-i="34">
+        <div class="v-top"><span class="v-no">35</span><div class="v-line">“上帝<span class="anno-word" data-note="叹词，表示轻微的惊异">哟</span>，你听这个<span class="anno-word" data-note="心地单纯、性情直率，没有做作和虚伪。真，真实">天真</span>的声音！”爸爸说。于是大家把这孩子讲的话私下里低声地<span class="anno-word" data-note="广泛散布。播，传播">传播</span>开来。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">孩子的爸爸说这是天真的声音，大家私下里低声传播孩子的话。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>爸爸的话“上帝哟，你听这个天真的声音”——他没有直接说“对，他没穿衣服”，而是用“天真”来定性孩子的话，既承认了事实，又给自己留了台阶——“天真”意味着“不懂事”，大人还是“懂事”的；“私下里低声地传播”写出百姓的谨慎——他们不敢公开说，只能私下传，说明恐惧仍然存在，但真相已经开始扩散。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l36" data-i="35">
+        <div class="v-top"><span class="v-no">36</span><div class="v-line">“他并没穿什么衣服！有一个小孩子说他并没穿什么衣服呀！”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">百姓开始传播：他并没穿什么衣服，有一个小孩子这么说。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>独句成段，写百姓的话从“私下低声”到公开传播；“有一个小孩子说”这一状语至关重要——百姓不敢直接说“他没穿衣服”，必须借孩子的口来说，把“说真话”的责任推给孩子，自己只是“转述”；这既写出百姓的怯懦，也写出真相的不可阻挡——即使借孩子之口，真相终究传播开来了。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l37" data-i="36">
+        <div class="v-top"><span class="v-no">37</span><div class="v-line">“他实在没穿什么衣服呀！”最后所有的百姓都说。皇帝有点儿<span class="anno-word" data-note="由于害怕、生气或寒冷等原因身体颤动。抖，颤动">发抖</span>，因为他觉得百姓们所讲的话<span class="anno-word" data-note="仿佛、好像。乎，后缀">似乎</span>是真的。不过他心里却这样想：“我必须把这游行大典举行完毕。”因此他摆出一副更<span class="anno-word" data-note="自以为了不起、看不起别人。骄，自高自大">骄傲</span>的<span class="anno-word" data-note="神情、神态，也指精神饱满。气，后缀">神气</span>。他的内臣们跟在他后面走，手中托着一条并不存在的后裙。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">所有百姓都说皇帝实在没穿衣服；皇帝发抖却硬撑，摆出更骄傲的神气走完游行；内臣们继续托着不存在的后裙。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>故事的结局，意味深长：“他实在没穿什么衣服呀”——百姓终于公开承认真相，“实在”一词强调事实确凿；皇帝“有点儿发抖”说明他内心已经知道真相，但“我必须把这游行大典举行完毕”写出他的选择——明知是假，也要硬撑到底，因为承认就等于承认自己愚蠢和不称职；“更骄傲的神气”是用傲慢来掩饰内心的恐慌，越骄傲越显虚弱；结尾“手中托着一条并不存在的后裙”与开头呼应，骗局虽被戳穿，但维护骗局的人仍在表演，余味无穷——说真话难，承认真相更难。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">人物 · 艺术 · 名句</span></div>
+  <div class="box">
+    <h3>人物形象</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">皇帝</div>
+        <p>愚蠢、虚伪、自欺欺人。他酷爱新装到了荒唐的地步，被骗子的“奇怪特性”所诱惑；在看布料时什么也看不见，却因害怕被认为愚蠢或不称职而违心称赞；游行时赤身裸体却“摆出更骄傲的神气”，明知是假也要硬撑到底。他是封建统治阶级的代表，作者通过他揭露了统治阶级的骄奢淫逸和虚伪愚蠢。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">老大臣和官员</div>
+        <p>虚伪、怯懦、自欺欺人。他们都是皇帝信任的“诚实”的人，但在看不见布料时，都因害怕被认为愚蠢或不称职而选择说谎，并且主动维护谎言（老大臣“照样背出来”、官员“对皇帝说太美了”）。他们是封建官僚体系的代表，说明虚伪和怯懦是整个统治阶层的通病。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">骗子</div>
+        <p>狡猾、贪婪、善于抓住人性弱点。他们设计的骗局精妙之处在于：利用人们“不愿承认自己愚蠢或不称职”的心理，让所有人都不敢说真话。他们“装模作样”地织布、裁剪、缝纫，把“无中生有”的表演做到极致；他们贪得无厌，不断要更多的钱和生丝金子。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">小孩子</div>
+        <p>天真、纯洁、敢于说真话。他是全文中唯一一个直接说出“他什么衣服也没穿呀”的人。作者安排孩子来戳穿骗局，寓意深刻：只有未被世俗污染的童心才能保持真诚，说真话需要无私无畏的勇气。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">百姓</div>
+        <p>怯懦、从众，但最终承认真相。他们在游行时随声附和称赞，“谁也不愿意让人知道自己什么也看不见”；但在孩子说出真相后，他们从“私下低声传播”到“最后所有的百姓都说”，最终承认真相。百姓的转变说明：真相是不可阻挡的，但说真话需要勇气和契机。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>艺术特色</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">想象与夸张</div>
+        <p>童话最突出的艺术特色。骗子织出“不存在的布”、皇帝“穿”着不存在的衣服游行、内臣“托着空气”走——这些情节在现实中不可能发生，但在童话中却合乎逻辑。夸张不是胡编乱造，而是对现实本质的集中反映：封建统治阶级的虚伪和愚蠢被夸张到了极致，反而更加真实可信。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">讽刺手法</div>
+        <p>全文贯穿着辛辣的讽刺。作者不直接议论，而是通过人物的言行来讽刺：皇帝“每一天每一点钟都要换一套衣服”的荒唐、老大臣“眼睛越睁越大”却什么也看不见的窘迫、内臣“东摸西摸”托空气的滑稽、皇帝赤身裸体却“更骄傲”的虚伪——这些细节本身就是最有力的讽刺。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">心理描写</div>
+        <p>全文最精彩的艺术手法之一。老大臣“难道我是愚蠢的吗”“决不能让任何人知道”、官员“我并不愚蠢呀”“决不能让人看出来”、皇帝“难道我不够资格当皇帝吗”“这可是最可怕的事情”——三段心理描写如出一辙，反复强化“恐惧压倒诚实”的主题，也说明这不是个别人的问题，而是普遍的人性弱点。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">对比手法</div>
+        <p>全文多处运用对比：皇帝的“至高无上”与赤身裸体的“滑稽可笑”对比；大臣官员的“诚实”“称职”与违心说谎对比；所有人的称赞与孩子的真话对比；皇帝“更骄傲的神气”与内心“发抖”对比。对比使人物形象更加鲜明，主题更加突出。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">情节曲折</div>
+        <p>故事按照“爱新装—做新装—看新装—穿新装—展新装—揭新装”的顺序展开，环环相扣，层层递进。每一个环节都有悬念：皇帝会不会上当？大臣会不会说真话？皇帝会不会说真话？百姓会不会说真话？最后由孩子戳穿骗局，既出人意料又在情理之中。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>名句赏析</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">“任何不称职的或者愚蠢得不可救药的人，都看不见这衣服。”</div>
+        <p>这是骗子设下的圈套，也是全文的“文眼”。这句话抓住了人性中最普遍的弱点——谁也不愿承认自己“不称职”或“愚蠢”。正是这句话，让从皇帝到大臣到百姓的所有人都不敢说真话，推动了整个故事情节的发展。“不可救药”一词程度极重，说明骗子把“看不见衣服”等同于“无可救药的愚蠢”，让人更加恐惧。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">“可是他什么衣服也没穿呀！”一个小孩子最后叫了出来。</div>
+        <p>全文的转折点和点睛之笔。在所有人都违心称赞的时候，一个孩子喊出了真相。“小孩子”的身份至关重要——只有未被世俗污染的童心才敢说真话。“最后”说明孩子是在所有人都沉默之后才开口的，他的话如同一道闪电，划破了谎言的黑幕。这句话朴素无华，却振聋发聩。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">“我必须把这游行大典举行完毕。”因此他摆出一副更骄傲的神气。</div>
+        <p>故事结尾处皇帝的心理和动作，意味深长。皇帝已经“觉得百姓们所讲的话似乎是真的”，内心“发抖”，但他选择硬撑到底——“必须把游行大典举行完毕”。“更骄傲的神气”是用傲慢来掩饰恐慌，越骄傲越显虚弱。这一细节深刻地揭示了统治阶级“死要面子活受罪”的虚伪本质，也说明承认真相比说真话更难。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>文章通过皇帝、大臣、官员等人物形象，深刻揭露了封建统治阶级的骄奢淫逸、虚伪愚蠢和自欺欺人。皇帝酷爱新装到荒唐的地步，被骗子愚弄却不敢说真话，赤身裸体游行还要“摆出更骄傲的神气”——这些夸张的情节，是对封建统治阶级本质的集中批判。</p>
+    <p style="margin-top:10px">文章不仅讽刺统治阶级，也批判了普遍的人性弱点：自私、怯懦、虚荣、从众。从老大臣到官员到骑士到百姓，所有人都因害怕被认为“愚蠢”或“不称职”而说谎，“随声附和”成为全社会的通病。作者通过这个故事警示人们：要保持真诚和勇气，不要被恐惧和虚荣所左右。</p>
+    <p style="margin-top:10px">文章最后由一个孩子戳穿骗局，寄托了作者的理想：只有未被世俗污染的童心才能保持真诚，说真话需要无私无畏的勇气。孩子的话如同一面镜子，照出了成人世界的虚伪和可笑。作者通过孩子的形象，表达了对真诚、勇敢和真理的呼唤。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">词语 · 字音 · 修辞 · 写法 · 文化</span></div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">炫耀</span><span class="acc-d">夸耀。本课指皇帝想显示自己的新衣服。</span></div>
+      <div class="acc-item"><span class="acc-w">称职</span><span class="acc-d">（chèn zhí）思想水平和工作能力都能胜任所担任的职务。</span></div>
+      <div class="acc-item"><span class="acc-w">不可救药</span><span class="acc-d">病重到无法用药医治，比喻人或事物坏到无法挽救的地步。</span></div>
+      <div class="acc-item"><span class="acc-w">骇人听闻</span><span class="acc-d">（hài rén tīng wén）使人听了非常吃惊（多指社会上发生的坏事）。</span></div>
+      <div class="acc-item"><span class="acc-w">随声附和</span><span class="acc-d">（suí shēng fù hè）别人说什么，自己跟着说什么，形容没有主见。</span></div>
+      <div class="acc-item"><span class="acc-w">御聘</span><span class="acc-d">皇帝聘请的。御，指与皇帝有关的事物。</span></div>
+      <div class="acc-item"><span class="acc-w">头衔</span><span class="acc-d">（tóu xián）指官衔、学衔等称号。</span></div>
+      <div class="acc-item"><span class="acc-w">爵士</span><span class="acc-d">欧洲君主国的最低封号，不世袭，不在贵族之列。</span></div>
+      <div class="acc-item"><span class="acc-w">勋章</span><span class="acc-d">授给对国家有贡献的人的一种表示荣誉的证章。</span></div>
+      <div class="acc-item"><span class="acc-w">华盖</span><span class="acc-d">古代帝王出行时遮蔽阳光和风雨的伞盖。</span></div>
+      <div class="acc-item"><span class="acc-w">滑稽</span><span class="acc-d">（huá jī）（言语、动作）引人发笑。</span></div>
+      <div class="acc-item"><span class="acc-w">精致</span><span class="acc-d">精巧细致。</span></div>
+      <div class="acc-item"><span class="acc-w">无双</span><span class="acc-d">没有第二个、独一无二。</span></div>
+      <div class="acc-item"><span class="acc-w">呈报</span><span class="acc-d">用公文报告上级。</span></div>
+      <div class="acc-item"><span class="acc-w">妥当</span><span class="acc-d">稳妥适当。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">称</span><span class="acc-d">多音字。①chèn：称职、称心、对称。②chēng：称呼、称赞、名称。③chèng：同“秤”。本课读chèn。</span></div>
+      <div class="acc-item"><span class="acc-w">更</span><span class="acc-d">多音字。①gēng：更衣、更换、三更半夜。②gèng：更加、更好。本课“更衣”读gēng。</span></div>
+      <div class="acc-item"><span class="acc-w">缝</span><span class="acc-d">多音字。①féng：缝补、缝纫、缝合。②fèng：缝隙、门缝、裂缝。本课“缝了一通”读féng。</span></div>
+      <div class="acc-item"><span class="acc-w">圈</span><span class="acc-d">多音字。①quān：圆圈、圈定、圈套。②juàn：羊圈、猪圈。③juān：圈起来。本课“圈定”读quān。</span></div>
+      <div class="acc-item"><span class="acc-w">吓</span><span class="acc-d">多音字。①xià：吓人、吓唬。②hè：恐吓、威吓、恫吓。“骇人听闻”中“骇”读hài，不读xià。</span></div>
+      <div class="acc-item"><span class="acc-w">和</span><span class="acc-d">多音字。①hé：和平、温和。②hè：附和、唱和、应和。③huó：和面。④huò：和药。⑤hú：和牌。本课“随声附和”读hè。</span></div>
+      <div class="acc-item"><span class="acc-w">炫</span><span class="acc-d">读xuàn，不读xuán。左右结构，火字旁。</span></div>
+      <div class="acc-item"><span class="acc-w">骇</span><span class="acc-d">读hài，不读gāi。左右结构，马字旁。</span></div>
+      <div class="acc-item"><span class="acc-w">稽</span><span class="acc-d">读jī，不读qǐ。左右结构，禾字旁。“滑稽”读huá jī。</span></div>
+      <div class="acc-item"><span class="acc-w">爵</span><span class="acc-d">读jué，不读jiáo。上下结构，“爫”字头。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>修辞方法</h3>
+      <div class="acc-item"><span class="acc-w">夸张</span><span class="acc-d">童话最突出的修辞手法。“他每一天每一点钟都要换一套衣服”“不惜把所有的钱都花掉”，用夸张写皇帝的荒唐嗜好；骗子织“不存在的布”、皇帝“穿”不存在的衣服游行，是情节上的夸张。夸张使人物形象更加鲜明，讽刺效果更加强烈。</span></div>
+      <div class="acc-item"><span class="acc-w">排比</span><span class="acc-d">文中多处运用排比。“他既不关心他的军队，也不喜欢去看戏，也不喜欢乘着马车去游公园”——三个“不”构成排比，突出皇帝的不务正业；“这布是华丽的！精致的！无双的！”——三个短句排比，写出随员们争先恐后讨好的丑态。</span></div>
+      <div class="acc-item"><span class="acc-w">反问</span><span class="acc-d">文中心理描写多用反问。“难道我是愚蠢的吗？”“难道我是不称职的吗？”“难道我不够资格当皇帝吗？”——反问句比陈述句更能表现人物内心的恐慌和自我怀疑，也增强了语言的力量。</span></div>
+      <div class="acc-item"><span class="acc-w">反复</span><span class="acc-d">文中反复出现“哎呀，美极了”“多么美的花纹”“多么美的色彩”等语句，从老大臣到官员到皇帝到百姓，人人都在说同样的话，反复强调谎言的全民化，讽刺意味浓厚。</span></div>
+      <div class="acc-item"><span class="acc-w">对比</span><span class="acc-d">皇帝的“至高无上”与赤身裸体的“滑稽可笑”对比；大臣官员的“诚实”“称职”与违心说谎对比；所有人的称赞与孩子的真话对比。对比使真善美与假恶丑泾渭分明。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">以“新装”为线索贯穿全文</span><span class="acc-d">文章以“新装”为线索，按照“爱新装—做新装—看新装—穿新装—展新装—揭新装”的顺序展开，结构完整，条理清晰。写叙事类文章时，可以用一个核心物件或事件作为线索，贯穿全文，使文章结构紧凑。</span></div>
+      <div class="acc-item"><span class="acc-w">用心理描写刻画人物</span><span class="acc-d">本文最精彩的写法是大段的心理描写。老大臣、官员、皇帝三个人在看不见布料时的心理活动如出一辙，都经历了“震惊—怀疑—恐惧—决定说谎”的过程。心理描写能直接深入人物内心，揭示人物的性格本质，比外貌和动作描写更深刻。</span></div>
+      <div class="acc-item"><span class="acc-w">用夸张和讽刺写童话</span><span class="acc-d">童话的基本特征是想象和夸张。本文的夸张不是胡编乱造，而是对现实本质的集中反映：把统治阶级的虚伪和愚蠢夸张到极致，反而更加真实。讽刺则是通过人物的言行自然流露，作者不直接议论，让读者在笑声中领悟道理。</span></div>
+      <div class="acc-item"><span class="acc-w">用对比突出主题</span><span class="acc-d">本文多处运用对比：真假对比（“美丽的新装”与“什么也没有”）、人物对比（大人的虚伪与孩子的真诚）、内外对比（皇帝“更骄傲的神气”与内心“发抖”）。对比能使人物形象更加鲜明，主题更加突出。</span></div>
+      <div class="acc-item"><span class="acc-w">结尾含蓄，余味无穷</span><span class="acc-d">文章结尾没有写皇帝承认错误或惩罚骗子，而是写皇帝“摆出一副更骄傲的神气”继续游行，内臣们“手中托着一条并不存在的后裙”。这样的结尾含蓄深刻，说明说真话难，承认真相更难，留给读者无限的思考空间。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>文化常识</h3>
+      <div class="acc-item"><span class="acc-w">安徒生与童话</span><span class="acc-d">安徒生（1805—1875），丹麦童话作家，世界文学童话的奠基人。一生创作童话160余篇，代表作有《皇帝的新装》《卖火柴的小女孩》《海的女儿》《丑小鸭》等。其童话被译成150多种语言，在世界各地广为流传。</span></div>
+      <div class="acc-item"><span class="acc-w">童话的特点</span><span class="acc-d">童话是儿童文学的一种，通过丰富的想象、幻想和夸张来塑造形象、反映生活。基本特征：①想象丰富，常采用拟人、夸张等手法；②情节曲折，故事性强；③语言通俗生动；④蕴含深刻的道理。</span></div>
+      <div class="acc-item"><span class="acc-w">欧洲封建制度</span><span class="acc-d">故事中的“皇帝”“大臣”“骑士”“爵士”“勋章”“华盖”等，反映了欧洲封建制度的社会结构。皇帝是最高统治者，下面有大臣、骑士等贵族阶层，等级森严。“御聘”是皇帝亲自聘请，“爵士”是最低的贵族封号。</span></div>
+      <div class="acc-item"><span class="acc-w">《皇帝的新装》的原型</span><span class="acc-d">故事原型来自西班牙中世纪民间故事。安徒生将原来的“国王看不见衣服就不配做国王”改为“不称职或愚蠢的人看不见衣服”，并增加了“小孩说真话”的结尾，使故事的讽刺意味更加深刻。</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">《皇帝的新装》</div>
+  <div>安徒生 · 丹麦 · 选自《安徒生童话和故事选》</div>
+  <div>叶君健 译</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('huangdi_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('huangdi_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "炫", "py": "xuàn", "q": "除非是为了去□耀一下他的新衣服", "tip": "「炫」火字旁，夸耀；不要写成「眩」（目字旁，眼花）"}, {"w": "称", "py": "chèn", "q": "任何不□职的或者愚蠢得不可救药的人", "tip": "「称」此处读chèn，适合义；不读chēng"}, {"w": "职", "py": "zhí", "q": "任何不称□的或者愚蠢得不可救药的人", "tip": "「职」耳字旁，职务；不要写成「织」（绞丝旁）"}, {"w": "救", "py": "jiù", "q": "任何不称职的或者愚蠢得不□可药的人", "tip": "「救」反文旁，援助；不要写成「球」"}, {"w": "辨", "py": "biàn", "q": "我就可以□别出哪些是聪明人", "tip": "「辨」左辛右刂，分别；与「辩」（言字旁，辩论）、「辫」（绞丝旁，辫子）区分"}, {"w": "款", "py": "kuǎn", "q": "于是他付了许多现□给这两个骗子", "tip": "「款」欠字旁，钱；不要少写「士」下的「示」"}, {"w": "迫", "py": "pò", "q": "他们急□地请求发给他们一些最细的生丝", "tip": "「迫」走之底，急切；不要写成「怕」（竖心旁）"}, {"w": "囊", "py": "náng", "q": "他们把这些东西都装进自己的腰□", "tip": "「囊」上「一中」下「襄」，口袋；笔画多，注意中间是「襄」"}, {"w": "碌碌", "py": "lù lù", "q": "只在那两架空织布机上忙忙□□，直到深夜", "tip": "「碌」石字旁，繁忙；与「绿」（绞丝旁）区分"}, {"w": "绪", "py": "xù", "q": "心里的确感到不大自然。他相信自己是无须害怕的，但仍然觉得先派一个人去看看工作的进□情形比较妥当", "tip": "「绪」绞丝旁，指事情的开端；不要写成「续」"}, {"w": "妥", "py": "tuǒ", "q": "先派一个人去看看工作的进展情形比较□当", "tip": "「妥」上「爫」下「女」，稳妥；不要写成「馁」"}, {"w": "测", "py": "cè", "q": "所以大家也都渴望借这个机会□验一下", "tip": "「测」三点水，检验；与「侧」（单人旁，侧面）区分"}, {"w": "良", "py": "liáng", "q": "这位善□的老大臣来到那两个骗子的屋子里", "tip": "「良」点字头，好；不要写成「娘」（女字旁）"}, {"w": "睁", "py": "zhēng", "q": "他把眼睛□得特别大", "tip": "「睁」目字旁，张开眼睛；与「挣」（提手旁，挣扎）区分"}, {"w": "纹", "py": "wén", "q": "问他花□是不是很美丽", "tip": "「纹」绞丝旁，纹路；与「文」区分，此处是花纹的纹"}, {"w": "彩", "py": "cǎi", "q": "色□是不是很漂亮", "tip": "「彩」三撇旁，颜色；不要写成「采」（釆字头）"}, {"w": "疑", "py": "yí", "q": "我从来没有□过自己", "tip": "「疑」匕字旁，不相信；笔画多，注意左边是「匕」+「矢」"}, {"w": "镜", "py": "jìng", "q": "好让我们在这个大□子面前为您换上新衣", "tip": "「镜」金字旁，镜子；不要写成「境」（土字旁，环境）"}, {"w": "呈", "py": "chéng", "q": "我将要□报皇上，我对这布料非常满意", "tip": "「呈」口字头，恭敬地送上；不要写成「程」（禾字旁）"}, {"w": "稀", "py": "xī", "q": "于是他们就把色彩和□有的花纹描述了一番", "tip": "「稀」禾字旁，少；不要写成「希」（布字头）"}, {"w": "滑", "py": "huá", "q": "这也真够□稽，但是我决不能让人看出来", "tip": "「滑」三点水，光滑；「滑稽」读huá jī"}, {"w": "稽", "py": "jī", "q": "这也真够滑□，但是我决不能让人看出来", "tip": "「稽」禾字旁，查考；「滑稽」读huá jī，不读qǐ"}, {"w": "狡", "py": "jiǎo", "q": "他就到那两个□猾的骗子那里", "tip": "「狡」反犬旁，奸猾；不要写成「饺」（食字旁，饺子）"}, {"w": "猾", "py": "huá", "q": "他就到那两个狡□的骗子那里", "tip": "「猾」反犬旁，狡诈；不要写成「滑」（三点水）"}, {"w": "骇", "py": "hài", "q": "这可□人听闻了", "tip": "「骇」马字旁，震惊；读hài，不读gāi；与「该」（言字旁）区分"}, {"w": "致", "py": "zhì", "q": "这布是华丽的！精□的！无双的！", "tip": "「致」反文旁，精密；不要写成「至」"}, {"w": "附", "py": "fù", "q": "每人都随声□和着", "tip": "「附」左耳旁，跟随；「附和」读fù hè；不要写成「付」"}, {"w": "和", "py": "hè", "q": "每人都随声附□着", "tip": "「和」此处读hè，跟着别人说；不读hé"}, {"w": "御", "py": "yù", "q": "皇帝赐给骗子“□聘织师”的头衔", "tip": "「御」彳旁，与皇帝有关；笔画多，注意中间是「缶」+「卩」"}, {"w": "聘", "py": "pìn", "q": "皇帝赐给骗子“御□织师”的头衔", "tip": "「聘」耳字旁，聘请；不要写成「骋」（马字旁，驰骋）"}, {"w": "衔", "py": "xián", "q": "皇帝赐给骗子“御聘织师”的头□", "tip": "「衔」彳旁，称号；不要写成「街」（双人旁，街道）"}, {"w": "爵", "py": "jué", "q": "封他们为□士", "tip": "「爵」上「爫」下「鬯」+「卩」，爵位；笔画多，注意下面是「鬯」"}, {"w": "勋", "py": "xūn", "q": "并授予一枚可以挂在扣眼上的□章", "tip": "「勋」力字旁，功劳；不要写成「熏」"}, {"w": "章", "py": "zhāng", "q": "并授予一枚可以挂在扣眼上的勋□", "tip": "「章」立字头，标记；不要写成「张」（弓字旁）"}, {"w": "烛", "py": "zhú", "q": "两个骗子整夜点起十六支以上的蜡□", "tip": "「烛」火字旁，蜡烛；不要写成「独」（反犬旁）"}, {"w": "裁", "py": "cái", "q": "用两把大剪刀在空中□了一阵子", "tip": "「裁」衣字旁，裁剪；与「栽」（木字旁，栽树）、「载」（车字旁，记载）区分"}, {"w": "剪", "py": "jiǎn", "q": "用两把大□刀在空中裁了一阵子", "tip": "「剪」刀字头，剪刀；不要写成「煎」（四点底，煎熬）"}, {"w": "缝", "py": "féng", "q": "同时用没有穿线的针□了一通", "tip": "「缝」绞丝旁，用针线连缀；此处读féng，不读fèng"}, {"w": "袍", "py": "páo", "q": "这是裤子，这是□子，这是外衣", "tip": "「袍」衣字旁，长衣；不要写成「泡」（三点水）"}, {"w": "柔", "py": "róu", "q": "这衣服轻□得像蜘蛛网一样", "tip": "「柔」木字旁，软；不要写成「揉」（提手旁）"}, {"w": "腰", "py": "yāo", "q": "他们在他的□周围弄了一阵子", "tip": "「腰」月字旁，身体部位；不要写成「要」"}, {"w": "扭扭", "py": "niǔ niǔ", "q": "皇上在镜子面前转了转身子，□了□腰肢", "tip": "「扭」提手旁，转动；不要写成「纽」（绞丝旁，纽扣）"}, {"w": "肢", "py": "zhī", "q": "皇上在镜子面前转了转身子，扭了扭腰□", "tip": "「肢」月字旁，胳膊腿；不要写成「枝」（木字旁，树枝）"}, {"w": "贵", "py": "guì", "q": "这真是一套□重的衣服！", "tip": "「贵」贝字旁，价格高；不要写成「遗」（走之底）"}, {"w": "盖", "py": "gài", "q": "准备好了华□，以便举在陛下头顶上", "tip": "「盖」羊字头，遮蔽物；不要写成「益」"}, {"w": "典", "py": "diǎn", "q": "以便举在陛下头顶上去参加游□大礼", "tip": "「典」八字头，典礼；不要写成「点」"}, {"w": "摸摸", "py": "mō mō", "q": "那些托后裙的内臣都把手在地上东□西□", "tip": "「摸」提手旁，用手接触；不要写成「模」（木字旁，模范）"}, {"w": "拾", "py": "shí", "q": "好像他们正在□起衣裙似的", "tip": "「拾」提手旁，捡；不要写成「合」"}, {"w": "裙", "py": "qún", "q": "好像他们正在拾起衣□似的", "tip": "「裙」衣字旁，裙子；不要写成「群」（羊字旁）"}, {"w": "丽", "py": "lì", "q": "皇帝就在那个富□的华盖下游行起来了", "tip": "「丽」一字头，好看；不要写成「力」"}, {"w": "抖", "py": "dǒu", "q": "皇帝有点儿发□，因为他觉得百姓们所讲的话似乎是真的", "tip": "「抖」提手旁，颤动；不要写成「斗"}, {"w": "傲", "py": "ào", "q": "因此他摆出一副更骄□的神气", "tip": "「傲」单人旁，自高自大；不要写成「敖」"}];
+var DICT_NOTES = [{"w": "炫耀", "a": "夸耀", "q": "除非是为了去炫耀一下他的新衣服"}, {"w": "称职", "a": "思想水平和工作能力都能胜任所担任的职务", "q": "任何不称职的或者愚蠢得不可救药的人"}, {"w": "不可救药", "a": "病重到无法用药医治，比喻人或事物坏到无法挽救的地步", "q": "任何不称职的或者愚蠢得不可救药的人"}, {"w": "分外", "a": "格外、特别", "q": "这种布不仅色彩和图案都分外美观"}, {"w": "辨别", "a": "根据不同事物的特点，在认识上加以区别", "q": "我就可以辨别出哪些是聪明人"}, {"w": "现款", "a": "可以当时交付的货币", "q": "于是他付了许多现款给这两个骗子"}, {"w": "急迫", "a": "马上需要、急切", "q": "他们急迫地请求发给他们一些最细的生丝"}, {"w": "腰包", "a": "系在腰间的钱包，泛指个人的钱袋", "q": "他们把这些东西都装进自己的腰包"}, {"w": "忙忙碌碌", "a": "形容事务繁杂、辛辛苦苦的样子", "q": "只在那两架空织布机上忙忙碌碌"}, {"w": "妥当", "a": "稳妥适当", "q": "先派一个人去看看工作的进展情形比较妥当"}, {"w": "渴望", "a": "迫切地希望", "q": "所以大家也都渴望借这个机会测验一下"}, {"w": "测验", "a": "用仪器或其他办法检验，这里指试探", "q": "所以大家也都渴望借这个机会测验一下"}, {"w": "理智", "a": "辨别是非、利害关系以及控制自己行为的能力", "q": "因为他很有理智"}, {"w": "不及", "a": "不如、比不上", "q": "就称职这点说，谁也不及他"}, {"w": "花纹", "a": "各种花纹的图案", "q": "问他花纹是不是很美丽"}, {"w": "稀有", "a": "很少有的、极少见的", "q": "于是他们就把色彩和稀有的花纹描述了一番"}, {"w": "呈报", "a": "用公文报告上级", "q": "我将要呈报皇上，我对这布料非常满意"}, {"w": "滑稽", "a": "（言语、动作）引人发笑，这里指荒唐可笑", "q": "这也真够滑稽"}, {"w": "保证", "a": "担保、担保做到", "q": "同时对他们保证说"}, {"w": "圈定", "a": "用圈画出来选定", "q": "他选了一群特别圈定的随员"}, {"w": "狡猾", "a": "诡计多端、不可信任", "q": "他就到那两个狡猾的骗子那里"}, {"w": "骇人听闻", "a": "使人听了非常吃惊（多指社会上发生的坏事）", "q": "这可骇人听闻了"}, {"w": "精致", "a": "精巧细致", "q": "这布是华丽的！精致的！无双的！"}, {"w": "无双", "a": "没有第二个、独一无二", "q": "这布是华丽的！精致的！无双的！"}, {"w": "随声附和", "a": "别人说什么，自己跟着说什么，形容没有主见", "q": "每人都随声附和着"}, {"w": "御聘", "a": "皇帝聘请的", "q": "皇帝赐给骗子“御聘织师”的头衔"}, {"w": "头衔", "a": "指官衔、学衔等称号", "q": "皇帝赐给骗子“御聘织师”的头衔"}, {"w": "爵士", "a": "欧洲君主国的最低封号，不世袭，不在贵族之列", "q": "封他们为爵士"}, {"w": "授予", "a": "给予（勋章、奖状、学位等）", "q": "并授予一枚可以挂在扣眼上的勋章"}, {"w": "勋章", "a": "授给对国家有贡献的人的一种表示荣誉的证章", "q": "并授予一枚可以挂在扣眼上的勋章"}, {"w": "华盖", "a": "古代帝王出行时遮蔽阳光和风雨的伞盖", "q": "准备好了华盖，以便举在陛下头顶上"}, {"w": "典礼", "a": "郑重举行的仪式", "q": "以便举在陛下头顶上去参加游行大典"}, {"w": "轻柔", "a": "轻而柔和", "q": "这衣服轻柔得像蜘蛛网一样"}, {"w": "优点", "a": "好处、长处（跟“缺点”相对）", "q": "这也正是这些衣服的优点"}, {"w": "合身", "a": "（衣服）适合身材", "q": "这衣服多么合身啊"}, {"w": "贵重", "a": "价值高、值得重视", "q": "这真是一套贵重的衣服"}, {"w": "富丽", "a": "宏伟美丽", "q": "皇帝就在那个富丽的华盖下游行起来了"}, {"w": "天真", "a": "心地单纯、性情直率，没有做作和虚伪", "q": "你听这个天真的声音"}, {"w": "传播", "a": "广泛散布", "q": "于是大家把这孩子讲的话私下里低声地传播开来"}, {"w": "骄傲", "a": "自以为了不起、看不起别人", "q": "因此他摆出一副更骄傲的神气"}, {"w": "神气", "a": "神情、神态", "q": "因此他摆出一副更骄傲的神气"}];
+</script>
+
+</body>
+</html>
