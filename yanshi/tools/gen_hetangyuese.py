@@ -2,8 +2,8 @@
 """《荷塘月色》课件生成器 —— 复用《背影》课件的 CSS / JS 框架，替换内容数据。"""
 import json, re, html, io, os, sys
 
-SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'beiying-zhuziqing.html')
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'hetangyuese-zhuziqing.html')
+SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'beiying-zhuziqing.html')
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hetangyuese-zhuziqing.html')
 
 src = io.open(SRC, encoding='utf-8-sig').read()
 CSS = src[src.index('<style>') + 7: src.index('</style>')]

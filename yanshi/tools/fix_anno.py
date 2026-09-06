@@ -3,7 +3,7 @@
 有括号补充信息的（如「三千人（虚指，形容多）」「那边（指北京）」）一律保留。"""
 import io, os, re
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = os.path.dirname(os.path.abspath(__file__))
 FILES = ['pipaxing-baijuyi', 'changhenge-baijuyi', 'hongmenyan-shiji',
          'beiying-zhuziqing', 'hetangyuese-zhuziqing',
          'tengyexiansheng-luxun', 'guxiang-luxun', 'zixinli']

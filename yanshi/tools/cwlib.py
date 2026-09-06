@@ -5,7 +5,7 @@
 """
 import json, re, html, io, os
 
-SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'beiying-zhuziqing.html')
+SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'beiying-zhuziqing.html')
 
 
 def load_framework(old_key, new_key):

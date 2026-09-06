@@ -2,8 +2,8 @@
 """《白雪歌送武判官归京》课件生成器 —— 复用《背影》CSS/JS框架。"""
 import json, re, html, io, os
 LQ='\u201c';RQ='\u201d'
-SRC=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'beiying-zhuziqing.html')
-OUT=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'baixuegesongwupanguanguijing-censhen.html')
+SRC=os.path.join(os.path.dirname(os.path.abspath(__file__)),'beiying-zhuziqing.html')
+OUT=os.path.join(os.path.dirname(os.path.abspath(__file__)),'baixuegesongwupanguanguijing-censhen.html')
 src=io.open(SRC,encoding='utf-8-sig').read()
 CSS=src[src.index('<style>')+7:src.index('</style>')]
 CSS+='\n.acc-sub{font-family:var(--font-kai,serif);font-weight:700;font-size:1.05em;color:var(--ink,#2b2b2b);margin:16px 0 8px;padding-left:10px;border-left:3px solid #b8934a}\n'

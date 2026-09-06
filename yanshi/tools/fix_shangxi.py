@@ -2,7 +2,7 @@
 """修订琵琶行 8 处 + 长恨歌 5 处赏析的硬凑/错误表述。每条必须恰好命中一次。"""
 import io, os
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = os.path.dirname(os.path.abspath(__file__))
 
 EDITS = {
     'pipaxing-baijuyi': [

@@ -2,7 +2,7 @@
 """扫描所有语文课件，挑出低质量注释（同义反复 / 无用 / 过度）。"""
 import io, os, re, glob, json, sys, ast
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = os.path.dirname(os.path.abspath(__file__))
 NAMES = ['pipaxing-baijuyi', 'changhenge-baijuyi', 'hongmenyan-shiji',
          'beiying-zhuziqing', 'hetangyuese-zhuziqing',
          'tengyexiansheng-luxun', 'guxiang-luxun', 'zixinli']
