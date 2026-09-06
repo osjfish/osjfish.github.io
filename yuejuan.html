@@ -1411,12 +1411,23 @@ function otsuInkThreshold(vals){
   if(bestT<0)return null;
   return bestT/V;
 }
+/* 均匀边框墨量判定：涂点自带的边框+字母在软化渲染下会整体抬升墨量，
+   若所有中间档墨量彼此接近（无突出者）且都低于 阈值+0.15，视为未填而非模糊 */
+function uniformBand(mids,low){
+  if(mids.length<2)return false;
+  let mx=-1,mn=2;
+  for(const x of mids){if(x.ink>mx)mx=x.ink;if(x.ink<mn)mn=x.ink;}
+  return (mx-mn)<0.12 && mx<low+0.15;
+}
 function judgeQuestion(inks,high,low){
   const hs=[],mids=[];
   inks.forEach(function(x){if(x.ink>=high)hs.push(x);else if(x.ink>low)mids.push(x)});
   if(hs.length===1)return {verdict:'OK',choice:String(hs[0].c)};
   if(hs.length>1)return {verdict:'MULTI',choice:hs.map(function(x){return String(x.c)}).sort().join('')};
-  if(mids.length)return {verdict:'REVIEW',choice:null};
+  if(mids.length){
+    if(uniformBand(mids,low))return {verdict:'BLANK',choice:null};
+    return {verdict:'REVIEW',choice:null};
+  }
   return {verdict:'BLANK',choice:null};
 }
 function judgeDigit(inks,high,low){
@@ -1424,7 +1435,10 @@ function judgeDigit(inks,high,low){
   const mids=inks.filter(function(x){return x.ink>low&&x.ink<high});
   if(hs.length===1)return {digit:String(hs[0].c),ok:true};
   if(hs.length>1)return {digit:null,ok:false,reason:'多涂'};
-  if(mids.length)return {digit:null,ok:false,reason:'模糊'};
+  if(mids.length){
+    if(uniformBand(mids,low))return {digit:null,ok:false,reason:'空白'};
+    return {digit:null,ok:false,reason:'模糊'};
+  }
   return {digit:null,ok:false,reason:'空白'};
 }
 
@@ -1451,7 +1465,24 @@ async function qrFromCrop(cv,H,qr,smm){
 
 
 /* 透视校正采样：以单应/仿射把版式矩形(mm)直接映射采样（主观题切割 / QR 裁剪通用） */
-function cropViaH(cv,H,x0,y0,wmm,hmm,outW){
+/* 轻量 USM 锐化（十字核）：低分辨率源被放大时补偿边缘软化 */
+function sharpenImageData(d,w,h,amount){
+  const s=new Uint8ClampedArray(d);
+  for(let y=1;y<h-1;y++){
+    let i=(y*w+1)*4;
+    for(let x=1;x<w-1;x++,i+=4){
+      for(let ch=0;ch<3;ch++){
+        const c=s[i+ch];
+        const blur=(s[i+ch-4]+s[i+ch+4]+s[i+ch-w*4]+s[i+ch+w*4]+4*c)/8;
+        const v=c+amount*(c-blur);
+        d[i+ch]=v<0?0:(v>255?255:v);
+      }
+    }
+  }
+}
+function cropViaH(cv,H,x0,y0,wmm,hmm,outW,sharpen){
+  /* sharpen: 0=不锐化（二维码读码用），0.4=常规轻度，0.85=源被放大时的补偿强度 */
+  sharpen=sharpen||0;
   outW=outW||Math.round(wmm*9);
   const outH=Math.max(8,Math.round(outW*hmm/wmm));
   const oc=document.createElement('canvas');oc.width=outW;oc.height=outH;
@@ -1483,6 +1514,7 @@ function cropViaH(cv,H,x0,y0,wmm,hmm,outW){
       o[oi+3]=255;
     }
   }
+  if(sharpen>0)sharpenImageData(od.data,outW,outH,sharpen);
   octx.putImageData(od,0,0);
   return oc;
 }
@@ -1776,9 +1808,11 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 主观题切割 */
   const crops=[];
   for(const sb of pg2.subjective){
-    /* 切割按源图原生分辨率 1:1 采样（不发虚）；拼接对齐由显示层等宽缩放保证 */
+    /* 切割按源图原生分辨率 1:1 采样（不发虚）；拼接对齐由显示层等宽缩放保证。
+       常规轻度锐化提升线条观感；源区域像素不足（如 PDF 内嵌低清图被放大渲染）时加大锐化补偿 */
     const outW=Math.round(Math.min(1440,Math.max(420,(sb.w+2.4)*Math.min(12,smm*1.05))));
-    const cc=cropViaH(cv,H,sb.x-1.2,sb.y-1.2,sb.w+2.4,sb.h+2.4,outW);
+    const srcRegionPx=(sb.w+2.4)*smm;
+    const cc=cropViaH(cv,H,sb.x-1.2,sb.y-1.2,sb.w+2.4,sb.h+2.4,outW, outW>srcRegionPx*1.15?0.85:0.4);
     crops.push({qno:sb.qno,part:sb.part||0,score:sb.score,cv:cc});
   }
   return {ok:true,status:'ok',H:H,geometry:pg2,sX:sX,sY:sY,smm:smm,
