@@ -1573,6 +1573,8 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }catch(e){}
   const bin=binarize(gray.gray,gray.w,gray.h,omr.k,omr.win);
   const flags=[];
+  /* 源分辨率过低会同时影响判读与切割图清晰度，明确告警以便重拍 */
+  if(smm<5)flags.push('扫描分辨率偏低（约'+Math.round(smm*25.4)+'dpi）：建议用 150dpi 以上扫描，或手机拍摄时选原图上传');
   let qrData=null,qrFound=false,layoutSlice=null;
   /* 尝试读取二维码（先整页后裁剪） */
   const qrRaw=qrFromCanvas(cv);
@@ -1774,8 +1776,8 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 主观题切割 */
   const crops=[];
   for(const sb of pg2.subjective){
-    /* 切割图宽度只取决于题目区宽（确定性），与该页扫描分辨率无关——同题各部分拼接时像素宽严格一致 */
-    const outW=Math.round(Math.min(1300,Math.max(420,(sb.w+2.4)*9)));
+    /* 切割按源图原生分辨率 1:1 采样（不发虚）；拼接对齐由显示层等宽缩放保证 */
+    const outW=Math.round(Math.min(1440,Math.max(420,(sb.w+2.4)*Math.min(12,smm*1.05))));
     const cc=cropViaH(cv,H,sb.x-1.2,sb.y-1.2,sb.w+2.4,sb.h+2.4,outW);
     crops.push({qno:sb.qno,part:sb.part||0,score:sb.score,cv:cc});
   }
@@ -1790,7 +1792,7 @@ async function scanExamPages(exam,files,onProgress,forcePage){
   const tpl=await dbGet('templates',exam.templateId);
   if(!tpl)throw new Error('模板不存在');
   const layout=layoutTemplate(tpl);
-  const items=await filesToCanvases(files,2200);
+  const items=await filesToCanvases(files,2600);
   const results=[];
   let idx=0,lastNo='';
   for(const it of items){
@@ -1800,7 +1802,7 @@ async function scanExamPages(exam,files,onProgress,forcePage){
     catch(err){
       results.push({id:uid('pg_'),examId:exam.id,studentNo:'',pageNo:it.pageNo,blob:null,thumb:'',
         meta:{status:'error',qrFound:false,flags:['图像解析异常：'+(err.message||String(err))],perQ:[],regFlags:[],
-          layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,srcFile:it.file||''}});
+          layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}});
       if(onProgress)onProgress(++idx,items.length,it);
       continue;
     }
@@ -1812,7 +1814,7 @@ async function scanExamPages(exam,files,onProgress,forcePage){
       blob:blob,thumb:canvasDataURL(canvasToThumb(it.cv,220),0.7),
       meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
         perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,
-        H:res.H?res.H.h:null,srcFile:it.file||''}};
+        H:res.H?res.H.h:null,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}};
     await dbPut('pages',pageRec);
     /* 主观题裁剪入库 */
     if(res.crops){
@@ -2829,6 +2831,7 @@ async function renderScan(){
     +'<div class="f-row">'
     +'<button class="btn btn-p" data-act="scan-pick-files">选择扫描件（PDF/图片，可多选）</button>'
     +'<button class="btn btn-g" data-act="scan-shoot">拍照识别</button>'
+    +(pages.length?'<button class="btn btn-b" data-act="scan-rerun">按当前参数重识别全部（'+pages.length+' 页）</button>':'')
     +'<input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none">'
     +'<input type="file" id="scanFiles" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tif,.webp" style="display:none">'
     +'<select class="inp" style="width:170px" data-on="scan-force" title="多页答题卡逐张拍照时，可指定本批文件全部对应模板的某一页">'
@@ -2948,6 +2951,34 @@ Object.assign(ACTS,{
     await dbDel('pages',p.id);
     const crops=await dbByIdx('crops','byExam',p.examId);
     await dbDelMany('crops',crops.filter(function(c){return c.pageId===p.id}).map(function(c){return c.id}));
+    renderScan();
+  },
+  /* 批量重识别：用当前参数/模板重建已入库页的识别结果与切割图（页图保留） */
+  'scan-rerun':async function(){
+    const ex=await dbGet('exams',ui.scanExam);
+    const tpl=await dbGet('templates',ex.templateId);
+    if(!tpl){toast('模板不存在','err');return}
+    const layout=layoutTemplate(tpl);
+    const pages=await dbByIdx('pages','byExam',ex.id);
+    if(!pages.length){toast('尚未扫描','err');return}
+    const ok=await dlgConfirm('批量重识别','将用当前识别参数与模板，对已入库的 '+pages.length+' 页重新识别并重建切割图。<br>原页图保留；自动识别考号异常的页沿用原考号；人工复核记录保留。','开始');
+    if(!ok)return;
+    dlg('<div class="prog-line"><span id="rerunTxt">准备中…</span></div><div class="progress"><div id="rerunBar" style="width:0%"></div></div>',{title:'批量重识别'});
+    let i=0;
+    for(const p of pages){
+      if(p.blob){
+        try{
+          const {cv}=await blobCanvas(p.blob,2600);
+          await redoPage(p,cv,layout,{});
+        }catch(e){}
+      }
+      i++;
+      const t1=$('rerunTxt'),b1=$('rerunBar');
+      if(t1)t1.textContent='重识别 '+i+'/'+pages.length;
+      if(b1)b1.style.width=Math.round(i/pages.length*100)+'%';
+    }
+    dlgClose();
+    toast('重识别完成','ok');
     renderScan();
   }
 });
@@ -3142,7 +3173,7 @@ Object.assign(ACTS,{
       +'<div style="display:flex;gap:12px;flex-wrap:wrap">'
       +(p.thumb||m.status==='error'?'<img id="scanBigImg" src="'+p.thumb+'" style="width:300px;border:1px solid var(--line);border-radius:8px"><div style="display:none"></div>':'<div id="scanBigImgBox" style="color:#999;font-size:13px">无预览</div>')
       +'<div style="flex:1;min-width:260px">'
-      +'<div class="kv">页号：'+p.pageNo+'　考号：<b>'+esc(p.studentNo||'—')+'</b>　来源：'+esc(m.srcFile||'')+'</div>'
+      +'<div class="kv">页号：'+p.pageNo+'　考号：<b>'+esc(p.studentNo||'—')+'</b>　来源：'+esc(m.srcFile||'')+(m.srcW?('（'+m.srcW+'×'+m.srcH+'px）'):'')+'</div>'
       +(flags.length?'<div class="kv" style="color:var(--danger);margin:6px 0">'+flags.map(esc).join('<br>')+'</div>':'')
       +'<div class="tbl-wrap" style="max-height:300px;overflow:auto"><table class="tbl"><tr><th>题号</th><th>判定</th><th>选项</th><th>涂点密度 A/B/C/D</th></tr>'
       +(m.perQ||[]).map(function(q){
@@ -3348,14 +3379,17 @@ Object.assign(ACTS,{
 /* 重识别单页：更新 page 记录 + 重建该页主观题裁剪 */
 async function redoPage(p,cv,layout,opts){
   const res=await recognizeCanvas(cv,layout,p.meta.pageIdx||0,opts);
-  if(!res.studentNo&&p.studentNo){res.studentNo=p.studentNo;res.regFlags=['沿用考号 '+p.studentNo];}
+  /* 本次自动识别考号异常（或为空）时沿用原考号，避免批量重识别冲掉人工改判 */
+  const badRead=!res.studentNo||res.studentNo.indexOf('_')>=0||res.studentNo.indexOf('?')>=0;
+  const oldClean=p.studentNo&&p.studentNo.indexOf('_')<0&&p.studentNo.indexOf('?')<0;
+  if(badRead&&oldClean){res.studentNo=p.studentNo;res.regFlags=['沿用原考号 '+p.studentNo+'（本次自动识别未读出）'];}
   const blob=await canvasToJpeg(cv,0.88);
   const oldNo=p.studentNo;
   p.studentNo=res.studentNo||'';
   p.blob=p.blob;
   p.meta={status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
     perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:res.geometry.w,layoutH:res.geometry.h,
-    pageIdx:p.meta.pageIdx,srcFile:p.meta.srcFile||'重新识别',H:res.H?res.H.h:null};
+    pageIdx:p.meta.pageIdx,srcFile:p.meta.srcFile||'重新识别',srcW:p.meta.srcW,srcH:p.meta.srcH,H:res.H?res.H.h:null};
   await dbPut('pages',p);
   /* 考号变更时，迁移该生的人工改判记录，避免复核记录变成孤儿 */
   if(oldNo&&p.studentNo&&oldNo!==p.studentNo){
