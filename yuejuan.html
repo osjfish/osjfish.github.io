@@ -1458,7 +1458,6 @@ function cropViaH(cv,H,x0,y0,wmm,hmm,outW){
   const octx=oc.getContext('2d');
   const od=octx.createImageData(outW,outH);
   const o=od.data;
-  const img=octx.ctxHolder||null;
   const ictx=cv.getContext('2d');
   const id=ictx.getImageData(0,0,cv.width,cv.height);
   const d=id.data,sw=cv.width,sh=cv.height;
@@ -1468,10 +1467,20 @@ function cropViaH(cv,H,x0,y0,wmm,hmm,outW){
     for(let ux=0;ux<outW;ux++){
       const u=ux/(outW-1||1);
       const p=H(x0+u*wmm,my);
-      const sx2=Math.round(p.x),sy2=Math.round(p.y);
       const oi=(vy*outW+ux)*4;
-      if(sx2>=0&&sx2<sw&&sy2>=0&&sy2<sh){const si=(sy2*sw+sx2)*4;o[oi]=d[si];o[oi+1]=d[si+1];o[oi+2]=d[si+2];o[oi+3]=255;}
-      else{o[oi]=255;o[oi+1]=255;o[oi+2]=255;o[oi+3]=255;}
+      /* 双线性采样：低分辨率扫描放大到统一宽度时保持平滑 */
+      const fx=p.x-0.5, fy=p.y-0.5;
+      const x1=Math.floor(fx), y1=Math.floor(fy);
+      if(fx<-1||fy<-1||x1>=sw||y1>=sh){o[oi]=255;o[oi+1]=255;o[oi+2]=255;o[oi+3]=255;continue;}
+      const dx=fx-x1, dy=fy-y1;
+      const x2=x1+1, y2=y1+1;
+      const cx1=x1<0?0:x1, cx2=x2>=sw?sw-1:x2, cy1=y1<0?0:y1, cy2=y2>=sh?sh-1:y2;
+      const i11=(cy1*sw+cx1)*4, i21=(cy1*sw+cx2)*4, i12=(cy2*sw+cx1)*4, i22=(cy2*sw+cx2)*4;
+      const w11=(1-dx)*(1-dy), w21=dx*(1-dy), w12=(1-dx)*dy, w22=dx*dy;
+      o[oi]  =d[i11]*w11  +d[i21]*w21  +d[i12]*w12  +d[i22]*w22;
+      o[oi+1]=d[i11+1]*w11+d[i21+1]*w21+d[i12+1]*w12+d[i22+1]*w22;
+      o[oi+2]=d[i11+2]*w11+d[i21+2]*w21+d[i12+2]*w12+d[i22+2]*w22;
+      o[oi+3]=255;
     }
   }
   octx.putImageData(od,0,0);
@@ -1765,7 +1774,8 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 主观题切割 */
   const crops=[];
   for(const sb of pg2.subjective){
-    const outW=Math.round(Math.min(1300,Math.max(420,(sb.w+2.4)*Math.min(12,smm*1.05))));
+    /* 切割图宽度只取决于题目区宽（确定性），与该页扫描分辨率无关——同题各部分拼接时像素宽严格一致 */
+    const outW=Math.round(Math.min(1300,Math.max(420,(sb.w+2.4)*9)));
     const cc=cropViaH(cv,H,sb.x-1.2,sb.y-1.2,sb.w+2.4,sb.h+2.4,outW);
     crops.push({qno:sb.qno,part:sb.part||0,score:sb.score,cv:cc});
   }
@@ -3618,13 +3628,18 @@ async function renderGradeView(ex){
   const full=sq?sq.score:100;
   const cur=parts.length?parts[0].scoreVal:null;
   const done=parts.length?parts[0].scoreVal!=null:false;
+  /* 多部分拼接：统一显示宽度（容器宽 100%），接缝对齐，如同一张连续答题纸 */
   let imgs='';
-  for(const p of parts){
-    const url=blobURL(p.blob);
-    const userUrl=url;
-    imgs+='<div style="margin-bottom:10px"><img src="'+userUrl+'" data-act="grade-zoom" data-url="'+userUrl+'" style="max-width:100%;max-height:60vh;border:1px solid var(--line);border-radius:8px;cursor:zoom-in"></div>';
+  if(parts.length){
+    imgs='<div style="max-width:680px;margin:0 auto;border:1px solid var(--line);border-radius:8px;overflow:hidden">';
+    parts.forEach(function(p,idx){
+      const url=blobURL(p.blob);
+      imgs+='<img src="'+url+'" data-act="grade-zoom" data-url="'+url+'" style="display:block;width:100%;height:auto;cursor:zoom-in'+(idx>0?';border-top:1px dashed #bbb':'')+'">';
+    });
+    imgs+='<div class="kv" style="padding:3px 6px;border-top:1px dashed #bbb;text-align:center">共 '+parts.length+' 部分，点击任意部分可放大查看</div></div>';
+  }else{
+    imgs='<div class="empty">该生此题的裁剪图不存在</div>';
   }
-  if(!parts.length)imgs='<div class="empty">该生此题的裁剪图不存在</div>';
   /* 快捷分按钮 */
   let scoreBtns='';
   const steps=[0,Math.round(full*0.25),Math.round(full*0.5),Math.round(full*0.75),full];
@@ -4056,7 +4071,7 @@ Object.assign(ACTS,{
       const sub=r.subj[sq.qno]||{};
       if(sub.marked){
         const url=blobURL(sub.marked);
-        html+='<div><img src="'+url+'" style="max-width:220px;border:1px solid var(--line);border-radius:8px" data-act="grade-zoom" data-url="'+url+'" data-large="1"><div class="kv" style="text-align:center">题 '+esc(String(sq.qno))+'　<b>'+sub.score+'</b>/'+sub.full+'</div></div>';
+        html+='<div><img src="'+url+'" style="width:210px;height:auto;border:1px solid var(--line);border-radius:8px" data-act="grade-zoom" data-url="'+url+'" data-large="1"><div class="kv" style="text-align:center">题 '+esc(String(sq.qno))+'　<b>'+sub.score+'</b>/'+sub.full+'</div></div>';
       }else{
         html+='<div class="kv">题 '+esc(String(sq.qno))+'：'+(sub.score!=null?sub.score+'分':'未阅')+'</div>';
       }
