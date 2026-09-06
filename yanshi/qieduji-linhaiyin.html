@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>窃读记 · 林海音</title>
+
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+
+  /* 积累区子标题 */
+  .acc-sub{font-family:var(--font-kai,serif);font-weight:700;border-left:3px solid #b8934a;padding-left:10px;margin:14px 0 6px;color:var(--teal-deep);font-size:calc(16px*var(--fs))}
+
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <a href="#bg">背景</a><a href="#jielu">解读</a><a href="#app">赏析</a><a href="#acc">积累</a><a href="#practice">练习</a>
+  <div class="tool">
+    <select id="fsSel"><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="250">250%</option><option value="300">300%</option></select>
+    <button id="btnAll">展开</button>
+    <button id="btnRecite">背诵</button>
+    <button id="btnPrint">打印</button>
+  </div>
+</div></nav>
+
+<header class="hero">
+  <div class="hero-side">现代 · 林海音</div>
+  <h1 class="hero-title">窃读记</h1>
+</header>
+
+<main class="wrap">
+
+<div class="divider"></div>
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 背景 · 视听</span></div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <div class="fame">
+    <div class="fame-card"><h4>林海音</h4><p>林海音（1918—2001），原名林含英，小名英子，台湾苗栗人，生于日本大阪。中国当代著名女作家。幼年随父母定居北京，在北平度过了童年和青年时代。1948年回到台湾，曾任《联合报》副刊主编。她的作品具有浓厚的京味和怀旧色彩，代表作有《城南旧事》《晓云》《孟珠的旅程》等。《城南旧事》以英子的视角回忆老北京的人和事，被译成多种文字，改编成电影后享誉海内外。</p></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <h3>背景与题解</h3>
+    <div class="fame">
+    <div class="fame-card"><h4>创作背景</h4><p>《窃读记》选自《城南旧事》，是林海音回忆童年生活的散文。文章写于20世纪50年代，作者回忆了自己童年时期因家境贫寒，买不起书，只好偷偷躲在书店里看书的经历。那时候的书店允许顾客在店内翻阅，但只看不买难免招人白眼，小英子不得不使出各种“窃读技巧”——换书店、躲在大人身边、下雨天赖着不走。文章真实地写出了一个爱读书的孩子在贫困中的执着和心酸，也写出了读书带来的精神满足。</p></div>
+    <div class="fame-card"><h4>题目含义</h4><p>“窃读”就是偷偷地读。“窃”本义是偷窃，是贬义词，但在文中“窃读”是指不买书而在书店里偷偷看书，带有一种自嘲和心酸的意味。题目“窃读记”就是记录偷偷读书的经历。一个“窃”字，既写出了读书的不易——不能光明正大地读，只能偷偷摸摸；也写出了对读书的极度热爱——即使要“窃”，也要读。题目新颖别致，引人入胜。</p></div>
+    <div class="fame-card"><h4>文体特点</h4><p>本文是一篇回忆性叙事散文，以第一人称“我”的视角，按时间顺序叙述了童年窃读的经历。文章选取典型场景（进店找书、贪婪阅读、雨天窃读、饥饿疲惫、走出书店），通过细腻的动作描写、心理描写和细节描写，展现了“我”对读书的热爱和窃读的复杂滋味。语言质朴自然，富有生活气息，情感真挚动人。</p></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <h3>视听学习</h3>
+    <div class="video-grid">
+      <div class="video-box" id="mediaF1"><div class="video-label">课文朗读</div><iframe src="https://player.bilibili.com/player.html?bvid=BV1xQ4y1472n&page=1&high_quality=1&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>
+      <div class="video-box" id="mediaF2"><div class="video-label">课文讲解</div><iframe src="https://player.bilibili.com/player.html?bvid=BV1U4411A7bQ&page=1&high_quality=1&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段解读 · 可点击注释</span></div>
+  <button id="btnShowAll" style="display:none">显示全部首字</button>
+  <div class="verse-list" id="verseList">
+  <div class="part-head"><span class="p-num">第1部分</span><h3>进店之前 · 期待与担忧</h3><span class="range">第1–2段</span></div>
+  <div class="part-overview">放学后{LQ}我{RQ}急匆匆赶到书店，边走边回忆昨天读到哪里。看到书店挤满顾客便安心了，但又担忧那本书会不会被卖光——因为一连几天都有人买。</div>
+  <div class="verse" id="v1-1">
+    <div class="verse-text">转过街角，看见饭店的<span class="anno-word" data-note="挂在商店门前写明商店名称的牌子。牌，用木板或其他材料做的标志">招牌</span>，闻见炒菜的香味，听见<span class="anno-word" data-note="锅和勺子，炒菜用的炊具">锅勺</span>敲打的声音，我放慢了脚步。放学后<span class="anno-word" data-note="非常匆忙的样子。匆，急、忙">急匆匆</span>地从学校赶到这里，目的地可不是饭店，而是<span class="anno-word" data-note="紧挨着。邻，靠近的">紧邻</span>它的一家书店。</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写“我”放学后赶到书店，路过饭店时放慢脚步，但目的地不是饭店而是紧邻的书店。</p><p>排比：“看见……闻见……听见……”三个感官描写，从视觉、嗅觉、听觉多角度渲染饭店的诱惑；“放慢了脚步”写出饥饿感，但“目的地可不是饭店，而是紧邻它的一家书店”转折，突出对读书的渴望超过了对食物的渴望；“急匆匆”写出赶路的急切，与“放慢了脚步”形成对比。</p></div></div>
+  </div>
+  <div class="verse" id="v1-2">
+    <div class="verse-text">我边走边想：“昨天读到什么地方了？那本书放在哪里？左边第三排，不错……”走到门口，便看见书店里仍像往日一样挤满了顾客。我可以安心了。但我又<span class="anno-word" data-note="发愁、忧虑。忧，发愁">担忧</span>那本书会不会<span class="anno-word" data-note="全部卖完。光，完、尽">卖光</span>，因为<span class="anno-word" data-note="连续、接连不断">一连</span>几天都看见有人买，昨天好像只剩下一两本了。</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写“我”边走边回忆昨天读书的位置，看到书店挤满顾客便安心，但又担忧书会被卖光。</p><p>心理描写：三个连续问句“昨天读到什么地方了？那本书放在哪里？左边第三排，不错……”写出对书的牵挂和惦记；“仍像往日一样挤满了顾客”暗示书店生意好，也为下文担忧书被卖光做铺垫；“安心”与“担忧”两种心情对比，细腻地写出窃读者的复杂心理；“一连几天都看见有人买”“只剩下一两本了”具体写出担忧的原因，真实可感。</p></div></div>
+  </div>
+  <div class="part-head"><span class="p-num">第2部分</span><h3>找到书 · 贪婪地读</h3><span class="range">第3–4段</span></div>
+  <div class="part-overview">{LQ}我{RQ}跨进店门，踮起脚尖从大人腋下挤过去，在书架上急切寻找，终于找到了那本书。急忙打开书，像一匹饿狼贪婪地读着——{LQ}我很快乐，也很惧怕——这种窃读的滋味！{RQ}</div>
+  <div class="verse" id="v2-1">
+    <div class="verse-text">我<span class="anno-word" data-note="抬起脚向前走进。跨，抬腿向前或向旁移动越过">跨进</span>店门，<span class="anno-word" data-note="心里暗暗高兴。暗，隐藏不露的">暗喜</span>没人注意。我踮起脚尖，从大人的腋下挤过去。<span class="anno-word" data-note="叹词，表示轻微的惊异。文中是口语化的感叹">哟</span>，把短发弄乱了，没关系，我总算挤到里边来了。在一排排<span class="anno-word" data-note="形容颜色鲜艳多彩。文中指书的封面色彩丰富">花花绿绿</span>的书里，我的眼睛<span class="anno-word" data-note="迫切。急，迫切">急切</span>地寻找，却找不到那本书。从头来，再找一遍。啊！它在这里，原来不在昨天的地方了。</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写“我”进店后踮脚挤过人群，在书架上急切寻找，终于找到了那本书。</p><p>动作描写：“跨进”“踮起脚尖”“挤过去”“总算挤到里边来了”，一系列动词写出“我”身材矮小、在人群中艰难穿行的样子，也写出对读书的急切；“暗喜没人注意”写出窃读者的小心谨慎；“哟，把短发弄乱了，没关系”口语化表达，生动写出孩子的天真可爱，也反衬出找到书比什么都重要；“急切地寻找”“从头来，再找一遍”写出寻找的执着；“啊！它在这里”感叹句，写出找到书时的惊喜和激动。</p></div></div>
+  </div>
+  <div class="verse" id="v2-2">
+    <div class="verse-text">急忙打开书，一页，两页，我像一匹饿狼，贪婪地读着。我很快乐，也很<span class="anno-word" data-note="害怕。惧，害怕">惧怕</span>——这种<span class="anno-word" data-note="偷偷地读。窃，偷偷地、暗中。文中指不买书而在书店里偷偷看书">窃读</span>的<span class="anno-word" data-note="味道，比喻某种感受。文中指窃读的复杂感受">滋味</span>！</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写“我”急忙打开书，像饿狼一样贪婪地读着，感到快乐又惧怕——这就是窃读的滋味。</p><p>比喻：“我像一匹饿狼，贪婪地读着”将“我”比作饿狼，“贪婪”本是贬义词，这里贬词褒用，形容对知识的极度渴求；“一页，两页”短句，写出读书的快速和专注；“我很快乐，也很惧怕”直接点出窃读的复杂感受——快乐是因为读到了书，惧怕是因为怕被老板发现；破折号引出“这种窃读的滋味”，是全文的中心句，点明主题。</p></div></div>
+  </div>
+  <div class="part-head"><span class="p-num">第3部分</span><h3>窃读技巧 · 雨天最乐</h3><span class="range">第5–7段</span></div>
+  <div class="part-overview">{LQ}我{RQ}害怕被老板发现，觉得环境不适宜时就知趣地放下书去另一家，有时一本书要跑几家书店。{LQ}我{RQ}喜欢顾客多的书店，把自己隐藏在大人身边。最开心的是下雨天——倾盆大雨给了{LQ}我{RQ}充足的理由待下去，表面装着发愁回不去，心里却喊着{LQ}大些！再大些！{RQ}</div>
+  <div class="verse" id="v3-1">
+    <div class="verse-text">我害怕被<span class="anno-word" data-note="卖书的商店">书店</span>老板发现，每当我觉得当时的环境已不<span class="anno-word" data-note="合适、相宜。宜，合适">适宜</span>再读下去的时候，我会<span class="anno-word" data-note="知道进退，不惹人讨厌。趣，志趣、情趣，引申为懂得看场合">知趣</span>地放下书走出去，再走进另一家。有时，一本书要到几家书店才能读完。</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写“我”害怕被老板发现，觉得环境不适宜时就知趣地离开去另一家，有时一本书要跑几家书店。</p><p>心理和动作描写：“害怕被书店老板发现”写出窃读的心理压力；“知趣地放下书走出去”“再走进另一家”写出“我”的机灵和无奈——知道什么时候该离开，不招人讨厌；“有时，一本书要到几家书店才能读完”从侧面写出读书的不易，也突出“我”对读书的执着和坚持。</p></div></div>
+  </div>
+  <div class="verse" id="v3-2">
+    <div class="verse-text">我喜欢到顾客多的书店，因为那样不会被人注意。进来看书的人虽然很多，但是像我这样常常<span class="anno-word" data-note="敬辞，称客人来到。文中指到书店看书。光，增光、光临">光顾</span>而从不购买的，恐怕没有。因此我要把自己<span class="anno-word" data-note="藏起来不让人发现。隐，藏匿">隐藏</span>起来。有时我会贴在一个大人的身边，<span class="anno-word" data-note="好像、似乎。佛，读fú">仿佛</span>我是他的小妹妹或小女儿。</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写“我”喜欢顾客多的书店，因为不容易被注意；“我”常常光顾却从不购买，所以要把自己隐藏起来，有时贴在大人身边假装是他的孩子。</p><p>因果关系：“因为那样不会被人注意”解释喜欢顾客多的书店的原因；“常常光顾而从不购买”点出“我”的特殊身份——只看不买的窃读者；“恐怕没有”表示估计，写出“我”的自知之明；“把自己隐藏起来”“贴在一个大人的身边”“仿佛我是他的小妹妹或小女儿”，动作和心理描写，生动写出窃读者的小心和机智，也让人心酸——一个孩子为了读书不得不这样伪装自己。</p></div></div>
+  </div>
+  <div class="verse" id="v3-3">
+    <div class="verse-text">最令人开心的是下雨天，越是<span class="anno-word" data-note="雨大得像盆里的水直往下倒，形容雨大势急。倾，倒">倾盆大雨</span>我越高兴，因为那时我便有<span class="anno-word" data-note="多到能满足需要。充，满、足">充足</span>的理由在书店待下去。就像在<span class="anno-word" data-note="房檐，房顶伸出墙外的部分。檐，房顶伸出的边沿">屋檐</span>下躲雨，你总不好意思赶我走吧？我有时还要装着皱起眉头，不时望着<span class="anno-word" data-note="街的当中。心，中央、中间">街心</span>，好像说：“这雨，害得我回不去了。”其实，我的心里却高兴地喊着：“大些！再大些！”</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写下雨天是“我”最开心的时候，倾盆大雨给了“我”充足的理由待在书店；“我”表面装着发愁回不去，心里却高兴地喊着雨再大些。</p><p>对比和心理描写：“越是倾盆大雨我越高兴”一反常人心理，雨越大越高兴，因为可以名正言顺地待在书店；“就像在屋檐下躲雨，你总不好意思赶我走吧？”反问句，写出“我”的小聪明和窃读的无奈；“装着皱起眉头”“不时望着街心”是表面的动作，“这雨，害得我回不去了”是假装的抱怨；而心里却“高兴地喊着：“大些！再大些！””——外在的愁和内在的喜形成鲜明对比，生动写出孩子的天真可爱，也突出对读书的热爱。</p></div></div>
+  </div>
+  <div class="part-head"><span class="p-num">第4部分</span><h3>饥饿疲惫 · 依依不舍</h3><span class="range">第8–9段</span></div>
+  <div class="part-overview">饭店飘来菜香时，{LQ}我{RQ}已饿得饥肠辘辘，不禁做起有钱的白日梦。腿酸得不得不交替支撑，靠在书柜旁休息。日光灯亮了，才发觉已读了两个多钟头。{LQ}我{RQ}合上书，咽了一口唾沫，好像把所有智慧都吞下去，然后依依不舍地把书放回书架。</div>
+  <div class="verse" id="v4-1">
+    <div class="verse-text">当饭店飘来一阵阵菜香时，我已饿得饥肠辘辘，那时我也不免要做<span class="anno-word" data-note="比喻不切实际的幻想。白日，白天">白日梦</span>：如果口袋里有钱该多好！去吃一碗热热的面条，回到这里时，已经有人给摆上一张沙发，坐上去舒舒服服地接着看。我的腿真酸哪，不得不<span class="anno-word" data-note="接替、替换。交，互相、往来">交替</span>着用一条腿<span class="anno-word" data-note="勉强维持。撑，抵住、支持">支撑</span>着，有时又靠在<span class="anno-word" data-note="放置书籍的柜子。柜，收藏衣物、文件等用的器具">书柜</span>旁，以求<span class="anno-word" data-note="短时间之内。暂，不久、短时间">暂时</span>的休息。</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写饭店飘来菜香时“我”已饿得饥肠辘辘，做起有钱的白日梦；腿酸得不得不交替支撑，靠在书柜旁休息。</p><p>对比和细节描写：“一阵阵菜香”与“饥肠辘辘”形成对比，写出物质上的匮乏；“白日梦”的内容——“吃一碗热热的面条”“摆上一张沙发”“舒舒服服地接着看”——都是最朴素的愿望，却只能在梦中实现，让人心酸；“腿真酸哪”“不得不交替着用一条腿支撑着”“靠在书柜旁”，细节描写写出长时间站立读书的疲惫，但即使这样也不肯离开书店，突出对读书的热爱；“以求暂时的休息”写出休息的短暂和无奈。</p></div></div>
+  </div>
+  <div class="verse" id="v4-2">
+    <div class="verse-text">每当书店的<span class="anno-word" data-note="用荧光粉发光的电灯，也叫荧光灯。日光，太阳光">日光灯</span><span class="anno-word" data-note="忽然、突然。地，用在状语后">忽地</span>亮起来，我才<span class="anno-word" data-note="开始知道、觉察到。觉，觉察">发觉</span>已经站在这里读了两个多钟头了。我合上书，咽了一口<span class="anno-word" data-note="唾液的通称。唾，读tuò">唾沫</span>，好像把所有的智慧都吞下去了，然后才<span class="anno-word" data-note="形容舍不得离开。依依，留恋的样子；舍，舍弃">依依不舍</span>地把书放回书架。</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写日光灯亮了，“我”才发觉已读了两个多钟头；合上书，咽了一口唾沫，好像把所有智慧都吞下去，然后依依不舍地把书放回书架。</p><p>细节和心理描写：“日光灯忽地亮起来”标志着时间的推移——从白天读到了晚上；“才发觉”“两个多钟头”写出读书的专注和投入，忘记了时间；“咽了一口唾沫，好像把所有的智慧都吞下去了”是精彩的细节描写——将无形的知识吸收比作吞咽唾沫，生动形象地写出读完书后的满足感和充实感；“依依不舍”写出对书的留恋，与开头“急匆匆”赶到书店形成呼应。</p></div></div>
+  </div>
+  <div class="part-head"><span class="p-num">第5部分</span><h3>走出书店 · 老师的话</h3><span class="range">第10段</span></div>
+  <div class="part-overview">{LQ}我{RQ}低着头走出书店，脚站得有些麻木，却浑身轻松。这时总会想起国文老师的话：{LQ}记住，你们是吃饭长大的，也是读书长大的！{RQ}</div>
+  <div class="verse" id="v5-1">
+    <div class="verse-text">我低着头走出书店，脚站得有些<span class="anno-word" data-note="身体某部分发麻，失去感觉。麻，感觉不灵">麻木</span>，我却<span class="anno-word" data-note="全身。浑，全、满">浑身</span>轻松。这时，我总会想起<span class="anno-word" data-note="本国的文字，旧时指中小学的语文课。国，本国">国文</span>老师<span class="anno-word" data-note="激发、勉励。鼓，发动、振奋">鼓励</span>我们的话：“记住，你们是吃饭<span class="anno-word" data-note="生长壮大。文中指成长">长大</span>的，也是读书长大的！”</div>
+    <div class="verse-summary"><span class="vs-label">内容 · 手法</span><div class="vs-body"><p>写“我”走出书店，脚虽麻木却浑身轻松，总会想起国文老师的话——“你们是吃饭长大的，也是读书长大的！”</p><p>对比和引用：“脚站得有些麻木”是身体的疲惫，“浑身轻松”是精神的充实——身体的疲惫与精神的轻松形成对比，突出读书带来的精神满足；“低着头”写出窃读者的自卑和小心翼翼；“总会想起”说明老师的话对“我”影响深远；引用老师的话“你们是吃饭长大的，也是读书长大的！”是全文的点睛之笔——“吃饭长大”指身体的成长需要物质营养，“读书长大”指精神的成长需要知识滋养，两个“长大”并列，强调读书和吃饭一样重要，深化了主题。</p></div></div>
+  </div>
+
+  </div>
+  <div id="fulltext" class="poem" style="display:none">
+  <p>转过街角，看见饭店的招牌，闻见炒菜的香味，听见锅勺敲打的声音，我放慢了脚步。放学后急匆匆地从学校赶到这里，目的地可不是饭店，而是紧邻它的一家书店。</p>
+  <p>我边走边想：“昨天读到什么地方了？那本书放在哪里？左边第三排，不错……”走到门口，便看见书店里仍像往日一样挤满了顾客。我可以安心了。但我又担忧那本书会不会卖光，因为一连几天都看见有人买，昨天好像只剩下一两本了。</p>
+  <p>我跨进店门，暗喜没人注意。我踮起脚尖，从大人的腋下挤过去。哟，把短发弄乱了，没关系，我总算挤到里边来了。在一排排花花绿绿的书里，我的眼睛急切地寻找，却找不到那本书。从头来，再找一遍。啊！它在这里，原来不在昨天的地方了。</p>
+  <p>急忙打开书，一页，两页，我像一匹饿狼，贪婪地读着。我很快乐，也很惧怕——这种窃读的滋味！</p>
+  <p>我害怕被书店老板发现，每当我觉得当时的环境已不适宜再读下去的时候，我会知趣地放下书走出去，再走进另一家。有时，一本书要到几家书店才能读完。</p>
+  <p>我喜欢到顾客多的书店，因为那样不会被人注意。进来看书的人虽然很多，但是像我这样常常光顾而从不购买的，恐怕没有。因此我要把自己隐藏起来。有时我会贴在一个大人的身边，仿佛我是他的小妹妹或小女儿。</p>
+  <p>最令人开心的是下雨天，越是倾盆大雨我越高兴，因为那时我便有充足的理由在书店待下去。就像在屋檐下躲雨，你总不好意思赶我走吧？我有时还要装着皱起眉头，不时望着街心，好像说：“这雨，害得我回不去了。”其实，我的心里却高兴地喊着：“大些！再大些！”</p>
+  <p>当饭店飘来一阵阵菜香时，我已饿得饥肠辘辘，那时我也不免要做白日梦：如果口袋里有钱该多好！去吃一碗热热的面条，回到这里时，已经有人给摆上一张沙发，坐上去舒舒服服地接着看。我的腿真酸哪，不得不交替着用一条腿支撑着，有时又靠在书柜旁，以求暂时的休息。</p>
+  <p>每当书店的日光灯忽地亮起来，我才发觉已经站在这里读了两个多钟头了。我合上书，咽了一口唾沫，好像把所有的智慧都吞下去了，然后才依依不舍地把书放回书架。</p>
+  <p>我低着头走出书店，脚站得有些麻木，我却浑身轻松。这时，我总会想起国文老师鼓励我们的话：“记住，你们是吃饭长大的，也是读书长大的！”</p>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">人物 · 艺术 · 名句 · 主题</span></div>
+  <div class="box">
+    <h3>人物形象</h3>
+    <div class="fame">
+      <div class="fame-card"><h4>{LQ}我{RQ}——热爱读书，执着坚韧</h4><p>文中的“我”是一个热爱读书、执着坚韧的孩子。她对读书的热爱体现在：放学后“急匆匆”赶到书店，路过饭店却不为美食所动；“踮起脚尖，从大人的腋下挤过去”，即使弄乱头发也不在乎；“像一匹饿狼，贪婪地读着”，一读就是两个多钟头。她的执着坚韧体现在：一本书要跑几家书店才能读完，却从不放弃；腿酸得不得不交替支撑，靠在书柜旁休息，也不肯离开；即使“饥肠辘辘”，即使要“把自己隐藏起来”，也要坚持读书。她是一个在贫困中依然追求精神富足的孩子形象。</p></div>
+      <div class="fame-card"><h4>{LQ}我{RQ}——机灵懂事，内心丰富</h4><p>文中的“我”也是一个机灵懂事、内心丰富的孩子。她的机岩体现在：知道“知趣地放下书走出去”，不招人讨厌；喜欢到顾客多的书店，“把自己隐藏起来”；“贴在一个大人的身边，仿佛我是他的小妹妹或小女儿”；下雨天“装着皱起眉头”，假装发愁回不去，心里却高兴地喊着“大些！再大些！”她的懂事体现在：知道自己只看不买，所以小心翼翼，不惹麻烦；“低着头走出书店”，带着一种自卑和愧疚。她的内心丰富体现在：窃读时“很快乐，也很惧怕”的复杂感受；读完书后“咽了一口唾沫，好像把所有的智慧都吞下去了”的满足感；走出书店后虽然脚麻却“浑身轻松”的精神充实。</p></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <h3>艺术特色</h3>
+    <div class="fame">
+      <div class="fame-card"><h4>细腻的动作描写</h4><p>文章善于通过细腻的动作描写展现人物心理。如“我跨进店门，暗喜没人注意。我踮起脚尖，从大人的腋下挤过去。哟，把短发弄乱了，没关系，我总算挤到里边来了。”一连串的动作——“跨进”“踮起”“挤过去”“总算挤到”，生动写出了一个矮小的孩子在人群中艰难穿行的样子，也写出了对读书的急切。再如“我合上书，咽了一口唾沫，好像把所有的智慧都吞下去了”，一个“咽”的动作，将无形的知识吸收具象化，生动形象。动作描写具体可感，使读者如临其境。</p></div>
+      <div class="fame-card"><h4>真实的心理描写</h4><p>文章大量运用心理描写，真实细腻地展现窃读者的内心世界。如“我很快乐，也很惧怕——这种窃读的滋味！”直接点出复杂感受；“但我又担忧那本书会不会卖光”写出对书的牵挂；“暗喜没人注意”写出进店后的小心；“啊！它在这里，原来不在昨天的地方了”写出找到书时的惊喜；“其实，我的心里却高兴地喊着：“大些！再大些！””写出雨天窃读的狂喜。心理描写使人物形象真实丰满，也让读者深切感受到窃读的酸甜苦辣。</p></div>
+      <div class="fame-card"><h4>生动的细节描写</h4><p>文章善于捕捉生动的细节，使文章富有生活气息和感染力。如“哟，把短发弄乱了，没关系”——一个口语化的感叹，写出孩子的天真可爱；“一页，两页”——两个短句，写出读书的快速和专注；“我有时还要装着皱起眉头，不时望着街心”——外在的动作与内心的喜悦形成对比，生动有趣；“我的腿真酸哪，不得不交替着用一条腿支撑着”——写出长时间站立的疲惫；“咽了一口唾沫，好像把所有的智慧都吞下去了”——将读书的满足感具象化。细节描写使文章生动传神，读来如见其人、如临其境。</p></div>
+      <div class="fame-card"><h4>对比手法的运用</h4><p>文章多处运用对比，突出人物情感和文章主题。如饭店的诱惑与书店的吸引对比——“看见饭店的招牌，闻见炒菜的香味，听见锅勺敲打的声音，我放慢了脚步”，但“目的地可不是饭店，而是紧邻它的一家书店”，突出对读书的热爱超过对食物的渴望；身体的疲惫与精神的轻松对比——“脚站得有些麻木，我却浑身轻松”，突出读书带来的精神满足；外在的愁与内在的喜对比——“装着皱起眉头”“这雨，害得我回不去了”与心里“高兴地喊着：“大些！再大些！””，写出孩子的天真可爱；“急匆匆”赶到书店与“依依不舍”离开书店对比，首尾呼应，突出对书的留恋。</p></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <h3>名句赏析</h3>
+    <div class="fame">
+      <div class="fame-card"><h4>我像一匹饿狼，贪婪地读着。我很快乐，也很惧怕——这种窃读的滋味！</h4><p>这是全文的中心句，也是最精彩的比喻之一。将“我”比作“饿狼”，“贪婪”本是贬义词，这里贬词褒用，形容对知识的极度渴求——就像饿狼看到食物一样，迫不及待地扑上去。“一页，两页”的短句，写出读书的快速和专注。“我很快乐，也很惧怕”直接点出窃读的复杂感受：快乐是因为读到了书，获得了知识和精神的满足；惧怕是因为怕被书店老板发现，被赶出去。破折号引出“这种窃读的滋味”，是对全文的概括——窃读既有快乐也有惧怕，既有满足也有心酸，这就是一个爱读书的孩子在贫困中的真实体验。这句话凝练深刻，点明了文章的主题。</p></div>
+      <div class="fame-card"><h4>我合上书，咽了一口唾沫，好像把所有的智慧都吞下去了，然后才依依不舍地把书放回书架。</h4><p>这是全文最精彩的细节描写之一。“咽了一口唾沫”是一个极普通的动作，但作者赋予了它深刻的含义——“好像把所有的智慧都吞下去了”。将无形的知识吸收比作吞咽唾沫，生动形象地写出了读完书后的满足感和充实感：书里的智慧已经融入了“我”的身体，成为“我”的一部分。这个比喻新颖别致，又符合孩子的心理——孩子常常把吸收知识比作吃东西。“依依不舍”写出对书的留恋，与开头“急匆匆”赶到书店形成呼应。“才”字写出离开的不情愿。整个句子将读书的满足感和对书的留恋融为一体，真实感人。</p></div>
+      <div class="fame-card"><h4>记住，你们是吃饭长大的，也是读书长大的！</h4><p>这是国文老师的话，也是全文的点睛之笔，深化了文章的主题。“吃饭长大”指身体的成长需要物质营养——食物维持生命，使身体发育成长；“读书长大”指精神的成长需要知识滋养——读书丰富心灵，使精神成长成熟。两个“长大”并列，强调读书和吃饭一样重要，都是人成长不可或缺的。这句话不仅是老师对学生的鼓励，也是作者对自己童年窃读经历的总结——正是因为“窃读”，虽然物质上贫困，但精神上富足；虽然身体上疲惫，但心灵上充实。“也是”一词，强调了读书的重要性不亚于吃饭，发人深省。这句话言简意赅，寓意深刻，是全文的主旨所在。</p></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <h3>主题思想</h3>
+    《窃读记》通过回忆童年时期在书店偷偷读书的经历，表达了作者对读书的热爱和对知识的渴望，也写出了在贫困中坚持读书的辛酸和执着。
+
+文章的深刻之处在于：它不仅写了一个孩子窃读的故事，更揭示了读书对人的成长的重要意义。“我很快乐，也很惧怕——这种窃读的滋味！”——窃读虽然要忍受恐惧、饥饿和疲惫，但读书带来的快乐和满足是任何物质享受都无法替代的。“你们是吃饭长大的，也是读书长大的！”——吃饭滋养身体，读书滋养心灵，两者都是人成长不可或缺的。
+
+文章告诉我们：无论环境多么艰苦，都不能放弃对知识的追求；物质上的贫困不可怕，精神上的空虚才是真正的贫穷。一个爱读书的人，即使身处困境，也能在书中找到快乐和力量。
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">词语 · 字音 · 修辞 · 写法 · 文化</span></div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">窃读</span><span class="acc-d">偷偷地读。文中指不买书而在书店里偷偷看书。窃，偷偷地、暗中。</span></div>
+      <div class="acc-item"><span class="acc-w">贪婪</span><span class="acc-d">本指贪得无厌，贬义词。文中贬词褒用，形容对知识的极度渴求。</span></div>
+      <div class="acc-item"><span class="acc-w">知趣</span><span class="acc-d">知道进退，不惹人讨厌。</span></div>
+      <div class="acc-item"><span class="acc-w">光顾</span><span class="acc-d">敬辞，称客人来到。文中指到书店看书。</span></div>
+      <div class="acc-item"><span class="acc-w">仿佛</span><span class="acc-d">好像、似乎。佛，读fú。</span></div>
+      <div class="acc-item"><span class="acc-w">饥肠辘辘</span><span class="acc-d">形容非常饥饿。饥肠，饥饿的肚子；辘辘，肚子里发出的咕噜声。</span></div>
+      <div class="acc-item"><span class="acc-w">依依不舍</span><span class="acc-d">形容舍不得离开。依依，留恋的样子；舍，舍弃。</span></div>
+      <div class="acc-item"><span class="acc-w">白日梦</span><span class="acc-d">比喻不切实际的幻想。</span></div>
+      <div class="acc-item"><span class="acc-w">倾盆大雨</span><span class="acc-d">雨大得像盆里的水直往下倒，形容雨大势急。</span></div>
+      <div class="acc-item"><span class="acc-w">滋味</span><span class="acc-d">味道，比喻某种感受。文中指窃读的复杂感受。</span></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">踮(diǎn)</span><span class="acc-d">抬起脚后跟用脚尖站着。注意读diǎn，不读diān。</span></div>
+      <div class="acc-item"><span class="acc-w">婪(lán)</span><span class="acc-d">贪。贪婪，形容渴求。注意读lán，不读nán。</span></div>
+      <div class="acc-item"><span class="acc-w">惧(jù)</span><span class="acc-d">害怕。惧怕，恐惧。注意读jù，不读jǔ。</span></div>
+      <div class="acc-item"><span class="acc-w">窃(qiè)</span><span class="acc-d">偷偷地、暗中。窃读，偷窃。注意读qiè，不读què。</span></div>
+      <div class="acc-item"><span class="acc-w">檐(yán)</span><span class="acc-d">房顶伸出墙外的部分。屋檐，房檐。注意读yán，不读zhān。</span></div>
+      <div class="acc-item"><span class="acc-w">皱(zhòu)</span><span class="acc-d">蹙起。皱起眉头。注意读zhòu，不读zòu。</span></div>
+      <div class="acc-item"><span class="acc-w">辘(lù)</span><span class="acc-d">车行声。饥肠辘辘。注意读lù，不读lǜ。</span></div>
+      <div class="acc-item"><span class="acc-w">咽(yàn)</span><span class="acc-d">使嘴里的东西通过咽头到食道里去。吞咽。注意：读yàn（吞咽），不读yān（咽喉）或yè（呜咽）。</span></div>
+      <div class="acc-item"><span class="acc-w">唾(tuò)</span><span class="acc-d">唾液。唾沫。注意读tuò，不读chuí。</span></div>
+      <div class="acc-item"><span class="acc-w">撑(chēng)</span><span class="acc-d">抵住、支持。支撑。注意读chēng，不读zhǎng。</span></div>
+      <div class="acc-item"><span class="acc-w">暂(zàn)</span><span class="acc-d">短时间。暂时。注意读zàn，不读zhàn。</span></div>
+      <div class="acc-item"><span class="acc-w">恋(liàn)</span><span class="acc-d">留恋。依依不舍。注意读liàn，不读luán。</span></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>修辞方法</h3>
+      <div class="acc-item"><span class="acc-w">比喻</span><span class="acc-d">本文多处运用比喻，使抽象的感受具体化。如{LQ}我像一匹饿狼，贪婪地读着{RQ}将对知识的渴求比作饿狼扑食；{LQ}好像把所有的智慧都吞下去了{RQ}将吸收知识比作吞咽；{LQ}就像在屋檐下躲雨{RQ}将雨天窃读比作躲雨。比喻生动形象，富有感染力。</span></div>
+      <div class="acc-item"><span class="acc-w">对比</span><span class="acc-d">文章多处运用对比，突出人物情感和主题。如饭店的诱惑与书店的吸引对比，身体的疲惫与精神的轻松对比，外在的愁与内在的喜对比，{LQ}急匆匆{RQ}赶到与{LQ}依依不舍{RQ}离开对比。对比中见真情，突出了对读书的热爱。</span></div>
+      <div class="acc-item"><span class="acc-w">排比</span><span class="acc-d">文章开头运用排比：{LQ}看见饭店的招牌，闻见炒菜的香味，听见锅勺敲打的声音{RQ}，从视觉、嗅觉、听觉多角度渲染饭店的诱惑，为下文写书店的吸引做铺垫。</span></div>
+      <div class="acc-item"><span class="acc-w">反问</span><span class="acc-d">{LQ}就像在屋檐下躲雨，你总不好意思赶我走吧？{RQ}运用反问，写出{LQ}我{RQ}的小聪明和窃读的无奈，语气亲切自然。</span></div>
+      <div class="acc-item"><span class="acc-w">贬词褒用</span><span class="acc-d">{LQ}贪婪{RQ}本是贬义词，指贪得无厌，但在文中{LQ}我像一匹饿狼，贪婪地读着{RQ}，{LQ}贪婪{RQ}形容对知识的极度渴求，是贬词褒用，突出了对读书的热爱。</span></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">第一人称叙事，真实感人</span><span class="acc-d">本文采用第一人称{LQ}我{RQ}的视角叙事，由作者亲自讲述自己的童年窃读经历，真实亲切，富有感染力。读者可以直接进入{LQ}我{RQ}的内心世界，感受窃读的快乐、惧怕、心酸和满足。第一人称叙事使文章具有强烈的真实感和情感冲击力。</span></div>
+      <div class="acc-item"><span class="acc-w">选取典型场景，以小见大</span><span class="acc-d">文章选取了几个典型场景来展现窃读的经历：进店找书、贪婪阅读、换店窃读、隐藏自己、雨天窃读、饥饿疲惫、走出书店。每个场景都有代表性，共同展现了一个爱读书的孩子在贫困中的执着和辛酸。以小见大，通过窃读这件小事，揭示了读书对人成长的重要意义。</span></div>
+      <div class="acc-item"><span class="acc-w">细腻的心理描写</span><span class="acc-d">文章大量运用心理描写，真实细腻地展现窃读者的内心世界。如{LQ}我很快乐，也很惧怕{RQ}{LQ}暗喜没人注意{RQ}{LQ}担忧那本书会不会卖光{RQ}{LQ}心里却高兴地喊着：{LQ}大些！再大些！{RQ}{RQ}等。心理描写使人物形象真实丰满，也让读者深切感受到窃读的酸甜苦辣。</span></div>
+      <div class="acc-item"><span class="acc-w">生动的细节描写</span><span class="acc-d">文章善于捕捉生动的细节，如{LQ}哟，把短发弄乱了，没关系{RQ}{LQ}一页，两页{RQ}{LQ}装着皱起眉头，不时望着街心{RQ}{LQ}咽了一口唾沫，好像把所有的智慧都吞下去了{RQ}等。细节描写使文章生动传神，读来如见其人、如临其境。</span></div>
+      <div class="acc-item"><span class="acc-w">语言质朴自然，富有生活气息</span><span class="acc-d">文章语言质朴自然，没有华丽的辞藻，却富有生活气息和感染力。如{LQ}哟，把短发弄乱了，没关系{RQ}{LQ}我的腿真酸哪{RQ}{LQ}大些！再大些！{RQ}等口语化的表达，生动写出孩子的天真可爱。质朴的语言中蕴含着真挚的情感，读来令人感动。</span></div>
+
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>文化常识</h3>
+      <div class="acc-item"><span class="acc-w">林海音与《城南旧事》</span><span class="acc-d">林海音（1918—2001），台湾著名女作家，原名林含英，小名英子。代表作《城南旧事》是一部自传体短篇小说集，以英子的视角回忆老北京的人和事，包括《惠安馆》《我们看海去》《兰姨娘》《驴打滚儿》《爸爸的花儿落了》等篇。作品具有浓厚的京味和怀旧色彩，被译成多种文字，改编成电影后享誉海内外。《窃读记》即选自《城南旧事》。</span></div>
+      <div class="acc-item"><span class="acc-w">旧北京的书店</span><span class="acc-d">20世纪上半叶的北京，书店是文化人聚集的地方。当时的书店一般允许顾客在店内翻阅书籍，但只看不买难免会受到店员的白眼甚至驱赶。对于买不起书却爱读书的孩子来说，{LQ}窃读{RQ}是一种无奈的选择。文中的小英子不得不使出各种技巧——换书店、躲在大人身边、下雨天赖着不走——才能读完一本书。这真实地反映了当时爱书人的困境。</span></div>
+      <div class="acc-item"><span class="acc-w">读书与成长</span><span class="acc-d">中国传统文化历来重视读书。{LQ}腹有诗书气自华{RQ}{LQ}书中自有黄金屋{RQ}{LQ}读书破万卷，下笔如有神{RQ}等古语，都强调了读书的重要性。本文中{LQ}你们是吃饭长大的，也是读书长大的{RQ}这句话，将读书与吃饭并列，强调了读书对人精神成长的重要性——吃饭滋养身体，读书滋养心灵。这一观点至今仍有深刻的现实意义。</span></div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">《窃读记》</div>
+  <div>林海音 · 现代 · 出自《城南旧事》</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('qieduji_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('qieduji_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+</script>
+<script>
+var DICT_WORDS = [{"w": "踮", "py": "diǎn", "q": "我□起脚尖，从大人的腋下挤过去", "tip": "「踮」足字旁，抬起脚跟用脚尖站；读diǎn，不读diān"}, {"w": "婪", "py": "lán", "q": "我像一匹饿狼，贪□地读着", "tip": "「婪」女字底，贪；不要写成「梦」（林字头加夕）"}, {"w": "惧", "py": "jù", "q": "我很快乐，也很怕□——这种窃读的滋味", "tip": "「惧」竖心旁，害怕；不要写成「具」（器具）"}, {"w": "窃", "py": "qiè", "q": "我很快乐，也很惧怕——这种□读的滋味", "tip": "「窃」穴字头，偷偷地；不要写成「切」"}, {"w": "趣", "py": "qù", "q": "我会知□地放下书走出去，再走进另一家", "tip": "「趣」走字旁，志趣；不要写成「取」"}, {"w": "顾", "py": "gù", "q": "像我这样常常光□而从不购买的，恐怕没有", "tip": "「顾」页字旁，拜访；不要写成「故」"}, {"w": "隐", "py": "yǐn", "q": "因此我要把自己□藏起来", "tip": "「隐」左耳旁，藏匿；不要写成「稳」（禾木旁）"}, {"w": "檐", "py": "yán", "q": "就像在屋□下躲雨，你总不好意思赶我走吧", "tip": "「檐」木字旁，房顶伸出的边沿；不要写成「瞻」（目字旁，瞻仰）"}, {"w": "皱", "py": "zhòu", "q": "我有时还要装着□起眉头，不时望着街心", "tip": "「皱」皮字旁，蹙起；读zhòu，不要写成「邹」（耳刀旁）"}, {"w": "辘辘", "py": "lù lù", "q": "我已饿得饥肠□□，那时我也不免要做白日梦", "tip": "「辘」车字旁；叠词「辘辘」形容肚子叫，与「漉漉」（三点水，湿润）区分"}, {"w": "撑", "py": "chēng", "q": "不得不交替着用一条腿支□着，有时又靠在书柜旁", "tip": "「撑」提手旁，抵住支持；读chēng，不要写成「掌」"}, {"w": "暂", "py": "zàn", "q": "有时又靠在书柜旁，以求□时的休息", "tip": "「暂」日字底，短时间；读zàn，不要写成「斩」"}, {"w": "咽", "py": "yàn", "q": "我合上书，□了一口唾沫，好像把所有的智慧都吞下去了", "tip": "「咽」口字旁，吞；读yàn（吞咽），不读yān（咽喉）或yè（呜咽）"}, {"w": "唾", "py": "tuò", "q": "我合上书，咽了一口□沫，好像把所有的智慧都吞下去了", "tip": "「唾」口字旁，唾液；读tuò，不要写成「锤」（金字旁）"}, {"w": "恋", "py": "liàn", "q": "然后才依依不□地把书放回书架", "tip": "「恋」心字底，留恋；不要写成「峦」（山字头，山峦）"}, {"w": "麻", "py": "má", "q": "脚站得有些□木，我却浑身轻松", "tip": "「麻」广字头，感觉不灵；不要写成「磨」（石字底）"}, {"w": "励", "py": "lì", "q": "这时，我总会想起国文老师鼓□我们的话", "tip": "「励」力字旁，勉励；不要写成「厉」（严厉）或「历」（经历）"}, {"w": "锅", "py": "guō", "q": "闻见炒菜的香味，听见□勺敲打的声音", "tip": "「锅」金字旁，炊具；不要写成「窝」（穴字头）"}, {"w": "匆匆", "py": "cōng cōng", "q": "放学后急□□地从学校赶到这里", "tip": "「匆」勹字头，急；叠词「匆匆」，与「勿勿」（不要）区分"}, {"w": "招牌", "py": "zhāo pái", "q": "转过街角，看见饭店的□□，闻见炒菜的香味", "tip": "「招」提手旁，「牌」片字旁；商店门前的名称标志"}, {"w": "贪婪", "py": "tān lán", "q": "我像一匹饿狼，□□地读着", "tip": "「贪」今字底，「婪」女字底；贬词褒用，形容渴求知识"}, {"w": "饥肠辘辘", "py": "jī cháng lù lù", "q": "当饭店飘来一阵阵菜香时，我已饿得□□□□，那时我也不免要做白日梦", "tip": "「辘」车字旁；四字成语，形容非常饥饿，肚子咕噜叫"}, {"w": "依依不舍", "py": "yī yī bù shě", "q": "然后才□□□□地把书放回书架", "tip": "「依」单人旁；四字成语，形容舍不得离开"}, {"w": "倾盆大雨", "py": "qīng pén dà yǔ", "q": "越是□□□□我越高兴，因为那时我便有充足的理由在书店待下去", "tip": "「倾」单人旁；四字成语，形容雨大势急，像盆里的水往下倒"}];
+var DICT_NOTES = [{"w": "窃读", "a": "偷偷地读。文中指不买书而在书店里偷偷看书", "q": "我很快乐，也很惧怕——这种窃读的滋味"}, {"w": "贪婪", "a": "本指贪得无厌，贬义词。文中贬词褒用，形容对知识的极度渴求", "q": "我像一匹饿狼，贪婪地读着"}, {"w": "知趣", "a": "知道进退，不惹人讨厌", "q": "我会知趣地放下书走出去"}, {"w": "光顾", "a": "敬辞，称客人来到。文中指到书店看书", "q": "像我这样常常光顾而从不购买的"}, {"w": "隐藏", "a": "藏起来不让人发现", "q": "因此我要把自己隐藏起来"}, {"w": "仿佛", "a": "好像、似乎", "q": "仿佛我是他的小妹妹或小女儿"}, {"w": "倾盆大雨", "a": "雨大得像盆里的水直往下倒，形容雨大势急", "q": "越是倾盆大雨我越高兴"}, {"w": "充足", "a": "多到能满足需要", "q": "因为那时我便有充足的理由在书店待下去"}, {"w": "屋檐", "a": "房檐，房顶伸出墙外的部分", "q": "就像在屋檐下躲雨"}, {"w": "饥肠辘辘", "a": "形容非常饥饿。饥肠，饥饿的肚子；辘辘，肚子里发出的咕噜声", "q": "我已饿得饥肠辘辘"}, {"w": "白日梦", "a": "比喻不切实际的幻想", "q": "那时我也不免要做白日梦"}, {"w": "交替", "a": "接替、替换", "q": "不得不交替着用一条腿支撑着"}, {"w": "支撑", "a": "勉强维持", "q": "不得不交替着用一条腿支撑着"}, {"w": "暂时", "a": "短时间之内", "q": "以求暂时的休息"}, {"w": "忽地", "a": "忽然、突然", "q": "每当书店的日光灯忽地亮起来"}, {"w": "发觉", "a": "开始知道、觉察到", "q": "我才发觉已经站在这里读了两个多钟头了"}, {"w": "唾沫", "a": "唾液的通称", "q": "我合上书，咽了一口唾沫"}, {"w": "依依不舍", "a": "形容舍不得离开。依依，留恋的样子；舍，舍弃", "q": "然后才依依不舍地把书放回书架"}, {"w": "麻木", "a": "身体某部分发麻，失去感觉", "q": "脚站得有些麻木"}, {"w": "浑身", "a": "全身", "q": "我却浑身轻松"}, {"w": "鼓励", "a": "激发、勉励", "q": "我总会想起国文老师鼓励我们的话"}, {"w": "招牌", "a": "挂在商店门前写明商店名称的牌子", "q": "看见饭店的招牌"}, {"w": "急匆匆", "a": "非常匆忙的样子", "q": "放学后急匆匆地从学校赶到这里"}, {"w": "紧邻", "a": "紧挨着", "q": "而是紧邻它的一家书店"}, {"w": "担忧", "a": "发愁、忧虑", "q": "但我又担忧那本书会不会卖光"}, {"w": "暗喜", "a": "心里暗暗高兴", "q": "我跨进店门，暗喜没人注意"}, {"w": "急切", "a": "迫切", "q": "我的眼睛急切地寻找"}, {"w": "惧怕", "a": "害怕", "q": "我很快乐，也很惧怕"}, {"w": "滋味", "a": "味道，比喻某种感受", "q": "这种窃读的滋味"}, {"w": "适宜", "a": "合适、相宜", "q": "当时的环境已不适宜再读下去的时候"}, {"w": "皱起眉头", "a": "眉头蹙起，表示发愁或不满", "q": "我有时还要装着皱起眉头"}, {"w": "街心", "a": "街的当中", "q": "不时望着街心"}, {"w": "日光灯", "a": "用荧光粉发光的电灯，也叫荧光灯", "q": "每当书店的日光灯忽地亮起来"}, {"w": "国文", "a": "本国的文字，旧时指中小学的语文课", "q": "我总会想起国文老师鼓励我们的话"}, {"w": "花花绿绿", "a": "形容颜色鲜艳多彩", "q": "在一排排花花绿绿的书里"}, {"w": "跨进", "a": "抬起脚向前走进", "q": "我跨进店门"}, {"w": "哟", "a": "叹词，表示轻微的惊异", "q": "哟，把短发弄乱了"}, {"w": "卖光", "a": "全部卖完", "q": "但我又担忧那本书会不会卖光"}, {"w": "一连", "a": "连续、接连不断", "q": "因为一连几天都看见有人买"}, {"w": "舒舒服服", "a": "身心感到轻松愉快舒适", "q": "坐上去舒舒服服地接着看"}, {"w": "酸", "a": "身体酸痛、乏力", "q": "我的腿真酸哪"}, {"w": "靠", "a": "倚着、挨近", "q": "有时又靠在书柜旁"}, {"w": "合上书", "a": "把书合上", "q": "我合上书，咽了一口唾沫"}, {"w": "智慧", "a": "辨析判断、发明创造的能力", "q": "好像把所有的智慧都吞下去了"}, {"w": "书架", "a": "放置书籍的架子", "q": "然后才依依不舍地把书放回书架"}, {"w": "低着头", "a": "头向下垂，文中形容自卑或小心翼翼", "q": "我低着头走出书店"}, {"w": "长大", "a": "生长壮大，文中指成长", "q": "你们是吃饭长大的，也是读书长大的"}, {"w": "吃饭长大", "a": "指身体的成长需要物质营养", "q": "你们是吃饭长大的"}, {"w": "读书长大", "a": "指精神的成长需要知识滋养", "q": "也是读书长大的"}];
+</script>
+
+</body>
+</html>
