@@ -1185,6 +1185,11 @@ function pickQuad(cands){
   let best=null;
   for(let i=0;i<cands.length;i++)for(let j=i+1;j<cands.length;j++)for(let k=j+1;k<cands.length;k++)for(let l=k+1;l<cands.length;l++){
     const C=[cands[i],cands[j],cands[k],cands[l]];
+    /* 面积同量级硬约束：四角必须都是大锚（5mm 小锚面积约为大锚 31%，混入则 ratio>2.6）
+       小锚混配会把“大锚 mm 坐标↔小锚像素”配进单应，导致切割图纵横比例失真（格子变扁） */
+    let aMin=Infinity,aMax=0;
+    for(let ci=0;ci<4;ci++){const ar=C[ci].area;if(ar<aMin)aMin=ar;if(ar>aMax)aMax=ar;}
+    if(aMax>aMin*2.6)continue;
     let TL=C[0];
     let TR=C[0];
     let BR=C[0];
@@ -1522,6 +1527,45 @@ function cropViaH(cv,H,x0,y0,wmm,hmm,outW,sharpen){
   octx.putImageData(od,0,0);
   return oc;
 }
+/* ---------- 切割图格距自检：纵/横线周期比异常=识别几何各向异性（“格子变扁”的定量检测） ---------- */
+function gridPitchRatio(cv,expColPx,expRowPx){
+  try{
+    const w=cv.width,h=cv.height;
+    const d=cv.getContext('2d').getImageData(0,0,w,h).data;
+    const x0=(w*0.12)|0,x1=(w*0.88)|0,y0=(h*0.08)|0,y1=(h*0.92)|0;
+    const dark=new Uint8Array(w*h);
+    for(let i=0,j=0;i<d.length;i+=4,j++)dark[j]=((d[i]*3+d[i+1]*5+d[i+2]*2)/10)<205?1:0;
+    function profV(){const n=new Int32Array(w);for(let x=0;x<w;x++){let c=0;for(let y=y0;y<y1;y++)c+=dark[y*w+x];n[x]=c;}return n;}
+    function profH(){const n=new Int32Array(h);for(let y=0;y<h;y++){let c=0;for(let x=x0;x<x1;x++)c+=dark[y*w+x];n[y]=c;}return n;}
+    /* 期望窗口内互相关（平均绝对差最小=周期匹配）：窗口限 [0.6exp,1.35exp]，
+       排除半周期/二次谐波伪峰（倾斜笔画会在剖面里裂成双峰），对轻微倾斜也稳定 */
+    function peakPitch(n,exp){
+      if(!exp||exp<6)return 0;
+      let tot=0,c=0;
+      for(let i=0;i<n.length;i++){tot+=n[i];c++;}
+      if((tot/c)<1)return 0;
+      const lo=Math.max(6,Math.floor(exp*0.6)),hi=Math.min(n.length-3,Math.ceil(exp*1.35));
+      let best=0,bv=Infinity;
+      for(let dd=lo;dd<=hi;dd++){
+        let s=0,c2=0;
+        for(let i=dd;i<n.length;i++){s+=Math.abs(n[i]-n[i-dd]);c2++;}
+        if(c2)s/=c2;
+        if(s<bv){bv=s;best=dd;}
+      }
+      return best||0;
+    }
+    const px=peakPitch(profV(),expColPx),py=peakPitch(profH(),expRowPx);
+    if(!px||!py)return null;
+    return {rel:(px/expColPx)/(py/expRowPx),px:px,py:py};
+  }catch(e){return null}
+}
+function gridAbnormal(cc,sb){
+  if(sb.type!=='grid-cn'||!sb.cols)return false;
+  const cellW=Math.min(8,(sb.w-12)/sb.cols);
+  const ppm=cc.width/(sb.w+2.4);
+  const r=gridPitchRatio(cc,cellW*ppm,(sb.rowH||9.2)*ppm);
+  return r?(r.rel<0.8||r.rel>1.3):false;
+}
 /* ---------- 透视/梯形切块（主观题裁剪用，双线性逆映射） ---------- */
 function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy)}
 function cropQuad(cv,corners,outW,outH){
@@ -1635,8 +1679,8 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 锚点检测：先全局搜索四角（兼容照片背景/未充满画面/倾斜），再用预期位置窗口兜底 */
   const geometry=layoutSlice||page;
   let detGlobal=null;
-  try{detGlobal=detectAnchorsGlobal(bin,cv.width,cv.height)}catch(e){}
-  let det=null,pts=null,usedSmall=false,globalUsed=false;
+  if(opts.noGlobal!==true){try{detGlobal=detectAnchorsGlobal(bin,cv.width,cv.height)}catch(e){}}
+  let det=null,pts=null,usedSmall=false,globalUsed=false,smallIdx=[-1,-1,-1,-1];
   if(detGlobal){
     pts=detGlobal.pts;
     globalUsed=true;
@@ -1651,15 +1695,30 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     pts=opts.manualPts.slice(0,4).map(function(p){return {x:p.x,y:p.y}});
   }else{
     if(pts.filter(function(p){return p}).length<4){
-      /* 用两个小锚 + 两点外推补角 */
+      /* 用两个小锚 + 两点外推补角：记录每个角实际来自哪个锚点（大锚0-3/小锚4-5），
+         求解单应时按真实 mm 源配对，避免用小锚像素配大锚 mm 导致纵横比例失真 */
       let haveB=pts.map(function(p){return !!p});
       const small=det?det.small:[null,null];
-      if((haveB[0]===false||haveB[3]===false)&&small[0]){pts[0]=pts[0]||small[0];pts[3]=pts[3]||small[0];usedSmall=true;}
-      if((haveB[1]===false||haveB[2]===false)&&small[1]){pts[1]=pts[1]||small[1];pts[2]=pts[2]||small[1];usedSmall=true;}
+      if((haveB[0]===false||haveB[3]===false)&&small[0]){
+        if(!pts[0]){pts[0]={x:small[0].x,y:small[0].y};smallIdx[0]=4;}
+        if(!pts[3]){pts[3]={x:small[0].x,y:small[0].y};smallIdx[3]=4;}
+        usedSmall=true;
+      }
+      if((haveB[1]===false||haveB[2]===false)&&small[1]){
+        if(!pts[1]){pts[1]={x:small[1].x,y:small[1].y};smallIdx[1]=5;}
+        if(!pts[2]){pts[2]={x:small[1].x,y:small[1].y};smallIdx[2]=5;}
+        usedSmall=true;
+      }
     }
   }
   let okCount=pts.filter(function(p){return p}).length;
   if(okCount<4){return {ok:false,status:'locate_fail',regFlags:[],flags:['定位失败：锚点不足('+okCount+'/4)（照片请平正拍摄、四角完整可见）'],warn:detWarn}}
+  /* 退化组合拒绝：同一个小锚被占两个角时 mm 源重复、单应无解——不再容忍“静默压扁”输出 */
+  if(usedSmall&&!opts.manualPts){
+    if((smallIdx[0]>=0&&smallIdx[3]>=0&&smallIdx[0]===smallIdx[3])||(smallIdx[1]>=0&&smallIdx[2]>=0&&smallIdx[1]===smallIdx[2])){
+      return {ok:false,status:'locate_fail',regFlags:[],flags:['定位失败：同一侧上/下两个定位点均缺失，无法唯一确定版式——请确保四角定位点完整可见，或使用手动重定位'],warn:detWarn};
+    }
+  }
   /* 四点形状校验：宽高比须与版式接近，防止退化组合（如两侧都用同一小锚顶替）静默输出错位结果 */
   const qW=(Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)+Math.hypot(pts[3].x-pts[2].x,pts[3].y-pts[2].y))/2;
   const qH=(Math.hypot(pts[0].x-pts[3].x,pts[0].y-pts[3].y)+Math.hypot(pts[1].x-pts[2].x,pts[1].y-pts[2].y))/2;
@@ -1667,7 +1726,12 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   if(qAsp<tAsp*0.6||qAsp>tAsp*1.6){
     return {ok:false,status:'locate_fail',regFlags:[],flags:['定位校验未通过：四点构成的形状与版式不符（请检查定位点是否被遮挡或印刷不清）'],warn:detWarn};
   }
-  const srcPts=geometry.anchors.slice(0,4).map(function(a){return {x:a.x+a.s/2,y:a.y+a.s/2}});
+  /* 按实际来源配对 mm 源：小锚顶替的角用锚点4/5的坐标参与单应，杜绝“配错源”造成的纵横比例失真 */
+  const srcPts=[0,1,2,3].map(function(i){
+    const ai=smallIdx[i]>=0?smallIdx[i]:i;
+    const a=geometry.anchors[ai];
+    return {x:a.x+a.s/2,y:a.y+a.s/2};
+  });
   let H=null;
   if(detGlobal&&detGlobal.tri&&detGlobal.tplIdx){
     const ti=detGlobal.tplIdx;
@@ -1827,6 +1891,29 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     const srcRegionPx=(sb.w+2.4)*smm;
     const cc=cropViaH(cv,H,sb.x-1.2,sb.y-1.2,sb.w+2.4,sb.h+2.4,outW, outW>srcRegionPx*1.15?0.85:0.4);
     crops.push({qno:sb.qno,part:sb.part||0,score:sb.score,cv:cc});
+  }
+  /* 切割图格距自检：网格题纵/横线周期异常（“格子变扁”）→ 全局定位可疑 → 换“预期位置窗口”定位重试 */
+  let gridBad=false;
+  for(let gi=0;gi<pg2.subjective.length&&gi<crops.length;gi++){
+    if(gridAbnormal(crops[gi].cv,pg2.subjective[gi])){gridBad=true;break;}
+  }
+  if(gridBad){
+    if(!opts.noGlobal&&globalUsed){
+      const r2=await recognizeCanvas(cv,layout,pageIdx,Object.assign({},opts,{noGlobal:true}));
+      if(r2.ok&&r2.crops){
+        let ok2=true;
+        for(let gi=0;gi<pg2.subjective.length&&gi<r2.crops.length;gi++){
+          if(gridAbnormal(r2.crops[gi].cv,pg2.subjective[gi])){ok2=false;break;}
+        }
+        if(ok2){
+          r2.flags=(['全局定位导致切割纵横比例异常，已改用预期位置定位重试']).concat(r2.flags);
+          return r2;
+        }
+      }
+      flags.push('切割图纵横比例异常，改用预期位置定位仍未通过——请检查四角锚点是否被遮挡或印刷不清，或使用手动重定位');
+    }else{
+      flags.push('切割图纵横比例异常（预期位置定位）：定位点可能误匹配，建议使用手动重定位');
+    }
   }
   return {ok:true,status:'ok',H:H,geometry:pg2,sX:sX,sY:sY,smm:smm,
     qrFound:qrFound,qrLayout:!!layoutSlice,
