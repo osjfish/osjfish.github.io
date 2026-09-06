@@ -1168,7 +1168,9 @@ function globalSolids(bin,w,h,minArea,maxArea){
     const asp=bw2/bh2;
     if(asp<0.7||asp>1.4)continue;
     const sol=area/(bw2*bh2);
-    if(sol<0.72)continue;
+    /* JPEG 噪声会在实心黑块内产生空洞（自适应阈值在黑块内塌陷），solidity 可能降到 0.65 左右；
+       干扰图形（边框环/L形）远低于此，0.6 有充足余量 */
+    if(sol<0.6)continue;
     /* 排除噪点：相对面积过滤 */
     out.push({x:sx/area,y:sy/area,area:area,w:bw2,h:bh2,cx:mx+Mx>>1,cy:my+My>>1});
   }
@@ -1286,7 +1288,7 @@ function detectAnchors(bin,w,h,page,sX,sY){
     const cx=(a.x+a.s/2)*sX,cy=(a.y+a.s/2)*sY;
     const halfX=a.s*sX*2.4,halfY=a.s*sY*2.4;
     const theory=(a.s*0.667*sX)*(a.s*0.667*sY);
-    const r=findSolid(bin,w,h,cx,cy,halfX,halfY,theory*0.45,theory*2.1,0.72);
+    const r=findSolid(bin,w,h,cx,cy,halfX,halfY,theory*0.45,theory*2.1,0.6);
     if(r){if(i<4)pts[i]={x:r.x,y:r.y};else smallPts[i-4]={x:r.x,y:r.y};}
     else warn.push('锚点'+(i+1)+'未找到');
   });
@@ -1656,6 +1658,13 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }
   let okCount=pts.filter(function(p){return p}).length;
   if(okCount<4){return {ok:false,status:'locate_fail',flags:['定位失败：锚点不足('+okCount+'/4)（照片请平正拍摄、四角完整可见）'],warn:detWarn}}
+  /* 四点形状校验：宽高比须与版式接近，防止退化组合（如两侧都用同一小锚顶替）静默输出错位结果 */
+  const qW=(Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)+Math.hypot(pts[3].x-pts[2].x,pts[3].y-pts[2].y))/2;
+  const qH=(Math.hypot(pts[0].x-pts[3].x,pts[0].y-pts[3].y)+Math.hypot(pts[1].x-pts[2].x,pts[1].y-pts[2].y))/2;
+  const qAsp=qW/Math.max(1,qH), tAsp=page.w/page.h;
+  if(qAsp<tAsp*0.6||qAsp>tAsp*1.6){
+    return {ok:false,status:'locate_fail',flags:['定位校验未通过：四点构成的形状与版式不符（请检查定位点是否被遮挡或印刷不清）'],warn:detWarn};
+  }
   const srcPts=geometry.anchors.slice(0,4).map(function(a){return {x:a.x+a.s/2,y:a.y+a.s/2}});
   let H=null;
   if(detGlobal&&detGlobal.tri&&detGlobal.tplIdx){
