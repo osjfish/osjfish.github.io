@@ -449,14 +449,6 @@ function qBubbleGeom(g,qn,ch){
   const bw=Math.min(g.size[0],step-0.8);
   return {bx:g.x0+11+ch*step+(step-bw)/2+bw/2,count:n,bw:bw,bh:g.size[1],step:step};
 }
-/* 中文数字（组标题/默认主观题题号用） */
-function cnNum(n){
-  const c='一二三四五六七八九十';
-  if(n<=0)return String(n);
-  if(n<=10)return c[n-1];
-  if(n<20)return '十'+c[n-11];
-  return c[Math.floor(n/10)-1]+'十'+(n%10?c[n%10-1]:'');
-}
 /* 题目清单归一化：新模板用 questions 逐题数组；旧模板（选择题组+主观题区）自动推导，两边兼容 */
 function normalizeQuestions(tpl){
   if(Array.isArray(tpl.questions))return tpl.questions;
@@ -520,7 +512,7 @@ function layoutTemplate(tpl){
     if(last&&o.qno===last.first+last.count&&choices===last.choices)last.count++;
     else objGroups.push({first:o.qno,count:1,choices:choices});
   });
-  objGroups.forEach(function(gp,i){gp.label=cnNum(i+1)+'、选择题';});
+  objGroups.forEach(function(gp){gp.label=gp.first===gp.count+gp.first-1?('选择题（第'+gp.first+'题）'):('选择题（'+gp.first+'-'+(gp.first+gp.count-1)+'题）');});
   const subjDefs=qss.filter(function(q){return q.t==='subj'});
   /* 选择题组（超高自动拆分为多个子组跨页，题号连续） */
   const maxRowsPerPage=Math.max(1,Math.floor((contentBottom-contentTop-13)/5));
@@ -588,13 +580,13 @@ function presetTemplates(){
   return [
     {name:'小学客观题卡（40题+解答）',paper:'A4',orient:'portrait',title:'小学答题卡',showInfo:true,regDigits:5,perScore:2,
       choiceGroups:[{first:1,count:40,choices:4,label:'一、选择题'}],
-      subjective:[{qno:'二',score:30,type:'lines',rows:3,label:'二、解答题'}]},
+      subjective:[{qno:'41',score:30,type:'lines',rows:3,label:'解答题'}]},
     {name:'语文作文卡',paper:'A4',orient:'portrait',title:'语文答题卡',showInfo:true,regDigits:5,perScore:2,
       choiceGroups:[{first:1,count:10,choices:4,label:'一、选择题'}],
-      subjective:[{qno:'二',score:6,type:'lines',rows:2,label:'二、填空题'},{qno:'三',score:50,type:'grid-cn',cols:20,count:880,titleLine:true,label:'三、作文题（880字）'}]},
+      subjective:[{qno:'11',score:6,type:'lines',rows:2,label:'填空题'},{qno:'12',score:50,type:'grid-cn',cols:20,count:880,titleLine:true,label:'作文题（880字）'}]},
     {name:'英语答题卡（60题+作文）',paper:'A4',orient:'portrait',title:'英语答题卡',showInfo:true,regDigits:5,perScore:1.5,
       choiceGroups:[{first:1,count:30,choices:4,label:'一、选择题'},{first:31,count:30,choices:4,label:'二、选择题'}],
-      subjective:[{qno:'三',score:25,type:'grid-en',rows:10,label:'三、书面表达'}]},
+      subjective:[{qno:'61',score:25,type:'grid-en',rows:10,label:'书面表达'}]},
     {name:'空白自定义',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regDigits:5,perScore:2,
       choiceGroups:[],subjective:[]}
   ];
@@ -2165,12 +2157,15 @@ Object.assign(ACTS,{
   'tpl-save':async function(el){
     const t=await dbGet('templates',el.dataset.id);
     try{
-      /* 题号重复校验：重复的客观题号会印两遍、录两遍答案 */
+      /* 题号校验：全卷统一阿拉伯编号，主客观同号也视为冲突（会重复排版、重复录答案） */
       const qs=normalizeQuestions(t);
       const seen={},dups=[];
       qs.forEach(function(q){
-        if(q.t==='obj'){const k='obj'+q.qno;if(seen[k])dups.push('客观 '+q.qno);seen[k]=true;}
-        else if(q.qno){const k='s'+q.qno;if(seen[k])dups.push('主观 '+q.qno);seen[k]=true;}
+        if(q.t==='obj'||q.qno){
+          const k='q'+q.qno;
+          if(seen[k])dups.push((q.t==='obj'?'客观 ':'主观 ')+q.qno);
+          seen[k]=true;
+        }
       });
       if(dups.length){
         const ok=await dlgConfirm('题号重复','以下题号在清单中重复：<b>'+esc(dups.join('、'))+'</b><br>重复题目会被重复排版、重复录答案，建议先修改题号。','仍要保存');
@@ -2244,8 +2239,10 @@ Object.assign(ACTS,{
     const t=await dbGet('templates',el.dataset.id);
     if(!t)return;
     if(!t.questions)t.questions=normalizeQuestions(t);
-    const n=t.questions.filter(function(q){return q.t==='subj'}).length;
-    t.questions.push({t:'subj',qno:cnNum(n+2),score:10,type:'lines',rows:3,cols:20,count:null,titleLine:false,label:''});
+    /* 题号全卷统一用阿拉伯数字连续编号：默认取现有最大题号+1（客观 1-40 → 主观 41） */
+    let mx=0;
+    t.questions.forEach(function(q){const n=Number(q.qno);if(Number.isFinite(n)&&n>mx)mx=n;});
+    t.questions.push({t:'subj',qno:String(mx+1),score:10,type:'lines',rows:3,cols:20,count:null,titleLine:false,label:''});
     await dbPut('templates',t);
     renderTpl();
   },
