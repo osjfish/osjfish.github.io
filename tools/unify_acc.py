@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """统一各课件"积累"区板块：同一类型同一骨架、同一命名、同一顺序。
 
 三类标准骨架：
@@ -305,7 +305,7 @@ def run():
               },
               merges=[('文言梳理', ['古今异义', '一词多义', '文言句式'])])
 
-    transform('qinyuangchunxue-maozedong.html', {'易错用字': '易错字音形'},
+    transform('qinyuangchunxuexue-maozedong.html', {'易错用字': '易错字音形'},
               ['文体与词牌', '易错字音形', '文言梳理', '修辞与手法', '文化常识'],
               {
                '文言梳理': item_box('文言梳理', [

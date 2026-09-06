@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """生成《沁园春·雪》课件（古诗词模式：原文+译文+赏析）。自包含脚本。"""
 import io, json, re, html
 
 SRC = r"D:\App\Apps\beiying-zhuziqing.html"
-OUT = r"D:\App\Apps\qinyuangchunxue-maozedong.html"
+OUT = r"D:\App\Apps\qinyuangchunxuexue-maozedong.html"
 LS_KEY = "qinyuan_fs"
 
 def annotate(text):

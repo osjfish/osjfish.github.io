@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import re, os, json
 
 files = {
     '文言文': r'D:\App\Apps\hezhongshishou-jiyun.html',
     '古诗词(长)': r'D:\App\Apps\baixuegesongwupanguanguijing-censhen.html',
     '现代文(长)': r'D:\App\Apps\guduzhilv-caowenxuan.html',
-    '元曲': r'D:\App\Apps\tianjingsha-qiusi-mazhiyuan.html',
+    '元曲': r'D:\App\Apps\tianjingshaqiusi-mazhiyuan.html',
     '文言文(长)': r'D:\App\Apps\zhouyafujunxiliu-simaqian.html',
     '现代文(鲁迅)': r'D:\App\Apps\congbaicaoyuandaosanweishuwu-luxun.html',
 }

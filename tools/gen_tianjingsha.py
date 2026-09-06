@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """《天净沙·秋思》课件生成器 —— 元曲小令，复用《背影》CSS/JS框架。"""
 import json, re, html, io, os
 
@@ -6,7 +6,7 @@ LQ = '\u201c'
 RQ = '\u201d'
 
 SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'beiying-zhuziqing.html')
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tianjingsha-qiusi-mazhiyuan.html')
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tianjingshaqiusi-mazhiyuan.html')
 
 src = io.open(SRC, encoding='utf-8-sig').read()
 CSS = src[src.index('<style>') + 7: src.index('</style>')]
