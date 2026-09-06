@@ -377,7 +377,7 @@ const TABS=[
   ['home','首页','首'],['class','班级学生','班级'],['tpl','答题卡模板','模板'],['exam','考试管理','考试'],
   ['scan','扫描识别','扫描'],['grade','阅卷工作台','阅卷'],['score','成绩分析','成绩'],['set','设置','设置']
 ];
-const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级与学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩与分析',set:'设置'};
+const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩分析',set:'设置'};
 function renderNav(){
   $('nav').innerHTML=TABS.map(function(t){
     return '<div class="sj-nav-item '+(ui.tab===t[0]?'on':'')+'" data-act="nav" data-tab="'+t[0]+'"><span class="tx">'+t[1]+'</span><span class="sh">'+t[2]+'</span></div>';
@@ -2235,8 +2235,8 @@ async function renderTpl(){
   }else{
     html='<div class="f-row" style="margin-bottom:14px">'
       +'<button class="btn btn-p" data-act="tpl-new">＋ 新建模板</button>'
-      +'<button class="btn btn-b" data-act="tpl-from-preset">快捷  从预设创建</button>'
-      +'<button class="btn btn-o" data-act="tpl-import">导  导入模板 JSON</button>'
+      +'<button class="btn btn-b" data-act="tpl-from-preset">从预设创建</button>'
+      +'<button class="btn btn-o" data-act="tpl-import">导入模板 JSON</button>'
       +'<input type="file" id="tplImportFile" accept=".json" style="display:none">'
       +'<span class="tip">模板 → 预览 → 导出 PDF（300dpi + 版式二维码）→ 打印后扫描可自动解析</span></div>';
     if(!tpls.length){
@@ -2254,9 +2254,9 @@ async function renderTpl(){
           +'<div class="kv" style="margin:4px 0">'+(PAPER_NAMES[t.paper]||t.paper)+'　·　'+lay.pages.length+' 页　·　客观题 '+choiceN+' 题（默认'+(t.perScore||2)+'分/题）　·　主观题 '+subjN+' 题<br>考号 '+t.regDigits+' 位　·　标题：'+esc(t.title||'')+'　·　创建 '+esc(t.createdAt||'')+'</div>'
           +'<div class="kv">定位锚点 ×6　·　同步条行校正　·　二维码自描述版式（扫描自动识别排版，无需选模板）</div></div>'
           +'<div class="f-row" style="flex-shrink:0;flex-direction:column;align-items:stretch">'
-          +'<button class="btn btn-s btn-p" data-act="tpl-edit" data-id="'+t.id+'">️ 编辑</button>'
-          +'<button class="btn btn-s" data-act="tpl-preview" data-id="'+t.id+'">查看  预览</button>'
-          +'<button class="btn btn-s" data-act="tpl-pdf" data-id="'+t.id+'"> 导出 PDF</button>'
+          +'<button class="btn btn-s btn-p" data-act="tpl-edit" data-id="'+t.id+'">编辑</button>'
+          +'<button class="btn btn-s" data-act="tpl-preview" data-id="'+t.id+'">预览</button>'
+          +'<button class="btn btn-s" data-act="tpl-pdf" data-id="'+t.id+'">导出 PDF</button>'
           +'<button class="btn btn-s" data-act="tpl-export" data-id="'+t.id+'">导出 JSON</button>'
           +'<button class="btn btn-s" data-act="tpl-dup" data-id="'+t.id+'">复制</button>'
           +'<button class="btn btn-s btn-d" data-act="tpl-del" data-id="'+t.id+'">删除</button>'
@@ -2277,7 +2277,7 @@ async function tplThumb(tpl){
 }
 async function tplEditorHTML(tplId){
   const t=await dbGet('templates',tplId);
-  if(!t)return emptyBox('错误: ','模板不存在');
+  if(!t)return emptyBox('⚠️','模板不存在');
   const qs=normalizeQuestions(t);
   const qRows=qs.map(function(q,i){
     const mv='<button class="btn btn-sm" data-act="tpl-q-up" data-id="'+t.id+'" data-i="'+i+'" title="上移"'+(i===0?' disabled':'')+'>↑</button>'
@@ -2304,9 +2304,9 @@ async function tplEditorHTML(tplId){
       +mv+'</div>';
   }).join('');
   return '<div class="f-row" style="margin-bottom:12px">'
-    +'<button class="btn btn-p" data-act="tpl-save" data-id="'+t.id+'"> 保存模板并重新排版</button>'
-    +'<button class="btn btn-b" data-act="tpl-preview" data-id="'+t.id+'">查看  预览</button>'
-    +'<button class="btn btn-o" data-act="tpl-pdf" data-id="'+t.id+'"> 导出 PDF</button>'
+    +'<button class="btn btn-p" data-act="tpl-save" data-id="'+t.id+'">保存模板并重新排版</button>'
+    +'<button class="btn btn-b" data-act="tpl-preview" data-id="'+t.id+'">预览</button>'
+    +'<button class="btn btn-o" data-act="tpl-pdf" data-id="'+t.id+'">导出 PDF</button>'
     +'<button class="btn" data-act="tpl-export" data-id="'+t.id+'">导出 JSON</button>'
     +'<button class="btn" data-act="tpl-edit-cancel">返回列表</button>'
     +'<span class="tip">保存时自动校验并重新排版；PDF 导出为 300dpi，打印请选「实际大小/100%」。</span></div>'
@@ -2613,7 +2613,7 @@ async function renderCls(){
     +'<button class="btn btn-o btn-s" data-act="stu-excel-tpl">⬇ 下载《考生信息表.xlsx》模板</button>'
     +'<button class="btn btn-o btn-s" data-act="stu-excel">⬆ 导入 Excel</button>'
     +'<input type="file" id="stuExcelFile" accept=".xlsx,.xls,.csv" style="display:none">'
-    +'<button class="btn btn-s" data-act="stu-csv"> 导出 CSV</button>'
+    +'<button class="btn btn-s" data-act="stu-csv">导出 CSV</button>'
     +'</div>';
   if(students.length){
     html+='<div class="tbl-wrap"><table class="tbl"><tr><th style="width:60px">序号</th><th style="width:150px">考号（涂卡号）</th><th style="width:150px">姓名</th><th>备注</th><th style="width:70px"></th></tr>'
@@ -2627,7 +2627,7 @@ async function renderCls(){
   }else{
     html+=emptyBox('','暂无学生。可在上方逐个添加，或粘贴多行名单：<br>每行 <b>姓名 考号</b>（空格/逗号/制表符分隔）');
   }
-  html+='<div style="margin-top:12px"><label class="f-lb"> 批量粘贴导入（每行：姓名 空格 考号，可带备注）</label>'
+  html+='<div style="margin-top:12px"><label class="f-lb">批量粘贴导入（每行：姓名 空格 考号，可带备注）</label>'
     +'<textarea class="inp" id="stuPaste" rows="4" placeholder="张三 10001&#10;李四 10002&#10;王五 10003"></textarea>'
     +'<button class="btn btn-b btn-s" style="margin-top:6px" data-act="stu-paste" data-id="'+cls.id+'">从粘贴导入</button></div>';
   $('page').innerHTML=html;
@@ -2786,7 +2786,7 @@ async function renderExam(){
     +'<button class="btn btn-p" data-act="exam-new">＋ 新建考试</button>'
     +'<span class="tip">考试 = 班级 + 答题卡模板 + 客观题答案 + 主观题满分/评分要点</span></div>';
   if(!exams.length){
-    html+='<div class="card">'+emptyBox('️','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
+    html+='<div class="card">'+emptyBox('📋','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
   }else{
     const cards=[];
     let statusMap={};
@@ -2798,10 +2798,10 @@ async function renderExam(){
         +'<div class="meta"><b>'+esc(ex.className||'（班级已删）')+'</b>　·　'+esc(ex.templateName||'')+'　·　'+esc(ex.createdAt||'')+'<br>'
         +esc(st.label)+'</div>'
         +'<div class="acts">'
-        +'<button class="btn btn-s btn-p" data-act="exam-open" data-id="'+ex.id+'" data-to="scan"> 扫描</button>'
-        +'<button class="btn btn-s btn-b" data-act="exam-open" data-id="'+ex.id+'" data-to="grade">️ 阅卷</button>'
-        +'<button class="btn btn-s" data-act="exam-open" data-id="'+ex.id+'" data-to="score"> 成绩</button>'
-        +'<button class="btn btn-s" data-act="exam-edit" data-id="'+ex.id+'">️ 编辑</button>'
+        +'<button class="btn btn-s btn-p" data-act="exam-open" data-id="'+ex.id+'" data-to="scan">扫描</button>'
+        +'<button class="btn btn-s btn-b" data-act="exam-open" data-id="'+ex.id+'" data-to="grade">阅卷</button>'
+        +'<button class="btn btn-s" data-act="exam-open" data-id="'+ex.id+'" data-to="score">成绩</button>'
+        +'<button class="btn btn-s" data-act="exam-edit" data-id="'+ex.id+'">编辑</button>'
         +'<button class="btn btn-s btn-d" data-act="exam-del" data-id="'+ex.id+'">删除</button>'
         +'</div></div>');
     }
@@ -2915,7 +2915,7 @@ async function wizRender(){
   const foot=''+'<button class="btn" data-act="wiz-cancel">取消</button>'
     +(wiz.step>1?'<button class="btn" data-act="wiz-prev">← 上一步</button>':'')
     +(wiz.step<3?'<button class="btn btn-p" data-act="wiz-next">下一步 →</button>':'')
-    +(wiz.step===3?'<button class="btn btn-p" data-act="wiz-save"> 保存考试</button>':'');
+    +(wiz.step===3?'<button class="btn btn-p" data-act="wiz-save">保存考试</button>':'');
   dlg(body,{title:(wiz.examId?'编辑考试':'新建考试')+' · 第 '+wiz.step+'/3 步',foot:foot,wide:true});
   afterRender(function(){
     const n=$('wizName'),c=$('wizClass'),tp=$('wizTpl'),ps=$('wizPerScore');
@@ -3022,7 +3022,7 @@ async function renderScan(){
   }
   const ex=await dbGet('exams',ui.scanExam);
   const meta=await examMeta(ex);
-  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('错误: ','考试「'+esc(ex.name)+'」使用的答题卡模板不存在或已删除。<br>请到「答题卡模板」恢复模板后重试。')+'</div>';return}
+  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('⚠️','考试「'+esc(ex.name)+'」使用的答题卡模板不存在或已删除。<br>请到「答题卡模板」恢复模板后重试。')+'</div>';return}
   const cls=await dbGet('classes',ex.classId);
   const students=await dbByIdx('students','byClass',ex.classId);
   const pages=await dbByIdx('pages','byExam',ex.id);
@@ -3044,7 +3044,7 @@ async function renderScan(){
     +'<option value="0">页序自动对应</option>'
     +meta.layout.pages.map(function(p,i){return '<option value="'+(i+1)+'"'+((ui.scanForcePage||0)===(i+1)?' selected':'')+'>本批都是第'+(i+1)+'页</option>'}).join('')
     +'</select>'
-    +'<button class="btn btn-d" data-act="scan-clear"> 清空本场扫描结果</button>'
+    +'<button class="btn btn-d" data-act="scan-clear">清空本场扫描结果</button>'
     +'<span class="tip">扫描件按页顺序对应模板页；识别用「6 锚点 + 同步条 + 单应校正」，第 1 页二维码自描述版式。</span>'
     +'</div>'
     +'<div id="scanProgBox" style="margin-top:10px;display:none"><div class="prog-line"><span id="scanProgTxt"></span><div class="progress" style="flex:1"><div id="scanProgBar" style="width:0%"></div></div></div><div id="scanLog" class="tip"></div></div>'
@@ -3098,7 +3098,7 @@ Object.assign(ACTS,{
   'scan-pick-files':function(){const f=$('scanFiles');if(f)f.click()},
   'scan-shoot':function(){
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-      toast('当前环境不支持相机遇，已打开系统相机/文件选择','ok');
+      toast('当前环境不支持实时取景，已打开系统相机/文件选择','ok');
       const f=$('captureInput');if(f)f.click();
       return;
     }
@@ -3635,7 +3635,7 @@ async function renderGrade(){
   const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
   if(!ui.gradeExam||!(exams.find(function(e){return e.id===ui.gradeExam})))ui.gradeExam=exams.length?exams[0].id:null;
   if(!ui.gradeExam){
-    $('page').innerHTML='<div class="card">'+emptyBox('️','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
+    $('page').innerHTML='<div class="card">'+emptyBox('📋','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
       +'<button class="btn btn-p" data-act="go-exam">去创建考试</button></div>';
     return;
   }
@@ -3643,7 +3643,7 @@ async function renderGrade(){
   if(!gradeCtx||gradeCtx.examId!==ex.id){gradeCtx=null;ui.gradeQno=null;}
   if(!ui.gradeQno){
     const meta=await examMeta(ex);
-    if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('错误: ','该考试使用的答题卡模板不存在或已删除。')+'</div>';return}
+    if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('⚠️','该考试使用的答题卡模板不存在或已删除。')+'</div>';return}
     const cropsAll=await dbByIdx('crops','byExam',ex.id);
     const crops=cropsAll;
     let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
@@ -3665,7 +3665,7 @@ async function renderGrade(){
           +'</div>'
           +'<div style="width:160px"><div class="progress"><div style="width:'+(total?Math.round(done/total*100):0)+'%"></div></div></div>'
           +'<button class="btn btn-s btn-p" data-act="grade-open-q" data-q="'+esc(String(sq.qno))+'">开始阅卷</button>'
-          +'<button class="btn btn-s btn-o" data-act="grade-ai-batch-open" data-q="'+esc(String(sq.qno))+'">AI  AI 预阅未评分</button>'
+          +'<button class="btn btn-s btn-o" data-act="grade-ai-batch-open" data-q="'+esc(String(sq.qno))+'">AI 预阅未评分</button>'
           +'</div>';
       }
     }
@@ -3724,7 +3724,7 @@ Object.assign(ACTS,{
       +'<div class="card" style="margin-top:8px"><h3>总评</h3><div>'+esc(el.reason)+'</div></div>'
       +'<div class="tip" style="margin-top:6px">AI 建议仅供参考；点「采纳」写入成绩（写入后仍可手改）。</div>',
       {title:'AI 建议 · 考号 '+esc(now2)+' · 题 '+esc(String(gradeCtx.qno)),foot:
-        '<button class="btn" data-act="dlg-close">关闭</button><button class="btn btn-p" data-act="grade-ai-accept" data-v="'+esc(el.score)+'">已阅  采纳 '+esc(el.score)+' 分</button>'});
+        '<button class="btn" data-act="dlg-close">关闭</button><button class="btn btn-p" data-act="grade-ai-accept" data-v="'+esc(el.score)+'">已阅，采纳 '+esc(el.score)+' 分</button>'});
   },
   'grade-ai-accept':async function(el){
     if(!gradeCtx.order.length)return;
@@ -3905,7 +3905,7 @@ async function renderGradeView(ex){
   $('page').innerHTML='<div class="f-row" style="margin-bottom:10px">'
     +'<button class="btn btn-s" data-act="grade-back">← 返回题列表</button>'
     +'<b>题 '+esc(String(gradeCtx.qno))+'</b><span class="kv">满分 '+full+' 分</span>'
-    +'<span class="chip'+(gradeCtx.shuffle?' on':'')+'" data-act="grade-toggle-shuffle"> 随机打乱阅卷顺序</span>'
+    +'<span class="chip'+(gradeCtx.shuffle?' on':'')+'" data-act="grade-toggle-shuffle">随机打乱阅卷顺序</span>'
     +'<span style="flex:1"></span>'
     +'<span class="kv">已阅 '+gradeCtx.order.filter(function(o){const cc=cropsAll.filter(function(c){return c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)});return cc.length&&cc[0].scoreVal!=null}).length+' / '+gradeCtx.order.length+'</span>'
     +'</div><div class="gwrap">'
@@ -3921,9 +3921,9 @@ async function renderGradeView(ex){
     +'<div class="f-row" style="justify-content:space-between;margin-top:8px">'
     +'<button class="btn btn-s" data-act="grade-prev">← 上一份</button>'
     +'<button class="btn btn-s btn-p" data-act="grade-next">下一份 →</button></div>'
-    +'<button class="btn btn-s btn-o" data-act="grade-ai-one" style="width:100%;margin-top:8px">AI  AI 建议</button>'
-    +'<button class="btn btn-s" data-act="grade-flag" style="width:100%;margin-top:6px">[商榷]  标记待商榷</button>'
-    +'<button class="btn btn-s" data-act="grade-good" style="width:100%;margin-top:6px">[优秀]  标记优秀</button>'
+    +'<button class="btn btn-s btn-o" data-act="grade-ai-one" style="width:100%;margin-top:8px">AI 建议</button>'
+    +'<button class="btn btn-s" data-act="grade-flag" style="width:100%;margin-top:6px">标记待商榷</button>'
+    +'<button class="btn btn-s" data-act="grade-good" style="width:100%;margin-top:6px">标记优秀</button>'
     +'<div class="tip" style="margin-top:8px">所有修改即时保存，无需手动点击保存。AI 建议需在「设置」中配置视觉大模型。</div>'
     +'</div></div>';
   afterRender(function(){
@@ -4086,9 +4086,9 @@ async function renderScore(){
   }
   const ex=await dbGet('exams',ui.scoreExam);
   const book=await computeScorebook(ex.id);
-  if(!book){$('page').innerHTML=emptyBox('错误: ','计算失败');return}
+  if(!book){$('page').innerHTML=emptyBox('⚠️','计算失败');return}
   const meta=book.meta;
-  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('错误: ',''+(book.error||'模板缺失，无法计算成绩')+'<br>请到「答题卡模板」恢复或重建该模板。')+'</div>';return}
+  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('⚠️',''+(book.error||'模板缺失，无法计算成绩')+'<br>请到「答题卡模板」恢复或重建该模板。')+'</div>';return}
   const sc=book.rows.filter(function(r){return !r.absent});
   const n=sc.length;
   const sf=sc.length?sc.reduce(function(a,r){return a+r.total},0)/sc.length:0;
@@ -4100,9 +4100,9 @@ async function renderScore(){
     +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>'
     +'<span class="kv">'+esc(ex.className||'')+'　·　'+esc(ex.templateName||'')+'　·　客观题 '+meta.choiceQnos.length+' 题（满分 '+book.objFull+' 分）</span>'
     +'<span style="flex:1"></span>'
-    +'<button class="btn btn-p" data-act="score-csv" data-id="'+ex.id+'"> 导出成绩册 CSV</button>'
-    +'<button class="btn btn-b" data-act="score-xlsx" data-id="'+ex.id+'"> 导出 Excel</button>'
-    +'<button class="btn" data-act="score-json" data-id="'+ex.id+'"> 导出 JSON</button>'
+    +'<button class="btn btn-p" data-act="score-csv" data-id="'+ex.id+'">导出成绩册 CSV</button>'
+    +'<button class="btn btn-b" data-act="score-xlsx" data-id="'+ex.id+'">导出 Excel</button>'
+    +'<button class="btn" data-act="score-json" data-id="'+ex.id+'">导出 JSON</button>'
     +'</div></div>';
   html+=statCards([
     {n:n,l:'参评人数'},{n:sf.toFixed(1),l:'平均总分'},{n:max,l:'最高分'},{n:min,l:'最低分'},
@@ -4455,8 +4455,8 @@ async function renderSet(){
     +'<div><label class="f-lb">temperature</label><input class="inp" id="aiTemp" type="number" step="0.05" value="'+esc(ai.temp)+'"></div>'
     +'</div>'
     +'<div class="f-row" style="margin-top:10px">'
-    +'<button class="btn btn-p" data-act="ai-save"> 保存 AI 设置</button>'
-    +'<button class="btn btn-b" data-act="ai-test"> 测试连接</button>'
+    +'<button class="btn btn-p" data-act="ai-save">保存 AI 设置</button>'
+    +'<button class="btn btn-b" data-act="ai-test">测试连接</button>'
     +'<span class="tip">测试将发送一条短消息（不发送图片）。AI 需<b>支持图片输入</b>（视觉模型）。建议完整填写考试中的「评分要点」后再使用。</span></div></div>';
   html+='<div class="card"><h3>识别参数（OMR）</h3>'
     +'<div class="f-grid">'
@@ -4469,15 +4469,15 @@ async function renderSet(){
     +'<div><label class="f-lb">AI 阅卷严格度</label><select class="inp" id="omrStrict">'
     +[['loose','宽松'],['std','适中（推荐）'],['strict','严格']].map(function(x){return '<option value="'+x[0]+'"'+(omr.aiStrict===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></div>'
     +'</div>'
-    +'<div class="f-row" style="margin-top:10px"><button class="btn btn-p" data-act="omr-save"> 保存识别参数</button>'
+    +'<div class="f-row" style="margin-top:10px"><button class="btn btn-p" data-act="omr-save">保存识别参数</button>'
     +'<span class="tip">涂点 ink ∈ (低阈值,高阈值) 视为「模糊」→ 进复核，绝不静默乱判。</span></div></div>';
   html+='<div class="card"><h3>数据备份与恢复</h3>'
     +'<div class="f-row">'
-    +'<button class="btn btn-p" data-act="backup-mini"> 导出备份（不含扫描图）</button>'
-    +'<button class="btn" data-act="backup-full"> 导出完整备份（含扫描页/裁剪图，体积大）</button>'
-    +'<button class="btn btn-o" data-act="backup-import">导  导入备份</button>'
+    +'<button class="btn btn-p" data-act="backup-mini">导出备份（不含扫描图）</button>'
+    +'<button class="btn" data-act="backup-full">导出完整备份（含扫描页/裁剪图，体积大）</button>'
+    +'<button class="btn btn-o" data-act="backup-import">导入备份</button>'
     +'<input type="file" id="backupFile" accept=".json" style="display:none">'
-    +'<button class="btn btn-d" data-act="data-wipe"> 清空所有数据</button>'
+    +'<button class="btn btn-d" data-act="data-wipe">清空所有数据</button>'
     +'</div>'
     +'<div class="kv" id="storageInfo" style="margin-top:10px"></div>'
     +'<div class="tip" style="margin-top:8px">所有数据保存在本浏览器 IndexedDB 中。换电脑/清缓存前请先导出；最小备份含班级、学生、模板、考试、答案、识别与判分数据（页图可在需要时用原件重扫）。</div></div>';
