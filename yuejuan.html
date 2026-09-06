@@ -222,7 +222,6 @@ function saveJSON(key,val){try{localStorage.setItem(key,JSON.stringify(val))}cat
 /* ---------- 常数 ---------- */
 const PAPER={A4:[210,297],A3:[297,420],B4:[257,364],'8K':[260,368]};
 const PAPER_NAMES={A4:'A4（210×297mm）',A3:'A3（297×420mm）',B4:'B4（257×364mm）','8K':'8开（260×368mm）'};
-const NOTE_TEXT='1.严禁在答题卡图像定位点周围区域做任何涂写或标记，否则答题卡作废，不计成绩。2.应保持答题卡的清洁，不得折叠、污染、破损等，不得在答题卡上写与题目无关的内容。3.填涂时要做到深、满、匀，即涂准位置，涂深颜色，涂满选项的方框，整个答题卡的所有涂点要涂的基本一致；涂错时用橡皮擦干净，且不造成答题卡破损。4.主观题作答请在对应区域内书写，超出答题框的内容可能无法评阅。';
 const VERDICT_NAMES={RIGHT:'对',WRONG:'错',BLANK:'空白',MULTI:'多涂',REVIEW:'待复核',OK:'已涂'};
 const PROVIDERS={
   deepseek:{label:'DeepSeek（视觉）',url:'https://api.deepseek.com/chat/completions',models:['deepseek-v4-flash-vision-exp'],keyUrl:'platform.deepseek.com'},
@@ -496,16 +495,16 @@ function layoutTemplate(tpl){
   const reg={x:regX,y:33,colW:colW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
     numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   const pages=[];
-  const contentTop=94, contentBottom=h-36;
+  /* 续页顶部只留标题下方必要间距；底部留出页脚与定位点空间（内容最深到 h-19，页脚在 h-14.5），最大化利用纸面 */
+  const contentTop=94, contentTopCont=31, contentBottom=h-19;
 
   const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
     return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&!infoHide)?{x:M,y:33,w:44,h:54.6}:null,
-      notes:(pi===0)?{x:M,y:h-35,w:contentW,h:18}:null,
       reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,anchors:anchors,footer:{n:pi+1,m:0}};
   }
-  /* 无考号区页面顶部从 38mm 开始（标题下方），避免大片空白；首页 94mm */
-  const pageTopFor=function(pi){return (pi===0||regEvery)?contentTop:38};
+  /* 无考号区页面顶部从 31mm 开始（标题下方留出组标签空间）；首页 94mm */
+  const pageTopFor=function(pi){return (pi===0||regEvery)?contentTop:contentTopCont};
   let pg=newPage(0); pages.push(pg);
   let curY=pageTopFor(0);
   function pageBreak(need){ if(curY+need<=contentBottom)return; pg=newPage(pages.length); pages.push(pg); curY=pageTopFor(pages.length-1); }
@@ -556,21 +555,21 @@ function layoutTemplate(tpl){
     const rowH=(type==='grid-cn')?(Math.min(8,166/cols)+1.2):(type==='grid-en')?5:8;
     const headH=(type==='grid-cn'&&sub.titleLine)?13:0;
     const totalRows=(type==='grid-cn'&&sub.count)?Math.max(1,Math.ceil(sub.count/cols)):Math.max(1,sub.rows||3);
-    const fullMax=Math.max(1,Math.floor((contentBottom-((regEvery)?contentTop:38)-13)/rowH));
     /* 分页：每页尽量填满（首页按剩余空间，之后每页按整页容量，不做均衡拆分） */
     let remaining=totalRows, part=0, partRowStart=0;
     /* 主观题默认题号按“清单中第几道主观题”编号，避免多道未命名主观题互相撞号 */
     const subjQno=sub.qno||('主观题'+(si+1));
     while(remaining>0){
-      const avail=contentBottom-curY-13;
+      /* 可用行高空间 = 页底 contentBottom − 框顶(curY+7) − 底部内边距6 − 首部标题栏（仅首片），保证框底不越界 */
+      const partHead=(part===0)?headH:0;
+      const avail=contentBottom-(curY+7)-6-partHead;
       let take;
       if(avail>=rowH){
         take=Math.min(remaining,Math.floor(avail/rowH));
       }else{
         forcePage();
-        take=Math.min(remaining,fullMax);
+        take=Math.min(remaining,Math.max(1,Math.floor((contentBottom-(contentTopCont+7)-6)/rowH)));
       }
-      const partHead=(part===0)?headH:0;
       const boxH=take*rowH+6+partHead;
       const sx=M+2, sw=contentW-4, sy=curY+7;
       pg.subjective.push({qno:subjQno,score:sub.score||10,type:type,rows:take,rowH:rowH,
@@ -643,22 +642,6 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       ctx.beginPath();ctx.moveTo(px(r.x+16),px(r.y+rd[1]+3.4));ctx.lineTo(px(r.x+r.w-3.5),px(r.y+rd[1]+3.4));
       ctx.lineWidth=Math.max(0.7,px(0.28));ctx.strokeStyle='#555';ctx.stroke();
     });
-  }
-  /* 注意事项 */
-  if(page.notes){
-    const r=page.notes;
-    ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
-    ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
-    ctx.textAlign='left';ctx.font=Math.max(6,Math.round(px(2.2)))+'px "Microsoft YaHei",sans-serif';
-    ctx.fillStyle='#333';
-    let y=r.y+5;
-    const full=NOTE_TEXT;
-    let line='',li=0;
-    for(let i=0;i<full.length;i++){
-      if((line.length+1)*2.2>r.w-5&&line){ctx.fillText(line,px(r.x+2.5),px(y));y+=3.2;if(y>r.y+r.h-2)break;line='';}
-      line+=full[i];
-    }
-    if(line)ctx.fillText(line,px(r.x+2.5),px(y));
   }
   /* 考号区（仅首页；如需每页可开启模板选项） */
   const reg=page.reg;
