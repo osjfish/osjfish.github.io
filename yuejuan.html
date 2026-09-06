@@ -1090,7 +1090,9 @@ async function pdfToCanvases(file,maxLong){
   for(let i=1;i<=doc.numPages;i++){
     const pg=await doc.getPage(i);
     const vp=pg.getViewport({scale:1});
-    const scale=Math.min(1,maxLong/Math.max(vp.width,vp.height));
+    /* PDF 是矢量内容：必须按目标分辨率渲染（A4 在 72dpi 下仅 595×842pt），
+       不能像位图一样封顶在 1——否则整份 PDF 永远按 72dpi 输出，切割图模糊、锚点识别退化 */
+    const scale=maxLong/Math.max(vp.width,vp.height);
     const vp2=pg.getViewport({scale:scale});
     const cv=document.createElement('canvas');cv.width=Math.round(vp2.width);cv.height=Math.round(vp2.height);
     const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
