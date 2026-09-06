@@ -26,7 +26,7 @@ main_js = re.sub(r"var DICT_WORDS = \[.*?\];\s*", "", main_js, flags=re.S)
 main_js = re.sub(r"var DICT_NOTES = \[.*?\];\s*", "", main_js, flags=re.S)
 
 H = "现代 \u00b7 阿城"
-TITLE = "溜 索"
+TITLE = "溜索"
 
 # ---------- 背景区 ----------
 LEAD = [
