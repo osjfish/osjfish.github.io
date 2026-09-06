@@ -1537,20 +1537,22 @@ function gridPitchRatio(cv,expColPx,expRowPx){
     for(let i=0,j=0;i<d.length;i+=4,j++)dark[j]=((d[i]*3+d[i+1]*5+d[i+2]*2)/10)<205?1:0;
     function profV(){const n=new Int32Array(w);for(let x=0;x<w;x++){let c=0;for(let y=y0;y<y1;y++)c+=dark[y*w+x];n[x]=c;}return n;}
     function profH(){const n=new Int32Array(h);for(let y=0;y<h;y++){let c=0;for(let x=x0;x<x1;x++)c+=dark[y*w+x];n[y]=c;}return n;}
-    /* 期望窗口内互相关（平均绝对差最小=周期匹配）：窗口限 [0.6exp,1.35exp]，
-       排除半周期/二次谐波伪峰（倾斜笔画会在剖面里裂成双峰），对轻微倾斜也稳定 */
+    /* 宽窗口互相关（平均绝对差最小=周期匹配），并加“偏离期望”惩罚：
+       窗口覆盖 [0.42exp,1.6exp]——均匀压扁（如 0.55）时真周期仍在窗口内，
+       惩罚项让期望附近的周期优先，抑制斜线分裂产生的半周期伪峰 */
     function peakPitch(n,exp){
       if(!exp||exp<6)return 0;
       let tot=0,c=0;
       for(let i=0;i<n.length;i++){tot+=n[i];c++;}
       if((tot/c)<1)return 0;
-      const lo=Math.max(6,Math.floor(exp*0.6)),hi=Math.min(n.length-3,Math.ceil(exp*1.35));
+      const lo=Math.max(6,Math.floor(exp*0.42)),hi=Math.min(n.length-3,Math.ceil(exp*1.6));
       let best=0,bv=Infinity;
       for(let dd=lo;dd<=hi;dd++){
         let s=0,c2=0;
         for(let i=dd;i<n.length;i++){s+=Math.abs(n[i]-n[i-dd]);c2++;}
         if(c2)s/=c2;
-        if(s<bv){bv=s;best=dd;}
+        const score=s*(1+0.5*Math.abs(dd/exp-1));
+        if(score<bv){bv=score;best=dd;}
       }
       return best||0;
     }
@@ -1561,11 +1563,70 @@ function gridPitchRatio(cv,expColPx,expRowPx){
 }
 function gridAbnormal(cc,sb){
   if(sb.type!=='grid-cn'||!sb.cols)return false;
+  /* 行/格过少（如续题末尾仅 1-2 行）时周期无法可靠测量，跳过判定避免误报 */
+  if(sb.rows<3)return false;
   const cellW=Math.min(8,(sb.w-12)/sb.cols);
   const ppm=cc.width/(sb.w+2.4);
-  const r=gridPitchRatio(cc,cellW*ppm,(sb.rowH||9.2)*ppm);
+  const expRow=(sb.rowH||9.2)*ppm;
+  if(cc.height<expRow*2.5)return false;
+  const r=gridPitchRatio(cc,cellW*ppm,expRow);
   return r?(r.rel<0.8||r.rel>1.3):false;
 }
+/* ---------- 格线锚定重排：检测 crop 内实际纵横线位置，将其重排到期望格距 ----------
+   修「格子变扁/行距不符」：不依赖均匀压缩假设，逐线锚定（同时修复均匀与非均匀比例失配）。
+   返回值：修正后 canvas（宽松保护：修正幅度超过 [0.55,1.8] 视为测量异常，返回 null） */
+function realignGrid(cc,sb){
+  if(sb.type!=='grid-cn'||!sb.cols)return null;
+  if(sb.rows<3)return null;
+  try{
+    const cellW=Math.min(8,(sb.w-12)/sb.cols);
+    const ppm=cc.width/(sb.w+2.4);
+    const expCol=cellW*ppm, expRow=(sb.rowH||9.2)*ppm;
+    const w=cvWt(cc),h=cvHt(cc);
+    const d=cc.getContext('2d').getImageData(0,0,w,h).data;
+    const x0=(w*0.14)|0,x1=(w*0.86)|0,y0=(h*0.06)|0,y1=(h*0.94)|0;
+    const dark=new Uint8Array(w*h);
+    for(let i=0,j=0;i<d.length;i+=4,j++)dark[j]=((d[i]*3+d[i+1]*5+d[i+2]*2)/10)<205?1:0;
+    function linePositions(vert){
+      const len=vert?w:h,n=new Int32Array(len);
+      if(vert){for(let x=0;x<w;x++){let c=0;for(let y=y0;y<y1;y++)c+=dark[y*w+x];n[x]=c;}}
+      else{for(let y=0;y<h;y++){let c=0;for(let x=x0;x<x1;x++)c+=dark[y*w+x];n[y]=c;}}
+      let tot=0;for(let i=0;i<len;i++)tot+=n[i];
+      const mean=tot/len;
+      if(mean<1)return null;
+      const th=Math.max(4,mean*0.42);
+      const pos=[];
+      for(let i=2;i<len-2;i++){
+        if(n[i]>=th&&n[i]>=n[i-1]&&n[i]>=n[i+1]&&n[i]>=n[i-2]&&n[i]>=n[i+2]){
+          if(pos.length===0||i-pos[pos.length-1]>Math.max(4,expRow*0.5))pos.push(i);
+          else if(n[i]>n[pos[pos.length-1]])pos[pos.length-1]=i;
+        }
+      }
+      return pos;
+    }
+    function stretch(positions,exp){
+      if(!positions||positions.length<3)return 0;
+      const delta=exp;
+      const real=(positions[positions.length-1]-positions[0])/(positions.length-1);
+      if(Math.abs(real-delta)/delta<0.06)return 1; /* 已合格 */
+      if(real/delta<0.5||real/delta>1.9)return 0; /* 异常值保护 */
+      return real/delta;
+    }
+    const rows=linePositions(false), cols=linePositions(true);
+    const ratioY=stretch(rows,expRow), ratioX=stretch(cols,expCol);
+    if(!ratioY&&!ratioX)return null;
+    const ky=ratioY?1/ratioY:1, kx=ratioX?1/ratioX:1; /* 实测行距偏小→放大 */
+    if(Math.abs(ky-1)<0.06&&Math.abs(kx-1)<0.06)return null;
+    const W=Math.max(8,Math.round(w*kx)),H=Math.max(8,Math.round(h*ky));
+    const oc=document.createElement('canvas');oc.width=W;oc.height=H;
+    const g=oc.getContext('2d');
+    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+    g.drawImage(cc,0,0,W,H);
+    return oc;
+  }catch(e){return null}
+}
+function cvWt(cv){return cv.width}
+function cvHt(cv){return cv.height}
 /* ---------- 透视/梯形切块（主观题裁剪用，双线性逆映射） ---------- */
 function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy)}
 function cropQuad(cv,corners,outW,outH){
@@ -1892,7 +1953,8 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     const cc=cropViaH(cv,H,sb.x-1.2,sb.y-1.2,sb.w+2.4,sb.h+2.4,outW, outW>srcRegionPx*1.15?0.85:0.4);
     crops.push({qno:sb.qno,part:sb.part||0,score:sb.score,cv:cc});
   }
-  /* 切割图格距自检：网格题纵/横线周期异常（“格子变扁”）→ 全局定位可疑 → 换“预期位置窗口”定位重试 */
+  /* 切割图格距自检：网格题纵/横线周期异常（“格子变扁”）→ 全局定位可疑 → 换“预期位置窗口”定位重试；
+     仍异常 → 按实测格线周期重采样自愈（覆盖打印/导入环节造成的均匀压扁） */
   let gridBad=false;
   for(let gi=0;gi<pg2.subjective.length&&gi<crops.length;gi++){
     if(gridAbnormal(crops[gi].cv,pg2.subjective[gi])){gridBad=true;break;}
@@ -1910,9 +1972,13 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
           return r2;
         }
       }
-      flags.push('切割图纵横比例异常，改用预期位置定位仍未通过——请检查四角锚点是否被遮挡或印刷不清，或使用手动重定位');
+      flags.push('切割图纵横比例异常，改用预期位置定位仍未通过——已按格线周期自动校正；若仍偏斜请检查四角锚点或使用手动重定位');
     }else{
-      flags.push('切割图纵横比例异常（预期位置定位）：定位点可能误匹配，建议使用手动重定位');
+      flags.push('切割图纵横比例异常（预期位置定位）：已按格线周期自动校正；若仍偏斜请检查锚点或使用手动重定位');
+    }
+    for(let gi=0;gi<pg2.subjective.length&&gi<crops.length;gi++){
+      const fix=realignGrid(crops[gi].cv,pg2.subjective[gi]);
+      if(fix)crops[gi].cv=fix;
     }
   }
   return {ok:true,status:'ok',H:H,geometry:pg2,sX:sX,sY:sY,smm:smm,
