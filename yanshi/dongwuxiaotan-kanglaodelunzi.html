@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《动物笑谈》康拉德·劳伦兹</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  .acc-sub{font-family:var(--font-kai);font-weight:700;border-left:3px solid #b8934a;padding-left:10px;margin:14px 0 6px;color:var(--red-deep);letter-spacing:2px}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">奥地利·康拉德·劳伦兹</div>
+  <h1 class="hero-title">动物笑谈</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+    <p>康拉德·劳伦兹的《动物笑谈》是一篇幽默而睿智的科普散文。文章以作者亲身经历的几个“妙事”为线索：学母水鸭叫被人当成疯子、鹦鹉可可飞到肩上啄耳朵、可可送树皮“礼物”、可可啄老人耳朵开玩笑。在令人捧腹的故事背后，是一位动物行为学家对生命的细致观察和深刻理解。</p>
+    <p>文章的深刻之处在于：它用幽默的笔法写出了科学研究的真谛——要真正了解动物，就必须放下人的尊严，以平等的姿态去观察和体验。“逗笑的主角常常不是动物，而是观察者自己”，这句话既是自嘲，也是对科学精神的最好诠释。动物不是没有感情的机器，它们也有喜怒哀乐，也有自己的表达方式。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>康拉德·劳伦兹（1903—1989），奥地利动物行为学家、科普作家，现代动物行为学的创始人之一。1973年与廷伯根、弗里希共同获得诺贝尔生理学或医学奖。他长期研究动物的本能行为、印记现象和攻击行为，代表作有《所罗门王的指环》《攻击与人性》《狗的家世》等。</p>
+    <p style="margin-top:10px;color:var(--ink2)">劳伦兹不仅是一位科学家，也是一位优秀的科普作家。他善于用幽默风趣的笔触，将深奥的动物行为学知识写成引人入胜的故事。《动物笑谈》选自《所罗门王的指环》，这本书是他最著名的科普作品，以生动的故事和深刻的洞察，向读者展示了动物世界的奥秘。劳伦兹的写作风格：幽默而不低俗，科学而不枯燥，在娓娓而谈中传递知识和思想。</p>
+  </div>
+  <div class="box">
+    <h3>写作背景</h3>
+    <p>学科背景：20世纪上半叶，动物行为学（Ethology）作为一门独立学科逐渐形成。劳伦兹是这一学科的奠基人之一，他提出的“印记”（Imprinting）理论——即某些动物在出生后极短的关键期内会对第一次看到的移动物体产生依恋——是动物行为学的经典理论。《动物笑谈》中关于水鸭子的实验，正是印记研究的一部分。</p>
+    <p style="margin-top:8px">艾顿堡：文章中提到的“艾顿堡”（Altenberg）是劳伦兹在奥地利的研究站所在地，位于维也纳附近。劳伦兹在这里建立了动物行为研究所，长期观察和研究水鸭、雁鹅、鹦鹉等动物。当地居民对这位“疯子科学家”的种种“怪诞”行为早已习以为常。</p>
+    <p style="margin-top:8px">科普理念：劳伦兹认为，科学研究不应该是冷冰冰的，而应该充满对生命的热爱和尊重。他写科普文章的目的，不仅是传播知识，更是改变人们对动物的态度——从“利用和支配”转变为“理解和尊重”。《动物笑谈》正是这一理念的体现：在笑声中，读者不知不觉地接受了科学的动物观。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>七上-17-《动物笑谈》诵读</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1Ho4y1U7NA&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="七上-17-《动物笑谈》诵读"></iframe>
+        <a href="https://www.bilibili.com/video/BV1Ho4y1U7NA" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>      <div class="media">
+        <h4>洛伦兹印刻现象</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1hw4m1m7qj&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="洛伦兹印刻现象"></iframe>
+        <a href="https://www.bilibili.com/video/BV1hw4m1m7qj" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 词语 · 手法</span></div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+    <div class="pl">我很少笑话动物，有时笑，也是因为我发现动物的某些行为，实在和人的行为太相像了。</div>
+    <div class="pl">在研究高等动物的行为时，常常会发生一些妙事，不过逗笑的主角常常不是动物，而是观察者自己。</div>
+    <div class="pl">他们在和有高度智慧的鸟或哺乳动物打交道的时候，常常需要不顾自己的尊严，所以，实在不能嗔怪有些外行人批评：研究动物行为的科学家实验的方法怪诞不经。</div>
+    <div class="pl">如果不是因为我出了名的无害于人，大概老早就给关进疯人院了。等我说过一个小故事之后，你就明白为什么艾顿堡的居民都把我当疯子了。</div>
+    <div class="pl">有一段时期我正在做有关水鸭子的实验，想要解释存在我心中已久的疑问：为什么刚从卵里孵出来的小雁鹅，一出壳就会紧紧地跟着母雁鹅走，而刚出壳的小水鸭，却不会跟着母水鸭走？</div>
+    <div class="pl">为了探求这个答案，我索性做了一个实验。我从一窝小水鸭刚出壳的时候起，就代替了母水鸭的位置，我学着母水鸭的叫声，不停地唤着它们。</div>
+    <div class="pl">那些小水鸭倒是一点也不怕我，它们总是很信任地望着我，并且争先恐后地跑到我身边来。</div>
+    <div class="pl">有一次，我带着这群小水鸭在园里青青的草地上走，忽然，我看见远远的草地上有一群人，他们都在那里看着我。原来我刚才一直是在那里学母水鸭叫，而且叫得非常专心，竟没有注意到周围的情况。那些人大概以为我是个疯子吧！</div>
+    <div class="pl">还有一次，我在园里的蔓草中，忽然看见一只大鹦鹉，它正在那里用嘴啄着一朵花。我悄悄地走近去，想要仔细看看它在做什么。那只鹦鹉忽然抬起头来，看见了我，它立刻就飞到我的肩上，并且用嘴轻轻地啄着我的耳朵。</div>
+    <div class="pl">我吓了一跳，因为这只鹦鹉并不是我养的，我从来没有见过它。后来我才知道，这只鹦鹉是我邻居养的，它的名字叫“可可”。</div>
+    <div class="pl">可可和我渐渐熟了，它常常飞到我身边来。有一天，我正在屋里工作，忽然听见窗外有一阵奇怪的声音。我走到窗前一看，原来是可可站在窗外的树上，它正在那里用嘴啄着树皮，而且啄得非常用力。</div>
+    <div class="pl">我想，它大概是在找虫子吃吧。可是，过了一会儿，我发现它并不是在找虫子，而是在那里把树皮一块一块地啄下来，然后又用嘴把它们衔到一起。我觉得很奇怪，就打开窗户，想要看看它到底在做什么。</div>
+    <div class="pl">可可看见我打开窗户，就飞到我的肩上，然后又飞到屋里，把嘴里衔着的树皮放在我的桌子上。我这才明白，原来它是在给我送礼物呢！</div>
+    <div class="pl">还有一次，我带着可可到园里去散步。我走在前面，可可跟在后面。忽然，可可飞到前面去了，我以为它是要飞到树上去。可是，它并没有飞到树上去，而是飞到了一个正在园里工作的老人的肩上。</div>
+    <div class="pl">那个老人吓了一跳，想要把它赶走。可是，可可不但不走，反而用嘴轻轻地啄着老人的耳朵，好像在和他开玩笑似的。</div>
+    <div class="pl">我赶紧走过去，把可可叫了回来。那个老人看着我，又看看可可，脸上露出了非常奇怪的表情。</div>
+    <div class="pl">这些趣事，都是我在研究动物行为的时候遇到的。我之所以把这些故事写出来，并不是为了逗笑，而是因为我觉得，这些故事可以帮助我们更好地了解动物的行为。</div>
+    <div class="pl">动物并不是没有感情的机器，它们也有自己的喜怒哀乐，也有自己的表达方式。我们只有用科学的方法，仔细地观察和研究它们，才能真正地了解它们。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+      <div class="part-head"><span class="p-num">第一部分</span><h3>开篇立论 · 逗笑的是观察者</h3><span class="range">第 1–2 段</span></div>
+      <div class="part-overview">以议论开篇：研究动物行为时常发生妙事，逗笑的主角常常不是动物而是观察者自己。科学家的实验方法怪诞不经，作者自嘲若不是出了名的无害，早被关进疯人院。</div>
+      <div class="verse" id="l1" data-i="0">
+        <div class="v-top"><span class="v-no">1</span><div class="v-line">我很少<span class="anno-word" data-note="这里指嘲笑、取笑">笑话</span>动物，有时笑，也是因为我发现动物的某些行为，实在和人的行为太<span class="anno-word" data-note="彼此有相同点或类似之处">相像</span>了。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">“我”很少笑话动物，有时笑是因为发现动物的某些行为和人的行为太相像。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>开篇点题，“很少笑话动物”说明作者对动物的尊重——不是嘲笑，而是理解。“和人的行为太相像了”点明文章的核心发现：动物的行为中有人性的影子。这句话为全文奠定了“平等看待动物”的基调。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l2" data-i="1">
+        <div class="v-top"><span class="v-no">2</span><div class="v-line">在研究<span class="anno-word" data-note="这里指鸟和哺乳动物等具有较高智慧的动物">高等动物</span>的行为时，常常会发生一些<span class="anno-word" data-note="有趣、可笑的事">妙事</span>，不过<span class="anno-word" data-note="引人发笑">逗笑</span>的主角常常不是动物，而是<span class="anno-word" data-note="这里指研究动物行为的科学家">观察者</span>自己。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">研究高等动物行为时常发生妙事，但逗笑的主角常常不是动物而是观察者自己。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“妙事”是全文的关键词，引出下文的故事。“逗笑的主角常常不是动物，而是观察者自己”，是全文的中心句——颠倒了人们的常识（通常以为动物是笑料），见出作者的自嘲和幽默。这句话也暗示了科学研究的真相：要了解动物，人必须放下身段，甚至做出“可笑”的事。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l3" data-i="2">
+        <div class="v-top"><span class="v-no">3</span><div class="v-line">他们在和有高度智慧的鸟或哺乳动物<span class="anno-word" data-note="交往、来往">打交道</span>的时候，常常需要不顾自己的<span class="anno-word" data-note="（zūn yán）可尊敬的身份或地位">尊严</span>，所以，实在不能<span class="anno-word" data-note="（chēn guài）对别人的言语或行动表示不满">嗔怪</span>有些<span class="anno-word" data-note="不了解某行业或专业的人">外行人</span>批评：研究动物行为的科学家实验的方法<span class="anno-word" data-note="（guài dàn bù jīng）言语奇怪荒唐，不合常理。怪诞，荒唐离奇；不经，不合常理">怪诞不经</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">研究者和有高度智慧的鸟或哺乳动物打交道时常需不顾尊严，所以不能嗔怪外行人批评科学家实验方法怪诞不经。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“不顾自己的尊严”写出科学研究的代价——为了观察动物，人必须放弃“人”的优越感。“嗔怪”“怪诞不经”是文言色彩的词语，增添了幽默的正式感。“外行人批评”与“科学家实验”形成对比，见出科学方法在常人眼中的“不可思议”。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l4" data-i="3">
+        <div class="v-top"><span class="v-no">4</span><div class="v-line">如果不是因为我出了名的<span class="anno-word" data-note="对人没有害处">无害于人</span>，大概老早就给关进<span class="anno-word" data-note="（fēng rén yuàn）专门收容精神病人的医院">疯人院</span>了。等我说过一个小故事之后，你就明白为什么<span class="anno-word" data-note="（Altenberg）奥地利地名，劳伦兹的研究站所在地">艾顿堡</span>的<span class="anno-word" data-note="住在某一地方的人">居民</span>都把我当疯子了。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">如果不是因为“我”出了名的无害于人，大概早被关进疯人院了；等“我”讲个小故事，你就明白为什么艾顿堡居民把“我”当疯子。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“出了名的无害于人”是自嘲——意思是“我”虽然行为古怪，但不会伤害人。“关进疯人院”“当疯子”是夸张的幽默，写出科学家的行为在常人眼中的“疯狂”。“等我说过一个小故事之后”自然引出下文，设置悬念，吸引读者。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第二部分</span><h3>水鸭子实验 · 学母鸭叫被当疯子</h3><span class="range">第 3–4 段</span></div>
+      <div class="part-overview">写作者做水鸭子实验的经过：为了解小水鸭为什么不跟母水鸭走，作者代替母水鸭的位置，学母水鸭叫，带着小水鸭在草地上走，被远处的人当成疯子。</div>
+      <div class="verse" id="l5" data-i="4">
+        <div class="v-top"><span class="v-no">5</span><div class="v-line">有一段时期我正在做有关<span class="anno-word" data-note="即野鸭，一种水鸟">水鸭子</span>的<span class="anno-word" data-note="（shí yàn）为了检验某种科学理论或假设而进行的操作">实验</span>，想要解释存在我心中已久的疑问：为什么刚从卵里<span class="anno-word" data-note="（fū）鸟类用体温使卵内的胚胎发育成雏鸟">孵</span>出来的小<span class="anno-word" data-note="（yàn é）一种体型较大的鹅">雁鹅</span>，一<span class="anno-word" data-note="小动物破壳而出">出壳</span>就会紧紧地跟着母<span class="anno-word" data-note="（yàn é）一种体型较大的鹅">雁鹅</span>走，而刚<span class="anno-word" data-note="小动物破壳而出">出壳</span>的小水鸭，却不会跟着母水鸭走？</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">“我”曾做水鸭子实验，想解释心中已久的疑问：为什么小雁鹅一出壳就紧跟母雁鹅，而小水鸭却不跟母水鸭走？</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>交代实验的背景和目的。“存在我心中已久的疑问”写出科学家的好奇心——问题是科学研究的起点。“小雁鹅”与“小水鸭”的对比，提出了一个具体的科学问题。这个问题正是“印记”理论的研究对象：不同鸟类的印记机制可能不同。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l6" data-i="5">
+        <div class="v-top"><span class="v-no">6</span><div class="v-line">为了<span class="anno-word" data-note="（tàn qiú）探索寻求">探求</span>这个答案，我<span class="anno-word" data-note="表示直截了当、干脆">索性</span>做了一个实验。我从一窝小水鸭刚出壳的时候起，就<span class="anno-word" data-note="以甲换乙，起乙的作用">代替</span>了母水鸭的位置，我学着母水鸭的叫声，不停地<span class="anno-word" data-note="呼叫、呼唤">唤</span>着它们。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">为了探求答案，“我”索性做实验：从一窝小水鸭刚出壳起就代替母水鸭的位置，学母水鸭叫不停地唤它们。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“索性”写出作者的果断——为了科学，毫不犹豫地“扮演”母水鸭。“代替了母水鸭的位置”是实验的关键：在小水鸭出壳的关键期内，让它们把“我”当成“母亲”。“学着母水鸭的叫声，不停地唤着它们”，写出实验的具体做法，画面感极强，也为下文“被人当疯子”做铺垫。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l7" data-i="6">
+        <div class="v-top"><span class="v-no">7</span><div class="v-line">那些小水鸭倒是一点也不怕我，它们总是很<span class="anno-word" data-note="（xìn rèn）相信而敢于托付">信任</span>地望着我，并且<span class="anno-word" data-note="争着向前，唯恐落后">争先恐后</span>地跑到我身边来。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">小水鸭一点不怕“我”，总是信任地望着“我”，争先恐后跑到“我”身边来。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>实验成功了！“一点也不怕”“信任地望着”“争先恐后”，写出小水鸭对“我”的依恋——它们真的把“我”当成了母亲。“争先恐后”生动写出小水鸭的活泼和急切。这段描写既证明了印记理论，又充满了温情和趣味。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l8" data-i="7">
+        <div class="v-top"><span class="v-no">8</span><div class="v-line">有一次，我带着这群小水鸭在园里<span class="anno-word" data-note="形容草色翠绿">青青</span>的草地上走，忽然，我看见远远的草地上有一群人，他们都在那里看着我。原来我刚才一直是在那里学母水鸭叫，而且叫得非常<span class="anno-word" data-note="（zhuān xīn）集中注意力">专心</span>，<span class="anno-word" data-note="表示出乎意料、居然">竟</span>没有注意到周围的情况。那些人大概以为我是个<span class="anno-word" data-note="精神失常的人（这里是自嘲）">疯子</span>吧！</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">一次“我”带小水鸭在草地上走，忽然看见远处一群人在看“我”；原来“我”一直在学母水鸭叫，叫得太专心没注意周围，那些人大概以为“我”是疯子。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>这是全文最经典的幽默场景。“青青的草地”与“学母水鸭叫”形成荒诞的对比。“叫得非常专心，竟没有注意到周围的情况”，写出科学家的专注——这种“忘我”的精神在常人眼中就是“疯”。“那些人大概以为我是个疯子吧！”以推测的语气收尾，幽默而无奈，呼应前文“艾顿堡的居民都把我当疯子”。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第三部分</span><h3>鹦鹉可可 · 啄耳朵与送礼物</h3><span class="range">第 5–6 段</span></div>
+      <div class="part-overview">写鹦鹉可可的故事：可可飞到作者肩上啄耳朵；后来可可啄树皮放在作者桌上，原来是在送“礼物”。</div>
+      <div class="verse" id="l9" data-i="8">
+        <div class="v-top"><span class="v-no">9</span><div class="v-line">还有一次，我在园里的<span class="anno-word" data-note="（màn cǎo）爬蔓的草">蔓草</span>中，忽然看见一只大<span class="anno-word" data-note="（yīng wǔ）一种能模仿人说话的鸟">鹦鹉</span>，它正在那里用嘴<span class="anno-word" data-note="（zhuó）鸟类用嘴取食物或叩东西">啄</span>着一朵花。我<span class="anno-word" data-note="（qiāo qiāo de）声音很低、不声不响">悄悄地</span>走近去，想要仔细看看它在做什么。那只<span class="anno-word" data-note="（yīng wǔ）一种能模仿人说话的鸟">鹦鹉</span>忽然抬起头来，看见了我，它立刻就飞到我的<span class="anno-word" data-note="肩膀上面">肩上</span>，并且用嘴轻轻地<span class="anno-word" data-note="（zhuó）鸟类用嘴取食物或叩东西">啄</span>着我的耳朵。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">一次“我”在园里蔓草中看见一只大鹦鹉在啄花，悄悄走近想看仔细；鹦鹉忽然抬头看见“我”，立刻飞到“我”肩上，用嘴轻轻啄“我”的耳朵。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“蔓草”“大鹦鹉”“啄着一朵花”，画面生动。“悄悄地走近”写出作者的谨慎——怕惊飞了鹦鹉。但鹦鹉的反应出人意料：“立刻就飞到我的肩上”“轻轻地啄着我的耳朵”。“轻轻地”写出鹦鹉的亲昵——它不是攻击，而是打招呼。这个场景既意外又温馨。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l10" data-i="9">
+        <div class="v-top"><span class="v-no">10</span><div class="v-line">我<span class="anno-word" data-note="形容受到意外的惊吓">吓了一跳</span>，因为这只鹦鹉并不是我养的，我从来没有见过它。后来我才知道，这只鹦鹉是我<span class="anno-word" data-note="住家接近的人或人家">邻居</span>养的，它的<span class="anno-word" data-note="人或事物的称谓">名字</span>叫“可可”。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">“我”吓了一跳，因为这鹦鹉不是“我”养的，从没见过；后来才知道是邻居养的，名字叫可可。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“吓了一跳”写出作者的意外——一只陌生的鹦鹉竟然如此亲昵。“并不是我养的，我从来没有见过它”强调了鹦鹉的“自来熟”，也为下文可可的种种“趣事”做铺垫。“可可”这个名字亲切可爱，与鹦鹉的性格相符。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l11" data-i="10">
+        <div class="v-top"><span class="v-no">11</span><div class="v-line">可可和我<span class="anno-word" data-note="（jiàn jiàn）逐步、慢慢地">渐渐</span><span class="anno-word" data-note="熟悉、亲近">熟</span>了，它常常飞到我身边来。有一天，我正在屋里工作，忽然听见窗外有一阵奇怪的声音。我走到窗前一看，原来是可可站在窗外的树上，它正在那里用嘴啄着<span class="anno-word" data-note="树的表皮">树皮</span>，而且啄得非常<span class="anno-word" data-note="（yòng lì）使劲、花费精力">用力</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">可可和“我”渐渐熟了，常飞到身边来；一天“我”在屋里工作，忽然听见窗外奇怪声音，走到窗前看，原来是可可站在窗外树上用力啄树皮。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“渐渐熟了”写出关系的发展。“奇怪的声音”设置悬念，吸引读者。“站在窗外的树上”“啄着树皮”“非常用力”，写出可可的专注——它在做一件“重要”的事。这段描写为下文“送礼物”的揭秘做铺垫。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l12" data-i="11">
+        <div class="v-top"><span class="v-no">12</span><div class="v-line">我想，它大概是在找<span class="anno-word" data-note="昆虫或类似昆虫的小动物">虫子</span>吃吧。可是，过了一会儿，我发现它并不是在找<span class="anno-word" data-note="昆虫或类似昆虫的小动物">虫子</span>，而是在那里把树皮一块一块地啄下来，然后又用嘴把它们<span class="anno-word" data-note="（xián）用嘴含着">衔</span>到一起。我觉得很奇怪，就打开窗户，想要看看它<span class="anno-word" data-note="（dào dǐ）究竟、表示深究">到底</span>在做什么。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">“我”想它大概在找虫子吃；但过了一会儿发现它不是找虫子，而是把树皮一块一块啄下来衔到一起；“我”觉得奇怪，打开窗户想看它到底在做什么。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“大概是在找虫子吃吧”是作者的推测，“可是”转折，发现事实并非如此。“一块一块地啄下来”“衔到一起”，写出可可的“工作”有条不紊。“我觉得很奇怪”“想要看看它到底在做什么”，写出作者的好奇心，也推动情节发展。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l13" data-i="12">
+        <div class="v-top"><span class="v-no">13</span><div class="v-line">可可看见我打开<span class="anno-word" data-note="（chuāng hù）墙上通气透光的装置">窗户</span>，就飞到我的肩上，然后又飞到屋里，把嘴里衔着的树皮放在我的<span class="anno-word" data-note="（zhuō zi）家具，上面可以放东西">桌子</span>上。我这才明白，原来它是在给我送<span class="anno-word" data-note="为了表示尊敬或庆贺而赠送的物品">礼物</span>呢！</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">可可看见“我”开窗，就飞到“我”肩上，又飞到屋里，把嘴里的树皮放在“我”桌上；“我”这才明白原来它是在给“我”送礼物。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>谜底揭晓！“飞到我的肩上”“飞到屋里”“放在我的桌子上”，一连串动作写出可可的“送礼”过程。“我这才明白”写出作者的恍然大悟。“原来它是在给我送礼物呢！”感叹句表达了作者的惊喜和感动——一只鹦鹉竟然懂得用“礼物”表达感情，这正是文章要说明的：动物也有情感和智慧。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第四部分</span><h3>可可开玩笑 · 啄老人耳朵</h3><span class="range">第 7 段</span></div>
+      <div class="part-overview">写可可和作者散步时，飞到正在工作的老人肩上啄耳朵开玩笑，老人露出奇怪的表情。</div>
+      <div class="verse" id="l14" data-i="13">
+        <div class="v-top"><span class="v-no">14</span><div class="v-line">还有一次，我带着可可到园里去<span class="anno-word" data-note="（sàn bù）随便走走（作为休息或锻炼）">散步</span>。我走在前面，可可跟在后面。忽然，可可飞到前面去了，我<span class="anno-word" data-note="认为、对人或事物确定某种看法">以为</span>它是要飞到树上去。可是，它并没有飞到树上去，而是飞到了一个正在园里<span class="anno-word" data-note="（gōng zuò）从事体力或脑力劳动">工作</span>的<span class="anno-word" data-note="（lǎo rén）上了年纪的人">老人</span>的肩上。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">一次“我”带可可散步，“我”走前面可可跟后面；忽然可可飞到前面，“我”以为它要飞到树上，可它没有，而是飞到一个正在园里工作的老人肩上。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“散步”写出人和鸟的亲密关系。“我以为它是要飞到树上去”是作者的推测，“可是”转折，可可的行为出人意料。“飞到了一个正在园里工作的老人的肩上”，这个画面既滑稽又温馨——可可把对作者的亲昵“推广”到了陌生人身上。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l15" data-i="14">
+        <div class="v-top"><span class="v-no">15</span><div class="v-line">那个老人吓了一跳，想要把它<span class="anno-word" data-note="强迫离开">赶走</span>。可是，可可不但不走，反而用嘴轻轻地啄着老人的耳朵，好像在和他<span class="anno-word" data-note="（kāi wán xiào）用言语或行动戏弄人">开玩笑</span><span class="anno-word" data-note="（shì de）表示跟某种事物或情况相似">似的</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">老人吓了一跳想赶走可可，可可可不但不走，反而用嘴轻轻啄老人的耳朵，好像在和他开玩笑。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“吓了一跳”“想要把它赶走”写出老人的反应——被一只陌生鹦鹉吓到了。“不但不走，反而”递进，写出可可的“大胆”和“顽皮”。“轻轻地啄着老人的耳朵”与前文啄作者耳朵的动作一样，说明可可用这种方式表达亲昵。“好像在和他开玩笑似的”，作者用“好像”表示推测，但读者都能感受到可可的“幽默感”。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l16" data-i="15">
+        <div class="v-top"><span class="v-no">16</span><div class="v-line">我<span class="anno-word" data-note="（gǎn jǐn）抓紧时机、毫不拖延">赶紧</span>走过去，把可可叫了回来。那个老人看着我，又看看可可，脸上<span class="anno-word" data-note="（lù chū）显现出来">露出</span>了非常<span class="anno-word" data-note="（qí guài）跟平常的不一样、感到出乎意料">奇怪</span>的表情。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">“我”赶紧走过去把可可叫回来；老人看看“我”又看看可可，脸上露出非常奇怪的表情。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“赶紧”写出作者的着急——怕可可吓到老人。“叫了回来”说明可可听作者的话，关系亲密。“看着我，又看看可可”，两个“看”写出老人的困惑。“非常奇怪的表情”含蓄而幽默——老人大概在想：这个人怎么和一只鹦鹉这么熟？这只鹦鹉怎么不怕人？留给读者想象的空间。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="part-head"><span class="p-num">第五部分</span><h3>结语 · 在笑声中了解动物</h3><span class="range">第 8 段</span></div>
+      <div class="part-overview">收束全文：写这些故事不是为了逗笑，而是为了帮助了解动物行为。动物不是没有感情的机器，它们有喜怒哀乐和表达方式，只有用科学方法仔细观察研究才能真正了解它们。</div>
+      <div class="verse" id="l17" data-i="16">
+        <div class="v-top"><span class="v-no">17</span><div class="v-line">这些<span class="anno-word" data-note="有趣的事">趣事</span>，都是我在研究动物行为的时候遇到的。我之所以把这些故事写出来，并不是为了<span class="anno-word" data-note="引人发笑">逗笑</span>，而是因为我觉得，这些故事可以帮助我们更好地<span class="anno-word" data-note="（liǎo jiě）知道得清楚">了解</span>动物的行为。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">这些趣事都是“我”研究动物行为时遇到的；“我”写这些故事不是为了逗笑，而是因为觉得它们可以帮助更好地了解动物行为。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“这些趣事”总结上文。“并不是为了逗笑，而是因为……”，以“不是……而是……”的句式点明写作目的——幽默只是手段，科普才是目的。“帮助我们更好地了解动物的行为”，点明文章的科普性质。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l18" data-i="17">
+        <div class="v-top"><span class="v-no">18</span><div class="v-line">动物并不是没有<span class="anno-word" data-note="（gǎn qíng）对外界刺激的比较强烈的心理反应">感情</span>的<span class="anno-word" data-note="（jī qì）由零件装成、能运转、能变换能量或产生有用功的装置">机器</span>，它们也有自己的<span class="anno-word" data-note="（xǐ nù āi lè）泛指各种不同的感情">喜怒哀乐</span>，也有自己的<span class="anno-word" data-note="将思想感情表现出来的方法和形式">表达方式</span>。我们只有用科学的方法，仔细地<span class="anno-word" data-note="（guān chá）仔细察看">观察</span>和研究它们，才能<span class="anno-word" data-note="（zhēn zhèng）实质跟名义完全相符">真正</span>地了解它们。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">动物不是没有感情的机器，它们有喜怒哀乐和表达方式；只有用科学方法仔细观察研究，才能真正了解它们。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>全文的主旨句。“并不是没有感情的机器”，否定了把动物视为“自动装置”的错误观点。“喜怒哀乐”将人的情感赋予动物，强调动物也有丰富的内心世界。“只有……才能……”的条件句式，强调科学方法的重要性——了解动物不能靠想象，必须靠观察和研究。这句话升华了全文的主题，从“趣事”上升到“科学观”和“生命观”。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">艺术 · 名句 · 主题</span></div>
+  <div class="box">
+    <h3>艺术特色</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">幽默笔法，自嘲精神</div>
+        <p>文章最突出的特色是幽默。作者善于用自嘲的笔法写科学研究中的“狼狈”：“如果不是因为我出了名的无害于人，大概老早就给关进疯人院了”“那些人大概以为我是个疯子吧”。这种幽默不是尖刻的讽刺，而是温和的自嘲，既写出了科学研究的艰辛，也体现了科学家的豁达和乐观。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">细节描写，生动传神</div>
+        <p>文章善于用细节描写刻画动物的行为：小水鸭“争先恐后地跑到我身边来”，可可“轻轻地啄着我的耳朵”“把嘴里衔着的树皮放在我的桌子上”。这些细节准确而生动，既写出了动物的习性，又充满了温情，使读者如见其形、如闻其声。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">悬念设置，引人入胜</div>
+        <p>文章多处设置悬念：“等我说过一个小故事之后，你就明白为什么艾顿堡的居民都把我当疯子了”；可可啄树皮时“我觉得很奇怪，就打开窗户，想要看看它到底在做什么”。悬念的设置使文章波澜起伏，吸引读者一步步读下去，在揭晓谜底时获得“恍然大悟”的乐趣。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">语言平实，寓庄于谐</div>
+        <p>文章语言平实自然，如话家常，没有华丽的辞藻和深奥的术语。但在平实的叙述中，蕴含着深刻的科学道理和生命关怀。“寓庄于谐”——在幽默的故事中传递严肃的科学知识，在笑声中引发读者对人与自然关系的思考。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>名句赏析</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">逗笑的主角常常不是动物，而是观察者自己。</div>
+        <p>这是全文的中心句，颠倒了人们的常识。通常人们以为动物是“笑料”，但作者告诉我们：在科学研究中，人为了了解动物，必须放下尊严，做出种种“怪诞”的行为，真正的“笑料”是人自己。这句话既是自嘲，也是对科学精神的赞颂——真正的科学家不怕被人笑话，只为追求真理。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">我这才明白，原来它是在给我送礼物呢！</div>
+        <p>这句话是可可故事的高潮和谜底。一只鹦鹉竟然懂得“送礼”，这超出了人们对动物的常规认知。“我这才明白”写出作者的恍然大悟，“原来”表示发现真相，感叹号表达了惊喜和感动。这个故事说明：动物也有情感，也懂得用行动表达感情，它们不是“没有感情的机器”。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">动物并不是没有感情的机器，它们也有自己的喜怒哀乐，也有自己的表达方式。</div>
+        <p>全文的主旨句。“并不是没有感情的机器”否定了笛卡尔以来“动物是自动装置”的机械论观点。“喜怒哀乐”将人的情感范畴赋予动物，强调动物内心世界的丰富性。这句话体现了劳伦兹的核心思想：动物和人一样，是有感情、有智慧的生命，应该得到尊重和理解。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">我们只有用科学的方法，仔细地观察和研究它们，才能真正地了解它们。</div>
+        <p>“只有……才能……”的条件句式，强调科学方法的重要性。了解动物不能靠想象和拟人化，必须靠系统的观察和实验。这句话既总结了全文的科学态度，也对读者提出了期望：用科学的眼光看待动物，用尊重的态度对待生命。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>《动物笑谈》通过作者在研究动物行为时遇到的几件趣事，表达了对动物的喜爱和尊重，揭示了“动物也有感情和智慧”的道理，呼吁人们用科学的方法观察和了解动物，与自然和谐相处。</p>
+    <p style="margin-top:10px">文章的深刻之处在于：它不仅写了动物的“可笑”行为，更写了人的“可笑”——人为了了解动物，必须放下“万物之灵”的架子，甚至做出被人当成疯子的事。这种“换位”的视角，打破了人类中心主义的偏见，建立了一种平等的生命观。在劳伦兹看来，人和动物不是主宰与被主宰的关系，而是可以相互理解、相互亲近的朋友。</p>
+    <p style="margin-top:10px">在人类中心主义仍然盛行的今天，《动物笑谈》这篇文章仍有强烈的现实意义。它提醒我们：动物不是供人取乐的“东西”，也不是没有感情的“机器”，它们和人一样，是有感情、有智慧、有尊严的生命。只有放下偏见，用科学的方法去了解它们，用尊重的态度去对待它们，人类才能真正与自然和谐相处。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">词语 · 用字 · 修辞 · 写法 · 常识</span></div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">嗔怪</span><span class="acc-d">（chēn guài）对别人的言语或行动表示不满。</span></div>
+      <div class="acc-item"><span class="acc-w">怪诞不经</span><span class="acc-d">（guài dàn bù jīng）言语奇怪荒唐，不合常理。</span></div>
+      <div class="acc-item"><span class="acc-w">无害于人</span><span class="acc-d">对人没有害处。</span></div>
+      <div class="acc-item"><span class="acc-w">疯人院</span><span class="acc-d">专门收容精神病人的医院。</span></div>
+      <div class="acc-item"><span class="acc-w">探求</span><span class="acc-d">（tàn qiú）探索寻求。</span></div>
+      <div class="acc-item"><span class="acc-w">索性</span><span class="acc-d">表示直截了当、干脆。</span></div>
+      <div class="acc-item"><span class="acc-w">代替</span><span class="acc-d">以甲换乙，起乙的作用。</span></div>
+      <div class="acc-item"><span class="acc-w">信任</span><span class="acc-d">（xìn rèn）相信而敢于托付。</span></div>
+      <div class="acc-item"><span class="acc-w">争先恐后</span><span class="acc-d">争着向前，唯恐落后。</span></div>
+      <div class="acc-item"><span class="acc-w">专心</span><span class="acc-d">（zhuān xīn）集中注意力。</span></div>
+      <div class="acc-item"><span class="acc-w">蔓草</span><span class="acc-d">（màn cǎo）爬蔓的草。</span></div>
+      <div class="acc-item"><span class="acc-w">鹦鹉</span><span class="acc-d">（yīng wǔ）一种能模仿人说话的鸟。</span></div>
+      <div class="acc-item"><span class="acc-w">悄悄地</span><span class="acc-d">（qiāo qiāo de）声音很低、不声不响。</span></div>
+      <div class="acc-item"><span class="acc-w">衔</span><span class="acc-d">（xián）用嘴含着。</span></div>
+      <div class="acc-item"><span class="acc-w">礼物</span><span class="acc-d">为了表示尊敬或庆贺而赠送的物品。</span></div>
+      <div class="acc-item"><span class="acc-w">散步</span><span class="acc-d">（sàn bù）随便走走（作为休息或锻炼）。</span></div>
+      <div class="acc-item"><span class="acc-w">开玩笑</span><span class="acc-d">（kāi wán xiào）用言语或行动戏弄人。</span></div>
+      <div class="acc-item"><span class="acc-w">喜怒哀乐</span><span class="acc-d">（xǐ nù āi lè）泛指各种不同的感情。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">嗔</span><span class="acc-d">读chēn，不读zhēn。“嗔怪”。</span></div>
+      <div class="acc-item"><span class="acc-w">诞</span><span class="acc-d">读dàn，不读xián。“怪诞不经”。</span></div>
+      <div class="acc-item"><span class="acc-w">孵</span><span class="acc-d">读fū，不读fú。“孵出来”。</span></div>
+      <div class="acc-item"><span class="acc-w">啄</span><span class="acc-d">读zhuó，不读zhú。鸟类用嘴取食物。</span></div>
+      <div class="acc-item"><span class="acc-w">鹦鹉</span><span class="acc-d">“鹦”读yīng，“鹉”读wǔ。</span></div>
+      <div class="acc-item"><span class="acc-w">衔</span><span class="acc-d">读xián，不读jiē。用嘴含着。</span></div>
+      <div class="acc-item"><span class="acc-w">蔓</span><span class="acc-d">多音字：蔓草（màn）/瓜蔓（wàn）/蔓菁（mán）。文中读màn。</span></div>
+      <div class="acc-item"><span class="acc-w">悄</span><span class="acc-d">多音字：悄悄（qiāo）/悄然（qiǎo）。文中“悄悄地”读qiāo。</span></div>
+      <div class="acc-item"><span class="acc-w">似</span><span class="acc-d">多音字：似的（shì）/相似（sì）。“好像……似的”中读shì。</span></div>
+      <div class="acc-item"><span class="acc-w">散</span><span class="acc-d">多音字：散步（sàn）/散文（sǎn）。文中读sàn。</span></div>
+      <div class="acc-item"><span class="acc-w">露</span><span class="acc-d">多音字：露出（lù）/露面（lòu）。“露出了非常奇怪的表情”中读lù。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>修辞方法</h3>
+      <div class="acc-item"><span class="acc-w">自嘲</span><span class="acc-d">“如果不是因为我出了名的无害于人，大概老早就给关进疯人院了”——以自嘲的笔法写出科学家的“怪诞”行为，幽默而豁达。</span></div>
+      <div class="acc-item"><span class="acc-w">对比</span><span class="acc-d">小雁鹅“紧紧地跟着母雁鹅走”与小水鸭“不会跟着母水鸭走”对比，提出科学问题；人的“尊严”与实验时的“不顾尊严”对比，见出科学精神。</span></div>
+      <div class="acc-item"><span class="acc-w">悬念</span><span class="acc-d">“等我说过一个小故事之后，你就明白为什么艾顿堡的居民都把我当疯子了”——设置悬念，吸引读者。</span></div>
+      <div class="acc-item"><span class="acc-w">拟人</span><span class="acc-d">“它是在给我送礼物呢”“好像在和他开玩笑似的”——将人的行为和情感赋予动物，写出动物的智慧和感情。</span></div>
+      <div class="acc-item"><span class="acc-w">反复</span><span class="acc-d">“轻轻地啄着我的耳朵”与“轻轻地啄着老人的耳朵”反复出现，写出可可表达亲昵的方式。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">以小见大</span><span class="acc-d">通过“学母鸭叫”“鹦鹉送礼物”等小事，写出“动物也有感情和智慧”的大道理。选材要小，开掘要深。</span></div>
+      <div class="acc-item"><span class="acc-w">幽默笔法</span><span class="acc-d">用幽默的笔法写严肃的科学内容，在笑声中传递知识。自嘲、夸张、悬念都是幽默的手段。</span></div>
+      <div class="acc-item"><span class="acc-w">细节描写</span><span class="acc-d">善于捕捉最生动的细节：小水鸭“争先恐后”、可可“轻轻地啄耳朵”“把树皮放在桌子上”。细节要准确、传神。</span></div>
+      <div class="acc-item"><span class="acc-w">悬念设置</span><span class="acc-d">在叙述中设置悬念，使文章波澜起伏，吸引读者。谜底揭晓时要有“恍然大悟”的效果。</span></div>
+      <div class="acc-item"><span class="acc-w">语言平实</span><span class="acc-d">用平实自然的语言叙述故事，不堆砌辞藻，不使用深奥术语。“寓庄于谐”，在轻松的笔调中蕴含深刻的道理。</span></div>
+      <div class="acc-item"><span class="acc-w">卒章显志</span><span class="acc-d">在文章结尾点明主旨：“动物并不是没有感情的机器”“只有用科学的方法……才能真正地了解它们”。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>文化常识</h3>
+      <div class="acc-item"><span class="acc-w">康拉德·劳伦兹</span><span class="acc-d">（1903—1989）奥地利动物行为学家、科普作家，现代动物行为学创始人之一，1973年获诺贝尔生理学或医学奖。代表作《所罗门王的指环》。</span></div>
+      <div class="acc-item"><span class="acc-w">动物行为学</span><span class="acc-d">（Ethology）研究动物行为的科学，关注动物在自然环境中的本能行为、学习行为和社会行为。</span></div>
+      <div class="acc-item"><span class="acc-w">印记</span><span class="acc-d">（Imprinting）劳伦兹提出的经典理论：某些动物在出生后极短的关键期内，会对第一次看到的移动物体产生依恋，跟随其行动。</span></div>
+      <div class="acc-item"><span class="acc-w">艾顿堡</span><span class="acc-d">（Altenberg）奥地利地名，劳伦兹的动物行为研究站所在地，位于维也纳附近。</span></div>
+      <div class="acc-item"><span class="acc-w">所罗门王的指环</span><span class="acc-d">劳伦兹最著名的科普作品，传说所罗门王有一枚能听懂动物语言的指环，作者以此为书名，意为通过科学观察也能“听懂”动物的语言。</span></div>
+      <div class="acc-item"><span class="acc-w">鹦鹉</span><span class="acc-d">一种羽毛美丽、能模仿人说话的鸟，属于攀禽，喙坚硬有力，聪明伶俐。</span></div>
+      <div class="acc-item"><span class="acc-w">水鸭</span><span class="acc-d">即野鸭，一种水鸟，善游泳和飞行，是动物行为学研究的经典对象。</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">《动物笑谈》</div>
+  <div>康拉德·劳伦兹 · 奥地利 · 科普散文</div>
+  <div>选自《所罗门王的指环》</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('dongwu_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('dongwu_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "嗔", "py": "chēn", "q": "实在不能□怪有些外行人批评", "tip": "「嗔」口字旁+真，读chēn；不满；与「填」（提土旁）区分"}, {"w": "诞", "py": "dàn", "q": "研究动物行为的科学家实验的方法怪□不经", "tip": "「诞」言字旁+延，读dàn；荒唐；与「涎」（三点水，xián）区分"}, {"w": "孵", "py": "fū", "q": "为什么刚从卵里□出来的小雁鹅", "tip": "「孵」卵字旁+孚，读fū；孵化；与「浮」（三点水）区分"}, {"w": "啄", "py": "zhuó", "q": "它正在那里用嘴□着一朵花", "tip": "「啄」口字旁+豖，读zhuó；鸟类用叩；与「琢」（王字旁，zhuó）区分"}, {"w": "鹦鹉", "py": "yīng wǔ", "q": "忽然看见一只大□□", "tip": "叠词整体作答；「鹦」鸟字旁+婴，「鹉」鸟字旁+武"}, {"w": "衔", "py": "xián", "q": "然后又用嘴把它们□到一起", "tip": "「衔」彳旁+钅+行，读xián；用嘴含；与「街」（jiē）区分"}, {"w": "蔓", "py": "màn", "q": "我在园里的□草中", "tip": "「蔓」草字头+曼，读màn；爬蔓；与「慢」（竖心旁）区分"}, {"w": "悄悄", "py": "qiāo qiāo", "q": "我□□地走近去", "tip": "叠词整体作答；「悄」竖心旁+肖，读qiāo；与「俏」（单人旁）区分"}, {"w": "肩", "py": "jiān", "q": "它立刻就飞到我的□上", "tip": "「肩」户字头+月，读jiān；肩膀；与「户」区分"}, {"w": "窗", "py": "chuāng", "q": "我走到□前一看", "tip": "「窗」穴字头+囱，读chuāng；窗户；与「囱」（cōng）区分"}, {"w": "礼", "py": "lǐ", "q": "原来它是在给我送□物呢", "tip": "「礼」示字旁+乚，读lǐ；礼物；与「札」（木字旁）区分"}, {"w": "散", "py": "sàn", "q": "我带着可可到园里去□步", "tip": "「散」反文旁+昔，读sàn（散步）；与「散文」sǎn区分"}, {"w": "赶", "py": "gǎn", "q": "那个老人吓了一跳，想要把它□走", "tip": "「赶」走之底+干，读gǎn；追赶；与「杆」（木字旁）区分"}, {"w": "露", "py": "lù", "q": "脸上□出了非常奇怪的表情", "tip": "「露」雨字头+路，读lù（露出）；与「露面」lòu区分"}, {"w": "怒", "py": "nù", "q": "它们也有自己的喜□哀乐", "tip": "「怒」奴字底+心，读nù；愤怒；与「恕」（shù，宽恕）区分"}, {"w": "哀", "py": "āi", "q": "它们也有自己的喜怒□乐", "tip": "「哀」衣字中间+口，读āi；悲伤；与「衰」（shuāi）区分"}, {"w": "察", "py": "chá", "q": "仔细地观□和研究它们", "tip": "「察」宝盖头+祭，读chá；仔细看；与「查」（检查）区分"}, {"w": "熟", "py": "shú", "q": "可可和我渐渐□了", "tip": "「熟」灬底+孰，读shú；熟悉；与「塾」（土字底，私塾）区分"}];
+var DICT_NOTES = [{"w": "嗔怪", "a": "（chēn guài）对别人的言语或行动表示不满", "q": "实在不能嗔怪有些外行人批评"}, {"w": "怪诞不经", "a": "（guài dàn bù jīng）言语奇怪荒唐，不合常理", "q": "研究动物行为的科学家实验的方法怪诞不经"}, {"w": "无害于人", "a": "对人没有害处", "q": "如果不是因为我出了名的无害于人"}, {"w": "探求", "a": "（tàn qiú）探索寻求", "q": "为了探求这个答案"}, {"w": "索性", "a": "表示直截了当、干脆", "q": "我索性做了一个实验"}, {"w": "代替", "a": "以甲换乙，起乙的作用", "q": "就代替了母水鸭的位置"}, {"w": "信任", "a": "（xìn rèn）相信而敢于托付", "q": "它们总是很信任地望着我"}, {"w": "争先恐后", "a": "争着向前，唯恐落后", "q": "并且争先恐后地跑到我身边来"}, {"w": "专心", "a": "（zhuān xīn）集中注意力", "q": "而且叫得非常专心"}, {"w": "蔓草", "a": "（màn cǎo）爬蔓的草", "q": "我在园里的蔓草中"}, {"w": "鹦鹉", "a": "（yīng wǔ）一种能模仿人说话的鸟", "q": "忽然看见一只大鹦鹉"}, {"w": "悄悄地", "a": "（qiāo qiāo de）声音很低、不声不响", "q": "我悄悄地走近去"}, {"w": "衔", "a": "（xián）用嘴含着", "q": "然后又用嘴把它们衔到一起"}, {"w": "礼物", "a": "为了表示尊敬或庆贺而赠送的物品", "q": "原来它是在给我送礼物呢"}, {"w": "散步", "a": "（sàn bù）随便走走（作为休息或锻炼）", "q": "我带着可可到园里去散步"}, {"w": "开玩笑", "a": "（kāi wán xiào）用言语或行动戏弄人", "q": "好像在和他开玩笑似的"}, {"w": "喜怒哀乐", "a": "（xǐ nù āi lè）泛指各种不同的感情", "q": "它们也有自己的喜怒哀乐"}, {"w": "高等动物", "a": "这里指鸟和哺乳动物等具有较高智慧的动物", "q": "在研究高等动物的行为时"}, {"w": "妙事", "a": "有趣、可笑的事", "q": "常常会发生一些妙事"}, {"w": "逗笑", "a": "引人发笑", "q": "逗笑的主角常常不是动物"}, {"w": "尊严", "a": "（zūn yán）可尊敬的身份或地位", "q": "常常需要不顾自己的尊严"}, {"w": "外行人", "a": "不了解某行业或专业的人", "q": "实在不能嗔怪有些外行人批评"}, {"w": "疯人院", "a": "专门收容精神病人的医院", "q": "大概老早就给关进疯人院了"}, {"w": "艾顿堡", "a": "（Altenberg）奥地利地名，劳伦兹的研究站所在地", "q": "你就明白为什么艾顿堡的居民都把我当疯子了"}, {"w": "实验", "a": "（shí yàn）为了检验科学理论而进行的操作", "q": "我正在做有关水鸭子的实验"}, {"w": "出壳", "a": "小动物破壳而出", "q": "刚从卵里孵出来的小雁鹅，一出壳"}, {"w": "赶紧", "a": "（gǎn jǐn）抓紧时机、毫不拖延", "q": "我赶紧走过去"}, {"w": "奇怪", "a": "（qí guài）跟平常的不一样、出乎意料", "q": "脸上露出了非常奇怪的表情"}, {"w": "感情", "a": "（gǎn qíng）对外界刺激的心理反应", "q": "动物并不是没有感情的机器"}, {"w": "观察", "a": "（guān chá）仔细察看", "q": "仔细地观察和研究它们"}];
+</script>
+
+</body>
+</html>
