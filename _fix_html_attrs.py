@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """后处理：将HTML标签内属性的中文引号恢复为ASCII引号"""
 import re
 
@@ -11,7 +11,7 @@ def fix_html_attr_quotes(html):
     # 匹配HTML标签（包括自闭合）
     return re.sub(r'<[^>]+>', fix_tag, html)
 
-fpath = r"D:\App\Apps\zuguoawoqinaidezugu-shuting.html"
+fpath = r"D:\App\Apps\zuguoawoqinaidezuguo-shuting.html"
 with open(fpath, encoding="utf-8") as f:
     html = f.read()
 

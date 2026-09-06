@@ -1659,13 +1659,13 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     }
   }
   let okCount=pts.filter(function(p){return p}).length;
-  if(okCount<4){return {ok:false,status:'locate_fail',flags:['定位失败：锚点不足('+okCount+'/4)（照片请平正拍摄、四角完整可见）'],warn:detWarn}}
+  if(okCount<4){return {ok:false,status:'locate_fail',regFlags:[],flags:['定位失败：锚点不足('+okCount+'/4)（照片请平正拍摄、四角完整可见）'],warn:detWarn}}
   /* 四点形状校验：宽高比须与版式接近，防止退化组合（如两侧都用同一小锚顶替）静默输出错位结果 */
   const qW=(Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)+Math.hypot(pts[3].x-pts[2].x,pts[3].y-pts[2].y))/2;
   const qH=(Math.hypot(pts[0].x-pts[3].x,pts[0].y-pts[3].y)+Math.hypot(pts[1].x-pts[2].x,pts[1].y-pts[2].y))/2;
   const qAsp=qW/Math.max(1,qH), tAsp=page.w/page.h;
   if(qAsp<tAsp*0.6||qAsp>tAsp*1.6){
-    return {ok:false,status:'locate_fail',flags:['定位校验未通过：四点构成的形状与版式不符（请检查定位点是否被遮挡或印刷不清）'],warn:detWarn};
+    return {ok:false,status:'locate_fail',regFlags:[],flags:['定位校验未通过：四点构成的形状与版式不符（请检查定位点是否被遮挡或印刷不清）'],warn:detWarn};
   }
   const srcPts=geometry.anchors.slice(0,4).map(function(a){return {x:a.x+a.s/2,y:a.y+a.s/2}});
   let H=null;
@@ -1678,21 +1678,23 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }else{
     H=solveHomo(srcPts,pts.map(function(p){return {x:p.x,y:p.y}}));
   }
-  /* 全局匹配的模板一致性校验：用 2 个小锚验证，防止桌面杂物拼成的假四边形被当成答题卡 */
+  /* 全局匹配的模板一致性校验：用 2 个小锚验证，防止桌面杂物拼成的假四边形被当成答题卡。
+     窗口收紧到小锚尺寸（垂直 ±0.55s，避开 10mm 外的大锚），真实投影误差仅 0.3-1mm，
+     错位四边形会产生 >10mm 的残差，4mm 判线两侧都有充足余量 */
   if(globalUsed&&geometry.anchors[4]&&geometry.anchors[5]){
     let checked=0,bad=0;
     [geometry.anchors[4],geometry.anchors[5]].forEach(function(a){
       const e=H(a.x+a.s/2,a.y+a.s/2);
       const theory=(a.s*0.667*sX)*(a.s*0.667*sY);
-      const r=findSolid(bin,cv.width,cv.height,e.x,e.y,a.s*sX*2.2,a.s*sY*2.2,theory*0.45,theory*2.1,0.72);
+      const r=findSolid(bin,cv.width,cv.height,e.x,e.y,a.s*sX*1.1,a.s*sY*0.55,theory*0.45,theory*1.7,0.6);
       if(r){
         checked++;
         const d=Math.sqrt((r.x-e.x)*(r.x-e.x)+(r.y-e.y)*(r.y-e.y))/smm;
-        if(d>2.5)bad++;
+        if(d>4)bad++;
       }
     });
     if(checked>=1&&bad===checked){
-      return {ok:false,status:'locate_fail',
+      return {ok:false,status:'locate_fail',regFlags:[],
         flags:['定位校验未通过：定位点与版式不符（画面中可能混入杂物，请调整拍摄角度/距离后重试）'],warn:detWarn};
     }
   }
@@ -1777,7 +1779,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   });
   /* 所有组的同步条全部/大面积缺失 → 几何几乎必然错位（如被杂物四边形欺骗、拍错页），按定位失败处理，绝不静默输出 */
   if(syncMiss.length&&syncMiss.every(function(s){return s.miss>=Math.max(2,s.rows*0.4)})){
-    return {ok:false,status:'locate_fail',
+    return {ok:false,status:'locate_fail',regFlags:[],
       flags:['定位校验未通过：所有同步条均未找到（画面与版式严重不符，可能混入杂物或拍错页，请重拍）'],warn:detWarn};
   }
   /* 页面级自适应阈值（Otsu 聚类）：仅当“空白簇/填涂簇”清晰可分时启用，
@@ -4483,6 +4485,7 @@ async function backupImport(file){
 /*__YJ_MORE__*/
 /* 调试钩子（供自动化校验/排障使用） */
 window.__yjDbg={recognizeCanvas:recognizeCanvas,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,cropQuad:cropQuad,dist:dist,groupQChoices:groupQChoices,qBubbleGeom:qBubbleGeom,cropViaH:cropViaH,layoutHash:layoutHash,qrPackBytes:qrPackBytes,qrUnpackBytes:qrUnpackBytes,
+  globalSolids:globalSolids,pickQuad:pickQuad,pickTriSmart:pickTriSmart,detectAnchorsGlobal:detectAnchorsGlobal,detectAnchors:detectAnchors,findSolid:findSolid,
   qrPayloadFor:qrPayloadFor,qrFromCanvas:qrFromCanvas,qrFromCrop:qrFromCrop,makeQRCanvas:makeQRCanvas,qrParsePayload:qrParsePayload,
   dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs'])dbClear(s).catch(()=>{});return 'ok'},
   detectRowMarks:detectRowMarks,rowDeltas:rowDeltas,inkRatio:inkRatio,solveHomo:solveHomo,omr:omr,

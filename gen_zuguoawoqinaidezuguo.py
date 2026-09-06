@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """生成《祖国啊，我亲爱的祖国》课件 HTML（现代诗歌，琵琶行框架）"""
 import re, json, html, sys
 sys.path.insert(0, r"D:\App\Apps")
-from data_zuguoawoqinaidezugu import PARTS, DICT_WORDS, DICT_NOTES
+from data_zuguoawoqinaidezuguoo import PARTS, DICT_WORDS, DICT_NOTES
 
-OUT = r"D:\App\Apps\zuguoawoqinaidezugu-shuting.html"
+OUT = r"D:\App\Apps\zuguoawoqinaidezuguo-shuting.html"
 TEMPLATE = r"D:\App\Apps\kongyiji-luxun.html"
 
 with open(TEMPLATE, encoding="utf-8") as f:
@@ -15,7 +15,7 @@ style_block += """
   .acc-sub{font-family:var(--font-kai);font-weight:700;border-left:3px solid #b8934a;padding-left:10px;margin:10px 0 6px;color:var(--teal-deep)}
 """
 script_block = re.search(r"<script>(.*?)</script>", tpl, re.S).group(1)
-script_block = script_block.replace("kongyiji_fs", "zuguoawoqinaidezugu_fs")
+script_block = script_block.replace("kongyiji_fs", "zuguoawoqinaidezuguo_fs")
 
 def fix_quotes(text):
     """将文本中的ASCII " 替换为交替的中文引号"""

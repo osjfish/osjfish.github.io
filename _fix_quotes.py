@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """修复数据文件中的引号：将三引号字符串内的ASCII " 替换为中文引号"""
 import re
 
@@ -25,8 +25,8 @@ def fix_quotes_in_triple_strings(content):
 
 # 修复智取生辰纲数据文件
 for fpath in [
-    r"D:\App\Apps\data_zuguoawoqinaidezugu.py",
-    r"D:\App\Apps\gen_zuguoawoqinaidezugu.py",
+    r"D:\App\Apps\data_zuguoawoqinaidezuguo.py",
+    r"D:\App\Apps\gen_zuguoawoqinaidezuguo.py",
 ]:
     with open(fpath, encoding="utf-8") as f:
         content = f.read()
