@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《赫耳墨斯和雕像者》伊索寓言</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+
+  .acc-sub{font-family:var(--font-kai);font-weight:700;border-left:3px solid #b8934a;padding-left:8px;color:var(--teal-deep);margin:14px 0 6px;font-size:calc(16px*var(--fs))}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">古希腊·伊索</div>
+  <h1 class="hero-title">赫耳墨斯和雕像者</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+    <p>《赫耳墨斯和雕像者》选自《伊索寓言》，是一篇短小精悍的寓言故事。赫耳墨斯是古希腊神话中的神使，又是商人的庇护神。他想知道自己在人间受到多大的尊重，便化作凡人来到雕像者的店里。他先问宙斯雕像的价格，又问赫拉雕像的价格，最后看到自己的雕像，心想人们会更尊重他，不料雕像者却说他的雕像“算添头，白送”。故事以辛辣的讽刺，揭露了那些爱慕虚荣、自高自大的人往往不被人重视的现实。</p>
+    <p>本文是统编版七年级上册第六单元的教读课文，与《蚊子和狮子》同属《寓言四则》。学习时要把握寓言篇幅短小、寓意深刻的特点，通过人物的语言和心理描写分析人物形象，理解故事的寓意。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>伊索（约公元前6世纪），古希腊著名的寓言家。据传说，伊索原是萨摩斯岛的奴隶，因才智出众被主人释放为自由民，后游历希腊各地，讲述寓言故事。公元前5世纪末，“伊索”这个名字已为古希腊人所熟知，人们把古希腊寓言都归在他的名下。</p>
+    <p style="margin-top:10px;color:var(--ink2)">《伊索寓言》相传为伊索所著，实际是古希腊人在相当长的历史时期内的集体创作，经后人整理汇编而成。全书共收录寓言300余则，大多以动物为主人公，采用拟人化手法，用简短的故事揭示深刻的道理，语言精练，寓意深刻，对后世欧洲寓言创作产生了深远影响。名篇有《狐狸和葡萄》《农夫和蛇》《龟兔赛跑》《蚊子和狮子》等。</p>
+  </div>
+  <div class="box">
+    <h3>寓言知识</h3>
+    <p>寓言是文学作品的一种体裁，以比喻性的故事寄寓意味深长的道理，给人以启示。寓言早在我国春秋战国时代就已经盛行，诸子百家的著作中都有不少优秀寓言流传下来。在国外，古希腊的《伊索寓言》是最著名的寓言集。</p>
+    <p style="margin-top:8px">寓言的基本特征：①篇幅短小，语言精练；②主人公可以是人，也可以是拟人化的动植物或其他事物；③多用夸张、拟人、比喻等手法；④具有鲜明的哲理性和讽刺性，故事背后蕴含深刻的道理。</p>
+    <p style="margin-top:8px">《赫耳墨斯和雕像者》是《伊索寓言》中的名篇，以神为主人公，通过对话和心理描写，讽刺了爱慕虚荣的人。故事短小精悍，寓意深刻，是寓言的典范之作。</p>
+  </div>
+  <div class="box">
+    <h3>古希腊神话背景</h3>
+    <p>赫耳墨斯（Hermes）是古希腊神话中的众神使者，宙斯与迈亚之子。他是商业、旅行、畜牧、体育等的保护神，也是商人的庇护神。他行走如飞，多才多艺，发明了尺、数和字母，也是希腊字母的创造者。在罗马神话中，他被称为墨丘利（Mercury）。</p>
+    <p style="margin-top:8px">宙斯（Zeus）是古希腊神话中的众神之王，统治宇宙万物的至高无上的主神。赫拉（Hera）是宙斯的妻子，众神之后，掌管婚姻和家庭。在古希腊神话体系中，宙斯、赫拉、赫耳墨斯都是重要的神祇，但地位不同——宙斯最高，赫拉次之，赫耳墨斯再次之。故事中雕像价格的差异，正反映了他们在人间受到的不同程度的尊重。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>课文朗读《赫耳墨斯和雕像者》</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1rb3q6MEy2&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课文朗读《赫耳墨斯和雕像者》"></iframe>
+        <a href="https://www.bilibili.com/video/BV1rb3q6MEy2" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>      <div class="media">
+        <h4>伊索寓言《赫耳墨斯与雕像者》</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1n6RRYiEm3&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="伊索寓言《赫耳墨斯与雕像者》"></iframe>
+        <a href="https://www.bilibili.com/video/BV1n6RRYiEm3" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 词语 · 手法</span></div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+    <div class="pl">赫耳墨斯想知道他在人间受到多大的尊重，就化作凡人，来到一个雕像者的店里。</div>
+    <div class="pl">他看见宙斯的雕像，问道：“值多少钱？”雕像者说：“一个银元。”</div>
+    <div class="pl">赫耳墨斯又笑着问道：“赫拉的雕像值多少钱？”雕像者说：“还要贵一点。”</div>
+    <div class="pl">后来，赫耳墨斯看见自己的雕像，心想他身为神使，又是商人的庇护神，人们对他会更尊重些，于是问道：“这个值多少钱？”</div>
+    <div class="pl">雕像者回答说：“假如你买了那两个，这个算添头，白送。”</div>
+    <div class="pl">这个故事适用于那些爱慕虚荣而不被人重视的人。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+      <div class="part-head"><span class="p-num"></span><h3>全文解读</h3><span class="range">全文</span></div>
+      <div class="part-overview">赫耳墨斯化作凡人来到雕像店，通过询问宙斯、赫拉和自己雕像的价格，发现自己并不被人重视，讽刺了爱慕虚荣的人。</div>
+      <div class="verse" id="l1" data-i="0">
+        <div class="v-top"><span class="v-no">1</span><div class="v-line"><span class="anno-word" data-note="（hè ěr mò sī）古希腊神话中的神使，商业和商人的庇护神">赫耳墨斯</span>想知道他在人间受到多大的<span class="anno-word" data-note="尊敬、敬重。尊，尊敬">尊重</span>，就<span class="anno-word" data-note="变成。化，变化">化作</span><span class="anno-word" data-note="平常的人、普通人（与“神”相对）。凡，平常">凡人</span>，来到一个<span class="anno-word" data-note="雕刻雕像的工匠。雕像，雕刻的人像">雕像者</span>的店里。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">赫耳墨斯想知道自己在人间受尊重的程度，化作凡人来到雕像店。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>开篇交代故事的起因和人物动机：“想知道他在人间受到多大的尊重”，直接点出赫耳墨斯的虚荣心——他最关心的不是别的，而是自己受尊重的程度；“化作凡人”是神话的典型情节，神变成凡人来试探人间，为下文的对话铺垫。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l2" data-i="1">
+        <div class="v-top"><span class="v-no">2</span><div class="v-line">他看见<span class="anno-word" data-note="（zhòu sī）古希腊神话中的众神之王">宙斯</span>的雕像，问道：“值多少钱？”雕像者说：“一个<span class="anno-word" data-note="旧时使用的银质硬币。元，货币单位">银元</span>。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">赫耳墨斯问宙斯雕像的价格，雕像者回答一个银元。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第一次问答。宙斯是众神之王，他的雕像只值“一个银元”，价格并不高。这为下文赫耳墨斯的心理落差埋下伏笔——连最高的神都只值一个银元，赫耳墨斯的雕像能值多少呢？对话简洁，符合寓言精练的特点。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l3" data-i="2">
+        <div class="v-top"><span class="v-no">3</span><div class="v-line">赫耳墨斯又笑着问道：“<span class="anno-word" data-note="（hè lā）古希腊神话中的众神之后，宙斯的妻子">赫拉</span>的雕像值多少钱？”雕像者说：“还要<span class="anno-word" data-note="价格高、价值大">贵</span>一点。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">赫耳墨斯又笑着问赫拉雕像的价格，雕像者说还要贵一点。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>第二次问答。“又笑着问道”中的“笑”字值得玩味——这是一种什么笑？是觉得宙斯的雕像太便宜的轻蔑之笑，还是觉得自己的雕像会更贵的得意之笑？结合下文他对自己的定位，这“笑”中含着虚荣和自负。赫拉是宙斯的妻子、众神之后，雕像“还要贵一点”，价格比宙斯还高，这也出乎常理，增加了故事的讽刺意味。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l4" data-i="3">
+        <div class="v-top"><span class="v-no">4</span><div class="v-line">后来，赫耳墨斯看见自己的雕像，心想他身为<span class="anno-word" data-note="神的使者。赫耳墨斯是众神的使者">神使</span>，又是商人的<span class="anno-word" data-note="保护、庇护的神。庇护，包庇、保护">庇护神</span>，人们对他会更<span class="anno-word" data-note="尊敬、重视">尊重</span>些，于是问道：“这个值多少钱？”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">赫耳墨斯看到自己的雕像，心想自己身为神使和商人庇护神，人们会更尊重他，便问自己雕像的价格。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>心理描写是全文的关键。“心想他身为神使，又是商人的庇护神，人们对他会更尊重些”——赫耳墨斯对自己的定位很高，认为自己既是神使又是商人庇护神，应该比宙斯和赫拉更受尊重。这种自我膨胀的心理，与下文雕像者的回答形成巨大反差，是讽刺效果的核心。“于是问道”中的“于是”写出他的自信满满，迫不及待想听到自己雕像的高价。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l5" data-i="4">
+        <div class="v-top"><span class="v-no">5</span><div class="v-line">雕像者回答说：“<span class="anno-word" data-note="如果、假使（表示假设）。假，假设">假如</span>你买了那两个，这个算<span class="anno-word" data-note="（tiān tou）买东西时商家额外赠送的东西。添，增加">添头</span>，<span class="anno-word" data-note="免费赠送、不要钱。白，无代价">白送</span>。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">雕像者回答说，如果买了那两个，赫耳墨斯的雕像算添头，白送。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>故事的高潮和结局，也是全文最具讽刺力的一句。“假如你买了那两个，这个算添头，白送”——赫耳墨斯的雕像不仅不值钱，而且是“添头”（买东西时额外赠送的），“白送”（免费赠送）。这与赫耳墨斯“人们对他会更尊重些”的心理预期形成天壤之别，虚荣心得以彻底破灭。雕像者的回答平淡而冷酷，却如同一记响亮的耳光，打在爱慕虚荣者的脸上。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l6" data-i="5">
+        <div class="v-top"><span class="v-no">6</span><div class="v-line">这个故事适用于那些<span class="anno-word" data-note="喜欢表面上的光彩、荣耀。爱慕，喜爱；虚荣，表面上的荣耀">爱慕虚荣</span>而不被人<span class="anno-word" data-note="认为人的德才优良或事物的作用重要而认真对待。重，重要">重视</span>的人。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">点明寓意：故事适用于爱慕虚荣而不被人重视的人。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>独句成段，直接点明寓意。“爱慕虚荣而不被人重视”是对赫耳墨斯形象的精准概括，也是故事的教训。“适用于”一词说明这则寓言具有普遍意义——它不仅适用于赫耳墨斯，也适用于所有像他一样爱慕虚荣、自高自大的人。寓言的结尾往往直接点明寓意，这是寓言的典型结构。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">人物 · 艺术 · 名句</span></div>
+  <div class="box">
+    <h3>人物形象</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">赫耳墨斯</div>
+        <p>爱慕虚荣、自高自大、自命不凡的神。他“想知道他在人间受到多大的尊重”，最关心的是自己的地位和名誉；他“笑着”问赫拉雕像的价格，笑中含着轻蔑和得意；他“心想他身为神使，又是商人的庇护神，人们对他会更尊重些”，自我膨胀到了极点。然而现实是残酷的——他的雕像“算添头，白送”，虚荣心彻底破灭。赫耳墨斯的形象具有典型意义，代表了所有那些自视甚高、实则无足轻重的人。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">雕像者</div>
+        <p>冷静、务实、直言不讳的商人。他的回答简短而准确：宙斯的雕像“一个银元”，赫拉的“还要贵一点”，赫耳墨斯的“算添头，白送”。他不因为对方是神（虽然赫耳墨斯化作了凡人）而阿谀奉承，而是如实报价。雕像者的存在是一面镜子，照出了赫耳墨斯的虚荣，也照出了现实的冷酷——在人间，神的地位并不像神自己想象的那样高。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>艺术特色</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">篇幅短小，寓意深刻</div>
+        <p>全文仅200余字，却讲述了一个完整的故事，塑造了鲜明的人物形象，揭示了深刻的道理。这是寓言的典型特征——以极简的篇幅承载极深的寓意。故事按照“问宙斯→问赫拉→问自己”的顺序展开，三问三答，层层递进，最后以“白送”二字戛然而止，余味无穷。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">对话描写精练传神</div>
+        <p>全文主要由对话构成，人物的语言极其精练。赫耳墨斯的三问，从平静到“笑着”到自信满满，语气的变化折射出心理的变化；雕像者的三答，从“一个银元”到“还要贵一点”到“算添头，白送”，价格的落差构成了强烈的讽刺。对话中没有多余的修饰，却字字珠玑。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">心理描写画龙点睛</div>
+        <p>文中只有一处心理描写——“心想他身为神使，又是商人的庇护神，人们对他会更尊重些”，但这一处心理描写至关重要。它揭示了赫耳墨斯的内心世界，让读者看到他虚荣、自负的本质，也为下文的戏剧性转折做足了铺垫。正是因为有了这份“自信”，下文的“白送”才更具讽刺力。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">对比手法突出主题</div>
+        <p>全文贯穿着对比：赫耳墨斯的自我定位（“人们对他会更尊重些”）与现实（“算添头，白送”）的对比；宙斯、赫拉雕像的价格与赫耳墨斯雕像价格的对比；赫耳墨斯的“笑”与最终的尴尬的对比。对比使人物形象更加鲜明，讽刺效果更加强烈。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">讽刺手法辛辣有力</div>
+        <p>寓言最突出的艺术特色是讽刺。作者不直接议论，而是通过赫耳墨斯的言行和雕像者的回答，让读者在笑声中看清爱慕虚荣者的可笑与可悲。“算添头，白送”五个字，是全文最辛辣的讽刺——一个自视甚高的神，在人间竟然连一个银元都不值，这种巨大的落差本身就是最有力的批判。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>名句赏析</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">“心想他身为神使，又是商人的庇护神，人们对他会更尊重些。”</div>
+        <p>这是全文唯一的心理描写，也是理解人物形象的关键。“身为神使，又是商人的庇护神”——赫耳墨斯给自己列了两个“光环”，觉得自己身份特殊、地位不凡；“人们对他会更尊重些”——“更”字说明他是在与宙斯、赫拉比较，觉得自己应该比他们更受尊重。这种自我膨胀的心理，与下文“白送”的现实形成强烈反差，是讽刺效果的核心。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">“假如你买了那两个，这个算添头，白送。”</div>
+        <p>全文最具讽刺力的一句话，也是故事的点睛之笔。“假如你买了那两个”——先设条件，说明赫耳墨斯的雕像不能单独出售；“这个算添头”——“添头”是买东西时赠送的，说明赫耳墨斯的雕像没有独立价值；“白送”——免费赠送，说明他的雕像一文不值。三个短句层层递进，把赫耳墨斯的身价贬到了极点，虚荣心得以彻底破灭。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">“这个故事适用于那些爱慕虚荣而不被人重视的人。”</div>
+        <p>寓言的结尾，直接点明寓意。“爱慕虚荣而不被人重视”是对赫耳墨斯形象的精准概括，也是故事的教训。“适用于”说明这则寓言具有普遍的警示意义——它不仅是讲给赫耳墨斯听的，也是讲给所有像他一样的人听的。这种卒章显志的写法，是寓言的典型结构。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>文章通过赫耳墨斯自命不凡、最终碰壁的故事，辛辣地讽刺了那些爱慕虚荣、自高自大、自视甚高的人。赫耳墨斯身为神使和商人庇护神，觉得自己应该比宙斯、赫拉更受尊重，结果他的雕像“算添头，白送”——现实给了他最响亮的耳光。故事告诉我们：越是爱慕虚荣、自高自大的人，往往越不被人重视。</p>
+    <p style="margin-top:10px">故事深刻揭示了自我认知与他人评价之间往往存在巨大落差。赫耳墨斯认为自己“人们对他会更尊重些”，但在雕像者眼中，他的雕像一文不值。这种落差不仅存在于神的世界，也存在于现实生活中——很多人对自己的评价远远高于他人对自己的评价。故事提醒我们：要有自知之明，不要高估自己在别人心中的地位。</p>
+    <p style="margin-top:10px">作为一则寓言，《赫耳墨斯和雕像者》具有超越时空的普遍意义。它不仅适用于古希腊，也适用于今天；不仅适用于神，也适用于每一个普通人。故事告诫我们：要谦虚谨慎，不要爱慕虚荣；要正确认识自己，不要自高自大。只有脚踏实地、谦虚待人，才能赢得真正的尊重。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">词语 · 字音 · 修辞 · 写法 · 文化</span></div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">赫耳墨斯</span><span class="acc-d">（hè ěr mò sī）古希腊神话中的神使，商业和商人的庇护神。</span></div>
+      <div class="acc-item"><span class="acc-w">尊重</span><span class="acc-d">尊敬、敬重。</span></div>
+      <div class="acc-item"><span class="acc-w">化作</span><span class="acc-d">变成。</span></div>
+      <div class="acc-item"><span class="acc-w">凡人</span><span class="acc-d">平常的人、普通人（与“神”相对）。</span></div>
+      <div class="acc-item"><span class="acc-w">雕像者</span><span class="acc-d">雕刻雕像的工匠。</span></div>
+      <div class="acc-item"><span class="acc-w">宙斯</span><span class="acc-d">（zhòu sī）古希腊神话中的众神之王。</span></div>
+      <div class="acc-item"><span class="acc-w">赫拉</span><span class="acc-d">（hè lā）古希腊神话中的众神之后，宙斯的妻子。</span></div>
+      <div class="acc-item"><span class="acc-w">神使</span><span class="acc-d">神的使者。</span></div>
+      <div class="acc-item"><span class="acc-w">庇护神</span><span class="acc-d">保护、庇护的神。</span></div>
+      <div class="acc-item"><span class="acc-w">添头</span><span class="acc-d">（tiān tou）买东西时商家额外赠送的东西。</span></div>
+      <div class="acc-item"><span class="acc-w">白送</span><span class="acc-d">免费赠送、不要钱。</span></div>
+      <div class="acc-item"><span class="acc-w">爱慕虚荣</span><span class="acc-d">喜欢表面上的光彩、荣耀。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">赫</span><span class="acc-d">读hè，不读hǎo。左右结构，赤字旁。“赫耳墨斯”的“赫”。</span></div>
+      <div class="acc-item"><span class="acc-w">墨</span><span class="acc-d">读mò，不读mì。上下结构，土字底。</span></div>
+      <div class="acc-item"><span class="acc-w">斯</span><span class="acc-d">读sī，不读shī。左右结构，斤字旁。</span></div>
+      <div class="acc-item"><span class="acc-w">宙</span><span class="acc-d">读zhòu，不读zòu。上下结构，宝盖头。“宙斯”的“宙”。</span></div>
+      <div class="acc-item"><span class="acc-w">拉</span><span class="acc-d">多音字。①lā：拉扯、赫拉。②lá：拉口子。本课“赫拉”读lā。</span></div>
+      <div class="acc-item"><span class="acc-w">庇</span><span class="acc-d">读bì，不读pì。半包围结构，广字头。“庇护”的“庇”。</span></div>
+      <div class="acc-item"><span class="acc-w">添</span><span class="acc-d">读tiān，不读tiǎn。左右结构，三点水。“添头”的“添”。</span></div>
+      <div class="acc-item"><span class="acc-w">慕</span><span class="acc-d">读mù，不读mò。上下结构，小字底。“爱慕”的“慕”，下面是“”不是“小”。</span></div>
+      <div class="acc-item"><span class="acc-w">虚</span><span class="acc-d">读xū，不读xǖ。半包围结构，虎字头。“虚荣”的“虚”。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>修辞方法</h3>
+      <div class="acc-item"><span class="acc-w">对比</span><span class="acc-d">寓言最突出的修辞手法。赫耳墨斯的自我定位（“人们对他会更尊重些”）与现实（“算添头，白送”）形成强烈对比；宙斯、赫拉雕像的价格与赫耳墨斯雕像的价格形成对比。对比使讽刺效果更加强烈。</span></div>
+      <div class="acc-item"><span class="acc-w">反复</span><span class="acc-d">赫耳墨斯三次发问（“值多少钱？”“值多少钱？”“这个值多少钱？”），雕像者三次回答，构成反复。反复手法使故事层层递进，也为最后的戏剧性转折蓄势。</span></div>
+      <div class="acc-item"><span class="acc-w">心理描写</span><span class="acc-d">文中“心想他身为神使，又是商人的庇护神，人们对他会更尊重些”是心理描写，揭示了赫耳墨斯虚荣自负的内心世界，为下文的转折铺垫。</span></div>
+      <div class="acc-item"><span class="acc-w">讽刺</span><span class="acc-d">全文贯穿着辛辣的讽刺。作者不直接议论，而是通过人物的言行和对话，让读者在笑声中看清爱慕虚荣者的可笑与可悲。“算添头，白送”是全文最辛辣的讽刺。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">用对话推动情节</span><span class="acc-d">本文主要由对话构成，人物的语言推动着情节的发展。三问三答，层层递进，最后以“白送”二字戛然而止。写叙事类文章时，可以用对话来推动情节、塑造人物，使文章简洁生动。</span></div>
+      <div class="acc-item"><span class="acc-w">用心理描写揭示人物</span><span class="acc-d">文中虽只有一处心理描写，却至关重要。它揭示了赫耳墨斯虚荣自负的本质，也为下文的转折做足了铺垫。写人物时，要善于运用心理描写，深入人物内心，揭示其性格特征。</span></div>
+      <div class="acc-item"><span class="acc-w">用对比增强讽刺效果</span><span class="acc-d">本文最突出的写法是对比——自我认知与现实评价的对比、不同雕像价格的对比。对比使人物形象更加鲜明，讽刺效果更加强烈。在写作中，可以运用对比手法，突出矛盾，增强表达效果。</span></div>
+      <div class="acc-item"><span class="acc-w">卒章显志点明寓意</span><span class="acc-d">寓言的典型结构是先讲故事，最后点明寓意。本文结尾“这个故事适用于那些爱慕虚荣而不被人重视的人”，直接点明故事的教训。写寓言或哲理短文时，可以采用卒章显志的写法，在结尾点明主旨。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>文化常识</h3>
+      <div class="acc-item"><span class="acc-w">伊索与《伊索寓言》</span><span class="acc-d">伊索（约公元前6世纪），古希腊寓言家。《伊索寓言》相传为伊索所著，实际是古希腊人集体创作的寓言集，共300余则，大多以动物为主人公，采用拟人化手法，寓意深刻。名篇有《狐狸和葡萄》《农夫和蛇》《龟兔赛跑》等。</span></div>
+      <div class="acc-item"><span class="acc-w">寓言的特点</span><span class="acc-d">寓言是文学体裁的一种，以比喻性的故事寄寓意味深长的道理。特点：①篇幅短小，语言精练；②主人公可以是人或拟人化的动植物；③多用夸张、拟人、比喻；④具有哲理性和讽刺性。</span></div>
+      <div class="acc-item"><span class="acc-w">古希腊神话体系</span><span class="acc-d">古希腊神话是古希腊人关于神和英雄的故事传说。宙斯是众神之王，赫拉是众神之后，赫耳墨斯是神使和商业庇护神。古希腊神话对西方文学、艺术产生了深远影响。</span></div>
+      <div class="acc-item"><span class="acc-w">赫耳墨斯的神职</span><span class="acc-d">赫耳墨斯（Hermes）是古希腊神话中的神使，宙斯与迈亚之子。他是商业、旅行、畜牧、体育的保护神，也是商人的庇护神。他行走如飞，多才多艺。在罗马神话中称为墨丘利（Mercury）。</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">《赫耳墨斯和雕像者》</div>
+  <div>伊索 · 古希腊 · 选自《伊索寓言》</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('heermosi_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('heermosi_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "赫", "py": "hè", "q": "□耳墨斯想知道他在人间受到多大的尊重", "tip": "「赫」赤字旁，读hè；不要写成「郝」（右耳旁）"}, {"w": "墨", "py": "mò", "q": "赫耳□斯想知道他在人间受到多大的尊重", "tip": "「墨」土字底，读mò；不要写成「默」（黑字旁）"}, {"w": "斯", "py": "sī", "q": "赫耳墨□想知道他在人间受到多大的尊重", "tip": "「斯」斤字旁，读sī；不要写成「期」（月字旁）"}, {"w": "尊", "py": "zūn", "q": "想知道他在人间受到多大的□重", "tip": "「尊」寸字底，敬重；不要写成「遵」（走之底，遵守）"}, {"w": "凡", "py": "fán", "q": "就化作□人，来到一个雕像者的店里", "tip": "「凡」几字旁，平常；不要写成「烦」（火字旁）"}, {"w": "雕", "py": "diāo", "q": "来到一个□像者的店里", "tip": "「雕」隹字旁，雕刻；不要写成「凋」（两点水，凋零）"}, {"w": "像", "py": "xiàng", "q": "来到一个雕□者的店里", "tip": "「像」单人旁，比照人物制成的形象；与「象」（大象）区分"}, {"w": "宙", "py": "zhòu", "q": "他看见斯□的雕像，问道", "tip": "「宙」宝盖头，读zhòu；不要写成「庙」（广字头）"}, {"w": "银", "py": "yín", "q": "雕像者说：“一个□元。”", "tip": "「银」金字旁，金属元素；不要写成「很」（双人旁）"}, {"w": "元", "py": "yuán", "q": "雕像者说：“一个银□。”", "tip": "「元」二字头，货币单位；不要写成「无」"}, {"w": "赫", "py": "hè", "q": "□拉的雕像值多少钱？", "tip": "「赫」赤字旁，读hè；「赫拉」是古希腊神话中的众神之后"}, {"w": "拉", "py": "lā", "q": "赫□的雕像值多少钱？", "tip": "「拉」提手旁，读lā；不要写成「啦」（口字旁）"}, {"w": "贵", "py": "guì", "q": "雕像者说：“还要□一点。”", "tip": "「贵」贝字旁，价格高；不要写成「遗」（走之底）"}, {"w": "使", "py": "shǐ", "q": "心想他身为神□，又是商人的庇护神", "tip": "「使」单人旁，使者；不要写成「史」（口字头）"}, {"w": "庇", "py": "bì", "q": "又是商人的□护神", "tip": "「庇」广字头，读bì，不读pì；保护"}, {"w": "护", "py": "hù", "q": "又是商人的庇□神", "tip": "「护」提手旁，保护；不要写成「户」（户字头）"}, {"w": "添", "py": "tiān", "q": "这个算□头，白送", "tip": "「添」三点水，增加；读tiān，不读tiǎn"}, {"w": "慕", "py": "mù", "q": "这个故事适用于那些爱□虚荣而不被人重视的人", "tip": "「慕」小字底（下面是「」），读mù；不要写成「幕」（巾字底）"}, {"w": "虚", "py": "xū", "q": "这个故事适用于那些爱慕□荣而不被人重视的人", "tip": "「虚」虎字头，读xū；不要写成「虑」（心字底，考虑）"}];
+var DICT_NOTES = [{"w": "赫耳墨斯", "a": "古希腊神话中的神使，商业和商人的庇护神", "q": "赫耳墨斯想知道他在人间受到多大的尊重"}, {"w": "尊重", "a": "尊敬、敬重", "q": "想知道他在人间受到多大的尊重"}, {"w": "化作", "a": "变成", "q": "就化作凡人"}, {"w": "凡人", "a": "平常的人、普通人（与神相对）", "q": "就化作凡人"}, {"w": "雕像者", "a": "雕刻雕像的工匠", "q": "来到一个雕像者的店里"}, {"w": "宙斯", "a": "古希腊神话中的众神之王", "q": "他看见宙斯的雕像"}, {"w": "赫拉", "a": "古希腊神话中的众神之后，宙斯的妻子", "q": "赫拉的雕像值多少钱"}, {"w": "神使", "a": "神的使者", "q": "心想他身为神使"}, {"w": "庇护神", "a": "保护、庇护的神", "q": "又是商人的庇护神"}, {"w": "添头", "a": "买东西时商家额外赠送的东西", "q": "这个算添头"}, {"w": "白送", "a": "免费赠送、不要钱", "q": "这个算添头，白送"}, {"w": "爱慕虚荣", "a": "喜欢表面上的光彩、荣耀", "q": "那些爱慕虚荣而不被人重视的人"}, {"w": "重视", "a": "认为重要而认真对待", "q": "不被人重视的人"}];
+</script>
+
+</body>
+</html>
