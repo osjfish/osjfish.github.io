@@ -1,0 +1,971 @@
+# -*- coding: utf-8 -*-
+"""生成《酬乐天扬州初逢席上见赠》课件"""
+import json, os
+
+OUT = r"D:\App\Apps\yanshi\chouletianyangzhouchufengxishangjianzeng-liuyuxi.html"
+
+# ========== 逐句数据：(原文, 译文, 赏析, [(词,注释),...]) ==========
+VERSES = [
+    ("巴山楚水凄凉地，二十三年弃置身。",
+     "在巴山楚水这些凄凉的地方，我度过了二十三年被弃置不用的时光。",
+     "首联以“巴山楚水”点明贬谪之地的荒远，“凄凉地”三字奠定全诗感伤基调。“二十三年”是实写——刘禹锡自永贞元年（805）被贬，至宝历二年（826）冬被召回，前后恰二十三年。“弃置身”三字沉痛：一个“弃”字写尽被朝廷遗忘的孤愤。",
+     [("巴山楚水", "指刘禹锡贬谪所到之地。巴山，今四川东部一带；楚水，今湖南、湖北一带。泛指偏远荒凉的贬谪之地"),
+      ("二十三年", "刘禹锡从唐顺宗永贞元年（805）被贬，到宝历二年（826）冬被召回，前后共二十三年"),
+      ("弃置身", "被抛弃、被遗忘的人。弃，抛弃、遗弃；身，自身、自己。指被贬谪外放、不被朝廷重用")]),
+    ("怀旧空吟闻笛赋，到乡翻似烂柯人。",
+     "怀念旧友，只能徒然吟诵《思旧赋》；回到家乡，反倒像那烂柯的王质，人事全非。",
+     "颔联用两个典故写尽世事沧桑。“闻笛赋”指向秀《思旧赋》——向秀经过嵇康旧居，闻邻人笛声，感怀亡友而作此赋。刘禹锡借此怀念王叔文、柳宗元等已逝的战友。“烂柯人”用《述异记》中王质入山砍柴、观棋一局、斧柄已烂、归乡已历百年的典故，写自己贬谪二十三年后归来，恍如隔世。",
+     [("怀旧", "怀念旧友、故人"),
+      ("空吟", "徒然地吟诵。空，白白地、徒然"),
+      ("闻笛赋", "指西晋向秀的《思旧赋》。向秀经过嵇康、吕安的旧居，听到邻人吹笛，感怀亡友，写下此赋。刘禹锡借此怀念王叔文、柳宗元等已逝的战友"),
+      ("到乡", "回到家乡。刘禹锡洛阳人，此处指被召回洛阳"),
+      ("翻似", "反倒像。翻，反而、反倒"),
+      ("烂柯人", "指晋代王质。据《述异记》，王质入山砍柴，见童子下棋，一局终了，斧柄（柯）已烂，回家后同时代的人都已不在。此处比喻自己贬谪时间长久，归来时人事已非")]),
+    ("沉舟侧畔千帆过，病树前头万木春。",
+     "沉船的旁边，正有千帆竞发；病树的前面，却是万木逢春。",
+     "颈联是全诗的千古名句，也是全诗的精神转折点。诗人以“沉舟”“病树”自比——二十三年贬谪，自己如沉船、病树，已然落伍；但沉舟之侧有千帆竞发，病树之前有万木争春，新事物必将取代旧事物，个人的沉沦挡不住时代的前进。此联由悲转旷，由个人身世升华为哲理思考，格调从低沉走向昂扬。",
+     [("沉舟", "沉没的船。诗人自比，指自己被贬沉沦"),
+      ("侧畔", "旁边、侧边。畔，边"),
+      ("千帆", "很多船。帆，船帆，代指船"),
+      ("病树", "生病的树。诗人自比，指自己历经贬谪、身心憔悴"),
+      ("前头", "前面"),
+      ("万木春", "万木逢春、欣欣向荣。春，名词作动词，逢春、焕发生机")]),
+    ("今日听君歌一曲，暂凭杯酒长精神。",
+     "今天听了你吟诵的这首诗，暂且凭借这杯酒来振作精神吧。",
+     "尾联点题，回应白居易的赠诗。“君”指白居易（乐天），“歌一曲”指白居易《醉赠刘二十八使君》一诗。“暂凭杯酒长精神”——“暂”字含无奈，“长精神”却见旷达：借朋友的赠诗与一杯酒，重新振作起来。全诗由凄凉起笔，经沧桑感慨，终以振作收束，沉郁中有豪情，是刘禹锡“诗豪”本色的典型体现。",
+     [("君", "对对方的尊称，指白居易（字乐天）"),
+      ("歌一曲", "吟诵一首诗。指白居易写给刘禹锡的《醉赠刘二十八使君》"),
+      ("暂凭", "暂且凭借。暂，暂且、姑且；凭，凭借、依靠"),
+      ("杯酒", "一杯酒"),
+      ("长精神", "振作精神。长（zhǎng），增长、振作；精神，意志、气概")]),
+]
+
+# ========== 字形题库 ==========
+DICT_WORDS = [
+    {"w":"凄","py":"qī","q":"巴山楚水□凉地","tip":"「凄凉」冠旁（两点水），勿写「妻」加氵"},
+    {"w":"赋","py":"fù","q":"怀旧空吟闻笛□","tip":"「赋」贝字旁，右「武」，勿少撇"},
+    {"w":"柯","py":"kē","q":"到乡翻似烂□人","tip":"「烂柯」木字旁，音 kē（斧柄），勿写「珂」「车」"},
+    {"w":"畔","py":"pàn","q":"沉舟侧□千帆过","tip":"「侧畔」田字旁，音 pàn（边），勿写「伴」「判」"},
+    {"w":"暂","py":"zàn","q":"□凭杯酒长精神","tip":"「暂」日字旁，音 zàn，勿写「斩」加足"},
+    {"w":"酬","py":"chóu","q":"□乐天扬州初逢席上见赠","tip":"「酬」酉字旁，音 chóu（答谢），勿写「愁」「铸」"},
+    {"w":"弃","py":"qì","q":"二十三年□置身","tip":"「弃」上「云」下「廾」，音 qì，勿写「异」「卉」"},
+    {"w":"吟","py":"yín","q":"怀旧空□闻笛赋","tip":"「吟」口字旁，音 yín，勿写「含」「念」"},
+]
+
+# ========== 注释题库 ==========
+DICT_NOTES = [
+    {"w":"巴山楚水","q":"巴山楚水凄凉地，二十三年弃置身。","a":"指刘禹锡贬谪所到的偏远之地，泛指四川东部、湖南湖北一带"},
+    {"w":"二十三年","q":"巴山楚水凄凉地，二十三年弃置身。","a":"刘禹锡从永贞元年（805）被贬至宝历二年（826）被召回，前后共二十三年"},
+    {"w":"弃置身","q":"巴山楚水凄凉地，二十三年弃置身。","a":"被抛弃、被遗忘的人，指被贬谪外放、不被朝廷重用"},
+    {"w":"闻笛赋","q":"怀旧空吟闻笛赋，到乡翻似烂柯人。","a":"指西晋向秀的《思旧赋》，向秀经嵇康旧居闻笛声而作，刘禹锡借此怀念已逝战友"},
+    {"w":"烂柯人","q":"怀旧空吟闻笛赋，到乡翻似烂柯人。","a":"指晋代王质，入山观棋一局斧柄已烂，归乡人事全非；比喻贬谪日久、归来恍如隔世"},
+    {"w":"翻似","q":"怀旧空吟闻笛赋，到乡翻似烂柯人。","a":"反倒像。翻，反而、反倒"},
+    {"w":"沉舟","q":"沉舟侧畔千帆过，病树前头万木春。","a":"沉没的船，诗人自比，指自己被贬沉沦"},
+    {"w":"病树","q":"沉舟侧畔千帆过，病树前头万木春。","a":"生病的树，诗人自比，指自己历经贬谪、身心憔悴"},
+    {"w":"侧畔","q":"沉舟侧畔千帆过，病树前头万木春。","a":"旁边、侧边。畔，边"},
+    {"w":"长精神","q":"今日听君歌一曲，暂凭杯酒长精神。","a":"振作精神。长（zhǎng），增长、振作"},
+    {"w":"暂凭","q":"今日听君歌一曲，暂凭杯酒长精神。","a":"暂且凭借。暂，暂且、姑且；凭，凭借"},
+    {"w":"歌一曲","q":"今日听君歌一曲，暂凭杯酒长精神。","a":"吟诵一首诗，指白居易写给刘禹锡的《醉赠刘二十八使君》"},
+]
+
+# ========== CSS（从琵琶行提取，精简） ==========
+CSS = r'''
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"\u25c6 "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"\u25b8 "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .lead,.box,.verse,.fame-card{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .v-line{color:#000!important}
+    .v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(16.5px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  .acc-sub{font-family:var(--font-kai,serif);font-weight:700;font-size:1.05em;color:var(--ink,#2b2b2b);margin:16px 0 8px;padding-left:10px;border-left:3px solid #b8934a}
+'''
+
+# ========== 注释标注函数 ==========
+def annotate(text, zhushi):
+    """按词表标注，长词优先，标点留在span外"""
+    # 去拼音括号，构建 (原词, 注释) 列表
+    pairs = []
+    for word, note in zhushi:
+        # 提取纯词（去掉拼音括号）
+        import re
+        pure = re.sub(r'\([^)]*\)', '', word)
+        pairs.append((pure, note))
+    # 按词长降序
+    pairs.sort(key=lambda x: len(x[0]), reverse=True)
+    result = text
+    used = set()
+    for pure, note in pairs:
+        if pure in used: continue
+        # 查找未被标注的位置
+        idx = 0
+        while True:
+            pos = result.find(pure, idx)
+            if pos == -1: break
+            # 检查是否已在span内
+            before = result[:pos]
+            if before.count('<span class="anno-word"') > before.count('</span>'):
+                idx = pos + len(pure)
+                continue
+            # 替换
+            span = f'<span class="anno-word" data-note="{note}">{pure}</span>'
+            result = result[:pos] + span + result[pos+len(pure):]
+            idx = pos + len(span)
+            used.add(pure)
+            break
+    return result
+
+# ========== 生成解读卡片 ==========
+def gen_verses():
+    html = []
+    for i, (orig, trans, app, zhushi) in enumerate(VERSES):
+        annotated = annotate(orig, zhushi)
+        html.append(f'''      <div class="verse" id="v{i+1}" data-i="{i}">
+        <div class="v-top"><span class="v-no">{i+1}</span><div class="v-line">{annotated}</div></div>
+        <details class="v-more">
+          <summary>译文 · 赏析</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">译　文</b>
+              <div class="v-trans">{trans}</div>
+            </div>
+            <div class="v-sec"><b class="v-label">赏　析</b>
+              <div class="d-body"><p>{app}</p></div>
+            </div>
+          </div>
+        </details>
+      </div>''')
+    return '\n'.join(html)
+
+# ========== 生成fulltext ==========
+def gen_fulltext():
+    html = []
+    for i, (orig, _, _, zhushi) in enumerate(VERSES):
+        annotated = annotate(orig, zhushi)
+        html.append(f'    <div class="pl"><span class="no">{i+1}</span>{annotated}</div>')
+    return '\n'.join(html)
+
+# ========== JS ==========
+JS = r'''
+  var lines = [];
+  document.querySelectorAll('#fulltext .pl').forEach(function(pl){
+    var no = pl.querySelector('.no');
+    var noHtml = no ? no.outerHTML : '';
+    var full = pl.textContent.replace(/^\d+/,'');
+    pl.dataset.full = full;
+    pl.dataset.orig = pl.innerHTML;
+    pl.dataset.no = noHtml;
+    lines.push(pl);
+  });
+  var reciting = false;
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    line.innerHTML = (line.dataset.no || '') +
+      '<span class="rh">' + full.charAt(0) + '</span>' +
+      '<span class="rb">' + new Array(full.length).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  lines.forEach(function(line){
+    line.addEventListener('click', function(){
+      if(!reciting) return;
+      if(line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        line.innerHTML = (line.dataset.no || '') +
+          '<span class="rh">' + line.dataset.full.charAt(0) + '</span>' +
+          '<span class="rb">' + line.dataset.full.slice(1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = (l.dataset.no || '') +
+        '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('chouletian_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('chouletian_fs', this.value); } catch(e){}
+  });
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+  var DICT_WORDS = ''' + json.dumps(DICT_WORDS, ensure_ascii=False) + r''';
+  var DICT_NOTES = ''' + json.dumps(DICT_NOTES, ensure_ascii=False) + r''';
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0,behavior:'smooth'}); });
+'''
+
+# ========== 组装HTML ==========
+html = f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《酬乐天扬州初逢席上见赠》刘禹锡</title>
+<meta name="description" content="刘禹锡《酬乐天扬州初逢席上见赠》逐句注释、译文、赏析，生僻字与易错词附注音，含背景、原文（背诵模式）、解读、赏析、积累、练习，风格典雅，适合课堂教学。">
+<style>{CSS}
+</style>
+</head>
+<body>
+
+<header class="hero" id="top">
+  <div class="hero-inner">
+    <div class="hero-side">唐·刘禹锡</div>
+    <h1 class="hero-title">酬乐天扬州初逢席上见赠</h1>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section id="bg">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+    <p>宝历二年（826）冬，刘禹锡罢和州刺史返回洛阳，途经扬州，与罢苏州刺史返回洛阳的白居易相逢。两位诗友同是被贬之人，于宴席上白居易作《醉赠刘二十八使君》相赠，感慨刘禹锡二十三年的贬谪生涯。刘禹锡即席作此诗酬答——前半伤感身世，后半振起精神，"沉舟侧畔千帆过，病树前头万木春"一联，由个人悲慨升华为哲理思考，成为千古名句。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>刘禹锡（772—842），字梦得，洛阳人，唐代文学家、哲学家，有"诗豪"之称。贞元九年（793）进士，登博学宏词科。永贞元年（805）参加王叔文领导的政治革新，失败后被贬为朗州司马，后转任连州、夔州、和州刺史，前后贬谪二十三年。晚年回洛阳，任太子宾客，世称"刘宾客"。与白居易并称"刘白"，与柳宗元并称"刘柳"。诗风清峻明朗，善用比兴寄托，仿民歌创作《竹枝词》等，对后世影响深远。</p>
+    <p class="note">※ 名篇有《陋室铭》《乌衣巷》《竹枝词》《秋词》《酬乐天扬州初逢席上见赠》等。</p>
+  </div>
+  <div class="box">
+    <h3>创作背景</h3>
+    <p>永贞元年（805），刘禹锡参加王叔文"永贞革新"，试图打击宦官和藩镇势力，革新仅百余日即告失败。刘禹锡被贬为朗州（今湖南常德）司马，从此开始了长达二十三年的贬谪生涯。其间转任连州（今广东连州）、夔州（今重庆奉节）、和州（今安徽和县）刺史。</p>
+    <p>宝历二年（826）冬，刘禹锡罢和州刺史返回洛阳，途经扬州，与罢苏州刺史返回洛阳的白居易相逢。白居易在宴席上作《醉赠刘二十八使君》："为我引杯添酒饮，与君把箸击盘歌。诗称国手徒为尔，命压人头不奈何。举眼风光长寂寞，满朝官职独蹉跎。亦知合被才名折，二十三年折太多。"对刘禹锡二十三年的贬谪遭遇深表同情。刘禹锡即席作此诗酬答。</p>
+  </div>
+  <div class="box">
+    <h3>体裁说明</h3>
+    <p>本诗是一首<b>七言律诗</b>，属酬赠诗。全诗八句，五十六字，首联起、颔联承、颈联转、尾联合，结构严谨。颔联"怀旧空吟闻笛赋，到乡翻似烂柯人"与颈联"沉舟侧畔千帆过，病树前头万木春"均为工整的对仗。押韵为"身、人、春、神"，属平水韵"十一真"部。</p>
+  </div>
+  <div class="box media-box">
+    <h3>朗诵 · 演唱</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>《酬乐天扬州初逢席上见赠》课文诵读——江源</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1FA411j7QE&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="酬乐天扬州初逢席上见赠诵读"></iframe>
+        <a href="https://www.bilibili.com/video/BV1FA411j7QE" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>
+      <div class="media">
+        <h4>《酬乐天扬州初逢席上见赠》歌曲演唱——奇然/沈谧仁</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1RX4y147nd&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="酬乐天扬州初逢席上见赠歌曲"></iframe>
+        <a href="https://www.bilibili.com/video/BV1RX4y147nd" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="jielu">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐句 · 注释 / 译文 / 赏析</span></div>
+  <div class="sec-sub">每联含<b>注释</b>（生僻字、易错词均附读音）、译文与赏析，点击可展开。全诗八句，首联写贬谪之悲，颔联用典感慨世事沧桑，颈联由悲转旷、蕴含哲理，尾联点题酬答、振作精神。</div>
+  <div class="texttools">
+    <button id="btnShowAll" class="off" style="display:none">显示全部</button>
+  </div>
+
+  <div id="fulltext" class="poem" style="display:none">
+{gen_fulltext()}
+  </div>
+
+  <div class="verse-list" id="verseList">
+{gen_verses()}
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="app">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">名句 · 艺术 · 主题</span></div>
+
+  <div class="box">
+    <h3>千古名句</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">沉舟侧畔千帆过，病树前头万木春。</div>
+        <p>诗人以"沉舟""病树"自比，写自己二十三年贬谪、已然落伍；但沉舟之侧有千帆竞发，病树之前有万木争春。新事物必将取代旧事物，个人的沉沦挡不住时代的前进。此联由个人悲慨升华为哲理思考，格调从低沉走向昂扬，是全诗的精神转折点，也是中国古典诗歌中最富哲理的名句之一。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>艺术特色</h3>
+    <p><b>一、用典精当。</b>颔联连用"闻笛赋""烂柯人"两个典故，前者怀念已逝战友，后者感慨贬谪日久、人事全非。典故贴切而不晦涩，在有限的字句中蕴含丰富的历史感慨。</p>
+    <p><b>二、对比鲜明。</b>首联"凄凉地"与"弃置身"写自身之悲；颈联"沉舟"与"千帆"、"病树"与"万木"形成强烈对比，在对比中完成由悲到旷的转折。</p>
+    <p><b>三、结构严谨。</b>作为七言律诗，首联起（贬谪之悲）、颔联承（用典感慨）、颈联转（哲理振起）、尾联合（酬答振作），起承转合，层次分明。颔联、颈联对仗工整。</p>
+    <p><b>四、情感跌宕。</b>全诗情感由低沉（首联）到苍凉（颔联），再到昂扬（颈联），终到旷达（尾联），一波三折，沉郁中有豪情，体现了刘禹锡"诗豪"的本色。</p>
+  </div>
+
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>本诗是刘禹锡酬答白居易的赠诗，既表达了对自己二十三年贬谪生涯的伤感与愤慨，又展现了在逆境中不消沉、不颓废的旷达胸襟。"沉舟侧畔千帆过，病树前头万木春"一联，将个人身世之悲升华为对新事物必将取代旧事物的哲理认识，表现了诗人对未来的信心和对生活的热爱。全诗在伤感中见精神，在沉郁中见豪情，是刘禹锡贬谪诗的代表作。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="acc">
+  <div class="sec-head"><h2>积 累</h2><span class="no">词牌 / 字音形 / 文言 / 炼字 / 修辞 / 文化</span></div>
+
+  <div class="box">
+    <h3>文体与格律</h3>
+    <div class="tw"><table>
+      <tr><th style="width:120px">项目</th><th>说明</th></tr>
+      <tr><td class="kai">体裁</td><td>七言律诗（七律），属酬赠诗</td></tr>
+      <tr><td class="kai">字数</td><td>八句，五十六字</td></tr>
+      <tr><td class="kai">押韵</td><td>身、人、春、神，平水韵"十一真"部，首句入韵</td></tr>
+      <tr><td class="kai">对仗</td><td>颔联"怀旧空吟闻笛赋，到乡翻似烂柯人"；颈联"沉舟侧畔千帆过，病树前头万木春"</td></tr>
+      <tr><td class="kai">结构</td><td>首联起（贬谪之悲）→颔联承（用典感慨）→颈联转（哲理振起）→尾联合（酬答振作）</td></tr>
+    </table></div>
+  </div>
+
+  <div class="box">
+    <h3>易错字音形</h3>
+    <div class="glossary">
+      <div class="g-item"><dt>酬（chóu）</dt><dd>答谢。酉字旁，勿写"愁""铸"</dd></div>
+      <div class="g-item"><dt>凄（qī）</dt><dd>凄凉。冫旁（两点水），勿写"妻"加氵</dd></div>
+      <div class="g-item"><dt>赋（fù）</dt><dd>文体名，此处指《思旧赋》。贝字旁，右"武"</dd></div>
+      <div class="g-item"><dt>柯（kē）</dt><dd>斧柄。木字旁，勿写"珂""轲"</dd></div>
+      <div class="g-item"><dt>畔（pàn）</dt><dd>边。田字旁，勿写"伴""判"</dd></div>
+      <div class="g-item"><dt>暂（zàn）</dt><dd>暂且。日字旁，勿写"斩"加足</dd></div>
+      <div class="g-item"><dt>长（zhǎng）</dt><dd>增长、振作。此处读 zhǎng，不读 cháng</dd></div>
+      <div class="g-item"><dt>吟（yín）</dt><dd>吟诵。口字旁，勿写"含""念"</dd></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>文言梳理</h3>
+    <div class="acc-sub">古今异义</div>
+    <div class="tw"><table>
+      <tr><th style="width:100px">词语</th><th style="width:200px">古义</th><th>今义</th></tr>
+      <tr><td class="kai">翻似</td><td>反倒像。翻，反而、反倒</td><td>翻，翻转、翻动</td></tr>
+      <tr><td class="kai">长精神</td><td>振作精神。长（zhǎng），增长</td><td>长（cháng），长度大</td></tr>
+    </table></div>
+    <div class="acc-sub">一词多义</div>
+    <div class="tw"><table>
+      <tr><th style="width:80px">字</th><th style="width:160px">义项</th><th>例句</th></tr>
+      <tr><td class="kai" rowspan="2">空</td><td>徒然、白白地</td><td>怀旧空吟闻笛赋</td></tr>
+      <tr><td>天空、空间</td><td>空山新雨后（《山居秋暝》）</td></tr>
+      <tr><td class="kai" rowspan="2">长</td><td>增长、振作（zhǎng）</td><td>暂凭杯酒长精神</td></tr>
+      <tr><td>长度大（cháng）</td><td>长风破浪会有时（《行路难》）</td></tr>
+    </table></div>
+    <div class="acc-sub">词类活用</div>
+    <div class="tw"><table>
+      <tr><th style="width:120px">词语</th><th>活用类型</th><th>释义</th></tr>
+      <tr><td class="kai">万木春</td><td>名词作动词</td><td>春，逢春、焕发生机</td></tr>
+    </table></div>
+    <div class="acc-sub">文言句式</div>
+    <p>（本文无特殊文言句式）</p>
+  </div>
+
+  <div class="box">
+    <h3>炼字与哲理（本文核心考点）</h3>
+    <p><b>"空"字：</b>"怀旧空吟闻笛赋"中"空"字，写诗人怀念旧友却只能徒然吟诵《思旧赋》，老友已逝，无人可诉，一个"空"字写尽孤独与无奈。</p>
+    <p><b>"翻"字：</b>"到乡翻似烂柯人"中"翻"字，是"反而、反倒"之意——回到家乡本应亲切，却反倒像烂柯人一样恍如隔世，一个"翻"字写出世事沧桑、人事全非的荒诞感。</p>
+    <p><b>"沉舟""病树"：</b>诗人自比，既写自身贬谪沉沦，又与"千帆""万木"形成对比，在对比中蕴含"新事物必将取代旧事物"的哲理。</p>
+    <p><b>"暂"字：</b>"暂凭杯酒长精神"中"暂"字，含姑且、暂且之意——二十三年的贬谪之痛，不是一杯酒就能完全消解的，但朋友的情谊与赠诗，足以让自己暂且振作起来。"暂"字中含无奈，更见旷达。</p>
+  </div>
+
+  <div class="box">
+    <h3>修辞与手法</h3>
+    <div class="tw"><table>
+      <tr><th style="width:100px">手法</th><th>例句</th><th>分析</th></tr>
+      <tr><td class="kai">用典</td><td>怀旧空吟闻笛赋，到乡翻似烂柯人</td><td>"闻笛赋"指向秀《思旧赋》，怀念已逝战友；"烂柯人"指王质，感慨贬谪日久、人事全非</td></tr>
+      <tr><td class="kai">比喻</td><td>沉舟侧畔千帆过，病树前头万木春</td><td>以"沉舟""病树"自比，写自身贬谪沉沦；以"千帆""万木"比喻新生事物</td></tr>
+      <tr><td class="kai">对比</td><td>沉舟侧畔千帆过，病树前头万木春</td><td>"沉舟"与"千帆"、"病树"与"万木"对比，在对比中完成由悲到旷的转折</td></tr>
+      <tr><td class="kai">对仗</td><td>颔联、颈联</td><td>颔联"怀旧"对"到乡"，"空吟"对"翻似"，"闻笛赋"对"烂柯人"；颈联"沉舟"对"病树"，"侧畔"对"前头"，"千帆过"对"万木春"</td></tr>
+    </table></div>
+  </div>
+
+  <div class="box">
+    <h3>文化常识</h3>
+    <p><b>酬赠诗：</b>古代友人之间以诗互相酬答的诗歌体裁。白居易先作《醉赠刘二十八使君》赠刘禹锡，刘禹锡作此诗酬答，故称"酬乐天"。"乐天"是白居易的字。</p>
+    <p><b>二十八使君：</b>白居易在赠诗中称刘禹锡为"刘二十八使君"。"二十八"是刘禹锡在同族兄弟中的排行（唐代人常以排行相称），"使君"是对州郡长官的尊称。</p>
+    <p><b>闻笛赋：</b>西晋向秀所作《思旧赋》。向秀与嵇康、吕安友善，嵇康、吕安被司马昭杀害后，向秀经过他们的旧居，听到邻人吹笛，感怀亡友，写下《思旧赋》。</p>
+    <p><b>烂柯人：</b>出自南朝梁任昉《述异记》。晋代王质入山砍柴，见童子下棋，一局终了，斧柄（柯）已烂，回家后同时代的人都已不在。后以"烂柯"比喻岁月流逝、人事变迁。</p>
+    <p><b>永贞革新：</b>唐顺宗永贞元年（805），王叔文、王伾等人在顺宗支持下进行的政治革新，试图打击宦官和藩镇势力，革新仅百余日即告失败，刘禹锡、柳宗元等八人被贬为远州司马，史称"二王八司马"事件。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="practice">
+  <div class="sec-head"><h2>练 习</h2><span class="no">字形 · 注释 全屏听写</span></div>
+  <div class="sec-sub">点击下方按钮进入全屏听写模式，适合课堂投影使用。可随机抽五组练习，也可练习全部题目。按 Esc 退出。</div>
+  <div class="ptools">
+    <button data-mode="word" data-rand="1">随机五组字形</button>
+    <button data-mode="word" data-rand="0">全部字形</button>
+    <button data-mode="note" data-rand="1">随机五组注释</button>
+    <button data-mode="note" data-rand="0">全部注释</button>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="kai">《酬乐天扬州初逢席上见赠》· 唐·刘禹锡</div>
+  <div>沉舟侧畔千帆过，病树前头万木春。</div>
+</footer>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+
+<div class="anno-popup" id="annoPopup">
+  <div class="aw" id="annoW"></div>
+  <div class="an" id="annoN"></div>
+</div>
+
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <div class="dictate-mode" id="dictMode">字形听写</div>
+    <div class="dictate-progress" id="dictProgress">第 1 / 1 题</div>
+    <div>
+      <button class="dictate-fs" id="dictFsMinus">A−</button>
+      <button class="dictate-fs" id="dictFsPlus">A+</button>
+      <button class="dictate-exit" id="dictExit">退出</button>
+    </div>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictShow">显示答案</button>
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictNext">下一题</button>
+  </div>
+</div>
+
+<script>
+{JS}
+</script>
+</body>
+</html>'''
+
+with open(OUT, 'w', encoding='utf-8') as f:
+    f.write(html)
+print(f"Generated: {OUT}")
+print(f"Size: {os.path.getsize(OUT)} bytes")
