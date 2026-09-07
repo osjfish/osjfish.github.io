@@ -1,0 +1,1236 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《伟大的悲剧》茨威格</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">奥地利 · 茨威格</div>
+  <h1 class="hero-title">伟大的悲剧</h1>
+</header>
+
+<nav class="nav"><div class="nav-in"><a href="#bg">背景</a><a href="#jielu">解读</a><a href="#app">赏析</a><a href="#acc">积累</a><a href="#practice">练习</a><div class="tool"><select id="fsSel" class="fs-sel" title="正文字体大小"><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="250">250%</option><option value="300">300%</option></select><button id="btnAll">展开</button><button id="btnRecite">背诵</button><button id="btnPrint">打印</button></div></div></nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+<div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+<div class="lead">
+<p>《伟大的悲剧》是奥地利作家茨威格的一篇传记文学，节选自1927年出版的历史特写集《人类的群星闪耀时》中一篇名为《夺取南极的斗争》的文章。文章记述了1911—1912年英国探险家斯科特一行五人前往南极点探险，在与挪威探险家阿蒙森的竞争中失败，归途中全部遇难的悲壮故事。</p>
+<p>茨威格没有为胜利者阿蒙森作传，而是将笔墨倾注于失败者斯科特一行——因为在他看来，斯科特一行虽然在同不可战胜的厄运的搏斗中毁灭了自己，但他们的心灵却因此变得无比高尚。这种“伟大的悲剧”比胜利更震撼人心，比喜剧更有力量。</p>
+</div><div class="box"><h3>作者简介</h3>
+<p>斯蒂芬·茨威格（1881—1942），奥地利作家，生于维也纳一个犹太富商家庭。擅长写小说、传记、评论，作品以细腻的心理描写和强烈的人道主义精神著称。代表作有短篇小说《一个陌生女人的来信》《象棋的故事》，传记《三大师传》《罗曼·罗兰》，历史特写集《人类的群星闪耀时》等。</p>
+<p>茨威格是一位和平主义者和人道主义者，二战期间因纳粹迫害流亡海外，1942年在巴西自杀。他的作品充满对人类命运的关怀和对精神力量的赞美，《伟大的悲剧》正是他“为失败者作传”、歌颂人类高尚心灵的典范之作。</p>
+</div><div class="box"><h3>写作背景</h3>
+<p><b>南极探险竞赛：</b>1911年，挪威探险家阿蒙森和英国探险家斯科特分别率领探险队向南极点进发，展开了一场惊心动魄的竞赛。阿蒙森队选用爱斯基摩狗拉雪橇，于1911年12月14日到达南极点；斯科特队选用西伯利亚矮种马和少量狗，于1912年1月18日才到达，比阿蒙森队晚了将近五个星期。</p>
+<p><b>归途遇难：</b>斯科特一行到达极点后，发现阿蒙森已先到达，悲痛万分。归途中遭遇罕见的恶劣天气，燃料和食物短缺，五人先后遇难：埃文斯于2月17日精神失常后死去，奥茨于3月中旬为不拖累战友走进暴风雪，斯科特、威尔逊、鲍尔斯于3月29日在帐篷中等待死神来临。</p>
+<p><b>为失败者作传：</b>茨威格没有为胜利者阿蒙森作传，而是选择了失败者斯科特。他在文中写道：“一个人虽然在同不可战胜的厄运的搏斗中毁灭了自己，但他的心灵却因此变得无比高尚。”这正是“伟大的悲剧”的含义——悲剧的伟大不在于胜利，而在于面对厄运时展现的高尚心灵。</p>
+<p><b>《人类的群星闪耀时》：</b>《伟大的悲剧》节选自茨威格的历史特写集《人类的群星闪耀时》（1927年出版）。该书选取了人类历史上十四个“具有世界历史意义的时刻”，以文学笔法再现历史瞬间，包括拜占庭的陷落、滑铁卢的一分钟、南极争夺战等。</p>
+</div><div class="box media-box"><h3>视听</h3><div class="media-grid">
+<div class="media"><h4>《伟大的悲剧》课文诵读</h4><iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1KE411J7Qg&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课文诵读《伟大的悲剧》"></iframe><a href="https://www.bilibili.com/video/BV1KE411J7Qg" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button></div>
+<div class="media"><h4>《人类群星闪耀时》茨威格——南极争夺战</h4><iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1TD4y1k7gm&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="南极争夺战 拓展"></iframe><a href="https://www.bilibili.com/video/BV1TD4y1k7gm" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button></div>
+</div></div></section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+<div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 词语 · 手法</span></div>
+<button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+<div id="fulltext" class="poem" style="display:none">
+<div class="pl">1912年1月16日这一天，斯科特一行清晨启程，出发得比平时更早，为的是能早一点看到无比美丽的秘密。焦急的心情把他们早早地从自己的睡袋中拽了出来。到中午，这五个坚持不懈的人已走了14公里。他们热情高涨地行走在荒无人迹的白色雪原上，因为现在再也不可能达不到目的地了，为人类所作的决定性的业绩几乎已经完成。可是突然之间，伙伴之一的鲍尔斯变得不安起来。他的眼睛紧紧盯着无垠雪地上的一个小小的黑点。他不敢把自己的猜想说出来：可能已经有人在这里树立了一个路标。但现在其他的人也都可怕地想到了这一点。他们的心在战栗，只不过还想尽量安慰自己罢了——就像鲁滨孙在荒岛上发现陌生人的脚印时竭力想把它看作是自己的脚印一样。其实，他们心中早已明白：以阿蒙森为首的挪威人已在他们之先到过这里了。</div>
+<div class="pl">没过多久，他们发现雪地上插着一根滑雪杆，上面绑着一面黑旗，周围是他人扎过营地的残迹——滑雪板的痕迹和许多狗的足迹。在这严酷的事实面前也就不必再怀疑：阿蒙森在这里扎过营地了。千万年来人迹未至，或者说，太古以来从未被世人瞧见过的地球的南极点竟在极短的时间之内——即一个月内两次被人发现，这是人类历史上闻所未闻、最不可思议的事。而他们恰恰是第二批到达的人，他们仅仅迟到了一个月。虽然昔日逝去的光阴数以几百万个月计，但现在迟到的这一个月，却显得太晚太晚了——对人类来说，第一个到达者拥有一切，第二个到达者什么也不是。一切努力成了徒劳，历尽千辛万苦显得十分可笑，几星期、几个月、几年的希望简直可以说是癫狂。“历尽千辛万苦，无尽的痛苦烦恼，风餐露宿——这一切究竟为了什么？还不是为了这些梦想，可现在这些梦想全完了。”——斯科特在他的日记中这样写道。泪水从他们的眼睛里夺眶而出。尽管精疲力竭，这天晚上他们还是夜不成眠。</div>
+<div class="pl">他们像被判了刑似的失去希望，闷闷不乐地继续走着那一段到极点去的最后路程，而他们原先想的是：欢呼着冲向那里。他们谁也不想安慰别人，只是默默地拖着自己的脚步往前走。1月18日，斯科特海军上校和他的四名伙伴到达极点。由于他已不再是第一个到达这里的人，所以这里的一切并没有使他觉得十分耀眼。他只用冷漠的眼睛看了看这块伤心的地方。“这里看不到任何东西，和前几天令人毛骨悚然的单调没有任何区别。”——这就是罗伯特·福尔肯·斯科特关于极点的全部描写。他们在那里发现的惟一不寻常的东西，不是由自然界造成的，而是由角逐的对手造成的，那就是飘扬着挪威国旗的阿蒙森的帐篷。挪威国旗耀武扬威、洋洋得意地在这被人类冲破的堡垒上猎猎作响。它的占领者还在这里留下一封信，等待着这个不相识的第二名的到来，他相信这第二名一定会随他之后到达这里，所以他请他把那封信带给挪威的哈康国王。斯科特接受了这项任务，他要忠实地去履行这一最冷酷无情的职责：在世界面前为另一个人完成的业绩作证，而这一事业正是他自己所热烈追求的。</div>
+<div class="pl">他们怏怏不乐地在阿蒙森的胜利旗帜旁边插上英国国旗——一面姗姗来迟的“联合王国的国旗”，然后离开了这块“辜负了他们雄心壮志”的地方。在他们身后刮来凛冽的寒风。斯科特怀着不祥的预感在日记中写道：“回去的路使我感到非常可怕。”回来的路程危险增加了十倍，在前往极点的途中只要遵循罗盘的指引，而现在他们还必须顺着自己原来的足迹走去，在几个星期的行程中必须小心翼翼，绝对不能偏离自己原来的脚印，以免错过事先设置的贮藏点——在那里储存着他们的食物、衣服和凝聚着热量的几加仑煤油。但是漫天大雪封住了他们的眼睛，使他们每走一步都忧心忡忡，因为一旦偏离方向，错过了贮藏点，无异于直接走向死亡。况且他们体内已缺乏那种初来时的充沛精力，因为那时候丰富的营养所含有的化学能和南极之家的温暖营房都给他们带来了力量。当初，他们一想到自己所进行的探险是人类的不朽事业时，就有超人的力量。而现在，他们仅仅是为了使自己的皮肤不受损伤、为了自己终将死去的肉体的生存、为了没有任何光彩的回家而斗争。在他们的内心深处，与其说盼望着回家，毋宁说更害怕回家。</div>
+<div class="pl">阅读那几天的日记是可怕的。天气变得愈来愈恶劣，寒季比平常来得更早。他们鞋底下的白雪由软变硬，结成厚厚的冰凌，踩上去就像踩在三角钉上一样，每走一步都要粘住鞋，刺骨的寒冷吞噬着他们已经疲惫不堪的躯体。他们往往一连几天畏缩不前，走错路，每当他们到达一个贮藏点时，就稍稍高兴一阵，日记的字里行间重新闪现出信心的火焰。在阴森森的一片寂寞之中，始终只有这么几个人在行走，他们的英雄气概不能不令人钦佩。最能证明这一点的莫过于负责科学研究的威尔逊博士，在离死只有寸步之遥的时候，他还在继续进行着自己的科学观察。他的雪橇上，除了一切必需的载重外，还拖着16公斤的珍贵岩石样品。然而，人的勇气终于渐渐地被大自然的巨大威力所消蚀。这里的自然界是冷酷无情的，千万年来积聚的力量能使它像精灵似的召唤来寒冷、冰冻、飞雪、风暴——使用这一切足以毁灭人的法术来对付这五个鲁莽大胆的勇敢者。他们的脚早已冻烂。食物的定量愈来愈少，一天只能吃一顿热餐，由于热量不够，他们的身体已变得非常虚弱。一天，伙伴们可怕地发觉，他们中间最身强力壮的埃文斯突然精神失常。他站在一边不走了，嘴里念念有词，不停地抱怨着他们所受的种种苦难——有的是真的，有的是他的幻觉。从他语无伦次的话里，他们终于明白，这个苦命的人由于摔了一跤或者由于巨大的痛苦已经疯了。对他怎么办？把他抛弃在这没有生命的冰原上？不。可是另一方面，他们又必须毫不迟疑地迅速赶到下一个贮藏点，要不然……从日记里看不出斯科特究竟打算怎么办。2月17日夜里1点钟，这位不幸的英国海军军士死去了。</div>
+<div class="pl">那一天他们刚刚走到“屠宰场营地”，重新找到了上个月屠宰的矮种马，第一次吃上比较丰盛的一餐。现在只有四个人继续走路了，但灾难又降临到头上。下一个贮藏点带来的是新的痛苦和失望。储存在这里的煤油太少了，他们必须精打细算地使用这最为必需的用品——燃料，他们必须尽量节省热能，而热能恰恰是他们防御严寒的惟一武器。冰冷的黑夜，周围是呼啸不停的暴风雪，他们胆怯地睁着眼睛不能入睡，他们几乎再也没有力气把毡鞋的底翻过来。但他们必须继续拖着身子往前走，他们中间的奥茨已经在用冻掉了脚趾的脚板行走。风刮得比任何时候都厉害。3月2日，他们到了下一个贮藏点，但再次使他们感到可怕的绝望：那里储存的燃料又是非常之少。现在他们真是惊慌到了极点。从日记中，人们可以觉察到斯科特如何尽量掩饰着自己的恐惧，但从强制的镇静中还是一再迸发出绝望的厉叫：“再这样下去，是不行了”，或者“上帝保佑呀！我们再也忍受不住这种劳累了”，或者“我们的戏将要悲惨地结束”。最后，终于出现了可怕的自白：“惟愿上帝保佑我们吧！我们现在已很难期望人的帮助了。”不过，他们还是拖着疲惫的身子，咬紧牙关，绝望地继续向前走呀，走呀。奥茨越来越走不动了，越来越成为朋友们的负担，而不再是什么帮手。一天中午，气温达到零下40摄氏度，他们不得不放慢走路的速度，不幸的奥茨不仅感觉到，而且心里也明白，这样下去，他会给朋友们带来厄运，于是作好了最后的准备。他向负责科学研究的威尔逊要了十片吗啡，以便在必要时加快结束自己。他们陪着这个病人又艰难地走了一天路程。然后这个不幸的人自己要求他们将他留在睡袋里，把自己的命运和他们的命运分开来。但他们坚决拒绝了这个主意，尽管他们都清楚，这样做无疑会减轻大家的负担。于是病人只好用冻伤了的双腿踉踉跄跄地又走了若干公里，一直走到夜宿的营地。他和他们一起睡到第二天早晨。清早起来，他们朝外一看，外面是狂吼怒号的暴风雪。奥茨突然站起身来，对朋友们说：“我要到外边去走走，可能要多呆一些时候。”其余的人不禁战栗起来。谁都知道，在这种天气下到外面去走一圈意味着什么。但是谁也不敢说一句阻拦他的话，也没有一个人敢伸出手去向他握别。他们大家只是怀着敬畏的心情感觉到：劳伦斯·奥茨——这个英国皇家禁卫军的骑兵上尉正像一个英雄似的向死神走去。</div>
+<div class="pl">现在只有三个疲惫、羸弱的人吃力地拖着自己的脚步，穿过那茫茫无际、像铁一般坚硬的冰雪荒原。他们疲倦已极，已不再抱任何希望，只是靠着迷迷糊糊的直觉支撑着身体，迈着蹒跚的步履。天气变得愈来愈可怕，每到一个贮藏点，迎接他们的是新的绝望，好像故意捉弄他们似的，只留下极少的煤油，即热能。3月21日，他们离下一个贮藏点只有20公里了。但暴风雪刮得异常凶猛，好像要人的性命似的，使他们无法离开帐篷。每天晚上他们都希望第二天能到达目的地，可是到了第二天，除了吃掉一天的口粮外，只能把希望寄托在第二个明天。他们的燃料已经告罄，而温度计却指在零下40摄氏度。任何希望都破灭了。他们现在只能在两种死法中间进行选择：是饿死还是冻死。四周是白茫茫的原始世界，三个人在小小的帐篷里同注定的死亡进行了八天的斗争。3月29日，他们知道再也不会有任何奇迹能拯救他们了，于是决定不再迈步向厄运走去，而是骄傲地在帐篷里等待死神的来临，不管还要忍受怎样的痛苦。他们爬进各自的睡袋，却始终没有向世界哀叹过一声自己最后遭遇到的种种苦难。凶猛的暴风雪像狂人似的袭击着薄薄的帐篷，死神正在悄悄地走来，就在这样的时刻，斯科特海军上校回想起了与自己有关的一切。因为只有在这种从未被人声冲破过的极度寂静之中、他才会悲壮地意识到自己对祖国、对全人类的亲密情谊。但是在这白雪皑皑的荒漠上，只有心中的海市蜃楼，它召来那些由于爱情、忠诚和友谊曾经同他有过联系的各种人的形象，他给所有这些人留下了话。斯科特海军上校在他行将死去的时刻，用冻僵的手指给他所爱的一切人写了书信。斯科特海军上校的日记一直记到他生命的最后一息，记到他的手指完全冻住，笔从僵硬的手中滑下来为止。他希望以后会有人在他的尸体旁发现这些能证明他和英国民族勇气的日记，正是这种希望使他能用超人的毅力把日记写到最后一刻。最后一篇日记是他用已经冻伤的手指哆哆嗦嗦写下的愿望：“请把这本日记送到我的妻子手中！”但他随后又悲伤地、坚决地划去了“我的妻子”这几个字，在它们上面补写了可怕的“我的遗孀”。</div>
+<div class="pl">住在基地木板屋里的伙伴们等待了好几个星期，起初充满信心，接着有点忧虑，最后终于愈来愈不安。他们曾两次派出营救队去接应，但是恶劣的天气又把他们挡了回来。一直到南极的春天到来之际，10月29日，一支探险队才出发，至少要去找到那几位英雄的尸体。11月12日，他们到达那个帐篷，发现英雄们的尸体已冻僵在睡袋里，死去的斯科特还像亲兄弟似的搂着威尔逊。他们找到了那些书信和文件，并且为那几个悲惨死去的英雄们垒了一个石墓。在堆满白雪的墓顶上竖着一个简陋的黑色十字架。在英国国家主教堂里，国王跪下来悼念这几位英雄。一个人虽然在同不可战胜的厄运的搏斗中毁灭了自己，但他的心灵却因此变得无比高尚。所有这些在一切时代都是最伟大的悲剧。</div>
+</div><div class="verse-list" id="verseList">
+<div class="part-head"><span class="p-num">第一部分</span><h3>抵达极点 · 发现败局</h3><span class="range">第1–6段</span></div>
+<div class="part-overview">斯科特一行抵达南极点，却发现阿蒙森已先到达；斯科特接受为对手业绩作证的冷酷职责。</div>
+<div class="verse" id="l1" data-i="0">
+  <div class="v-top"><span class="v-no">1</span><div class="v-line">1912年1月16日这一天，斯科特一行清晨启程，出发得比平时更早，为的是能早一点看到无比美丽的秘密。焦急的心情把他们早早地从自己的睡袋中<span class="anno-word" data-note="拉。读 zhuài">拽</span>了出来。到中午，这五个坚持不懈的人已走了14公里。他们热情高涨地行走在荒无人迹的白色雪原上，因为现在再也不可能达不到目的地了，为人类所作的决定性的业绩几乎已经完成。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">1912年1月16日，斯科特一行五人清晨出发，焦急地向南极点挺进。到中午已走14公里，他们以为“决定性的业绩几乎已经完成”，情绪高涨。开篇点明时间、人物、事件，营造出即将抵达极点的兴奋氛围。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>以“拽”字写焦急心情将人从睡袋中拉出，生动传神；“无比美丽的秘密”喻指南极点，带有浪漫色彩；“再也不可能达不到”双重否定写确信，与下文发现败局形成强烈反差。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l2" data-i="1">
+  <div class="v-top"><span class="v-no">2</span><div class="v-line">可是突然之间，伙伴之一的鲍尔斯变得不安起来。他的眼睛紧紧盯着无垠雪地上的一个小小的黑点。他不敢把自己的猜想说出来：可能已经有人在这里树立了一个路标。但现在其他的人也都可怕地想到了这一点。他们的心在<span class="anno-word" data-note="颤抖、发抖。栗，读 lì">战栗</span>，只不过还想尽量安慰自己罢了——就像鲁滨孙在荒岛上发现陌生人的脚印时竭力想把它看作是自己的脚印一样。其实，他们心中早已明白：以阿蒙森为首的挪威人已在他们之先到过这里了。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">鲍尔斯发现雪地上的一个小黑点，众人不安起来——他们可怕地意识到阿蒙森的挪威队可能已先到达极点。他们的心在战栗，却还想尽量安慰自己，如同鲁滨孙发现陌生人脚印时的自欺。其实心中早已明白败局已定。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>细节描写：“紧紧盯着”“不敢把自己的猜想说出来”，写发现败局时的恐惧与不敢置信；“战栗”写内心的震动；以鲁滨孙的典故类比，写人在面对不愿接受的事实时的自欺心理，细腻而深刻。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l3" data-i="2">
+  <div class="v-top"><span class="v-no">3</span><div class="v-line">没过多久，他们发现雪地上插着一根滑雪杆，上面绑着一面黑旗，周围是他人扎过营地的残迹——滑雪板的痕迹和许多狗的足迹。在这严酷的事实面前也就不必再怀疑：阿蒙森在这里扎过营地了。千万年来人迹未至，或者说，<span class="anno-word" data-note="远古、最古的时代">太古</span>以来从未被世人瞧见过的地球的南极点竟在极短的时间之内——即一个月内两次被人发现，这是人类历史上<span class="anno-word" data-note="听到从来没有听到过的，形容事物非常稀罕">闻所未闻</span>、最不可思议的事。而他们恰恰是第二批到达的人，他们仅仅迟到了一个月。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">他们发现了滑雪杆、黑旗、营地残迹和狗的足迹——严酷的事实证实阿蒙森已先到达。南极点这个“千万年来人迹未至”的地方，竟在一个月内两次被人发现，而他们恰恰是第二批，仅仅迟到了一个月。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>对比手法：“千万年来人迹未至”与“一个月内两次被人发现”形成时空对比，突出事件的不可思议；“仅仅迟到了一个月”的“仅仅”一词，轻描淡写中蕴含着无尽的遗憾与残酷——一个月在人类历史长河中微不足道，却决定了成败荣辱。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l4" data-i="3">
+  <div class="v-top"><span class="v-no">4</span><div class="v-line">虽然昔日逝去的光阴数以几百万个月计，但现在迟到的这一个月，却显得太晚太晚了——对人类来说，第一个到达者拥有一切，第二个到达者什么也不是。一切努力成了徒劳，历尽千辛万苦显得十分可笑，几星期、几个月、几年的希望简直可以说是癫狂。“历尽千辛万苦，无尽的痛苦烦恼，<span class="anno-word" data-note="形容旅途或野外生活的艰苦。">风餐露宿</span>——这一切究竟为了什么？还不是为了这些梦想，可现在这些梦想全完了。”——斯科特在他的日记中这样写道。泪水从他们的眼睛里<span class="anno-word" data-note="眼泪从眼眶中一下子涌出来。眶，读 kuàng">夺眶而出</span>。尽管精疲力竭，这天晚上他们还是<span class="anno-word" data-note="夜里睡不着觉。眠，读 mián">夜不成眠</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">作者以冷峻的笔调写下残酷的法则：“第一个到达者拥有一切，第二个到达者什么也不是。”斯科特在日记中痛问“这一切究竟为了什么”，泪水夺眶而出，夜不成眠。一切努力化为徒劳，几年的希望成了“癫狂”。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>引用斯科特日记原文，增强真实性与感染力；“第一个到达者拥有一切，第二个到达者什么也不是”是全文的核心命题之一，冷峻而残酷；“癫狂”一词写希望破灭后的荒诞感；“夺眶而出”“夜不成眠”写悲痛之深。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l5" data-i="4">
+  <div class="v-top"><span class="v-no">5</span><div class="v-line">他们像被判了刑似的失去希望，<span class="anno-word" data-note="形容不满意或不高兴的神情。">闷闷不乐</span>地继续走着那一段到极点去的最后路程，而他们原先想的是：欢呼着冲向那里。他们谁也不想安慰别人，只是默默地拖着自己的脚步往前走。1月18日，斯科特海军上校和他的四名伙伴到达极点。由于他已不再是第一个到达这里的人，所以这里的一切并没有使他觉得十分耀眼。他只用冷漠的眼睛看了看这块伤心的地方。“这里看不到任何东西，和前几天令人<span class="anno-word" data-note="形容非常恐惧。悚，读 sǒng">毛骨悚然</span>的单调没有任何区别。”——这就是罗伯特·福尔肯·斯科特关于极点的全部描写。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">他们像被判了刑似的失去希望，闷闷不乐地走完到极点的最后路程——原先想的是欢呼着冲向那里。1月18日，斯科特一行到达极点，但一切并不耀眼，他只用冷漠的眼睛看了看这块“伤心的地方”。斯科特关于极点的全部描写只有一句：“这里看不到任何东西，和前几天令人毛骨悚然的单调没有任何区别。”</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>对比：“欢呼着冲向那里”的想象与“闷闷不乐”“默默地拖着脚步”的现实形成对比；“冷漠的眼睛”“伤心的地方”写到达极点时的麻木与痛苦；引用斯科特的日记，以“毛骨悚然的单调”概括极点，极简的文字中蕴含着极度的失望——梦寐以求的极点竟是如此单调，败局中的极点更是如此。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l6" data-i="5">
+  <div class="v-top"><span class="v-no">6</span><div class="v-line">他们在那里发现的惟一不寻常的东西，不是由自然界造成的，而是由角逐的对手造成的，那就是飘扬着挪威国旗的阿蒙森的帐篷。挪威国旗<span class="anno-word" data-note="炫耀武力，显示威风。这里是拟人写法，写挪威国旗在风中飘扬的姿态"><span class="anno-word" data-note="炫耀武力，显示威风。">耀武扬威</span></span>、<span class="anno-word" data-note="形容非常得意的样子。这里拟人写挪威国旗"><span class="anno-word" data-note="形容非常得意的样子。">洋洋得意</span></span>地在这被人类冲破的堡垒上<span class="anno-word" data-note="形容旗帜在风中飘动发出的声音。猎，读 liè">猎猎作响</span>。它的占领者还在这里留下一封信，等待着这个不相识的第二名的到来，他相信这第二名一定会随他之后到达这里，所以他请他把那封信带给挪威的哈康国王。斯科特接受了这项任务，他要忠实地去履行这一最<span class="anno-word" data-note="冷漠苛刻，没有感情。">冷酷无情</span>的职责：在世界面前为另一个人完成的业绩作证，而这一事业正是他自己所热烈追求的。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">他们在极点发现了阿蒙森的帐篷和飘扬的挪威国旗——国旗“耀武扬威、洋洋得意”地猎猎作响。阿蒙森留下一封信，请第二名把信带给挪威国王。斯科特接受了这项任务——要忠实地为另一个人的业绩作证，而这一事业正是他自己所热烈追求的。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>拟人手法：“耀武扬威”“洋洋得意”赋予挪威国旗以人的情态，在失败者眼中，对手的国旗都在炫耀胜利，写尽斯科特一行的屈辱与痛苦；“最冷酷无情的职责”概括为对手作证的行为，而斯科特“忠实地去履行”——这正是他人格伟大之处：即使失败，也要维护诚信与荣誉。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第二部分</span><h3>归途艰险 · 勇士陨落</h3><span class="range">第7–12段</span></div>
+<div class="part-overview">归途危险增加十倍，燃料短缺、天气恶劣；威尔逊拖着16公斤岩石样品，埃文斯精神失常后死去。</div>
+<div class="verse" id="l7" data-i="6">
+  <div class="v-top"><span class="v-no">7</span><div class="v-line">他们<span class="anno-word" data-note="形容不满意或不高兴的神情。怏，读 yàng">怏怏不乐</span>地在阿蒙森的胜利旗帜旁边插上英国国旗——一面<span class="anno-word" data-note="形容来得很晚。姗，读 shān">姗姗来迟</span>的“联合王国的国旗”，然后离开了这块“辜负了他们雄心壮志”的地方。在他们身后刮来<span class="anno-word" data-note="刺骨地寒冷。凛，读 lǐn">凛冽</span>的寒风。斯科特怀着<span class="anno-word" data-note="不吉利。">不祥</span>的预感在日记中写道：“回去的路使我感到非常可怕。”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">他们怏怏不乐地插上英国国旗——一面“姗姗来迟”的国旗，然后离开了这块“辜负了他们雄心壮志”的地方。身后刮来凛冽的寒风，斯科特怀着不祥的预感在日记中写道：“回去的路使我感到非常可怕。”</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “姗姗来迟”拟人写英国国旗来得太晚，暗含遗憾；“辜负了他们雄心壮志”引用斯科特日记中的话，写极点对他们的意义已完全变味；“凛冽的寒风”烘托悲凉气氛；“回去的路使我感到非常可怕”的预感为下文归途的艰险埋下伏笔，一语成谶。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l8" data-i="7">
+  <div class="v-top"><span class="v-no">8</span><div class="v-line">回来的路程危险增加了十倍，在前往极点的途中只要遵循罗盘的指引，而现在他们还必须顺着自己原来的足迹走去，在几个星期的行程中必须小心翼翼，绝对不能偏离自己原来的脚印，以免错过事先设置的<span class="anno-word" data-note="储藏。贮，读 zhù">贮藏</span>点——在那里储存着他们的食物、衣服和凝聚着热量的几加仑<span class="anno-word" data-note="从石油中分馏出来的燃料油。">煤油</span>。但是漫天大雪封住了他们的眼睛，使他们每走一步都<span class="anno-word" data-note="形容忧愁不安的样子。忡，读 chōng">忧心忡忡</span>，因为一旦偏离方向，错过了贮藏点，无异于直接走向死亡。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">归途危险增加十倍：去时只要遵循罗盘，回来必须顺着自己的足迹走，不能偏离脚印，以免错过贮藏点（食物、衣服、煤油）。但漫天大雪封住眼睛，每走一步都忧心忡忡——一旦偏离方向错过贮藏点，无异于直接走向死亡。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>对比：去时的“只要遵循罗盘”与回来的“必须顺着足迹”“小心翼翼”形成对比，写归途的艰险；“漫天大雪封住了他们的眼睛”写环境的恶劣；“无异于直接走向死亡”以肯定句写错过贮藏点的致命后果，强调归途的凶险。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l9" data-i="8">
+  <div class="v-top"><span class="v-no">9</span><div class="v-line">况且他们体内已缺乏那种初来时的<span class="anno-word" data-note="充足而旺盛。沛，读 pèi">充沛</span>精力，因为那时候丰富的营养所含有的化学能和南极之家的温暖营房都给他们带来了力量。当初，他们一想到自己所进行的探险是人类的<span class="anno-word" data-note="永不磨灭（多用于抽象事物）。朽，读 xiǔ">不朽</span>事业时，就有超人的力量。而现在，他们仅仅是为了使自己的皮肤不受损伤、为了自己终将死去的肉体的生存、为了没有任何光彩的回家而斗争。在他们的内心深处，与其说盼望着回家，<span class="anno-word" data-note="不如。毋，读 wú">毋宁</span>说更害怕回家。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">他们体内已缺乏初来时的充沛精力——当初想到探险是人类的不朽事业就有超人的力量，现在仅仅为了肉体的生存、为了没有任何光彩的回家而斗争。在内心深处，与其说盼望回家，毋宁说更害怕回家——因为失败而归，无颜面对世人。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>对比：“超人的力量”与“仅仅为了肉体的生存”对比，写精神支柱崩塌后的虚弱；“不朽事业”与“没有任何光彩的回家”对比，写理想破灭后的虚无；“与其说盼望着回家，毋宁说更害怕回家”是极深刻的心理描写——失败者的回家不是解脱，而是更深的痛苦，写出了英雄面对失败时的复杂心境。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l10" data-i="9">
+  <div class="v-top"><span class="v-no">10</span><div class="v-line">阅读那几天的日记是可怕的。天气变得愈来愈恶劣，寒季比平常来得更早。他们鞋底下的白雪由软变硬，结成厚厚的<span class="anno-word" data-note="冰。凌，读 líng">冰凌</span>，踩上去就像踩在三角钉上一样，每走一步都要粘住鞋，刺骨的寒冷<span class="anno-word" data-note="吞食。噬，读 shì">吞噬</span>着他们已经疲惫不堪的躯体。他们往往一连几天<span class="anno-word" data-note="害怕退缩，不敢向前。">畏缩不前</span>，走错路，每当他们到达一个贮藏点时，就稍稍高兴一阵，日记的字里行间重新闪现出信心的火焰。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">那几天的日记读来令人恐惧：天气愈来愈恶劣，寒季提前，鞋底的白雪结成厚厚的冰凌，踩上去像踩在三角钉上，刺骨的寒冷吞噬着疲惫的躯体。他们往往一连几天畏缩不前、走错路，但每当到达一个贮藏点，就稍稍高兴一阵，日记中重新闪现出信心的火焰。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>比喻：“踩在三角钉上”写冰凌的尖利，行走的痛苦；“吞噬”写寒冷的凶残；“信心的火焰”比喻在绝望中重新燃起的希望，与“刺骨的寒冷”形成对比；“稍稍高兴一阵”“重新闪现”写希望的微弱与短暂，更见处境的艰难。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l11" data-i="10">
+  <div class="v-top"><span class="v-no">11</span><div class="v-line">在阴森森的一片寂寞之中，始终只有这么几个人在行走，他们的英雄气概不能不令人<span class="anno-word" data-note="敬重佩服。钦，读 qīn">钦佩</span>。最能证明这一点的莫过于负责科学研究的威尔逊博士，在离死只有<span class="anno-word" data-note="形容距离非常近。">寸步之遥</span>的时候，他还在继续进行着自己的科学观察。他的<span class="anno-word" data-note="在冰雪上滑行的交通工具。橇，读 qiāo">雪橇</span>上，除了一切必需的载重外，还拖着16公斤的珍贵岩石样品。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">在阴森森的寂寞中，几个人的英雄气概令人钦佩。最能证明的是威尔逊博士——在离死只有寸步之遥时，他还在继续科学观察，雪橇上除了必需载重外，还拖着16公斤的珍贵岩石样品。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>细节描写是本段的核心：“离死只有寸步之遥”与“还拖着16公斤的珍贵岩石样品”形成强烈对比——在生命都无法保障的时候，威尔逊仍然不忘科学研究，16公斤的岩石样品是他对科学事业的忠诚与热爱的见证，也是“英雄气概”的最好证明。茨威格没有直接赞美，而是用事实说话，更具震撼力。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l12" data-i="11">
+  <div class="v-top"><span class="v-no">12</span><div class="v-line">然而，人的勇气终于渐渐地被大自然的巨大威力所<span class="anno-word" data-note="消损腐蚀。">消蚀</span>。这里的自然界是冷酷无情的，千万年来积聚的力量能使它像精灵似的召唤来寒冷、冰冻、飞雪、风暴——使用这一切足以毁灭人的法术来对付这五个<span class="anno-word" data-note="说话做事不经过考虑，轻率但胆子大。">鲁莽大胆</span>的勇敢者。他们的脚早已冻烂。食物的定量愈来愈少，一天只能吃一顿热餐，由于热量不够，他们的身体已变得非常虚弱。一天，伙伴们可怕地发觉，他们中间最身强力壮的埃文斯突然精神失常。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">人的勇气终于被大自然的巨大威力消蚀。自然界冷酷无情，召唤来寒冷、冰冻、飞雪、风暴对付五个勇敢者。他们的脚早已冻烂，食物愈来愈少，一天只能吃一顿热餐，身体非常虚弱。一天，伙伴们可怕地发觉，最身强力壮的埃文斯突然精神失常了。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>拟人：“像精灵似的召唤来”“使用这一切足以毁灭人的法术”，将自然界写成一个有意志的敌人，写其冷酷与凶残；“鲁莽大胆的勇敢者”是对五位探险家的评价——“鲁莽”中见勇敢，“大胆”中见悲壮；“最身强力壮的埃文斯突然精神失常”以最强壮者的倒下写处境的极端恶劣，为下文埃文斯的死做铺垫。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第三部分</span><h3>燃料告罄 · 奥茨赴死</h3><span class="range">第13–19段</span></div>
+<div class="part-overview">四人继续前行，燃料一再短缺，绝望加剧；奥茨为不拖累战友，像英雄似的向死神走去。</div>
+<div class="verse" id="l13" data-i="12">
+  <div class="v-top"><span class="v-no">13</span><div class="v-line">他站在一边不走了，嘴里念念有词，不停地抱怨着他们所受的种种苦难——有的是真的，有的是他的<span class="anno-word" data-note="视觉、听觉等方面出现的虚假感觉。">幻觉</span>。从他语无伦次的话里，他们终于明白，这个苦命的人由于摔了一跤或者由于巨大的痛苦已经疯了。对他怎么办？把他抛弃在这没有生命的冰原上？不。可是另一方面，他们又必须<span class="anno-word" data-note="一点也不犹豫，形容态度坚决。">毫不迟疑</span>地迅速赶到下一个贮藏点，要不然……从日记里看不出斯科特究竟打算怎么办。2月17日夜里1点钟，这位不幸的英国海军军士死去了。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">埃文斯站在一边不走了，念念有词地抱怨，语无伦次——他由于摔跤或巨大痛苦已经疯了。怎么办？抛弃他？不。但又必须迅速赶到下一个贮藏点……从日记看不出斯科特打算怎么办。2月17日夜里1点钟，这位不幸的英国海军军士死去了。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “对他怎么办？把他抛弃在这没有生命的冰原上？不。”简短的问答写出团队的道德抉择——即使在生死关头，他们也没有抛弃战友；“从日记里看不出斯科特究竟打算怎么办”留下悬念，也写出斯科特内心的痛苦与挣扎；“2月17日夜里1点钟”精确到小时的时间记录，写死亡的沉重，也体现传记文学基于史实的严谨。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l14" data-i="13">
+  <div class="v-top"><span class="v-no">14</span><div class="v-line">那一天他们刚刚走到“<span class="anno-word" data-note="宰杀牲畜的场所。宰，读 zǎi">屠宰场</span>营地”，重新找到了上个月屠宰的矮种马，第一次吃上比较丰盛的一餐。现在只有四个人继续走路了，但灾难又降临到头上。下一个贮藏点带来的是新的痛苦和失望。储存在这里的煤油太少了，他们必须<span class="anno-word" data-note="在使用人力物力上仔细地计算。">精打细算</span>地使用这最为必需的用品——燃料，他们必须尽量节省热能，而热能恰恰是他们防御严寒的惟一武器。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">那天他们刚到“屠宰场营地”，找到了矮种马，第一次吃上比较丰盛的一餐——但埃文斯已死，现在只有四人继续走。下一个贮藏点带来新的痛苦：煤油太少，必须精打细算，而热能恰恰是防御严寒的惟一武器。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “第一次吃上比较丰盛的一餐”与埃文斯的死形成对照——丰盛的一餐无法弥补战友逝去的悲痛；“煤油太少”“精打细算”“惟一武器”层层递进，写燃料短缺的致命威胁；“灾难又降临到头上”的“又”字，写灾难接踵而至，命运的残酷令人窒息。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l15" data-i="14">
+  <div class="v-top"><span class="v-no">15</span><div class="v-line">冰冷的黑夜，周围是呼啸不停的暴风雪，他们胆怯地睁着眼睛不能入睡，他们几乎再也没有力气把<span class="anno-word" data-note="用毡子做的鞋，保暖。毡，读 zhān">毡鞋</span>的底翻过来。但他们必须继续拖着身子往前走，他们中间的奥茨已经在用冻掉了脚趾的<span class="anno-word" data-note="脚掌。">脚板</span>行走。风刮得比任何时候都厉害。3月2日，他们到了下一个贮藏点，但再次使他们感到可怕的绝望：那里储存的燃料又是非常之少。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">冰冷的黑夜，暴风雪呼啸，他们胆怯地睁着眼不能入睡，几乎没有力气翻毡鞋底。但必须继续往前走——奥茨已经在用冻掉了脚趾的脚板行走。风刮得比任何时候都厉害。3月2日到下一个贮藏点，再次感到可怕的绝望：燃料又是非常之少。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>细节描写：“胆怯地睁着眼睛不能入睡”“几乎再也没有力气把毡鞋的底翻过来”写身体的极度虚弱；“冻掉了脚趾的脚板行走”写奥茨的坚韧与痛苦，令人不忍卒读；“再次”“又是”写希望的一次次破灭，“可怕的绝望”比之前的“痛苦和失望”程度更深，处境每况愈下。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l16" data-i="15">
+  <div class="v-top"><span class="v-no">16</span><div class="v-line">现在他们真是惊慌到了极点。从日记中，人们可以觉察到斯科特如何尽量掩饰着自己的恐惧，但从<span class="anno-word" data-note="用政治或经济力量强迫。">强制</span>的镇静中还是一再迸发出绝望的<span class="anno-word" data-note="严厉地叫喊。">厉叫</span>：“再这样下去，是不行了”，或者“上帝保佑呀！我们再也忍受不住这种劳累了”，或者“我们的戏将要悲惨地结束”。最后，终于出现了可怕的<span class="anno-word" data-note="自己说明心意；自我陈说。">自白</span>：“惟愿上帝保佑我们吧！我们现在已很难期望人的帮助了。”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">他们惊慌到了极点。斯科特尽量掩饰恐惧，但从强制的镇静中一再迸发出绝望的厉叫——“再这样下去，是不行了”“上帝保佑呀”“我们的戏将要悲惨地结束”。最后出现了可怕的自白：“惟愿上帝保佑我们吧！我们现在已很难期望人的帮助了。”</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>引用日记原文是本段的核心：从“再这样下去，是不行了”的犹疑，到“上帝保佑呀”的求助，到“我们的戏将要悲惨地结束”的预感，到最后“已很难期望人的帮助了”的绝望——四句话层层递进，写出斯科特从掩饰恐惧到彻底绝望的心理过程；“强制的镇静”“迸发出绝望的厉叫”写理智与情感的冲突，真实而震撼。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l17" data-i="16">
+  <div class="v-top"><span class="v-no">17</span><div class="v-line">不过，他们还是拖着疲惫的身子，咬紧牙关，绝望地继续向前走呀，走呀。奥茨越来越走不动了，越来越成为朋友们的负担，而不再是什么帮手。一天中午，气温达到零下40摄氏度，他们不得不放慢走路的速度，不幸的奥茨不仅感觉到，而且心里也明白，这样下去，他会给朋友们带来<span class="anno-word" data-note="困苦的遭遇；不幸的命运。厄，读 è">厄运</span>，于是作好了最后的准备。他向负责科学研究的威尔逊要了十片<span class="anno-word" data-note="用鸦片制成的药物，有镇痛作用。吗，读 mǎ">吗啡</span>，以便在必要时加快结束自己。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">他们还是拖着疲惫的身子，咬紧牙关，绝望地继续向前走。奥茨越来越走不动，成为朋友们的负担。一天中午气温零下40度，奥茨心里明白这样下去会给朋友们带来厄运，于是作好了最后的准备——他向威尔逊要了十片吗啡，以便在必要时加快结束自己。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “走呀，走呀”反复，写行走的艰难与漫长；“越来越成为朋友们的负担，而不再是什么帮手”写奥茨内心的痛苦——对一个骄傲的军人来说，成为负担比死亡更难以接受；“要了十片吗啡”的细节冷静而震撼，奥茨已做好了牺牲自己的准备，这是他对战友最后的爱与担当。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l18" data-i="17">
+  <div class="v-top"><span class="v-no">18</span><div class="v-line">他们陪着这个病人又艰难地走了一天路程。然后这个不幸的人自己要求他们将他留在睡袋里，把自己的命运和他们的命运分开来。但他们坚决拒绝了这个主意，尽管他们都清楚，这样做无疑会减轻大家的负担。于是病人只好用冻伤了的双腿<span class="anno-word" data-note="走路不稳的样子。踉，读 liàng；跄，读 qiàng">踉踉跄跄</span>地又走了若干公里，一直走到<span class="anno-word" data-note="夜间住宿。">夜宿</span>的营地。他和他们一起睡到第二天早晨。清早起来，他们朝外一看，外面是狂吼怒号的暴风雪。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">他们陪着奥茨又艰难地走了一天。奥茨要求留在睡袋里，把自己的命运和他们分开——但他们坚决拒绝了，尽管清楚这样做会减轻负担。奥茨只好用冻伤的双腿踉踉跄跄又走了若干公里，走到夜宿营地。第二天清早，外面是狂吼怒号的暴风雪。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “坚决拒绝”写团队的情义——即使奥茨自己要求留下，战友们也不愿抛弃他；“踉踉跄跄”写奥茨冻伤双腿行走的艰难；“狂吼怒号的暴风雪”渲染紧张气氛，为下文奥茨的赴死做铺垫——在这样的天气里走出帐篷，意味着必死无疑。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l19" data-i="18">
+  <div class="v-top"><span class="v-no">19</span><div class="v-line">奥茨突然站起身来，对朋友们说：“我要到外边去走走，可能要多呆一些时候。”其余的人不禁<span class="anno-word" data-note="颤抖、发抖。">战栗</span>起来。谁都知道，在这种天气下到外面去走一圈意味着什么。但是谁也不敢说一句阻拦他的话，也没有一个人敢伸出手去向他握别。他们大家只是怀着<span class="anno-word" data-note="又敬重又畏惧。">敬畏</span>的心情感觉到：劳伦斯·奥茨——这个英国皇家<span class="anno-word" data-note="古代保卫京城和皇宫的军队。">禁卫军</span>的骑兵上尉正像一个英雄似的向死神走去。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">奥茨突然站起身，对朋友们说：“我要到外边去走走，可能要多呆一些时候。”其余的人战栗起来——谁都知道在这种天气出去意味着什么。但谁也不敢阻拦，也没有人敢伸手握别。他们怀着敬畏的心情感觉到：劳伦斯·奥茨——英国皇家禁卫军骑兵上尉正像一个英雄似的向死神走去。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>奥茨的话“我要到外边去走走，可能要多呆一些时候”是全文最动人的细节之一——以最平淡的语气说出最悲壮的决定，“走走”“多呆一些时候”的轻描淡写与死亡的沉重形成强烈反差；“谁也不敢说一句阻拦他的话，也没有一个人敢伸出手去向他握别”写战友们的痛苦与敬畏——他们理解奥茨的选择，也尊重他的尊严；“正像一个英雄似的向死神走去”是作者对奥茨的最高赞美。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第四部分</span><h3>帐篷待死 · 最后日记</h3><span class="range">第20–24段</span></div>
+<div class="part-overview">三人在帐篷中与死亡斗争八天，骄傲地等待死神；斯科特用冻僵的手指写信、记日记到最后一息。</div>
+<div class="verse" id="l20" data-i="19">
+  <div class="v-top"><span class="v-no">20</span><div class="v-line">现在只有三个疲惫、<span class="anno-word" data-note="瘦弱。羸，读 léi">羸弱</span>的人吃力地拖着自己的脚步，穿过那<span class="anno-word" data-note="辽阔无边，看不到边际。">茫茫无际</span>、像铁一般坚硬的冰雪荒原。他们疲倦已极，已不再抱任何希望，只是靠着迷迷糊糊的直觉支撑着身体，迈着<span class="anno-word" data-note="走路缓慢、摇摆的样子。蹒，读 pán；跚，读 shān">蹒跚</span>的<span class="anno-word" data-note="行走。履，读 lǚ">步履</span>。天气变得愈来愈可怕，每到一个贮藏点，迎接他们的是新的绝望，好像故意<span class="anno-word" data-note="对人开玩笑，使为难。">捉弄</span>他们似的，只留下极少的煤油，即热能。3月21日，他们离下一个贮藏点只有20公里了。但暴风雪刮得异常凶猛，好像要人的性命似的，使他们无法离开帐篷。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">现在只剩三个疲惫、羸弱的人，吃力地拖着脚步穿过像铁一般坚硬的冰雪荒原。他们疲倦已极，不再抱任何希望，只靠迷迷糊糊的直觉支撑身体。每到一个贮藏点，迎接他们的是新的绝望——只留下极少的煤油。3月21日，离下一个贮藏点只有20公里了，但暴风雪异常凶猛，使他们无法离开帐篷。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “像铁一般坚硬的冰雪荒原”比喻写环境的冷酷与坚硬；“迷迷糊糊的直觉”“蹒跚的步履”写身体的极度虚弱；“好像故意捉弄他们似的”拟人写命运的残酷；“只有20公里”与“无法离开帐篷”形成对比——20公里在平时不算什么，但在暴风雪中却成了不可逾越的天堑，写尽英雄末路的悲哀。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l21" data-i="20">
+  <div class="v-top"><span class="v-no">21</span><div class="v-line">每天晚上他们都希望第二天能到达目的地，可是到了第二天，除了吃掉一天的口粮外，只能把希望寄托在第二个明天。他们的燃料已经<span class="anno-word" data-note="指财物用完。罄，读 qìng，尽、空">告罄</span>，而温度计却指在零下40摄氏度。任何希望都破灭了。他们现在只能在两种死法中间进行选择：是饿死还是冻死。四周是<span class="anno-word" data-note="形容一望无边的白（用于云、雾、雪、大水等）。">白茫茫</span>的原始世界，三个人在小小的帐篷里同注定的死亡进行了八天的斗争。3月29日，他们知道再也不会有任何奇迹能拯救他们了，于是决定不再迈步向厄运走去，而是骄傲地在帐篷里等待死神的来临，不管还要忍受怎样的痛苦。他们爬进各自的睡袋，却始终没有向世界<span class="anno-word" data-note="悲哀地叹息。">哀叹</span>过一声自己最后遭遇到的种种苦难。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">每天希望第二天到达，可到了第二天只能把希望寄托在第二个明天。燃料告罄，温度计指在零下40度——任何希望都破灭了，只能在饿死和冻死之间选择。三个人在帐篷里同注定的死亡斗争了八天。3月29日，他们知道不会有奇迹了，决定不再迈步，而是骄傲地在帐篷里等待死神的来临——他们爬进睡袋，始终没有向世界哀叹过一声自己的苦难。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “告罄”写燃料用尽，“两种死法中间进行选择”写绝境的残酷；“八天的斗争”写他们与死亡抗争的顽强；“骄傲地在帐篷里等待死神的来临”是本段的核心——“骄傲”二字写尽英雄面对死亡时的尊严，他们不是被动地等死，而是主动地选择有尊严地面对；“始终没有向世界哀叹过一声”写他们的坚强与高贵，令人肃然起敬。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l22" data-i="21">
+  <div class="v-top"><span class="v-no">22</span><div class="v-line">凶猛的暴风雪像狂人似的袭击着薄薄的帐篷，死神正在悄悄地走来，就在这样的时刻，斯科特海军上校回想起了与自己有关的一切。因为只有在这种从未被人声冲破过的极度寂静之中、他才会悲壮地意识到自己对祖国、对全人类的亲密情谊。但是在这<span class="anno-word" data-note="形容雪洁白。皑，读 ái">白雪皑皑</span>的荒漠上，只有心中的<span class="anno-word" data-note="比喻虚幻的事物。蜃，读 shèn">海市蜃楼</span>，它召来那些由于爱情、忠诚和友谊曾经同他有过联系的各种人的形象，他给所有这些人留下了话。斯科特海军上校在他行将死去的时刻，用<span class="anno-word" data-note="由于冷冻而僵硬。">冻僵</span>的手指给他所爱的一切人写了书信。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">暴风雪像狂人似的袭击帐篷，死神悄悄走来——在这样的时刻，斯科特回想起了一切。在极度寂静中，他悲壮地意识到自己对祖国、对全人类的亲密情谊。在白雪皑皑的荒漠上，只有心中的海市蜃楼——召来那些由于爱情、忠诚和友谊同他有过联系的人的形象，他给所有这些人留下了话。斯科特在行将死去的时刻，用冻僵的手指给他所爱的一切人写了书信。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>比喻：“像狂人似的袭击”写暴风雪的凶残；“海市蜃楼”比喻斯科特心中回忆的美好但虚幻的景象——在死亡面前，一生中最珍贵的人和事浮现眼前；“对祖国、对全人类的亲密情谊”写斯科特在生命最后时刻的精神升华——从个人的苦难上升到对人类的大爱；“冻僵的手指”写写信的艰难，更见其深情与执着。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l23" data-i="22">
+  <div class="v-top"><span class="v-no">23</span><div class="v-line">斯科特海军上校的日记一直记到他生命的最后<span class="anno-word" data-note="一口气息，指生命的最后阶段。">一息</span>，记到他的手指完全冻住，笔从僵硬的手中滑下来为止。他希望以后会有人在他的尸体旁发现这些能证明他和英国民族勇气的日记，正是这种希望使他能用超人的毅力把日记写到最后一刻。最后一篇日记是他用已经冻伤的手指<span class="anno-word" data-note="形容因受冻或害怕而身体发抖。">哆哆嗦嗦</span>写下的愿望：“请把这本日记送到我的妻子手中！”但他随后又悲伤地、坚决地划去了“我的妻子”这几个字，在它们上面补写了可怕的“我的<span class="anno-word" data-note="某人死后，他的妻子称为某人的遗孀。孀，读 shuāng">遗孀</span>”。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">斯科特的日记一直记到生命最后一息，记到手指完全冻住、笔从手中滑下。他希望有人在尸体旁发现这些证明他和英国民族勇气的日记——正是这种希望使他用超人的毅力写到最后一刻。最后一篇日记写着：“请把这本日记送到我的妻子手中！”但他随后又悲伤地、坚决地划去了“我的妻子”，补写了可怕的“我的遗孀”。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “笔从僵硬的手中滑下来”写日记终止的那一刻，令人动容；“证明他和英国民族勇气的日记”写斯科特记日记的动机——不仅是为了记录，更是为了向世界证明英国人的勇气与荣誉；最后一篇日记的修改是全文最震撼的细节之一：从“我的妻子”到“我的遗孀”，“悲伤地、坚决地”划去，“可怕的”三个字写尽斯科特对自己必死的确信和对妻子的深情——他知道自己回不去了，妻子将成为遗孀，这个认知比死亡本身更令人心碎。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第五部分</span><h3>英雄葬礼 · 伟大悲剧</h3><span class="range">第25–26段</span></div>
+<div class="part-overview">基地探险队找到英雄们的尸体，垒石墓、竖十字架；国王下跪悼念；作者点明“伟大的悲剧”的深刻含义。</div>
+<div class="verse" id="l24" data-i="23">
+  <div class="v-top"><span class="v-no">24</span><div class="v-line">住在基地木板屋里的伙伴们等待了好几个星期，起初充满信心，接着有点忧虑，最后终于愈来愈不安。他们曾两次派出营救队去接应，但是恶劣的天气又把他们挡了回来。一直到南极的春天到来之际，10月29日，一支探险队才出发，至少要去找到那几位英雄的尸体。11月12日，他们到达那个帐篷，发现英雄们的尸体已<span class="anno-word" data-note="由于冷冻而僵硬。">冻僵</span>在睡袋里，死去的斯科特还像亲兄弟似的搂着威尔逊。他们找到了那些书信和文件，并且为那几个悲惨死去的英雄们垒了一个石墓。在堆满白雪的墓顶上竖着一个<span class="anno-word" data-note="（房屋、设备等）简单粗陋；不完备。">简陋</span>的黑色十字架。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">基地的伙伴们等待了好几个星期，两次派出营救队都被恶劣天气挡回。直到南极春天的10月29日，一支探险队才出发去寻找英雄的尸体。11月12日，他们到达帐篷，发现英雄们的尸体已冻僵在睡袋里——死去的斯科特还像亲兄弟似的搂着威尔逊。他们找到了书信和文件，为英雄们垒了一个石墓，墓顶上竖着一个简陋的黑色十字架。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “起初充满信心，接着有点忧虑，最后终于愈来愈不安”写基地伙伴们心情的变化，侧面烘托斯科特一行处境的危险；“死去的斯科特还像亲兄弟似的搂着威尔逊”是全文最感人的细节之一——即使在死后，斯科特仍然紧紧搂着战友，这个姿势是他们兄弟般情谊的永恒见证，也是英雄精神的最后定格；“简陋的黑色十字架”写葬礼的朴素，但简陋中见庄严，黑色十字架是对英雄最崇高的祭奠。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l25" data-i="24">
+  <div class="v-top"><span class="v-no">25</span><div class="v-line">在英国国家主教堂里，国王跪下来<span class="anno-word" data-note="怀念死者，表示哀痛。悼，读 dào">悼念</span>这几位英雄。一个人虽然在同不可战胜的<span class="anno-word" data-note="困苦的遭遇；不幸的命运。">厄运</span>的搏斗中毁灭了自己，但他的心灵却因此变得无比<span class="anno-word" data-note="道德水平高。">高尚</span>。所有这些在一切时代都是最伟大的悲剧。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">在英国国家主教堂里，国王跪下来悼念这几位英雄。作者以议论收束全文：一个人虽然在同不可战胜的厄运的搏斗中毁灭了自己，但他的心灵却因此变得无比高尚。所有这些在一切时代都是最伟大的悲剧。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p> “国王跪下来悼念”写英国对英雄的最高礼遇——国王下跪，是国家对英雄的致敬；最后两段议论是全文的点睛之笔，揭示了“伟大的悲剧”的深刻含义：悲剧之所以伟大，不在于胜利，而在于面对不可战胜的厄运时所展现出的高尚心灵——诚信、坚毅、友爱、牺牲、尊严。“毁灭了自己”与“心灵却因此变得无比高尚”形成对比，点明主旨：肉体可以毁灭，精神却永存。这正是茨威格为失败者作传的原因——他们的失败比胜利更震撼人心，他们的悲剧比喜剧更伟大。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+</div></section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+<div class="sec-head"><h2>赏 析</h2><span class="no">形象 · 艺术 · 名句</span></div>
+<div class="box"><h3>人物形象</h3><p style="margin-bottom:14px;color:var(--ink2)">本文的核心人物是斯科特一行五位探险家——他们在失败与死亡面前展现出的高尚心灵，正是“伟大的悲剧”的深刻含义。</p><div class="fame">
+<div class="fame-card"><div class="f-line">斯科特 —— 一位在失败中保持尊严与诚信的海军上校</div><p>他是探险队的领袖，在发现败局后没有怨天尤人，而是“忠实地去履行这一最冷酷无情的职责”——为对手阿蒙森的业绩作证；在归途中，他以日记记录一切，“一直记到他生命的最后一息”；在生命最后时刻，他从“我的妻子”改为“我的遗孀”，冷静地接受死亡；死后还“像亲兄弟似的搂着威尔逊”。他是一位真正的绅士——失败不失尊严，死亡不失诚信。</p></div>
+<div class="fame-card"><div class="f-line">奥茨 —— 一位以牺牲自我诠释英雄精神的骑兵上尉</div><p>他是英国皇家禁卫军的骑兵上尉，在冻伤脚趾、身体极度虚弱时，“心里也明白，这样下去，他会给朋友们带来厄运”；他向威尔逊要了十片吗啡，做好了最后的准备；他要求留在睡袋里被战友拒绝后，“用冻伤了的双腿踉踉跄跄地又走了若干公里”；最后在暴风雪中，他站起身说“我要到外边去走走，可能要多呆一些时候”，“正像一个英雄似的向死神走去”。他的牺牲是对战友最深沉的爱，也是对英雄精神最崇高的诠释。</p></div>
+<div class="fame-card"><div class="f-line">威尔逊 —— 一位在死亡边缘仍不忘科学的博士</div><p>他是负责科学研究的威尔逊博士，“在离死只有寸步之遥的时候，他还在继续进行着自己的科学观察”；他的雪橇上“除了一切必需的载重外，还拖着16公斤的珍贵岩石样品”。在生命都无法保障的时候，16公斤的岩石样品是他对科学事业的忠诚与热爱的见证——他用生命践行了“为科学献身”的誓言，是“英雄气概”的最好证明。</p></div>
+</div></div><div class="box"><h3>艺术特色</h3><div class="fame">
+<div class="fame-card"><div class="f-line">细节描写，震撼人心</div><p>全文以大量细节描写展现人物的精神世界：威尔逊“拖着16公斤的珍贵岩石样品”，奥茨“要了十片吗啡”“我要到外边去走走”，斯科特“笔从僵硬的手中滑下来”“划去了'我的妻子'，补写了'我的遗孀'”，死后“像亲兄弟似的搂着威尔逊”——这些细节没有直接的赞美，却比任何赞美都更有力量，令人动容。</p></div>
+<div class="fame-card"><div class="f-line">引用日记，真实可信</div><p>文章大量引用斯科特的日记原文：“历尽千辛万苦……可现在这些梦想全完了”“这里看不到任何东西，和前几天令人毛骨悚然的单调没有任何区别”“回去的路使我感到非常可怕”“惟愿上帝保佑我们吧！我们现在已很难期望人的帮助了”“请把这本日记送到我的妻子手中！”——日记的引用增强了传记的真实性，也让读者直接听到英雄的心声，更具感染力。</p></div>
+<div class="fame-card"><div class="f-line">环境烘托，悲壮苍凉</div><p>全文以南极的恶劣环境烘托英雄的悲壮：“漫天大雪封住了他们的眼睛”“刺骨的寒冷吞噬着他们已经疲惫不堪的躯体”“狂吼怒号的暴风雪”“凶猛的暴风雪像狂人似的袭击着薄薄的帐篷”“白雪皑皑的荒漠”——环境越恶劣，越能反衬英雄的坚韧与崇高；冰雪荒原的苍凉与英雄精神的高尚形成强烈对比。</p></div>
+<div class="fame-card"><div class="f-line">对比手法，凸显伟大</div><p>文章多处运用对比：第一个到达者“拥有一切”与第二个到达者“什么也不是”对比；初来时“超人的力量”与归来时“仅仅为了肉体的生存”对比；阿蒙森的“耀武扬威”与斯科特的“忠诚作证”对比；肉体的“毁灭”与心灵的“无比高尚”对比——对比中凸显了悲剧的伟大。</p></div>
+</div></div><div class="box"><h3>名句赏析</h3><div class="fame">
+<div class="fame-card"><div class="f-line">对人类来说，第一个到达者拥有一切，第二个到达者什么也不是。</div><p>这是全文最冷峻的命题，也是悲剧的核心。茨威格以近乎残酷的笔调写下竞争的法则——在“第一个”与“第二个”之间，没有中间地带。然而，正是在这个“什么也不是”的“第二个”身上，作者发现了比胜利更珍贵的东西——高尚的心灵。这句话为全文奠定了悲壮的基调，也为结尾的议论做了铺垫。</p></div>
+<div class="fame-card"><div class="f-line">斯科特接受了这项任务，他要忠实地去履行这一最冷酷无情的职责：在世界面前为另一个人完成的业绩作证，而这一事业正是他自己所热烈追求的。</div><p>这是斯科特人格伟大的集中体现。在发现败局后，他完全可以拔掉挪威国旗、谎称自己是第一个到达者——在荒无人烟的南极，没有人会知道。但他没有这样做，而是“忠实地去履行”为对手作证的职责。“最冷酷无情”与“忠实”形成对比——职责越冷酷，越能体现斯科特的诚信与荣誉。这是英国绅士精神的最高体现，也是“伟大的悲剧”的核心。</p></div>
+<div class="fame-card"><div class="f-line">奥茨突然站起身来，对朋友们说：“我要到外边去走走，可能要多呆一些时候。”……劳伦斯·奥茨——这个英国皇家禁卫军的骑兵上尉正像一个英雄似的向死神走去。</div><p>这是全文最动人的段落之一。奥茨的话平淡得令人心碎——“走走”“多呆一些时候”，以最轻松的语气说出最悲壮的决定。战友们“谁也不敢说一句阻拦他的话，也没有一个人敢伸出手去向他握别”——他们理解奥茨的选择，也尊重他的尊严。“正像一个英雄似的向死神走去”是作者对奥茨的最高赞美：他的死不是懦弱的逃避，而是勇敢的牺牲，是对战友最深沉的爱。</p></div>
+<div class="fame-card"><div class="f-line">最后一篇日记是他用已经冻伤的手指哆哆嗦嗦写下的愿望：“请把这本日记送到我的妻子手中！”但他随后又悲伤地、坚决地划去了“我的妻子”这几个字，在它们上面补写了可怕的“我的遗孀”。</div><p>这是全文最震撼的细节。斯科特在生命最后一刻写下的愿望是把日记送给妻子，但他随即“悲伤地、坚决地”把“我的妻子”划去，改写为“我的遗孀”。“悲伤”是因为他知道妻子将失去丈夫，“坚决”是因为他冷静地接受了自己必死的事实。从“妻子”到“遗孀”的修改，是一个人对自己死亡的确认，也是对妻子最深沉的爱——他不愿在死后给妻子留下虚假的希望。这个细节比任何直接的抒情都更令人心碎。</p></div>
+<div class="fame-card"><div class="f-line">一个人虽然在同不可战胜的厄运的搏斗中毁灭了自己，但他的心灵却因此变得无比高尚。所有这些在一切时代都是最伟大的悲剧。</div><p>这是全文的主旨句，也是“伟大的悲剧”的深刻含义。茨威格以议论收束全文，点明悲剧之所以伟大：不在于胜利，而在于面对不可战胜的厄运时所展现的高尚心灵——诚信、坚毅、友爱、牺牲、尊严。“毁灭了自己”与“心灵却因此变得无比高尚”形成对比，肉体可以毁灭，精神却永存。“一切时代”强调这种精神的永恒价值——这正是茨威格为失败者作传的原因，也是这篇传记文学超越时代的力量所在。</p></div>
+</div></div><div class="box"><h3>主题思想</h3>
+<p>本文通过记述英国探险家斯科特一行五人前往南极点探险，在与挪威探险家阿蒙森的竞争中失败，归途中全部遇难的悲壮故事，歌颂了探险队员们在面对不可战胜的厄运时所展现的诚信、坚毅、友爱、牺牲和尊严等高尚品质。</p>
+<p>文章以“伟大的悲剧”为题，揭示了一个深刻的主题：悲剧之所以伟大，不在于胜利，而在于面对厄运时心灵的高尚。斯科特一行虽然失败了、毁灭了，但他们的精神却永存——“一个人虽然在同不可战胜的厄运的搏斗中毁灭了自己，但他的心灵却因此变得无比高尚。”这正是人类精神中最可宝贵的东西。</p>
+</div></section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+<div class="sec-head"><h2>积 累</h2><span class="no">词语 · 读音 · 修辞</span></div>
+<div class="box"><div class="acc-cat"><h3>重点词语</h3>
+<div class="acc-item"><span class="acc-w">拽</span><span class="acc-d">拉。读 zhuài。</span></div>
+<div class="acc-item"><span class="acc-w">战栗</span><span class="acc-d">颤抖、发抖。栗，读 lì。</span></div>
+<div class="acc-item"><span class="acc-w">毛骨悚然</span><span class="acc-d">形容非常恐惧。悚，读 sǒng。</span></div>
+<div class="acc-item"><span class="acc-w">耀武扬威</span><span class="acc-d">炫耀武力，显示威风。</span></div>
+<div class="acc-item"><span class="acc-w">洋洋得意</span><span class="acc-d">形容非常得意的样子。</span></div>
+<div class="acc-item"><span class="acc-w">怏怏不乐</span><span class="acc-d">形容不满意或不高兴的神情。怏，读 yàng。</span></div>
+<div class="acc-item"><span class="acc-w">姗姗来迟</span><span class="acc-d">形容来得很晚。姗，读 shān。</span></div>
+<div class="acc-item"><span class="acc-w">凛冽</span><span class="acc-d">刺骨地寒冷。凛，读 lǐn。</span></div>
+<div class="acc-item"><span class="acc-w">忧心忡忡</span><span class="acc-d">形容忧愁不安的样子。忡，读 chōng。</span></div>
+<div class="acc-item"><span class="acc-w">吞噬</span><span class="acc-d">吞食。噬，读 shì。</span></div>
+<div class="acc-item"><span class="acc-w">语无伦次</span><span class="acc-d">话讲得很乱，没有条理。</span></div>
+<div class="acc-item"><span class="acc-w">踉踉跄跄</span><span class="acc-d">走路不稳的样子。踉，读 liàng；跄，读 qiàng。</span></div>
+<div class="acc-item"><span class="acc-w">羸弱</span><span class="acc-d">瘦弱。羸，读 léi。</span></div>
+<div class="acc-item"><span class="acc-w">告罄</span><span class="acc-d">指财物用完。罄，读 qìng，尽、空。</span></div>
+<div class="acc-item"><span class="acc-w">海市蜃楼</span><span class="acc-d">比喻虚幻的事物。蜃，读 shèn。</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>用字与读音</h3>
+<div class="acc-item"><span class="acc-w">拽</span><span class="acc-d">读 zhuài，拉；提手旁。与“曳”（yè，拖）区分。</span></div>
+<div class="acc-item"><span class="acc-w">栗</span><span class="acc-d">读 lì，战栗（发抖）；西字头。与“粟”（sù，谷子）区分。</span></div>
+<div class="acc-item"><span class="acc-w">悚</span><span class="acc-d">读 sǒng，害怕；竖心旁。与“竦”（sǒng，恭敬）区分。</span></div>
+<div class="acc-item"><span class="acc-w">怏</span><span class="acc-d">读 yàng，不高兴；竖心旁。与“央”（yāng）区分。</span></div>
+<div class="acc-item"><span class="acc-w">姗</span><span class="acc-d">读 shān，姗姗来迟；女字旁。与“珊”（王字旁，珊瑚）区分。</span></div>
+<div class="acc-item"><span class="acc-w">凛</span><span class="acc-d">读 lǐn，凛冽；两点水。与“禀”（bǐng，禀报）区分。</span></div>
+<div class="acc-item"><span class="acc-w">忡</span><span class="acc-d">读 chōng，忧愁；竖心旁。与“冲”（chōng，冲击）区分。</span></div>
+<div class="acc-item"><span class="acc-w">噬</span><span class="acc-d">读 shì，吞食；口字旁。与“筮”（shì，占卜）区分。</span></div>
+<div class="acc-item"><span class="acc-w">羸</span><span class="acc-d">读 léi，瘦弱；羊字底。与“赢”（yíng，输赢）、“嬴”（yíng，姓）区分。</span></div>
+<div class="acc-item"><span class="acc-w">罄</span><span class="acc-d">读 qìng，尽、空；缶字底。与“磬”（qìng，古代乐器，石字底）区分。</span></div>
+<div class="acc-item"><span class="acc-w">蜃</span><span class="acc-d">读 shèn，海市蜃楼；虫字底。与“唇”（chún，嘴唇）区分。</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>修辞方法</h3>
+<div class="acc-item"><span class="acc-w">比　喻</span><span class="acc-d">“踩上去就像踩在三角钉上一样”“像铁一般坚硬的冰雪荒原”“凶猛的暴风雪像狂人似的袭击着薄薄的帐篷”“心中的海市蜃楼”——比喻精妙，以形传神。</span></div>
+<div class="acc-item"><span class="acc-w">拟　人</span><span class="acc-d">“挪威国旗耀武扬威、洋洋得意地在这被人类冲破的堡垒上猎猎作响”“自然界是冷酷无情的……像精灵似的召唤来寒冷、冰冻、飞雪、风暴”“好像故意捉弄他们似的”——拟人写环境的凶残与对手的得意。</span></div>
+<div class="acc-item"><span class="acc-w">反　复</span><span class="acc-d">“走呀，走呀”“嫩黄的光，嫩红的光”（此为《一棵小桃树》，本文如“愈来愈”“一再”等）——反复咏叹，强化情感。</span></div>
+<div class="acc-item"><span class="acc-w">对　比</span><span class="acc-d">第一个到达者“拥有一切”与第二个到达者“什么也不是”对比；初来时“超人的力量”与归来时“仅仅为了肉体的生存”对比；肉体的“毁灭”与心灵的“无比高尚”对比。</span></div>
+<div class="acc-item"><span class="acc-w">引　用</span><span class="acc-d">大量引用斯科特的日记原文，增强传记的真实性与感染力，让读者直接听到英雄的心声。</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>写作借鉴</h3>
+<div class="acc-item"><span class="acc-w">为失败者作传</span><span class="acc-d">选择失败者而非胜利者作为传主，从失败中发现伟大，从悲剧中提炼崇高——独特的选材视角使文章具有超越一般探险故事的思想深度。</span></div>
+<div class="acc-item"><span class="acc-w">细节描写刻画人物</span><span class="acc-d">通过“拖着16公斤岩石样品”“要了十片吗啡”“划去'我的妻子'改写'我的遗孀'”“像亲兄弟似的搂着威尔逊”等细节，不直接赞美却比任何赞美都更有力量。</span></div>
+<div class="acc-item"><span class="acc-w">引用日记增强真实</span><span class="acc-d">大量引用传主的日记原文，既增强了传记的真实性，也让读者直接进入人物的内心世界，更具感染力。</span></div>
+<div class="acc-item"><span class="acc-w">环境烘托悲壮氛围</span><span class="acc-d">以南极的恶劣环境（暴风雪、严寒、饥饿）烘托英雄的悲壮，环境越恶劣，越能反衬英雄的坚韧与崇高。</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>文化常识</h3>
+<div class="acc-item"><span class="acc-w">传记文学</span><span class="acc-d">以历史人物或事件为题材，以文学笔法再现历史的文学体裁。既具有历史的真实性，又具有文学的感染力。《伟大的悲剧》是传记文学的典范之作。</span></div>
+<div class="acc-item"><span class="acc-w">《人类的群星闪耀时》</span><span class="acc-d">茨威格的历史特写集（1927年出版），选取人类历史上十四个“具有世界历史意义的时刻”，以文学笔法再现，包括拜占庭的陷落、滑铁卢的一分钟、南极争夺战等。</span></div>
+<div class="acc-item"><span class="acc-w">南极探险</span><span class="acc-d">南极点是地球最南端，1911年挪威探险家阿蒙森和英国探险家斯科特分别率队前往。阿蒙森于1911年12月14日到达，斯科特于1912年1月18日到达，归途中全部遇难。</span></div>
+</div></div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+<div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+<div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+<div class="ptools"><button data-mode="word" data-rand="5">随机五组字形</button><button data-mode="word" data-all="1">全部字形</button><button data-mode="note" data-rand="5">随机五组词语</button><button data-mode="note" data-all="1">全部词语</button></div></section>
+
+<footer>
+  <div class="kai">《伟大的悲剧》</div>
+  <div>茨威格 · 奥地利 · 节选自《人类的群星闪耀时》</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('weidadebeiju_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('weidadebeiju_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+</script>
+<script>
+var DICT_WORDS = [{"w": "拽", "py": "zhuài", "q": "焦急的心情把他们早早地从自己的睡袋中□了出来", "tip": "「拽」提手旁，拉，读 zhuài；与「曳」（yè，拖）区分"}, {"w": "栗", "py": "lì", "q": "他们的心在战□", "tip": "「栗」西字头，发抖；与「粟」（sù，谷子，米字底）区分"}, {"w": "悚", "py": "sǒng", "q": "和前几天令人毛骨□然的单调没有任何区别", "tip": "「悚」竖心旁，害怕，读 sǒng；与「竦」（sǒng，恭敬）区分"}, {"w": "怏怏", "py": "yàng yàng", "q": "他们□□不乐地在阿蒙森的胜利旗帜旁边插上英国国旗", "tip": "「怏」竖心旁，不高兴，读 yàng；与「央」（yāng）区分"}, {"w": "姗姗", "py": "shān shān", "q": "一面□□来迟的“联合王国的国旗”", "tip": "「姗」女字旁，形容缓慢；与「珊」（王字旁，珊瑚）区分"}, {"w": "凛", "py": "lǐn", "q": "在他们身后刮来□冽的寒风", "tip": "「凛」两点水，寒冷，读 lǐn；与「禀」（bǐng，禀报，示字底）区分"}, {"w": "忡忡", "py": "chōng chōng", "q": "使他们每走一步都忧心□□", "tip": "「忡」竖心旁，忧愁，读 chōng；与「冲」（chōng，冲击）区分"}, {"w": "噬", "py": "shì", "q": "刺骨的寒冷吞□着他们已经疲惫不堪的躯体", "tip": "「噬」口字旁，吞食，读 shì；与「筮」（shì，占卜，竹字头）区分"}, {"w": "羸", "py": "léi", "q": "现在只有三个疲惫、□弱的人吃力地拖着自己的脚步", "tip": "「羸」羊字底，瘦弱，读 léi；与「赢」（yíng，输赢，贝字底）区分"}, {"w": "罄", "py": "qìng", "q": "他们的燃料已经告□", "tip": "「罄」缶字底，尽、空，读 qìng；与「磬」（qìng，乐器，石字底）区分"}, {"w": "蜃", "py": "shèn", "q": "只有心中的海市□楼", "tip": "「蜃」虫字底，大蛤蜊，读 shèn；与「唇」（chún，嘴唇，口字旁）区分"}, {"w": "踉踉", "py": "liàng liàng", "q": "于是病人只好用冻伤了的双腿□□跄跄地又走了若干公里", "tip": "「踉」足字旁，走路不稳，读 liàng；与「粮」（米字旁，liáng）区分"}];
+var DICT_NOTES = [{"w": "拽", "a": "拉。读 zhuài", "q": "焦急的心情把他们早早地从自己的睡袋中拽了出来"}, {"w": "战栗", "a": "颤抖、发抖。栗，读 lì", "q": "他们的心在战栗"}, {"w": "毛骨悚然", "a": "形容非常恐惧。悚，读 sǒng", "q": "和前几天令人毛骨悚然的单调没有任何区别"}, {"w": "耀武扬威", "a": "炫耀武力，显示威风。这里拟人写挪威国旗", "q": "挪威国旗耀武扬威、洋洋得意地在这被人类冲破的堡垒上猎猎作响"}, {"w": "洋洋得意", "a": "形容非常得意的样子。这里拟人写挪威国旗", "q": "挪威国旗耀武扬威、洋洋得意地在这被人类冲破的堡垒上猎猎作响"}, {"w": "怏怏不乐", "a": "形容不满意或不高兴的神情。怏，读 yàng", "q": "他们怏怏不乐地在阿蒙森的胜利旗帜旁边插上英国国旗"}, {"w": "姗姗来迟", "a": "形容来得很晚。姗，读 shān", "q": "一面姗姗来迟的“联合王国的国旗”"}, {"w": "凛冽", "a": "刺骨地寒冷。凛，读 lǐn", "q": "在他们身后刮来凛冽的寒风"}, {"w": "忧心忡忡", "a": "形容忧愁不安的样子。忡，读 chōng", "q": "使他们每走一步都忧心忡忡"}, {"w": "吞噬", "a": "吞食。噬，读 shì", "q": "刺骨的寒冷吞噬着他们已经疲惫不堪的躯体"}, {"w": "语无伦次", "a": "话讲得很乱，没有条理", "q": "从他语无伦次的话里，他们终于明白"}, {"w": "踉踉跄跄", "a": "走路不稳的样子。踉，读 liàng；跄，读 qiàng", "q": "于是病人只好用冻伤了的双腿踉踉跄跄地又走了若干公里"}, {"w": "羸弱", "a": "瘦弱。羸，读 léi", "q": "现在只有三个疲惫、羸弱的人吃力地拖着自己的脚步"}, {"w": "告罄", "a": "指财物用完。罄，读 qìng，尽、空", "q": "他们的燃料已经告罄"}, {"w": "海市蜃楼", "a": "比喻虚幻的事物。蜃，读 shèn", "q": "只有心中的海市蜃楼"}, {"w": "贮藏", "a": "储藏。贮，读 zhù", "q": "以免错过事先设置的贮藏点"}, {"w": "消蚀", "a": "消损腐蚀", "q": "人的勇气终于渐渐地被大自然的巨大威力所消蚀"}, {"w": "步履", "a": "行走。履，读 lǚ", "q": "迈着蹒跚的步履"}, {"w": "蹒跚", "a": "走路缓慢、摇摆的样子。蹒，读 pán；跚，读 shān", "q": "迈着蹒跚的步履"}, {"w": "哆哆嗦嗦", "a": "形容因受冻或害怕而身体发抖", "q": "最后一篇日记是他用已经冻伤的手指哆哆嗦嗦写下的愿望"}, {"w": "遗孀", "a": "某人死后，他的妻子称为某人的遗孀。孀，读 shuāng", "q": "在它们上面补写了可怕的“我的遗孀”"}];
+</script>
+
+</body>
+</html>
