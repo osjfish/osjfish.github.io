@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《列夫·托尔斯泰》茨威格</title>
+<style>
+
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+
+.acc-sub{font-family:var(--font-kai,serif);font-weight:700;font-size:1.05em;color:var(--ink,#2b2b2b);margin:16px 0 8px;padding-left:10px;border-left:3px solid #b8934a}
+
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">奥地利 · 茨威格</div>
+  <h1 class="hero-title">列夫·托尔斯泰</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+    <p>《列夫·托尔斯泰》是奥地利作家茨威格的一篇人物传记节选，出自他的传记作品《三作家》（又译《与精灵的搏斗》）。文章以欲扬先抑的手法，先极力铺陈托尔斯泰外貌的平庸甚至丑陋，再以浓墨重彩写他那对犀利无比、洞察一切的眼睛，揭示这位文学巨匠的精神世界。</p>
+    <p>全文分为外貌描写和眼睛刻画两大部分，大量运用比喻、夸张、排比等修辞，语言华丽而精准，是人物肖像描写的经典之作。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>斯蒂芬·茨威格（1881—1942），奥地利著名小说家、传记作家，出身于富裕的犹太家庭。青年时代在维也纳和柏林攻读哲学和文学，后游历世界各地，结识了罗曼·罗兰、弗洛伊德等文化名人。他的小说以细腻的心理分析和高超的叙事技巧著称，代表作有《一个陌生女人的来信》《象棋的故事》《人类群星闪耀时》等。</p>
+    <p>茨威格的传记作品同样享有盛誉，《三作家》写了卡萨诺瓦、司汤达和托尔斯泰三位作家。他善于抓住人物最具特征的细节，以精妙的比喻和深刻的心理分析，展现人物的精神世界。1942年，因不堪纳粹迫害和对世界前途的绝望，茨威格与妻子在巴西自杀。</p>
+  </div>
+  <div class="box">
+    <h3>托尔斯泰简介</h3>
+    <p>列夫·尼古拉耶维奇·托尔斯泰（1828—1910），俄国伟大的批判现实主义作家，世界文学史上最杰出的作家之一。出身于贵族家庭，1844年入喀山大学学习，1847年退学回故乡经营庄园，尝试改善农奴生活。1851年赴高加索从军，开始文学创作。</p>
+    <p>托尔斯泰的代表作有长篇小说《战争与和平》《安娜·卡列尼娜》《复活》等，这些作品深刻反映了俄国社会的矛盾和人民的苦难，被列宁称为“俄国革命的镜子”。晚年的托尔斯泰追求平民化，放弃贵族生活，1910年离家出走，病逝于阿斯塔波沃车站。</p>
+  </div>
+  <div class="box">
+    <h3>写作背景</h3>
+    <p><b>传记创作：</b>茨威格的《三作家》创作于20世纪初，他以独特的心理分析方法，为三位作家立传。在写托尔斯泰时，茨威格没有平铺直叙其生平，而是抓住其外貌与精神的巨大反差，以肖像描写为切入点，展现托尔斯泰的灵魂。</p>
+    <p><b>欲扬先抑：</b>托尔斯泰的外貌确实平庸——他身材矮小，长相粗劣，与人们想象中的文学巨匠相去甚远。茨威格正是利用这一反差，先极写其外貌的丑陋，再以眼睛的犀利来反衬其灵魂的高贵，产生了强烈的艺术效果。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>课文朗读《列夫·托尔斯泰》茨威格</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1QFV4z5ELW&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课文朗读《列夫·托尔斯泰》"></iframe>
+        <a href="https://www.bilibili.com/video/BV1QFV4z5ELW" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>
+      <div class="media">
+        <h4>文本细读《列夫·托尔斯泰》茨威格</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1g34y1G7K4&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="文本细读《列夫·托尔斯泰》"></iframe>
+        <a href="https://www.bilibili.com/video/BV1g34y1G7K4" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 内容 · 手法</span></div>
+  <div class="sec-sub">全文八段，分三部分：外貌描写（须发脸庞）、初见失望与眼睛犀利、眼睛才气与不幸人生。每段含内容概括与手法分析，点击可展开。</div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+    <div class="pl">他生就一副多毛的脸庞，植被多于空地，浓密的胡髭使人难以看清他的内心世界。长髯覆盖了两颊，遮住了嘴唇，遮住了皱似树皮的黝黑脸膛，一根根迎风飘动，颇有长者风度。宽约一指的眉毛像纠缠不清的树根，朝上倒竖。一绺绺灰白的鬈发像泡沫一样堆在额头上。不管从哪个角度看，你都能见到热带森林般茂密的须发。像米开朗琪罗画的摩西一样，托尔斯泰给人留下的难忘形象，来源于他那天父般的犹如卷起的滔滔白浪的大胡子。</div>
+    <div class="pl">人们无不试图用自己的想象除去他那盖着面孔的头发，修剪疯长的胡须，以他年轻时刮去胡须的肖像作为参照，希望用魔法变出一张光洁的脸。——这是引向内心世界的路标。这样一来，我们不免开始畏缩、胆怯了。因为，无可否认的是，这个出身于名门望族的男子长相粗劣，生就一张田野村夫的脸孔。天才的灵魂自甘寓居低矮的陋屋，而天才灵魂的工作间，比起吉尔吉斯人搭建的皮帐篷来好不了多少。小屋粗制滥造，出自一个农村木匠之手，而不是由古希腊的能工巧匠建造起来的。架在小窗上方的横梁——小眼睛上方的额头，倒像是用刀胡乱劈成的木柴。皮肤藏污纳垢，缺少光泽，就像用枝条扎成的村舍外墙那样粗糙，在四方脸中间，我们见到的是一只宽宽的、两孔朝天的狮子鼻，仿佛被人一拳头打塌了的样子。在乱蓬蓬的头发后面，怎么也遮不住那对难看的招风耳。凹陷的脸颊中间生着两片厚厚的嘴唇。留给人的总印象是失调、崎岖、平庸，甚至粗鄙。</div>
+    <div class="pl">这副劳动者的忧郁面孔上笼罩着消沉的阴影，滞留着愚钝和压抑：在他脸上找不到一点奋发向上的灵气，找不到精神光彩，找不到陀斯妥耶夫斯基眉宇之间那种像大理石穹顶一样缓缓隆起的非凡器宇。他的面容没有一点光彩可言。谁不承认这一点谁就没有讲真话。无疑，这张脸平淡无奇，障碍重重，没法弥补，不是传播智慧的庙堂，而是禁锢思想的囚牢；这张脸蒙昧阴沉，郁郁寡欢，丑陋可憎。从青年时代起，托尔斯泰就深深意识到自己这副嘴脸是不讨人喜欢的。他说，他讨厌任何对他长相所抱有的幻想。“像我这么个生着宽鼻子、厚嘴唇、灰色小眼睛的人，难道还能找到幸福吗？”正因为如此，他不久就任凭须发长得满脸都是，把自己的嘴唇隐藏在黑貂皮面具般的胡须里，直到年纪大了以后胡子才变成白色，因而显出几分慈祥可敬。直到生命的最后十年，他脸上笼罩的厚厚一层阴云才消除了；直到人生的晚秋，俊秀之光才使这块悲凉之地解冻。</div>
+    <div class="pl">因此，那些第一次见到他的人，一开始都无一例外地感到失望。他们有的坐火车旅行漫长的路程，有的从图拉驾车赶来，在客厅里正襟危坐地等待这位大师的接见。他们早就形成了对他的主观概念，希望从他身上找见威严非凡的东西，希望看到一个貌似天父的美髯公，集尊贵、轩昂、伟岸、天才于一身。在即将亲眼见到大活人之前，他们对自己所想象的这位文坛泰斗形象颔首低眉，敬重有加，内心的期望扩大到诚惶诚恐的地步。门终于开了，进来的却是一个矮小敦实的人，由于步子轻快，连胡子都跟着抖动不停。他刚进门，差不多就一路小跑而来，然后突然收住脚步，望着一位惊呆了的来客友好地微笑。他带着轻松愉快的口气，又迅速又随便地讲着表示欢迎的话语，同时主动向客人伸出手来。来访者一边与他握手，一边深感疑惑和惊讶。什么？就这么个侏儒！这么个小巧玲珑的家伙，难道真的是列夫·尼古拉耶维奇·托尔斯泰吗？这位客人不无尴尬地抬起眼皮直勾勾地打量着主人的脸。</div>
+    <div class="pl">突然，客人惊奇地屏住了呼吸，只见面前的小个子那对浓似灌木丛的眉毛下面，一对灰色的眼睛射出一道黑豹似的目光，虽然每个见过托尔斯泰的人都谈过这种犀利目光，但再好的图片都没法加以反映。这道目光就像一把锃亮的钢刀刺了过来，又稳又准，击中要害。令你无法动弹，无法躲避。仿佛被催眠术控制住了，你只好乖乖地忍受这种目光的探寻，任何掩饰都抵挡不住。它像枪弹穿透了伪装的甲胄，它像金刚刀切开了玻璃。在这种入木三分的审视之下，谁都没法遮遮掩掩。——对此，屠格涅夫和高尔基等上百个人都作过无可置疑的描述。</div>
+    <div class="pl">这种穿透心灵的审视仅仅持续了一秒钟，接着便刀剑入鞘，代之以柔和的目光与和蔼的笑容。虽然嘴角紧闭，没有变化，但那对眼睛却能满含粲然笑意，犹如神奇的星光。而在优美动人的音乐影响下，它们可以像村妇那样热泪涟涟。精神上感到满足自在时，它们可以闪闪发光，转眼又因忧郁而黯然失色，罩上阴云，顿生凄凉，显得麻木不仁，神秘莫测。它们可以变得冷酷锐利，可以像手术刀、像X射线那样揭开隐藏的秘密，不一会儿意趣盎然地涌出好奇的神色。这是出现在人类面部最富感情的一对眼睛，可以抒发各种各样的感情。高尔基对它们恰如其分的描述，说出了我们的心里话：“托尔斯泰这对眼睛里有一百只眼珠。”</div>
+    <div class="pl">亏得有这么一对眼睛，托尔斯泰的脸上于是透出一股才气来。此人所具有的天赋统统集中在他的眼睛里，就像俊美的陀斯妥耶夫斯基的丰富思想都集中在他的眉峰之间一样。托尔斯泰面部的其他部件——胡子、眉毛、头发，都不过是用以包装、保护这对闪光的珠宝的甲壳而已，这对珠宝有魔力，有磁性，可以把人世间的物质吸进去，然后向我们这个时代放射出精确无误的频波。再小的事物，借助这对眼睛都能看得清清楚楚，像一只猎鹰从高空朝一只胆怯的耗子俯冲下来，这对眼睛不会放过微不足道的细节，同样也能全面揭示广袤无垠的宇宙。它们可以照耀在精神世界的最高处，同样也可以勇敢地探进阴暗的地牢。当这一对寒光四射的匕首转而对准它们的主人时是十分可怕的，因为锋刃无情，直戳要害，正好刺中了他的心窝。</div>
+    <div class="pl">具有这种犀利眼光，能够看清真相的人，可以任意支配整个世界及其知识财富。作为一个始终具有善于观察并能看透事物本质的眼光的人，他肯定缺少一样东西，那就是属于自己的那一份幸福。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+      <div class="part-head"><span class="p-num">第一部分</span><h3>外貌描写 · 须发脸庞</h3><span class="range">第 1–3 段</span></div>
+      <div class="part-overview">集中笔墨描写托尔斯泰的外貌：多毛的脸庞、粗劣的长相、消沉的面容，反复强调其平庸甚至丑陋，为后文写眼睛的犀利做反衬。</div>
+      <div class="verse" id="l1" data-i="0">
+        <div class="v-top"><span class="v-no">1</span><div class="v-line">他<span class="anno-word" data-note="天生就有、生来就是">生就</span>一副多毛的<span class="anno-word" data-note="脸的轮廓、面容">脸庞</span>，<span class="anno-word" data-note="这里比喻脸上的毛发，像植物覆盖地面一样">植被</span>多于空地，浓密的<span class="anno-word" data-note="（zī）嘴上边的胡子">胡髭</span>使人难以看清他的内心世界。<span class="anno-word" data-note="（rán）两颊上的长胡子">长髯</span>覆盖了<span class="anno-word" data-note="脸的两侧">两颊</span>，遮住了嘴唇，遮住了皱似树皮的<span class="anno-word" data-note="（yǒu hēi）黑、黑暗">黝黑</span><span class="anno-word" data-note="脸、面部">脸膛</span>，一根根迎风飘动，颇有<span class="anno-word" data-note="年高德劭者的气度风范">长者风度</span>。宽约一指的眉毛像<span class="anno-word" data-note="缠绕在一起，理不出头绪">纠缠不清</span>的树根，朝上<span class="anno-word" data-note="向上竖立">倒竖</span>。<span class="anno-word" data-note="（liǔ）一束束、一丝丝（形容头发）">一绺绺</span>灰白的<span class="anno-word" data-note="（quán）弯曲的头发">鬈发</span>像<span class="anno-word" data-note="气体在液体中形成的气泡，这里比喻鬈发蓬松">泡沫</span>一样堆在额头上。不管从哪个角度看，你都能见到<span class="anno-word" data-note="赤道附近的茂密森林，这里比喻须发的浓密">热带森林</span>般茂密的须发。像<span class="anno-word" data-note="（1475—1564）意大利文艺复兴时期的雕塑家、画家">米开朗琪罗</span>画的<span class="anno-word" data-note="《圣经》中古代犹太人的领袖和先知">摩西</span>一样，托尔斯泰给人留下的难忘形象，来源于他那<span class="anno-word" data-note="基督教对上帝的称呼，这里形容大胡子像上帝的胡须">天父</span>般的犹如卷起的<span class="anno-word" data-note="形容大水滚滚，这里比喻大胡子的浓密翻卷">滔滔白浪</span>的大胡子。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">开篇集中描写托尔斯泰的须发：多毛的脸庞、长髯、倒竖的眉毛、灰白鬈发，如热带森林般茂密；大胡子如天父般的滔滔白浪，是他最难忘的形象。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>开篇多感官、多角度铺陈须发；“植被多于空地”比喻新奇；“热带森林”“滔滔白浪”夸张比喻，极写须发之浓密；以米开朗琪罗的摩西作类比，提升形象的文化分量。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l2" data-i="1">
+        <div class="v-top"><span class="v-no">2</span><div class="v-line">人们无不<span class="anno-word" data-note="打算、尝试">试图</span>用自己的想象除去他那盖着面孔的头发，<span class="anno-word" data-note="用剪刀修整">修剪</span><span class="anno-word" data-note="生长得过于旺盛、不受约束">疯长</span>的胡须，以他年轻时刮去胡须的<span class="anno-word" data-note="以某人为主体的画像或照片">肖像</span>作为<span class="anno-word" data-note="参考、对照">参照</span>，希望用<span class="anno-word" data-note="妖魔的法术，这里指神奇的方法">魔法</span>变出一张<span class="anno-word" data-note="光滑洁净">光洁</span>的脸。——这是引向内心世界的<span class="anno-word" data-note="指示道路的标志，这里指线索">路标</span>。这样一来，我们不免开始<span class="anno-word" data-note="害怕而退缩">畏缩</span>、<span class="anno-word" data-note="胆小、害怕">胆怯</span>了。因为，<span class="anno-word" data-note="不能不承认">无可否认</span>的是，这个出身于<span class="anno-word" data-note="有声望的世家大族">名门望族</span>的男子长相<span class="anno-word" data-note="粗糙低劣">粗劣</span>，生就一张<span class="anno-word" data-note="乡村里的农夫，形容粗俗">田野村夫</span>的<span class="anno-word" data-note="脸、面容">脸孔</span>。天才的灵魂<span class="anno-word" data-note="自己心甘情愿">自甘</span><span class="anno-word" data-note="居住、寄居">寓居</span>低矮的<span class="anno-word" data-note="简陋的房屋">陋屋</span>，而天才灵魂的工作间，比起<span class="anno-word" data-note="中亚的游牧民族，住皮帐篷">吉尔吉斯人</span>搭建的<span class="anno-word" data-note="用兽皮搭建的帐篷">皮帐篷</span>来好不了多少。小屋<span class="anno-word" data-note="制作粗劣，不讲究质量">粗制滥造</span>，出自一个农村木匠之手，而不是由古希腊的<span class="anno-word" data-note="工艺技术高明的人">能工巧匠</span>建造起来的。架在小窗上方的<span class="anno-word" data-note="水平方向的梁">横梁</span>——小眼睛上方的额头，倒像是用刀胡乱<span class="anno-word" data-note="用刀斧砍开">劈成</span>的<span class="anno-word" data-note="作燃料用的小块木头">木柴</span>。皮肤<span class="anno-word" data-note="（gòu）包容和隐藏污秽的东西，这里形容皮肤粗糙不洁净">藏污纳垢</span>，缺少<span class="anno-word" data-note="物体表面反射出来的亮光">光泽</span>，就像用枝条扎成的<span class="anno-word" data-note="乡村的房屋">村舍</span>外墙那样<span class="anno-word" data-note="不光滑、不精细">粗糙</span>，在四方脸中间，我们见到的是一只宽宽的、两孔朝天的<span class="anno-word" data-note="鼻孔朝天的鼻子，形如狮鼻">狮子鼻</span>，仿佛被人一拳头<span class="anno-word" data-note="击打而塌陷">打塌</span>了的样子。在<span class="anno-word" data-note="形容须发或草木凌乱">乱蓬蓬</span>的头发后面，怎么也遮不住那对难看的<span class="anno-word" data-note="耳廓向前、向外突出的耳朵">招风耳</span>。<span class="anno-word" data-note="向内或向下陷进去">凹陷</span>的<span class="anno-word" data-note="脸的两旁部分">脸颊</span>中间生着两片厚厚的嘴唇。留给人的总印象是<span class="anno-word" data-note="失去平衡、不协调">失调</span>、<span class="anno-word" data-note="（qí qū）山路高低不平，这里形容面容不端正">崎岖</span>、<span class="anno-word" data-note="寻常而不突出、平凡">平庸</span>，甚至<span class="anno-word" data-note="粗俗鄙陋">粗鄙</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">写人们想象中光洁的脸与现实的反差：托尔斯泰长相粗劣，如农村木匠粗制滥造的小屋——额头如乱劈的木柴、皮肤粗糙、狮子鼻、招风耳、厚嘴唇，总印象失调、崎岖、平庸甚至粗鄙。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>大量比喻（小屋、木柴、村舍外墙）写面容的粗劣；“天才的灵魂自甘寓居低矮的陋屋”对比，寓灵魂高贵于外貌平庸；“藏污纳垢”“粗制滥造”等成语，极写外貌之不堪，为后文眼睛的犀利做反衬。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l3" data-i="2">
+        <div class="v-top"><span class="v-no">3</span><div class="v-line">这副劳动者的<span class="anno-word" data-note="忧伤愁闷">忧郁</span>面孔上<span class="anno-word" data-note="像笼子一样罩在上面">笼罩</span>着<span class="anno-word" data-note="情绪低落">消沉</span>的阴影，<span class="anno-word" data-note="停留不动">滞留</span>着<span class="anno-word" data-note="愚笨、迟钝">愚钝</span>和<span class="anno-word" data-note="对感情、力量等加以限制，使不能充分流露">压抑</span>：在他脸上找不到一点<span class="anno-word" data-note="精神振作，努力进取">奋发向上</span>的<span class="anno-word" data-note="聪慧或秀美的气质">灵气</span>，找不到<span class="anno-word" data-note="精神焕发的样子">精神光彩</span>，找不到<span class="anno-word" data-note="（1821—1881）俄国著名作家">陀斯妥耶夫斯基</span><span class="anno-word" data-note="两眉上面的地方，泛指容貌">眉宇</span>之间那种像<span class="anno-word" data-note="用大理石建成的圆顶，形容额头饱满高贵">大理石穹顶</span>一样缓缓<span class="anno-word" data-note="凸起、鼓起">隆起</span>的非凡<span class="anno-word" data-note="人的外表、风度">器宇</span>。他的面容没有一点<span class="anno-word" data-note="颜色和光泽，也指光荣">光彩</span>可言。谁不承认这一点谁就没有讲真话。无疑，这张脸<span class="anno-word" data-note="平平常常，没有什么特别的地方">平淡无奇</span>，<span class="anno-word" data-note="很多阻碍">障碍重重</span>，没法<span class="anno-word" data-note="把不够的部分填足">弥补</span>，不是传播智慧的<span class="anno-word" data-note="庙宇，这里指庄严神圣的地方">庙堂</span>，而是<span class="anno-word" data-note="（gù）束缚、强力限制">禁锢</span>思想的<span class="anno-word" data-note="监狱">囚牢</span>；这张脸<span class="anno-word" data-note="未开化、不懂事理">蒙昧</span><span class="anno-word" data-note="天阴的样子，这里形容脸色忧郁">阴沉</span>，<span class="anno-word" data-note="心里苦闷，很少快乐">郁郁寡欢</span>，<span class="anno-word" data-note="相貌难看，令人厌恶">丑陋可憎</span>。从青年时代起，托尔斯泰就深深意识到自己这副<span class="anno-word" data-note="面貌、表情（含贬义）">嘴脸</span>是<span class="anno-word" data-note="不让人喜欢">不讨人喜欢</span>的。他说，他讨厌任何对他长相所抱有的<span class="anno-word" data-note="对还没有实现的事物有所想象">幻想</span>。“像我这么个生着宽鼻子、厚嘴唇、灰色小眼睛的人，难道还能找到幸福吗？”正因为如此，他不久就<span class="anno-word" data-note="听凭、不管">任凭</span>须发长得满脸都是，把自己的嘴唇隐藏在<span class="anno-word" data-note="（diāo）黑貂的毛皮，珍贵柔软">黑貂皮</span><span class="anno-word" data-note="遮盖面部的用具">面具</span>般的胡须里，直到年纪大了以后胡子才变成白色，因而显出几分<span class="anno-word" data-note="（老年人的态度、神色）和蔼安详">慈祥</span><span class="anno-word" data-note="值得尊敬">可敬</span>。直到生命的最后十年，他脸上笼罩的厚厚一层<span class="anno-word" data-note="阴暗的云，这里比喻忧郁的神情">阴云</span>才消除了；直到人生的晚秋，<span class="anno-word" data-note="清秀美丽">俊秀</span>之光才使这块<span class="anno-word" data-note="凄凉悲哀的地方，这里指他的脸">悲凉之地</span><span class="anno-word" data-note="冰冻融化，这里比喻忧郁消除">解冻</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">写托尔斯泰面容的消沉：没有奋发向上的灵气，没有精神光彩，平淡无奇，是禁锢思想的囚牢；他自知不讨人喜欢，任凭须发生长；直到晚年，阴云才消，俊秀之光才使悲凉之地解冻。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>排比（找不到……找不到……找不到……）写面容的缺乏光彩；“不是传播智慧的庙堂，而是禁锢思想的囚牢”对比强烈；引用托尔斯泰自己的话，见其自知之明；“人生的晚秋”“悲凉之地解冻”比喻晚年精神的转变。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="part-head"><span class="p-num">第二部分</span><h3>初见失望 · 眼睛犀利</h3><span class="range">第 4–6 段</span></div>
+      <div class="part-overview">写来访者初见托尔斯泰的失望，以及他那对犀利无比、富有感情的眼睛——目光如钢刀、如黑豹，能穿透心灵，也能满含笑意。</div>
+      <div class="verse" id="l4" data-i="3">
+        <div class="v-top"><span class="v-no">4</span><div class="v-line">因此，那些第一次见到他的人，一开始都<span class="anno-word" data-note="没有一个例外，全部如此">无一例外</span>地感到<span class="anno-word" data-note="感到没有希望，失去信心">失望</span>。他们有的坐火车旅行漫长的路程，有的从<span class="anno-word" data-note="俄国城市名，托尔斯泰的庄园在图拉省">图拉</span>驾车赶来，在客厅里<span class="anno-word" data-note="理好衣襟端端正正地坐着，形容严肃或拘谨的样子">正襟危坐</span>地等待这位大师的<span class="anno-word" data-note="跟来的人见面">接见</span>。他们早就形成了对他的<span class="anno-word" data-note="自己头脑中形成的看法">主观概念</span>，希望从他身上找见<span class="anno-word" data-note="有威力而又严肃的样子">威严</span>非凡的东西，希望看到一个<span class="anno-word" data-note="表面上很像">貌似</span><span class="anno-word" data-note="基督教对上帝的称呼">天父</span>的<span class="anno-word" data-note="长着漂亮长胡须的男子">美髯公</span>，集<span class="anno-word" data-note="可尊敬、高贵">尊贵</span>、<span class="anno-word" data-note="（xuān áng）精神饱满，气度不凡">轩昂</span>、<span class="anno-word" data-note="魁梧、高大">伟岸</span>、天才于一身。在即将亲眼见到大活人之前，他们对自己所想象的这位<span class="anno-word" data-note="文学界最有威望、最有成就的人">文坛泰斗</span>形象<span class="anno-word" data-note="低着头，形容谦卑恭顺">颔首低眉</span>，<span class="anno-word" data-note="非常尊敬">敬重有加</span>，内心的期望扩大到<span class="anno-word" data-note="惶恐不安，原是封建时代奏章中的套语">诚惶诚恐</span>的地步。门终于开了，进来的却是一个矮小<span class="anno-word" data-note="粗短而结实">敦实</span>的人，由于步子轻快，连胡子都跟着<span class="anno-word" data-note="颤动">抖动</span>不停。他刚进门，差不多就一路<span class="anno-word" data-note="快步行走，接近跑">小跑</span>而来，然后突然<span class="anno-word" data-note="停住">收住</span>脚步，望着一位<span class="anno-word" data-note="因吃惊而发愣">惊呆了</span>的<span class="anno-word" data-note="来访的客人">来客</span>友好地微笑。他带着<span class="anno-word" data-note="不感到有负担，心情舒畅">轻松愉快</span>的口气，又迅速又<span class="anno-word" data-note="不受拘束、不加限制">随便</span>地讲着表示欢迎的话语，同时主动向客人伸出手来。来访者一边与他握手，一边深感<span class="anno-word" data-note="心里不明白、困惑">疑惑</span>和<span class="anno-word" data-note="感到很奇怪、惊异">惊讶</span>。什么？就这么个<span class="anno-word" data-note="（zhū rú）身材异常矮小的人">侏儒</span>！这么个<span class="anno-word" data-note="形容小而灵巧、精致">小巧玲珑</span>的<span class="anno-word" data-note="指人（含轻视或戏谑意）">家伙</span>，难道真的是列夫·尼古拉耶维奇·托尔斯泰吗？这位客人<span class="anno-word" data-note="有些神色、态度不自然">不无尴尬</span>地抬起<span class="anno-word" data-note="眼睑的通称">眼皮</span><span class="anno-word" data-note="形容眼神呆板、一动不动地盯着">直勾勾</span>地<span class="anno-word" data-note="观察（人的衣着、外貌）">打量</span>着主人的脸。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">写来访者初见托尔斯泰的失望：他们远道而来，正襟危坐，期望见到威严伟岸的文坛泰斗，结果进来的却是矮小敦实、步子轻快、态度随便的小个子，令客人尴尬而疑惑。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>欲扬先抑：先写来访者的期望之高（“诚惶诚恐”），再写现实的落差（“侏儒”“小巧玲珑”）；动作描写（“一路小跑”“突然收住脚步”）生动传神，见托尔斯泰的平易近人。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l5" data-i="4">
+        <div class="v-top"><span class="v-no">5</span><div class="v-line">突然，客人惊奇地屏住了呼吸，只见面前的小个子那对浓似<span class="anno-word" data-note="密集生长的矮树">灌木丛</span>的眉毛下面，一对灰色的眼睛射出一道<span class="anno-word" data-note="黑色的豹子，凶猛敏捷">黑豹</span>似的目光，虽然每个见过托尔斯泰的人都谈过这种<span class="anno-word" data-note="（武器、言语等）锋利、锐利">犀利</span>目光，但再好的图片都没法<span class="anno-word" data-note="用图片等表现出来">加以反映</span>。这道目光就像一把<span class="anno-word" data-note="（zèng）形容反光发亮">锃亮</span>的<span class="anno-word" data-note="钢制的刀，锋利">钢刀</span>刺了过来，又稳又准，<span class="anno-word" data-note="打中最关键的部位">击中要害</span>。令你无法<span class="anno-word" data-note="（人、动物或能转动的东西）活动">动弹</span>，无法<span class="anno-word" data-note="故意离开或隐蔽起来，使人看不见">躲避</span>。仿佛被<span class="anno-word" data-note="通过暗示等方法使人进入类似睡眠的状态">催眠术</span>控制住了，你只好<span class="anno-word" data-note="顺从、听话的样子">乖乖地</span>忍受这种目光的<span class="anno-word" data-note="探求、寻找">探寻</span>，任何<span class="anno-word" data-note="使用手法来掩盖（真实情况）">掩饰</span>都<span class="anno-word" data-note="抵抗不了">抵挡不住</span>。它像<span class="anno-word" data-note="子弹">枪弹</span><span class="anno-word" data-note="贯通、穿过">穿透</span>了<span class="anno-word" data-note="假装，采取措施隐蔽真相">伪装</span>的<span class="anno-word" data-note="（zhòu）古代军人作战时穿的护身服装">甲胄</span>，它像<span class="anno-word" data-note="用金刚石制成的刀，极坚硬锋利">金刚刀</span>切开了玻璃。在这种<span class="anno-word" data-note="原形容书法笔力强劲，后比喻分析问题深刻">入木三分</span>的<span class="anno-word" data-note="仔细看">审视</span>之下，谁都没法<span class="anno-word" data-note="隐藏、掩饰">遮遮掩掩</span>。——对此，<span class="anno-word" data-note="（1818—1883）俄国著名作家">屠格涅夫</span>和<span class="anno-word" data-note="（1868—1936）苏联伟大作家">高尔基</span>等上百个人都作过<span class="anno-word" data-note="没有什么可以怀疑的，事实明显">无可置疑</span>的描述。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">写托尔斯泰的眼睛：灰色的眼睛射出黑豹似的犀利目光，如锃亮的钢刀刺过来，如枪弹穿透甲胄，如金刚刀切开玻璃，入木三分，令人无法躲避。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>博喻（黑豹、钢刀、枪弹、金刚刀）极写目光的犀利穿透力；“又稳又准，击中要害”短句有力；“入木三分”成语双关，既写目光之深，又暗合书法批评；以屠格涅夫、高尔基的描述佐证。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l6" data-i="5">
+        <div class="v-top"><span class="v-no">6</span><div class="v-line">这种<span class="anno-word" data-note="深入到内心深处">穿透心灵</span>的审视仅仅持续了一秒钟，接着便<span class="anno-word" data-note="（qiào）把刀剑放回套子里，这里比喻目光收回">刀剑入鞘</span>，<span class="anno-word" data-note="用这个代替那个">代之以</span><span class="anno-word" data-note="温和而不强烈">柔和</span>的目光与<span class="anno-word" data-note="态度温和，容易接近">和蔼</span>的笑容。虽然<span class="anno-word" data-note="上下唇两边相连的部分">嘴角</span><span class="anno-word" data-note="紧密地闭合">紧闭</span>，没有变化，但那对眼睛却能满含<span class="anno-word" data-note="（càn）形容笑时露出牙齿的样子">粲然</span><span class="anno-word" data-note="微笑的神情">笑意</span>，<span class="anno-word" data-note="好像">犹如</span>神奇的<span class="anno-word" data-note="星星发出的光">星光</span>。而在优美动人的音乐影响下，它们可以像<span class="anno-word" data-note="乡村里的妇女">村妇</span>那样<span class="anno-word" data-note="（lián）形容泪水不断流下">热泪涟涟</span>。精神上感到<span class="anno-word" data-note="感到满意而安闲舒适">满足自在</span>时，它们可以<span class="anno-word" data-note="形容光亮动摇不定，忽明忽暗">闪闪发光</span>，转眼又因<span class="anno-word" data-note="忧伤愁闷">忧郁</span>而<span class="anno-word" data-note="（àn）事物失去了原有的色泽与光彩">黯然失色</span>，罩上<span class="anno-word" data-note="阴暗的云，比喻忧郁">阴云</span>，<span class="anno-word" data-note="顿时产生悲凉之感">顿生凄凉</span>，显得<span class="anno-word" data-note="肢体麻痹，没有感觉，比喻对外界事物反应迟钝">麻木不仁</span>，<span class="anno-word" data-note="非常神秘，让人摸不透">神秘莫测</span>。它们可以变得<span class="anno-word" data-note="冷淡苛刻">冷酷</span><span class="anno-word" data-note="（刀锋等）尖而快，也指目光尖锐">锐利</span>，可以像<span class="anno-word" data-note="外科医生用的小刀">手术刀</span>、像<span class="anno-word" data-note="一种穿透力很强的电磁波，俗称X光">X射线</span>那样<span class="anno-word" data-note="把覆盖的东西拿开，使暴露出来">揭开</span>隐藏的秘密，不一会儿<span class="anno-word" data-note="（àng）形容气氛、趣味等洋溢的样子">意趣盎然</span>地<span class="anno-word" data-note="大量地流出">涌出</span><span class="anno-word" data-note="对自己所不了解的事物觉得新奇而感兴趣">好奇</span>的神色。这是出现在人类面部<span class="anno-word" data-note="感情最丰富">最富感情</span>的一对眼睛，可以<span class="anno-word" data-note="表达（感情）">抒发</span>各种各样的感情。高尔基对它们<span class="anno-word" data-note="办事或说话正合分寸">恰如其分</span>的描述，说出了我们的<span class="anno-word" data-note="内心真实的话">心里话</span>：“托尔斯泰这对眼睛里有<span class="anno-word" data-note="夸张手法，形容眼睛能看到、感受到极多的东西">一百只眼珠</span>。”</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">写托尔斯泰眼睛的丰富感情：一秒钟后刀剑入鞘，代之以柔和的目光与粲然笑意；可以热泪涟涟、闪闪发光、黯然失色、冷酷锐利、意趣盎然——是人类面部最富感情的眼睛，高尔基说“这对眼睛里有一百只眼珠”。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“刀剑入鞘”比喻目光收回，与上文“钢刀”呼应；一连串比喻（星光、村妇、手术刀、X射线）写眼睛感情的丰富多变；“一百只眼珠”夸张，极写眼睛的洞察力和感受力。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="part-head"><span class="p-num">第三部分</span><h3>眼睛才气 · 不幸人生</h3><span class="range">第 7–8 段</span></div>
+      <div class="part-overview">写托尔斯泰的眼睛集中了他的天赋，能洞察一切、揭示宇宙；但这种犀利的眼光也使他看透真相，因而缺少属于自己的幸福。</div>
+      <div class="verse" id="l7" data-i="6">
+        <div class="v-top"><span class="v-no">7</span><div class="v-line"><span class="anno-word" data-note="多亏、幸亏">亏得</span>有这么一对眼睛，托尔斯泰的脸上于是透出一股<span class="anno-word" data-note="才华、才能">才气</span>来。此人所具有的<span class="anno-word" data-note="天生的资质、才能">天赋</span><span class="anno-word" data-note="全部、都">统统</span>集中在他的眼睛里，就像俊美的陀斯妥耶夫斯基的丰富思想都集中在他的<span class="anno-word" data-note="眉毛凸起的地方，形容眉骨高">眉峰</span>之间一样。托尔斯泰面部的其他<span class="anno-word" data-note="组成整体的部分，这里指面部器官">部件</span>——胡子、眉毛、头发，都不过是用以<span class="anno-word" data-note="包裹、装饰">包装</span>、保护这对闪光的珠宝的<span class="anno-word" data-note="（qiào）坚硬的外壳，这里比喻须发">甲壳</span>而已，这对珠宝有<span class="anno-word" data-note="使人爱好、沉迷的吸引力">魔力</span>，有<span class="anno-word" data-note="磁体能吸引铁、镍等金属的性质，这里比喻吸引力">磁性</span>，可以把<span class="anno-word" data-note="世界上、社会上">人世间</span>的物质吸进去，然后向我们这个时代<span class="anno-word" data-note="由一点向四外射出">放射</span>出<span class="anno-word" data-note="非常准确，没有差错">精确无误</span>的<span class="anno-word" data-note="频率和波形，这里指信息">频波</span>。再小的事物，借助这对眼睛都能看得清清楚楚，像一只<span class="anno-word" data-note="用来打猎的鹰，凶猛敏锐">猎鹰</span>从高空朝一只<span class="anno-word" data-note="胆小、害怕">胆怯</span>的<span class="anno-word" data-note="老鼠">耗子</span><span class="anno-word" data-note="（飞机等）以高速度和大角度向下飞">俯冲</span>下来，这对眼睛不会放过<span class="anno-word" data-note="非常渺小，不值得一提">微不足道</span>的细节，同样也能全面<span class="anno-word" data-note="使人看见原来不容易看出的事物">揭示</span><span class="anno-word" data-note="（guǎng mào）形容广阔得望不到边际">广袤无垠</span>的<span class="anno-word" data-note="包括地球及其他一切天体的无限空间">宇宙</span>。它们可以<span class="anno-word" data-note="（强烈的光线）照射">照耀</span>在<span class="anno-word" data-note="人的思想、感情等内心活动的领域">精神世界</span>的最高处，同样也可以勇敢地<span class="anno-word" data-note="深入进去">探进</span>阴暗的<span class="anno-word" data-note="地面下的牢狱，比喻黑暗的地方">地牢</span>。当这一对<span class="anno-word" data-note="冰冷的光芒向四面照射">寒光四射</span>的<span class="anno-word" data-note="（bǐ shǒu）短剑或狭长的短刀">匕首</span>转而对准它们的主人时是十分可怕的，因为<span class="anno-word" data-note="刀剑等的锋利部分">锋刃</span><span class="anno-word" data-note="没有感情、不留情">无情</span>，<span class="anno-word" data-note="（chuō）直接刺">直戳</span><span class="anno-word" data-note="身体上能致命的部位，也比喻关键的部分">要害</span>，正好刺中了他的<span class="anno-word" data-note="心脏所在的地方，这里指内心深处">心窝</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">写托尔斯泰的眼睛集中了他的天赋：须发不过是保护这对珠宝的甲壳；这对眼睛能看清微不足道的细节，也能揭示广袤无垠的宇宙，能照耀精神世界的最高处，也能探进阴暗的地牢；当匕首对准自己时，直戳心窝。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>“闪光的珠宝”比喻眼睛，“甲壳”比喻须发，与前文“粗制滥造的小屋”形成对照；“猎鹰俯冲”比喻目光的敏锐；“寒光四射的匕首”写自我审视的痛苦，为结尾“缺少幸福”伏笔。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l8" data-i="7">
+        <div class="v-top"><span class="v-no">8</span><div class="v-line">具有这种<span class="anno-word" data-note="（武器、言语等）锋利、锐利">犀利</span>眼光，能够<span class="anno-word" data-note="看清楚事物的真实面貌">看清真相</span>的人，可以<span class="anno-word" data-note="随意安排、控制">任意支配</span>整个世界及其<span class="anno-word" data-note="知识方面的宝贵资源">知识财富</span>。作为一个<span class="anno-word" data-note="从开始到最后，一直">始终</span>具有<span class="anno-word" data-note="长于仔细察看（事物或现象）">善于观察</span>并能<span class="anno-word" data-note="透彻地了解、看穿">看透</span><span class="anno-word" data-note="事物本身所固有的、决定事物性质的根本属性">事物本质</span>的眼光的人，他<span class="anno-word" data-note="一定、无疑">肯定</span><span class="anno-word" data-note="缺乏、短少">缺少</span>一样东西，那就是<span class="anno-word" data-note="归自己所有">属于自己</span>的那一份<span class="anno-word" data-note="（生活、境遇）称心如意">幸福</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">点明主旨：具有犀利眼光、能看清真相的人，可以支配世界及其知识财富；但也正因为看透了一切，他肯定缺少属于自己的那一份幸福。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>卒章显志，以议论收束全文；“犀利眼光”与“缺少幸福”形成因果，揭示天才的悲剧性；语言简洁有力，余味深长，是全文的点睛之笔。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">形象 · 艺术 · 主题</span></div>
+
+  <div class="box">
+    <h3>人物形象</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">托尔斯泰——外貌平庸而灵魂高贵的文学巨匠</div>
+        <p><b>外貌平庸粗劣：</b>托尔斯泰身材矮小敦实，长相粗劣——多毛的脸庞、粗制滥造的小屋般的面容、狮子鼻、招风耳、厚嘴唇，总印象是失调、崎岖、平庸甚至粗鄙。他的外貌与“文坛泰斗”的身份形成巨大反差。</p>
+        <p><b>眼睛犀利无比：</b>与平庸的外貌形成强烈对比的是他那对眼睛——“黑豹似的目光”“锃亮的钢刀”“枪弹穿透甲胄”“金刚刀切开玻璃”，犀利无比，能穿透心灵，入木三分。这对眼睛集中了他全部的天赋和才气。</p>
+        <p><b>感情丰富深邃：</b>他的眼睛“有一百只眼珠”（高尔基语），可以满含粲然笑意，可以热泪涟涟，可以闪闪发光，可以黯然失色，可以冷酷锐利，可以意趣盎然——是人类面部最富感情的一对眼睛。</p>
+        <p><b>洞察一切的痛苦：</b>这对眼睛能看清微不足道的细节，也能揭示广袤无垠的宇宙；能照耀精神世界的最高处，也能探进阴暗的地牢。但正因为他能看透真相，他“肯定缺少一样东西，那就是属于自己的那一份幸福”——天才的悲剧正在于此。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>艺术特色</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">欲扬先抑，反差强烈</div>
+        <p>文章先极力铺陈托尔斯泰外貌的平庸甚至丑陋（多毛、粗劣、消沉、粗鄙），再以浓墨重彩写他眼睛的犀利和灵魂的高贵。这种欲扬先抑的手法，使外貌与精神形成巨大反差，产生了强烈的艺术效果——外貌越平庸，眼睛越犀利，灵魂越高贵，人物形象越鲜明。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">比喻精妙，博喻连篇</div>
+        <p>文章大量运用比喻，且多为博喻（一个本体用多个喻体）。写须发：“热带森林”“滔滔白浪”；写面容：“粗制滥造的小屋”“用刀胡乱劈成的木柴”；写目光：“黑豹”“锃亮的钢刀”“枪弹穿透甲胄”“金刚刀切开玻璃”。比喻新奇精准，极富表现力。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">夸张排比，气势充沛</div>
+        <p>“托尔斯泰这对眼睛里有一百只眼珠”是夸张，极写眼睛的洞察力和感受力；“找不到……找不到……找不到……”是排比，极写面容的缺乏光彩；“可以……可以……可以……”排比写眼睛感情的丰富。夸张与排比的运用，使文章气势充沛，感染力强。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">侧面描写，烘云托月</div>
+        <p>文章多处运用侧面描写：来访者的失望（“就这么个侏儒”）反衬托尔斯泰外貌的平庸；屠格涅夫、高尔基等上百人的描述佐证目光的犀利；“高尔基对它们恰如其分的描述”借名人之口写眼睛的神奇。侧面描写使人物形象更加丰满可信。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>《列夫·托尔斯泰》通过对托尔斯泰外貌和眼睛的精细刻画，展现了这位文学巨匠的精神世界——他外貌平庸粗劣，却有着犀利无比、洞察一切的眼睛和高贵深邃的灵魂。</p>
+    <p>文章的深刻之处在于，它不仅写出了托尔斯泰的伟大，也写出了他的痛苦：“具有这种犀利眼光，能够看清真相的人，可以任意支配整个世界及其知识财富。作为一个始终具有善于观察并能看透事物本质的眼光的人，他肯定缺少一样东西，那就是属于自己的那一份幸福。”这种对天才悲剧性的揭示，使文章超越了一般的肖像描写，具有了深刻的人生哲理。</p>
+  </div>
+</section>
+
+
+<div class="divider"></div>
+
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">重点词语 · 用字与读音 · 修辞 · 写作借鉴</span></div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">胡髭</span><span class="acc-d">（zī）嘴上边的胡子。</span></div>
+      <div class="acc-item"><span class="acc-w">长髯</span><span class="acc-d">（rán）两颊上的长胡子。</span></div>
+      <div class="acc-item"><span class="acc-w">黝黑</span><span class="acc-d">（yǒu hēi）黑、黑暗。</span></div>
+      <div class="acc-item"><span class="acc-w">鬈发</span><span class="acc-d">（quán）弯曲的头发。</span></div>
+      <div class="acc-item"><span class="acc-w">粗制滥造</span><span class="acc-d">制作粗劣，不讲究质量。</span></div>
+      <div class="acc-item"><span class="acc-w">藏污纳垢</span><span class="acc-d">（gòu）包容和隐藏污秽的东西。</span></div>
+      <div class="acc-item"><span class="acc-w">崎岖</span><span class="acc-d">（qí qū）山路高低不平，这里形容面容不端正。</span></div>
+      <div class="acc-item"><span class="acc-w">粗鄙</span><span class="acc-d">粗俗鄙陋。</span></div>
+      <div class="acc-item"><span class="acc-w">禁锢</span><span class="acc-d">（gù）束缚、强力限制。</span></div>
+      <div class="acc-item"><span class="acc-w">郁郁寡欢</span><span class="acc-d">心里苦闷，很少快乐。</span></div>
+      <div class="acc-item"><span class="acc-w">正襟危坐</span><span class="acc-d">理好衣襟端端正正地坐着，形容严肃或拘谨。</span></div>
+      <div class="acc-item"><span class="acc-w">轩昂</span><span class="acc-d">（xuān áng）精神饱满，气度不凡。</span></div>
+      <div class="acc-item"><span class="acc-w">颔首低眉</span><span class="acc-d">低着头，形容谦卑恭顺。</span></div>
+      <div class="acc-item"><span class="acc-w">诚惶诚恐</span><span class="acc-d">惶恐不安。</span></div>
+      <div class="acc-item"><span class="acc-w">犀利</span><span class="acc-d">（武器、言语等）锋利、锐利。</span></div>
+      <div class="acc-item"><span class="acc-w">锃亮</span><span class="acc-d">（zèng）形容反光发亮。</span></div>
+      <div class="acc-item"><span class="acc-w">甲胄</span><span class="acc-d">（zhòu）古代军人作战时穿的护身服装。</span></div>
+      <div class="acc-item"><span class="acc-w">入木三分</span><span class="acc-d">原形容书法笔力强劲，后比喻分析问题深刻。</span></div>
+      <div class="acc-item"><span class="acc-w">粲然</span><span class="acc-d">（càn）形容笑时露出牙齿的样子。</span></div>
+      <div class="acc-item"><span class="acc-w">黯然失色</span><span class="acc-d">（àn）事物失去了原有的色泽与光彩。</span></div>
+      <div class="acc-item"><span class="acc-w">意趣盎然</span><span class="acc-d">（àng）形容气氛、趣味等洋溢的样子。</span></div>
+      <div class="acc-item"><span class="acc-w">广袤无垠</span><span class="acc-d">（guǎng mào）形容广阔得望不到边际。</span></div>
+      <div class="acc-item"><span class="acc-w">微不足道</span><span class="acc-d">非常渺小，不值得一提。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">髭</span><span class="acc-d">（zī）嘴上边的胡子。髟字头，不写“兹”。</span></div>
+      <div class="acc-item"><span class="acc-w">髯</span><span class="acc-d">（rán）两颊上的长胡子。髟字头，不写“冉”。</span></div>
+      <div class="acc-item"><span class="acc-w">黝</span><span class="acc-d">（yǒu）黑色。黑字旁，不写“幼”。</span></div>
+      <div class="acc-item"><span class="acc-w">绺</span><span class="acc-d">（liǔ）一束丝、线、须发等。绞丝旁，与“柳”（木字旁）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">鬈</span><span class="acc-d">（quán）弯曲的头发。髟字头，不写“卷”。</span></div>
+      <div class="acc-item"><span class="acc-w">垢</span><span class="acc-d">（gòu）污秽。土字旁，不写“后”。</span></div>
+      <div class="acc-item"><span class="acc-w">锢</span><span class="acc-d">（gù）束缚。金字旁，与“固”区分。</span></div>
+      <div class="acc-item"><span class="acc-w">胄</span><span class="acc-d">（zhòu）头盔。月字底，与“胃”（田字头）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">粲</span><span class="acc-d">（càn）笑时露齿。米字底，与“灿”（火字旁）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">袤</span><span class="acc-d">（mào）长度。衣字底，与“茂”（草字头）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">戳</span><span class="acc-d">（chuō）用尖端触击。戈字旁，与“戮”（lù，杀）区分。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>修辞方法</h3>
+      <div class="acc-item"><span class="acc-w">比喻（博喻）</span><span class="acc-d">写目光用“黑豹”“钢刀”“枪弹”“金刚刀”多个喻体，博喻连篇，极写目光的犀利穿透力。</span></div>
+      <div class="acc-item"><span class="acc-w">夸张</span><span class="acc-d">“托尔斯泰这对眼睛里有一百只眼珠”，夸张手法，极写眼睛的洞察力和感受力。</span></div>
+      <div class="acc-item"><span class="acc-w">排比</span><span class="acc-d">“找不到……找不到……找不到……”排比写面容的缺乏光彩；“可以……可以……可以……”排比写眼睛感情的丰富。</span></div>
+      <div class="acc-item"><span class="acc-w">欲扬先抑</span><span class="acc-d">先极写外貌的平庸丑陋（抑），再写眼睛的犀利和灵魂的高贵（扬），反差强烈，效果突出。</span></div>
+      <div class="acc-item"><span class="acc-w">对比</span><span class="acc-d">外貌的平庸与眼睛的犀利对比；来访者的期望与现实的失望对比；天才的灵魂与低矮的陋屋对比。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">抓住特征</span><span class="acc-d">写人物要抓住最具特征的细节。本文抓住托尔斯泰的须发和眼睛，以外貌写灵魂，形神兼备。</span></div>
+      <div class="acc-item"><span class="acc-w">欲扬先抑</span><span class="acc-d">先写缺点不足，再写优点长处，形成反差，使人物形象更鲜明。写人作文可借鉴这种手法。</span></div>
+      <div class="acc-item"><span class="acc-w">善用比喻</span><span class="acc-d">比喻要新奇精准，避免陈词滥调。本文“植被多于空地”“粗制滥造的小屋”等比喻，令人耳目一新。</span></div>
+      <div class="acc-item"><span class="acc-w">侧面烘托</span><span class="acc-d">通过他人的反应（来访者的失望、名人的评价）来侧面写人物，比直接描写更有说服力。</span></div>
+      <div class="acc-item"><span class="acc-w">卒章显志</span><span class="acc-d">结尾以议论点明主旨，“缺少幸福”的论断使文章超越一般肖像描写，具有深刻的人生哲理。</span></div>
+    </div>
+  </div>
+</section>
+
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">《列夫·托尔斯泰》</div>
+  <div>茨威格 · 奥地利 · 出自《三作家》 · 人物传记节选</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button><button class="dictate-fs" id="dictFsPlus">A+</button><button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('tuoersitai_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('tuoersitai_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "髭", "py": "zī", "q": "浓密的胡□使人难以看清他的内心世界", "tip": "「髭」髟字头，音 zī，嘴上边的胡子，勿写「兹」"}, {"w": "髯", "py": "rán", "q": "长□覆盖了两颊，遮住了嘴唇", "tip": "「髯」髟字头，音 rán，两颊上的长胡子，勿写「冉」"}, {"w": "黝", "py": "yǒu", "q": "遮住了皱似树皮的□黑脸膛", "tip": "「黝」黑字旁，音 yǒu，黑色，勿写「幼」"}, {"w": "绺绺", "py": "liǔ liǔ", "q": "一□□灰白的鬈发像泡沫一样堆在额头上", "tip": "「绺」绞丝旁，音 liǔ，一束丝、线、须发等，勿写「柳」（木字旁）"}, {"w": "鬈", "py": "quán", "q": "一绺绺灰白的□发像泡沫一样堆在额头上", "tip": "「鬈」髟字头，音 quán，弯曲的头发，勿写「卷」"}, {"w": "垢", "py": "gòu", "q": "皮肤藏污纳□，缺少光泽", "tip": "「垢」土字旁，音 gòu，污秽、脏东西，勿写「后」"}, {"w": "锢", "py": "gù", "q": "不是传播智慧的庙堂，而是禁□思想的囚牢", "tip": "「锢」金字旁，音 gù，束缚、禁闭，勿写「固」"}, {"w": "憎", "py": "zēng", "q": "这张脸蒙昧阴沉，郁郁寡欢，丑陋可□", "tip": "「憎」竖心旁，音 zēng，厌恶，勿写「增」（土字旁）"}, {"w": "貂", "py": "diāo", "q": "把自己的嘴唇隐藏在黑□皮面具般的胡须里", "tip": "「貂」豸字旁，音 diāo，一种珍贵毛皮动物，勿写「雕」（隹字旁）"}, {"w": "襟", "py": "jīn", "q": "在客厅里正□危坐地等待这位大师的接见", "tip": "「襟」衣字旁，音 jīn，衣襟，勿写「禁」（示字旁）"}, {"w": "轩", "py": "xuān", "q": "集尊贵、□昂、伟岸、天才于一身", "tip": "「轩」车字旁，音 xuān，气度不凡，勿写「宣」"}, {"w": "颔", "py": "hàn", "q": "对自己所想象的这位文坛泰斗形象□首低眉", "tip": "「颔」页字旁，音 hàn，下巴，点头，勿写「含」"}, {"w": "惶", "py": "huáng", "q": "内心的期望扩大到诚□诚恐的地步", "tip": "「惶」竖心旁，音 huáng，恐惧，勿写「皇」（白字旁）"}, {"w": "尴", "py": "gān", "q": "这位客人不无□尬地抬起眼皮直勾勾地打量着主人的脸", "tip": "「尴」尤字旁，音 gān，「尴尬」指神色不自然，勿写「监」"}, {"w": "尬", "py": "gà", "q": "这位客人不无尴□地抬起眼皮直勾勾地打量着主人的脸", "tip": "「尬」尤字旁，音 gà，「尴尬」合用，勿写「介」"}, {"w": "锃", "py": "zèng", "q": "这道目光就像一把□亮的钢刀刺了过来", "tip": "「锃」金字旁，音 zèng，形容反光发亮，勿写「逞」（走之底）"}, {"w": "胄", "py": "zhòu", "q": "它像枪弹穿透了伪装的甲□", "tip": "「胄」月字底，音 zhòu，古代作战时戴的头盔，勿写「胃」（田字头）"}, {"w": "粲", "py": "càn", "q": "但那对眼睛却能满含□然笑意", "tip": "「粲」米字底，音 càn，形容笑时露出牙齿，勿写「灿」（火字旁）"}, {"w": "涟涟", "py": "lián lián", "q": "它们可以像村妇那样热泪□□", "tip": "「涟」三点水，音 lián，形容泪水不断，勿写「连」（走之底）"}, {"w": "黯", "py": "àn", "q": "转眼又因忧郁而□然失色", "tip": "「黯」黑字旁，音 àn，阴暗，勿写「暗」（日字旁）"}, {"w": "盎", "py": "àng", "q": "不一会儿意趣□然地涌出好奇的神色", "tip": "「盎」皿字底，音 àng，洋溢，勿写「昂」（日字头）"}, {"w": "袤", "py": "mào", "q": "同样也能全面揭示广□无垠的宇宙", "tip": "「袤」衣字底，音 mào，长度，「广袤」指广阔，勿写「茂」（草字头）"}, {"w": "戳", "py": "chuō", "q": "因为锋刃无情，直□要害", "tip": "「戳」戈字旁，音 chuō，用尖端触击，勿写「戮」（lù，杀）"}, {"w": "犀", "py": "xī", "q": "具有这种□利眼光，能够看清真相的人", "tip": "「犀」牛字底，音 xī，锋利，「犀利」，勿写「西」"}];
+var DICT_NOTES = [{"w": "胡髭", "a": "（zī）嘴上边的胡子", "q": "浓密的胡髭使人难以看清他的内心世界"}, {"w": "长髯", "a": "（rán）两颊上的长胡子", "q": "长髯覆盖了两颊"}, {"w": "黝黑", "a": "（yǒu hēi）黑、黑暗", "q": "遮住了皱似树皮的黝黑脸膛"}, {"w": "一绺绺", "a": "（liǔ）一束束、一丝丝（形容头发）", "q": "一绺绺灰白的鬈发像泡沫一样堆在额头上"}, {"w": "鬈发", "a": "（quán）弯曲的头发", "q": "一绺绺灰白的鬈发像泡沫一样堆在额头上"}, {"w": "粗制滥造", "a": "制作粗劣，不讲究质量", "q": "小屋粗制滥造，出自一个农村木匠之手"}, {"w": "藏污纳垢", "a": "（gòu）包容和隐藏污秽的东西", "q": "皮肤藏污纳垢，缺少光泽"}, {"w": "崎岖", "a": "（qí qū）山路高低不平，这里形容面容不端正", "q": "留给人的总印象是失调、崎岖、平庸"}, {"w": "粗鄙", "a": "粗俗鄙陋", "q": "甚至粗鄙"}, {"w": "禁锢", "a": "（gù）束缚、强力限制", "q": "而是禁锢思想的囚牢"}, {"w": "郁郁寡欢", "a": "心里苦闷，很少快乐", "q": "这张脸蒙昧阴沉，郁郁寡欢"}, {"w": "正襟危坐", "a": "理好衣襟端端正正地坐着，形容严肃或拘谨", "q": "在客厅里正襟危坐地等待这位大师的接见"}, {"w": "轩昂", "a": "（xuān áng）精神饱满，气度不凡", "q": "集尊贵、轩昂、伟岸、天才于一身"}, {"w": "颔首低眉", "a": "低着头，形容谦卑恭顺", "q": "对自己所想象的这位文坛泰斗形象颔首低眉"}, {"w": "诚惶诚恐", "a": "惶恐不安", "q": "内心的期望扩大到诚惶诚恐的地步"}, {"w": "犀利", "a": "（武器、言语等）锋利、锐利", "q": "一对灰色的眼睛射出一道黑豹似的目光，虽然每个见过托尔斯泰的人都谈过这种犀利目光"}, {"w": "锃亮", "a": "（zèng）形容反光发亮", "q": "这道目光就像一把锃亮的钢刀刺了过来"}, {"w": "甲胄", "a": "（zhòu）古代军人作战时穿的护身服装", "q": "它像枪弹穿透了伪装的甲胄"}, {"w": "入木三分", "a": "原形容书法笔力强劲，后比喻分析问题深刻", "q": "在这种入木三分的审视之下"}, {"w": "粲然", "a": "（càn）形容笑时露出牙齿的样子", "q": "但那对眼睛却能满含粲然笑意"}, {"w": "黯然失色", "a": "（àn）事物失去了原有的色泽与光彩", "q": "转眼又因忧郁而黯然失色"}, {"w": "意趣盎然", "a": "（àng）形容气氛、趣味等洋溢的样子", "q": "不一会儿意趣盎然地涌出好奇的神色"}, {"w": "广袤无垠", "a": "（guǎng mào）形容广阔得望不到边际", "q": "同样也能全面揭示广袤无垠的宇宙"}, {"w": "微不足道", "a": "非常渺小，不值得一提", "q": "这对眼睛不会放过微不足道的细节"}, {"w": "名门望族", "a": "有声望的世家大族", "q": "这个出身于名门望族的男子长相粗劣"}, {"w": "无可置疑", "a": "没有什么可以怀疑的", "q": "屠格涅夫和高尔基等上百个人都作过无可置疑的描述"}, {"w": "恰如其分", "a": "办事或说话正合分寸", "q": "高尔基对它们恰如其分的描述"}, {"w": "麻木不仁", "a": "肢体麻痹，没有感觉，比喻对外界事物反应迟钝", "q": "显得麻木不仁，神秘莫测"}, {"w": "神秘莫测", "a": "非常神秘，让人摸不透", "q": "显得麻木不仁，神秘莫测"}, {"w": "侏儒", "a": "（zhū rú）身材异常矮小的人", "q": "就这么个侏儒"}];
+</script>
+
+</body>
+</html>
