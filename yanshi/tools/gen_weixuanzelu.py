@@ -3,7 +3,7 @@
 import io, json, re
 
 SRC = r"D:\App\Apps\yanshi\chibi-dumu.html"
-OUT = r"D:\App\Apps\yanshi\weixuanzelu-fuluosite.html"
+OUT = r"D:\App\Apps\yanshi\weixuanzedelu-fuluosite.html"
 LS_KEY = "weixuanzelu_fs"
 
 LQ = "\u201c"
