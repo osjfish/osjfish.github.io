@@ -1,0 +1,1268 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《带上她的眼睛》刘慈欣</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">现代 · 刘慈欣</div>
+  <h1 class="hero-title">带上她的眼睛</h1>
+</header>
+
+<nav class="nav"><div class="nav-in"><a href="#bg">背景</a><a href="#jielu">解读</a><a href="#app">赏析</a><a href="#acc">积累</a><a href="#practice">练习</a><div class="tool"><select id="fsSel" class="fs-sel" title="正文字体大小"><option value="100">100%</option><option value="150">150%</option><option value="200">200%</option><option value="250">250%</option><option value="300">300%</option></select><button id="btnAll">展开</button><button id="btnRecite">背诵</button><button id="btnPrint">打印</button></div></div></nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+<div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+<div class="lead">
+<p>《带上她的眼睛》是刘慈欣1999年发表的科幻短篇小说，获当年中国科幻银河奖一等奖。2016年入选统编版语文七年级下册。小说以“传感眼镜”为核心设定，讲述了一个地航飞船失事、女宇航员被困地心的故事，在科幻的外壳下包裹着深沉的人文关怀。</p>
+<p>小说最精妙之处在于“信息差”的叙事策略：读者和叙述者“我”一样，直到故事结尾才知道“她”的真实处境。前文所有看似“不正常”的细节——怕封闭、热得像地狱、对一朵花的狂喜——在真相揭晓后全部获得了血泪的重量。这种“重读效应”使小说具有了超越一般科幻作品的情感深度。</p>
+</div><div class="box"><h3>作者简介</h3>
+<p>刘慈欣，1963年生于北京，山西阳泉人，中国当代科幻小说作家，中国作家协会会员，山西省作家协会副主席。代表作有长篇小说《三体》三部曲、《球状闪电》，短篇小说《带上她的眼睛》《乡村教师》《朝闻道》等。2015年凭借《三体》获第73届世界科幻大会颁发的雨果奖最佳长篇小说奖，是亚洲首位获此殊荣的作家。</p>
+<p>刘慈欣的科幻小说以宏大的宇宙观、坚实的科学设定和深沉的人文关怀著称，被誉为“以一己之力将中国科幻提升到世界水平”。《带上她的眼睛》是他早期短篇的代表作，虽篇幅不长，却集中体现了其“硬核科幻+人文关怀”的创作风格。</p>
+</div><div class="box"><h3>写作背景</h3>
+<p><b>科幻银河奖：</b>中国科幻银河奖是中国科幻界的最高奖项，1986年由《科学文艺》（后改名《科幻世界》）杂志发起。《带上她的眼睛》获1999年度银河奖一等奖，是刘慈欣早期获奖作品中传播最广的一篇。</p>
+<p><b>传感眼镜设定：</b>小说中的“传感眼镜”能传输视觉、触觉和味觉，是一个虚构的科幻设定。这一设定的巧妙之处在于：它既是推动情节的技术装置，又是连接两个世界的情感通道——“我”在地面，她在地心，一副眼镜成为两个世界唯一的桥梁。</p>
+<p><b>落日工程：</b>小说虚构的“落日工程”是一项地下航行探险计划，“落日六号”是其中第六艘地航飞船。现实中，人类对地心的探索确实极为困难——地壳平均厚度约17公里，地幔厚度约2900公里，地心温度高达约6000℃。目前人类钻探的最深记录（科拉超深钻孔）约12公里，远未穿透地壳。</p>
+<p><b>入选教材：</b>《带上她的眼睛》2016年入选统编版语文七年级下册第六单元（探险单元），与《伟大的悲剧》《太空一日》《河中石兽》同组。单元主题为“探险”，本文是其中唯一的科幻作品，以独特的“地心探险”视角拓展了学生对“探险”的理解。</p>
+</div><div class="box media-box"><h3>视听</h3><div class="media-grid">
+<div class="media"><h4>七语下-23-《带上她的眼睛》课文诵读</h4><iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1KE411J7eC&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课文诵读《带上她的眼睛》"></iframe><a href="https://www.bilibili.com/video/BV1KE411J7eC" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button></div>
+<div class="media"><h4>刘慈欣《带上她的眼睛》，中国科幻银河奖一等奖</h4><iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1xN411F7ty&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="刘慈欣《带上她的眼睛》解读"></iframe><a href="https://www.bilibili.com/video/BV1xN411F7ty" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button></div>
+</div></div></section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+<div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 词语 · 手法</span></div>
+<button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+<div id="fulltext" class="poem" style="display:none">
+<div class="pl">我要去度假，主任让我再带一双眼睛去。</div>
+<div class="pl">主任递给我一双眼睛，指指前面的大屏幕，把眼睛的主人介绍给我，是一个好像刚毕业的小姑娘，在肥大的太空服中显得很娇小，她面前有一支失重的铅笔飘在空中。</div>
+<div class="pl">我问她想去哪里。这个决定对她似乎很艰难，她的双手在太空服的手套里握在胸前，双眼半闭着，似乎认为地球在我们这次短暂的旅行后就要爆炸了，我不由笑出声来。</div>
+<div class="pl">“那就去我们起航前去过的地方吧。”她说。这是高山与草原的交接处，大草原从我面前一直延伸到天边，背后的群山覆盖着暗绿色的森林，几座山顶还有银色的雪冠。</div>
+<div class="pl">我掏出她的眼睛戴上。所谓眼睛就是一副传感眼镜，当你戴上它时，你所看到的一切图像由超高频信息波发射出去，可以被远方的另一个戴同样传感眼镜的人接收到，于是他就能看到你所看到的一切，就像你带着他的眼睛一样。它还能通过采集戴着它的人的脑电波，把触觉和味觉一同发射出去。现在，大约每秒钟有两万人戴着这种眼镜度假。</div>
+<div class="pl">“我现在就像从很深很深的水底冲出来呼吸到空气，我太怕封闭了。”我从眼睛中真听到她在说，惊了一下，因为以前我只是在她的要求下行动。</div>
+<div class="pl">“可你现在并不封闭，同你周围的太空比起来，这草原太小了。”她沉默了，似乎连呼吸都停止了，但几秒钟后，她突然惊叫：“呀，花，有花啊！上次我来时没有的！”</div>
+<div class="pl">是的，广阔的草原上到处点缀着星星点点的小花。“能近些看看那朵花吗？”她问。我蹲下来看。“呀，真美！能闻闻它吗？不，别拔下它！”我只好趴到地上闻，一缕淡淡的清香。“啊，我也闻到了，真像一首隐隐传来的小夜曲呢……”</div>
+<div class="pl">我在草原上漫步，很快来到一条隐没在草丛中的小溪旁。她叫住了我说：“我真想把手伸到小河里。”我蹲下来把手伸进溪水，一股清凉流遍全身，她的眼睛用超高频信息波把这感觉传给远在太空中的她，我又听到了她的感叹。</div>
+<div class="pl">“你那儿很热吧？”我想起了从屏幕上看到的她那窄小的控制舱和隔热系统异常发达的太空服。</div>
+<div class="pl">“热，热得像……地狱。呀，天啊，这是什么？草原的风？！”这时我刚把手从水中拿出来，微风吹在湿手上凉丝丝的。“不，别动，这真是天国的风呀！”</div>
+<div class="pl">我把双手举在草原的微风中，直到手被吹干。然后应她的要求，我又把手在溪水中打湿，再举到风中把天国的感觉传给她。我们就这样又消磨了很长时间。</div>
+<div class="pl">再次上路后，沉默地走了一段，她又轻轻地说：“你那儿的世界真好。”我说：“我不知道，灰色的生活把我这方面的感觉都磨钝了。”</div>
+<div class="pl">“怎么会呢？！这世界能给人多少感觉啊！谁要能说清这些感觉，就如同说清天上的星星那样难。当我看这些花的时候，就像看到了无数的星星……”</div>
+<div class="pl">我带着她的眼睛在草原上转了一天，她渴望看草原上的每一朵野花，每一棵小草，看草丛中跃动的每一缕阳光；一条突然出现的小溪，一阵不期而至的微风，都会令她激动不已……我感到，她对这个世界的情感已丰富到不正常的程度。</div>
+<div class="pl">第二天清晨，阴云布满了天空，草原笼罩在蒙蒙的小雨中。我从眼睛中听到了她轻轻的叹息声。</div>
+<div class="pl">“看不到日出了，好想看草原的日出……听，这是今天的第一声鸟叫，雨中也有鸟呢！”</div>
+<div class="pl">又过了一天，我们结束了这次短暂的旅行。我把眼睛还给主任，回到了自己忙碌的工作中。</div>
+<div class="pl">以后的几天，我在工作中常常想起她，想起她在草原上的那些感叹。我开始注意到，平时被我忽略的许多东西：楼下花坛里新开的一朵花，窗外树枝上一只跳来跳去的麻雀，甚至办公桌上一杯热茶冒出的热气……这些以前在我眼中毫无意义的东西，现在都让我感到一种说不出的亲切。</div>
+<div class="pl">一天夜里，我在工作中突然想起了什么，打开电脑搜索“落日六号”。搜索结果让我倒吸一口凉气。</div>
+<div class="pl">“落日工程”是一项地下航行探险计划，“落日六号”是其中的一艘地航飞船。三年前，“落日六号”在航行中失事，飞船沉入了地心，与地面的联系在事故后不久就中断了。</div>
+<div class="pl">我又想起了她在草原上的那些话：“我太怕封闭了”“热，热得像……地狱”……</div>
+<div class="pl">我再也无法工作，起身走到窗前。城市的灯火在夜色中闪烁，远处的天空中，几颗星星在云缝里眨着眼睛。</div>
+<div class="pl">我仿佛看到了她，在那个暗无天日的地心中，在那个只有她一个人的控制舱里，戴着那副传感眼镜，贪婪地看着草原上的每一朵花、每一棵草，感受着草原上的每一阵风……</div>
+<div class="pl">那是她最后一次看到这个世界。</div>
+</div><div class="verse-list" id="verseList">
+<div class="part-head"><span class="p-num">第一部分</span><h3>度假受命 · 带上眼睛</h3><span class="range">第1–5段</span></div>
+<div class="part-overview">开篇设悬念：“我”度假时被要求带一双“眼睛”，眼睛的主人是一个在太空中的小姑娘，她选择去起航前去过的草原。</div>
+<div class="verse" id="l1" data-i="0">
+  <div class="v-top"><span class="v-no">1</span><div class="v-line">我要去<span class="anno-word" data-note="过假日，休息">度假</span>，<span class="anno-word" data-note="部门负责人">主任</span>让我再带<span class="anno-word" data-note="指传感眼镜，非真的眼睛，此处设悬念">一双眼睛</span>去。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">开篇交代故事缘起：“我”要去度假，主任让“我”顺便带一双“眼睛”去。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>独句成段，悬念陡生。“带一双眼睛去”——眼睛怎么带？给谁带？为什么要带？短短一句话抛出三个疑问，立刻抓住读者。这是科幻小说常用的“陌生化”手法：用日常词汇（度假、带）搭配反常事物（眼睛），制造认知冲突。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l2" data-i="1">
+  <div class="v-top"><span class="v-no">2</span><div class="v-line">主任<span class="anno-word" data-note="传递给">递给</span>我一双眼睛，指指前面的<span class="anno-word" data-note="显示画面的大型屏幕">大屏幕</span>，把眼睛的主人介绍给我，是一个好像刚毕业的小姑娘，在肥大的<span class="anno-word" data-note="宇航员在太空中穿的服装">太空服</span>中显得很<span class="anno-word" data-note="娇嫩小巧">娇小</span>，她面前有一支<span class="anno-word" data-note="物体失去重力作用，飘浮空中">失重</span>的<span class="anno-word" data-note="用石墨笔芯书写的工具">铅笔</span>飘在空中。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">主任把“眼睛”的主人介绍给“我”：一个刚毕业的小姑娘，穿着肥大的太空服，面前有一支失重的铅笔飘在空中。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>细节描写极为精准。“肥大的太空服”反衬小姑娘的“娇小”，暗示她还是个孩子；“失重的铅笔飘在空中”一句话点明环境——她在太空中。不直接说“她在太空”，而用“失重的铅笔”这一视觉细节让读者自行推断，是“展示而非告知”（show, don&#x27;t tell）的经典笔法。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l3" data-i="2">
+  <div class="v-top"><span class="v-no">3</span><div class="v-line">我问她想去哪里。这个决定对她似乎很<span class="anno-word" data-note="困难，不容易">艰难</span>，她的双手在太空服的<span class="anno-word" data-note="套在手上的用品">手套</span>里<span class="anno-word" data-note="双手合拢放在胸口">握在胸前</span>，双眼<span class="anno-word" data-note="眼睛半睁半闭">半闭着</span>，似乎认为地球在我们这次<span class="anno-word" data-note="时间短">短暂</span>的旅行后就要<span class="anno-word" data-note="物体体积急剧膨大炸裂">爆炸</span>了，我<span class="anno-word" data-note="禁不住，不由得">不由</span>笑出声来。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”问她想去哪里，她似乎很难决定，双手握在胸前、双眼半闭，好像地球旅行后就要爆炸似的，“我”不由笑出声来。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>动作与神态描写暗藏深意。“双手握在胸前”“双眼半闭着”是极度珍视、近乎祈祷的姿态——她不是在选旅游景点，而是在做一个无比郑重的决定。“似乎认为地球……就要爆炸了”是“我”当时的误解，读完全文再回看，才知道这不是夸张，而是她真实的处境：她确实再也看不到地球了。“我不由笑出声来”的“笑”，与结尾的震撼形成强烈反差。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l4" data-i="3">
+  <div class="v-top"><span class="v-no">4</span><div class="v-line">“那就去我们<span class="anno-word" data-note="（船、飞船等）开始航行">起航</span>前去过的地方吧。”她说。这是高山与草原的<span class="anno-word" data-note="两地连接的地方">交接处</span>，大草原从我面前一直<span class="anno-word" data-note="延长，伸展">延伸</span>到<span class="anno-word" data-note="地平线，天与地相接处">天边</span>，背后的群山<span class="anno-word" data-note="遮盖">覆盖</span>着<span class="anno-word" data-note="深绿">暗绿色</span>的森林，几座山顶还有银色的<span class="anno-word" data-note="山顶的积雪，如戴冠帽">雪冠</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">她选择去起航前去过的地方——高山与草原的交接处。大草原一望无际，背后群山覆盖森林，山顶有银色雪冠。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>她的选择耐人寻味：不去新奇的地方，而去“起航前去过的地方”——这是她最后的、也是唯一的愿望，要重温曾经见过的美好。环境描写由近及远：大草原（近）→群山（中）→雪冠（远），层次分明，色彩丰富（绿、银），画面开阔而宁静。与后文她“暗无天日”的处境形成极致对比。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第二部分</span><h3>草原初见 · 花的惊叹</h3><span class="range">第6–9段</span></div>
+<div class="part-overview">戴上传感眼镜后，她第一次“看到”草原，对一朵小花表现出近乎虔诚的激动——近看、闻香、不许拔下，说花香像小夜曲。</div>
+<div class="verse" id="l5" data-i="4">
+  <div class="v-top"><span class="v-no">5</span><div class="v-line">我<span class="anno-word" data-note="从口袋里拿出">掏出</span>她的眼睛戴上。所谓眼睛就是一副<span class="anno-word" data-note="能传递感官信息的特殊眼镜">传感眼镜</span>，当你戴上它时，你所看到的一切图像由<span class="anno-word" data-note="特别高的频率">超高频</span><span class="anno-word" data-note="传递信息的电波">信息波</span>发射出去，可以被远方的另一个戴同样<span class="anno-word" data-note="能传递感官信息的特殊眼镜">传感眼镜</span>的人接收到，于是他就能看到你所看到的一切，就像你带着他的眼睛一样。它还能通过<span class="anno-word" data-note="收集，获取">采集</span>戴着它的人的<span class="anno-word" data-note="大脑活动产生的电信号">脑电波</span>，把<span class="anno-word" data-note="皮肤接触物体时的感觉">触觉</span>和<span class="anno-word" data-note="舌头尝味道的感觉">味觉</span>一同发射出去。现在，大约每秒钟有两万人戴着这种眼镜<span class="anno-word" data-note="过假日">度假</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”戴上她的传感眼镜。插叙说明“眼睛”的原理：传感眼镜能把看到的图像、触觉和味觉通过超高频信息波传给远方的人，目前每秒钟约有两万人用它度假。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>这段是科幻设定的核心说明，采用“下定义”的说明方法，清晰解释了“传感眼镜”的工作原理。“图像+触觉+味觉”三重传输，为后文她能“闻到花香”“感受到溪水清凉”提供了科学依据。“每秒钟有两万人”用数据说明这项技术已普及，使设定更真实可信。这段插叙也解答了开篇“带一双眼睛”的悬念。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l6" data-i="5">
+  <div class="v-top"><span class="v-no">6</span><div class="v-line">“我现在就像从很深很深的<span class="anno-word" data-note="水的深处">水底</span><span class="anno-word" data-note="奋力奔出来">冲出来</span><span class="anno-word" data-note="生物体与外界进行气体交换">呼吸</span>到空气，我太怕<span class="anno-word" data-note="与外界隔绝">封闭</span>了。”我从眼睛中真听到她在说，<span class="anno-word" data-note="吃了一惊">惊了一下</span>，因为以前我只是在她的<span class="anno-word" data-note="提出的愿望或条件">要求</span>下<span class="anno-word" data-note="走动，活动">行动</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">她突然通过眼镜说话：自己像从深水底冲出来呼吸到空气，太怕封闭了。“我”很惊讶，因为以前她只是通过“我”行动，从未直接说话。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>她的第一次“主动说话”是一个重要信号。“从很深很深的水底冲出来呼吸到空气”这个比喻极为精准——既写出了她获得感官自由时的狂喜，又暗示了她平时处于“深水底”般的封闭压抑之中。“我太怕封闭了”读完全文才知是血泪之语。“惊了一下”说明“我”也察觉到了异常，但此时还无法理解其中的原因。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l7" data-i="6">
+  <div class="v-top"><span class="v-no">7</span><div class="v-line">“可你现在并不封闭，同你周围的太空比起来，这草原太小了。”她<span class="anno-word" data-note="不说话">沉默</span>了，似乎连<span class="anno-word" data-note="生物体与外界进行气体交换">呼吸</span>都停止了，但几秒钟后，她突然<span class="anno-word" data-note="惊讶地叫喊">惊叫</span>：“呀，<span class="anno-word" data-note="被子植物的繁殖器官">花</span>，有<span class="anno-word" data-note="被子植物的繁殖器官">花</span>啊！<span class="anno-word" data-note="前一次">上次</span>我来时没有的！”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”说她现在并不封闭，太空比草原大得多。她沉默了几秒，突然惊叫起来：看到花了，上次来时没有的！</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“我”的话是一个巨大的反讽——“我”以为她在太空中，太空是广阔的，却不知她被困在比草原小得多的地航飞船里。她的“沉默”“连呼吸都停止了”是被戳中痛处后的反应，但她很快转移了注意力。“呀，花，有花啊！”的惊叫，一个“呀”字，写出了孩子般的纯真与狂喜——对她而言，一朵草原上的小花就是整个世界。“上次我来时没有的”暗示她曾经来过这里，为后文“起航前去过的地方”埋下伏笔。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l8" data-i="7">
+  <div class="v-top"><span class="v-no">8</span><div class="v-line">是的，<span class="anno-word" data-note="广大宽阔">广阔</span>的草原上到处<span class="anno-word" data-note="加以衬托或装饰">点缀</span>着<span class="anno-word" data-note="形容多而分散">星星点点</span>的小花。“能近些看看那朵花吗？”她问。我<span class="anno-word" data-note="两腿弯曲，像坐但不着地">蹲</span>下来看。“呀，真美！能闻闻它吗？不，别拔下它！”我只好<span class="anno-word" data-note="身体向前靠在物体上">趴</span>到地上闻，<span class="anno-word" data-note="一丝，一股（用于细长的东西）">一缕</span><span class="anno-word" data-note="不浓的">淡淡的</span><span class="anno-word" data-note="清淡的香味">清香</span>。“啊，我也闻到了，真像一首<span class="anno-word" data-note="隐约，不明显">隐隐</span>传来的<span class="anno-word" data-note="一种轻柔抒情的乐曲，多在夜晚演唱演奏">小夜曲</span>呢……”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">草原上到处是小花。她请求近看、闻花，但不要拔下。“我”趴到地上闻到一缕清香，她也“闻到”了，说像一首隐隐传来的小夜曲。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>这一段是全文最动人的段落之一。她对一朵小花的反应——近看、闻香、不许拔下——近乎虔诚。“不，别拔下它！”的急呼，写出了她对生命的极度珍视：她知道自己再也看不到花了，所以连一朵花也不忍伤害。“真像一首隐隐传来的小夜曲呢”运用通感，把嗅觉（清香）转化为听觉（小夜曲），写出了花香的轻柔、悠远和梦幻。省略号“……”暗示她沉浸其中，久久不愿醒来。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第三部分</span><h3>溪水微风 · 天国之感</h3><span class="range">第10–16段</span></div>
+<div class="part-overview">她请求把手伸进溪水、举在风中，感叹“热得像地狱”又说“这真是天国的风”；她感慨“你那儿的世界真好”，而“我”已被灰色生活磨钝了感觉。</div>
+<div class="verse" id="l9" data-i="8">
+  <div class="v-top"><span class="v-no">9</span><div class="v-line">我在草原上<span class="anno-word" data-note="没有目的而悠闲地走">漫步</span>，很快来到一条<span class="anno-word" data-note="隐藏，渐渐看不见">隐没</span>在<span class="anno-word" data-note="丛生的草">草丛</span>中的<span class="anno-word" data-note="细小的河流">小溪</span>旁。她<span class="anno-word" data-note="招呼使停下">叫住</span>了我说：“我真想把手伸到小河里。”我蹲下来把手<span class="anno-word" data-note="伸进去">伸进</span><span class="anno-word" data-note="小溪里的水">溪水</span>，一股<span class="anno-word" data-note="凉而使人清爽">清凉</span><span class="anno-word" data-note="流到各处">流遍</span>全身，她的眼睛用超高频信息波把这感觉传给远在太空中的她，我又听到了她的<span class="anno-word" data-note="有所感触而叹息">感叹</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”来到一条小溪旁，她请求把手伸进水里。“我”照做，一股清凉流遍全身，这感觉通过传感眼镜传给了她，“我”又听到她的感叹。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“隐没在草丛中”写出小溪的不起眼——平时谁会注意一条草丛中的小溪呢？但对她而言，这是无比珍贵的体验。“一股清凉流遍全身”的“流”字用得极好，把清凉写成可流动的实体，从手蔓延到全身。“我又听到了她的感叹”——一个“又”字，说明她已经感叹过多次，她对每一种感官体验都充满了惊喜和感激。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l10" data-i="9">
+  <div class="v-top"><span class="v-no">10</span><div class="v-line">“你那儿很热吧？”我想起了从屏幕上看到的她那<span class="anno-word" data-note="狭窄，狭小">窄小</span>的<span class="anno-word" data-note="飞船中控制航行的舱室">控制舱</span>和<span class="anno-word" data-note="隔绝热量">隔热</span>系统<span class="anno-word" data-note="不同于平常">异常</span><span class="anno-word" data-note="（事物）已有充分发展">发达</span>的<span class="anno-word" data-note="宇航员在太空中穿的服装">太空服</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">她问“我”那里热不热。“我”想起屏幕上看到的她那窄小的控制舱，以及隔热系统异常发达的太空服。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>这是一处极为重要的伏笔。“窄小的控制舱”——太空舱为什么窄小？“隔热系统异常发达”——太空服为什么需要异常发达的隔热系统？这两个细节在“我”看来只是太空环境的正常配置，读完全文才恍然大悟：她不在太空，而在灼热的地心中！“异常发达”的“异常”二字，是作者给读者的隐秘提示。她问“你那儿很热吧”，不是关心“我”，而是在对比自己的“热”。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l11" data-i="10">
+  <div class="v-top"><span class="v-no">11</span><div class="v-line">“热，热得像……<span class="anno-word" data-note="宗教中指人死后灵魂受苦的地方，比喻极痛苦的处境">地狱</span>。呀，天啊，这是什么？草原的风？！”这时我刚把手从水中拿出来，<span class="anno-word" data-note="轻微的风">微风</span>吹在<span class="anno-word" data-note="沾了水的手">湿手</span>上<span class="anno-word" data-note="形容微凉">凉丝丝</span>的。“不，<span class="anno-word" data-note="不要动">别动</span>，这真是<span class="anno-word" data-note="宗教中指人死后灵魂居住的美好地方，比喻极美好的处境">天国</span>的风呀！”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">她说热得像地狱，突然又惊叫：这是什么？草原的风？！这时“我”刚把手从水中拿出，微风吹在湿手上凉丝丝的。她让“我”别动，说这真是天国的风。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“热得像……地狱”——省略号表示她难以忍受、几乎说不下去。此时读者可能以为她在说太空舱的热，但“地狱”一词已经超出了太空的范畴。紧接着，“草原的风”让她从地狱的联想中猛然惊醒——“呀，天啊，这是什么？”的惊叫，写出了她对“风”这种最日常体验的陌生与狂喜。“天国的风”与“地狱”形成极致对比：她身处地狱般的灼热中，而草原的微风对她而言就是天国。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l12" data-i="11">
+  <div class="v-top"><span class="v-no">12</span><div class="v-line">我把双手<span class="anno-word" data-note="向上抬，向上托">举</span>在草原的微风中，直到手被<span class="anno-word" data-note="让风吹干">吹干</span>。然后<span class="anno-word" data-note="答应，接受">应</span>她的要求，我又把手在溪水中<span class="anno-word" data-note="使沾水变湿">打湿</span>，再<span class="anno-word" data-note="向上抬，向上托">举</span>到风中把<span class="anno-word" data-note="比喻极其美好的感受">天国的感觉</span>传给她。我们就这样又<span class="anno-word" data-note="（时间）过去，虚度">消磨</span>了很长时间。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”把双手举在风中直到吹干，又应她要求把手打湿再举到风中，把这种感觉传给她。我们就这样消磨了很长时间。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“举在草原的微风中，直到手被吹干”——一个简单的动作，因为她的要求而变得无比郑重。“打湿→举到风中→吹干→再打湿”的循环，写出了她对这种体验的贪婪和不舍。“把天国的感觉传给她”——“我”已经理解了这风对她的意义，用“天国的感觉”来称呼它。“消磨了很长时间”的“消磨”，在“我”是无聊，在她是最后的珍贵时光。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l13" data-i="12">
+  <div class="v-top"><span class="v-no">13</span><div class="v-line">再次上路后，<span class="anno-word" data-note="不说话">沉默</span>地走了一段，她又<span class="anno-word" data-note="用很少力量或压力地">轻轻</span>地说：“你那儿的世界真好。”我说：“我不知道，<span class="anno-word" data-note="比喻单调、乏味、缺乏色彩的生活">灰色的生活</span>把我这方面的感觉都<span class="anno-word" data-note="比喻感觉变得迟钝、不灵敏">磨钝</span>了。”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">再次上路后，她轻声说“你那儿的世界真好”。“我”说自己不知道，灰色的生活把感觉都磨钝了。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>她的“轻轻地说”，与之前的“惊叫”形成对比——从狂喜转入深沉的感慨。“你那儿的世界真好”，一个“你那儿”，暗示“那儿”不属于她，她只是一个旁观者。“灰色的生活”是“我”对自己日常的评价——单调、乏味、缺乏色彩。“磨钝了”比喻感觉变得迟钝麻木。这段对话揭示了小说的一个主题：我们对身边的美好习以为常，直到失去才懂得珍惜。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l14" data-i="13">
+  <div class="v-top"><span class="v-no">14</span><div class="v-line">“怎么会呢？！这世界能给人多少<span class="anno-word" data-note="客观事物在人脑中引起的直接反应">感觉</span>啊！谁要能说清这些<span class="anno-word" data-note="客观事物在人脑中引起的直接反应">感觉</span>，就<span class="anno-word" data-note="好像">如同</span>说清<span class="anno-word" data-note="比喻数量多、数不清">天上的星星</span>那样难。当我看这些花的时候，就像看到了<span class="anno-word" data-note="数量极多">无数</span>的星星……”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">她激动地反驳：这世界能给人多少感觉啊！说清这些感觉就像说清天上的星星那样难。看这些花的时候，就像看到了无数的星星。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“怎么会呢？！”的感叹号和问号连用，写出了她的激动和不解——她无法理解有人会对这个世界的美好无动于衷。“这世界能给人多少感觉啊”是她的心声，也是小说的核心感慨。“说清这些感觉，就如同说清天上的星星那样难”用比喻和夸张，写出了感官体验的丰富和不可言说。“看这些花的时候，就像看到了无数的星星”——花与星星，一个地上一个天上，在她眼中同样珍贵、同样璀璨。省略号暗示她还有说不完的感受。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第四部分</span><h3>草原一日 · 情感丰富</h3><span class="range">第17–19段</span></div>
+<div class="part-overview">她在草原上转了一天，对每一朵花、每一棵草、每一缕阳光都激动不已；第二天下雨看不到日出，却又惊喜地发现雨中的鸟鸣。</div>
+<div class="verse" id="l15" data-i="14">
+  <div class="v-top"><span class="v-no">15</span><div class="v-line">我带着她的眼睛在草原上转了一天，她<span class="anno-word" data-note="迫切地希望">渴望</span>看草原上的每一朵<span class="anno-word" data-note="野生的花">野花</span>，每一棵小草，看草丛中<span class="anno-word" data-note="跳动">跃动</span>的每<span class="anno-word" data-note="一丝，一股">一缕</span><span class="anno-word" data-note="太阳的光">阳光</span>；一条突然出现的小溪，一阵<span class="anno-word" data-note="没有约定而到来，出乎意料地来到">不期而至</span>的<span class="anno-word" data-note="轻微的风">微风</span>，都会令她<span class="anno-word" data-note="激动得不能停止">激动不已</span>……我感到，她对这个世界的<span class="anno-word" data-note="对外界刺激的心理反应">情感</span>已<span class="anno-word" data-note="（物质财富、学识经验等）种类多或数量大">丰富</span>到<span class="anno-word" data-note="不符合常规">不正常</span>的程度。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”带着她的眼睛在草原上转了一天，她渴望看每一朵花、每一棵草、每一缕阳光，小溪和微风都令她激动不已。“我”觉得她对世界的情感丰富到不正常的程度。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>这段是对草原一日的总括。排比句式“每一朵野花，每一棵小草，每一缕阳光”，写出了她观察的细致和渴望的强烈。“跃动的每一缕阳光”的“跃动”，把阳光写活了。“不期而至”指没有预料地到来。“激动不已”的“不已”表示不停。最后一句“她对这个世界的情感已丰富到不正常的程度”是“我”的判断——“不正常”三个字，既是“我”的疑惑，也是作者给读者的提示：事出反常必有因。这个判断在结尾被彻底推翻。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l16" data-i="15">
+  <div class="v-top"><span class="v-no">16</span><div class="v-line">第二天清晨，<span class="anno-word" data-note="阴暗的云">阴云</span><span class="anno-word" data-note="遍布，到处都是">布满</span>了天空，草原<span class="anno-word" data-note="像笼子似地罩在上面">笼罩</span>在<span class="anno-word" data-note="（雨点）细小、密集">蒙蒙</span>的<span class="anno-word" data-note="很小的雨">小雨</span>中。我从眼睛中听到了她<span class="anno-word" data-note="用很少力量或压力地">轻轻</span>的<span class="anno-word" data-note="叹气">叹息</span>声。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">第二天清晨，阴云满天，草原下着蒙蒙小雨。“我”从眼镜中听到她轻轻的叹息声。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>环境描写烘托心情。“阴云布满”“蒙蒙的小雨”，色调灰暗，与前一天草原的明媚形成对比。“轻轻的叹息声”——她为什么叹息？因为“看不到日出了”（下一句），但更深层的原因是：她知道自己的时间不多了，每一个看不到日出的清晨都是永久的遗憾。“笼罩”一词写出了雨的弥漫和压抑。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l17" data-i="16">
+  <div class="v-top"><span class="v-no">17</span><div class="v-line">“看不到<span class="anno-word" data-note="太阳升起">日出</span>了，好想看草原的<span class="anno-word" data-note="太阳升起">日出</span>……听，这是今天的第一声<span class="anno-word" data-note="鸟的鸣叫">鸟叫</span>，<span class="anno-word" data-note="下雨的时候">雨中</span>也有鸟<span class="anno-word" data-note="语气词，表示确认或强调">呢</span>！”</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">她说看不到日出了，好想看草原的日出。但随即又兴奋地说：听，这是今天的第一声鸟叫，雨中也有鸟呢！</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>从失落到惊喜的瞬间转换，写出了她性格的核心：即使在遗憾中，也能立刻发现新的美好。“好想看草原的日出……”的省略号，是深深的遗憾——她知道自己再也看不到日出了。但“听，这是今天的第一声鸟叫”，她立刻把注意力转向了雨中的鸟鸣。“雨中也有鸟呢”的“呢”，带着孩子般的惊喜。这种“在缺憾中发现美好”的能力，使她的形象更加动人，也更加令人心碎。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第五部分</span><h3>回归日常 · 隐隐不安</h3><span class="range">第20–24段</span></div>
+<div class="part-overview">旅行结束后“我”开始重新发现日常中的美好；一天夜里“我”搜索“落日六号”，真相大白：那是一艘三年前失事沉入地心的地航飞船。</div>
+<div class="verse" id="l18" data-i="17">
+  <div class="v-top"><span class="v-no">18</span><div class="v-line">又过了一天，我们<span class="anno-word" data-note="发展或进行到最后阶段，不再继续">结束</span>了这次<span class="anno-word" data-note="时间短">短暂</span>的<span class="anno-word" data-note="为了办事或游览从一个地方去到另一个地方">旅行</span>。我把眼睛<span class="anno-word" data-note="归还">还给</span>主任，回到了自己<span class="anno-word" data-note="事情多，不得闲">忙碌</span>的<span class="anno-word" data-note="从事体力或脑力劳动">工作</span>中。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">旅行结束，“我”把眼睛还给主任，回到忙碌的工作中。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>短暂的旅行结束了，但故事才刚刚开始。“忙碌的工作”与草原的宁静形成对比，暗示“我”又回到了“灰色的生活”中。但这次旅行已经在“我”心中留下了痕迹——下一段就是证明。这段是过渡段，节奏从草原的舒缓转入都市的急促。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l19" data-i="18">
+  <div class="v-top"><span class="v-no">19</span><div class="v-line">以后的几天，我在工作中常常想起她，想起她在草原上的那些感叹。我开始注意到，平时被我<span class="anno-word" data-note="没有注意到">忽略</span>的许多东西：楼下<span class="anno-word" data-note="种植花卉的土台子">花坛</span>里新开的一朵花，窗外树枝上一只跳来跳去的<span class="anno-word" data-note="一种常见的小鸟">麻雀</span>，<span class="anno-word" data-note="强调突出的事例">甚至</span>办公桌上一杯<span class="anno-word" data-note="热的茶水">热茶</span><span class="anno-word" data-note="向外透出来">冒出</span>的<span class="anno-word" data-note="热的空气">热气</span>……这些以前在我眼中<span class="anno-word" data-note="没有任何意义或价值">毫无意义</span>的东西，现在都让我感到一种说不出的<span class="anno-word" data-note="亲近，亲密">亲切</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">以后几天，“我”常常想起她和她的感叹，开始注意到平时忽略的东西：新开的花、跳来跳去的麻雀、热茶冒出的热气……这些以前毫无意义的东西，现在让“我”感到亲切。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>这是“我”的转变。她的热情感染了“我”，让“我”重新发现了日常中的美好。排比列举“一朵花、一只麻雀、一杯热茶的热气”，都是最平凡、最容易被忽略的事物。“毫无意义”与“说不出的亲切”形成对比，写出了“我”内心的变化。省略号表示还有更多被重新发现的美好。这段为结尾“我”的震撼和转变做了铺垫——“我”已经被她改变了，只是还不知道原因。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l20" data-i="19">
+  <div class="v-top"><span class="v-no">20</span><div class="v-line">一天夜里，我在工作中突然想起了什么，打开电脑<span class="anno-word" data-note="仔细查找">搜索</span>“<span class="anno-word" data-note="地航飞船的名字，落日工程的第六艘">落日六号</span>”。<span class="anno-word" data-note="仔细查找">搜索</span>结果让我<span class="anno-word" data-note="形容因震惊或恐惧而猛吸气">倒吸一口凉气</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">一天夜里，“我”突然想起什么，打开电脑搜索“落日六号”。搜索结果让“我”倒吸一口凉气。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>故事的转折点。“突然想起了什么”——之前的种种异常（怕封闭、热得像地狱、窄小的控制舱、异常发达的隔热系统、对世界的情感“不正常”）在“我”脑海中串联起来，指向了一个可怕的答案。“落日六号”这个词第一次出现，读者和“我”一起面对真相。“倒吸一口凉气”是极度震惊的生理反应——答案比“我”想象的更可怕。这段制造了强烈的悬念，读者迫不及待想知道“落日六号”到底是什么。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l21" data-i="20">
+  <div class="v-top"><span class="v-no">21</span><div class="v-line">“<span class="anno-word" data-note="一项地下航行探险计划的名称">落日工程</span>”是一项<span class="anno-word" data-note="在地下进行的航行探险">地下航行</span><span class="anno-word" data-note="到没有人去过或环境恶劣的地方去考察">探险</span>计划，“落日六号”是其中的一艘<span class="anno-word" data-note="用于地下航行的飞行器">地航飞船</span>。三年前，“落日六号”在航行中<span class="anno-word" data-note="发生意外事故">失事</span>，飞船<span class="anno-word" data-note="陷进去，落到下面">沉入</span>了<span class="anno-word" data-note="地球的中心部位">地心</span>，与地面的<span class="anno-word" data-note="彼此接上关系">联系</span>在事故后不久就<span class="anno-word" data-note="中途停止或断绝">中断</span>了。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">插叙说明真相：“落日工程”是地下航行探险计划，“落日六号”是其中一艘地航飞船。三年前失事，沉入地心，与地面联系中断。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>真相大白，所有伏笔在此回收。“地下航行”——她不在太空，而在地下！“沉入了地心”——她在地球的最深处，那里有“地狱”般的灼热。“与地面的联系在事故后不久就中断了”——但“我”明明还能通过传感眼镜和她联系！这说明“落日六号”并没有完全失去联系，她是在用最后的、仅存的传感眼镜通道，请求“我”带她“看”最后一眼这个世界。“三年前”说明她已经在黑暗中独自度过了三年，而“我”的这次旅行，是她三年来唯一一次“看到”地面。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="part-head"><span class="p-num">第六部分</span><h3>真相大白 · 落日六号</h3><span class="range">第25–28段</span></div>
+<div class="part-overview">“我”回想起她的每一句话，终于理解了她“不正常”的情感——她被困在地心，那是她最后一次看到这个世界。</div>
+<div class="verse" id="l22" data-i="21">
+  <div class="v-top"><span class="v-no">22</span><div class="v-line">我又<span class="anno-word" data-note="回忆起来">想起</span>了她在草原上的那些话：“我太怕<span class="anno-word" data-note="与外界隔绝">封闭</span>了”“热，热得像……<span class="anno-word" data-note="宗教中指人死后灵魂受苦的地方，比喻极痛苦的处境">地狱</span>”……</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”回想起她在草原上说的话：“我太怕封闭了”“热，热得像……地狱”……</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>前文的话在此重新回响，产生了巨大的情感冲击。读第一遍时，“我太怕封闭了”似乎只是一个在太空舱里待久了的人的抱怨；“热得像地狱”似乎只是太空舱温度高的夸张。但现在，每一个字都有了血泪的重量：她被困在地心一个窄小的控制舱里，周围是地狱般的灼热，她将在那里度过余生，再也看不到阳光、花草、微风。省略号表示还有更多的话在“我”脑海中回响，不忍一一列举。这是科幻小说中“信息差”手法的经典运用——同样的文字，在真相揭晓前后产生完全不同的阅读体验。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l23" data-i="22">
+  <div class="v-top"><span class="v-no">23</span><div class="v-line">我再也<span class="anno-word" data-note="不能">无法</span>工作，<span class="anno-word" data-note="站起来">起身</span>走到<span class="anno-word" data-note="窗户前面">窗前</span>。城市的<span class="anno-word" data-note="灯光">灯火</span>在<span class="anno-word" data-note="夜晚的景色">夜色</span>中<span class="anno-word" data-note="光亮动摇不定，忽明忽暗">闪烁</span>，远处的天空中，几颗星星在<span class="anno-word" data-note="云朵之间的缝隙">云缝</span>里<span class="anno-word" data-note="（星星）一亮一暗，像人眨眼">眨着眼睛</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”再也无法工作，走到窗前。城市灯火在夜色中闪烁，远处天空中几颗星星在云缝里眨着眼睛。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>“再也无法工作”写出了“我”内心的巨大震动——他被真相彻底击中了。窗前的景物描写富有象征意义：“城市的灯火”是人间的温暖和繁华，而“我”知道，在这繁华的地下深处，有一个女孩在黑暗中独自承受着地狱般的灼热。“几颗星星在云缝里眨着眼睛”——星星是她曾经“起航前”看到过的，也是她现在再也看不到的。“眨着眼睛”的拟人手法，仿佛星星也在为她叹息。这段以景写情，含蓄而深沉。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l24" data-i="23">
+  <div class="v-top"><span class="v-no">24</span><div class="v-line">我<span class="anno-word" data-note="似乎，好像">仿佛</span>看到了她，在那个<span class="anno-word" data-note="黑暗得看不到太阳和天空，形容极度黑暗">暗无天日</span>的<span class="anno-word" data-note="地球的中心部位">地心</span>中，在那个只有她一个人的<span class="anno-word" data-note="飞船中控制航行的舱室">控制舱</span>里，<span class="anno-word" data-note="把东西加在身上">戴着</span>那副<span class="anno-word" data-note="能传递感官信息的特殊眼镜">传感眼镜</span>，<span class="anno-word" data-note="这里指渴求而不知满足，褒义">贪婪</span>地看着草原上的每一朵花、每一棵草，<span class="anno-word" data-note="接触外界事物得到的影响">感受</span>着草原上的每一阵风……</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">“我”仿佛看到她在暗无天日的地心中，在只有她一个人的控制舱里，戴着传感眼镜，贪婪地看着草原上的每一朵花、每一棵草，感受着每一阵风……</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>这是全文的情感高潮，也是“我”的想象。“暗无天日”写出了地心的黑暗——她再也看不到太阳。“只有她一个人”写出了她的孤独——三年来，她独自在黑暗中，没有任何人陪伴。“贪婪地看着”的“贪婪”，在这里是褒义——她知道这是最后一次，所以要把每一朵花、每一棵草、每一阵风都刻进记忆里。排比“每一朵花、每一棵草、每一阵风”与前文呼应，形成回环往复的情感节奏。省略号表示她的感受还有很多很多，无法一一列举。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+<div class="verse" id="l25" data-i="24">
+  <div class="v-top"><span class="v-no">25</span><div class="v-line">那是她<span class="anno-word" data-note="再也不会有的一次">最后一次</span><span class="anno-word" data-note="用眼睛看到">看到</span>这个<span class="anno-word" data-note="地球上所有的地方和事物">世界</span>。</div></div>
+  <details class="v-more">
+    <summary>内容 · 手法</summary>
+    <div class="d-body">
+      <div class="v-sec"><b class="v-label">内容概括</b>
+        <div class="v-trans">独句收束：那是她最后一次看到这个世界。</div>
+      </div>
+      <div class="v-sec"><b class="v-label">手法分析</b>
+        <div class="d-body"><p>独句成段，掷地有声。“最后一次”三个字，重如千钧——她将在黑暗的地心中度过余生，再也看不到这个世界的任何美好。这句话解释了她在草原上的一切“不正常”：为什么她对一朵花那么激动，为什么她对一阵风那么珍视，为什么她“太怕封闭了”，为什么她“热得像地狱”。一切都有了答案，而这个答案让人心碎。与开篇“我要去度假”的轻松形成极致对比，小说在最沉重的音符上结束，余味无穷。</p></div>
+      </div>
+    </div>
+  </details>
+</div>
+</div></section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+<div class="sec-head"><h2>赏 析</h2><span class="no">形象 · 艺术 · 名句</span></div>
+<div class="box"><h3>形象赏析</h3><p style="margin-bottom:14px;color:var(--ink2)">本文的核心形象是被困地心的女宇航员“她”，以及被她唤醒的叙述者“我”。</p><div class="fame">
+<div class="fame-card"><div class="f-line">“她” —— 暗无天日中守护美好的地心宇航员</div><p>她是“落日六号”的女宇航员，一个好像刚毕业的小姑娘。飞船失事沉入地心后，她独自在窄小的控制舱里度过了三年，周围是地狱般的灼热，再也看不到阳光、花草和微风。但她没有被绝望吞噬——当“我”带着她的“眼睛”来到草原时，她对一朵小花、一阵微风都表现出近乎虔诚的激动。她“不，别拔下它”的急呼，写出了对生命的极度珍视；她“这真是天国的风呀”的感叹，写出了在地狱中发现美好的能力。她是一个在最黑暗的处境中依然热爱生活、守护美好的形象，她的坚强和纯真令人心碎，也令人肃然起敬。</p></div>
+<div class="fame-card"><div class="f-line">“我” —— 被重新唤醒的灰色生活中的普通人</div><p>“我”是一个普通的工作人员，过着“灰色的生活”，对身边的美好已经“磨钝了感觉”。度假时被主任要求带一双“眼睛”，起初“我”对她的“不正常”感到不解甚至好笑。但随着旅行的进行，她的热情逐渐感染了“我”——旅行结束后，“我”开始注意到楼下新开的花、窗外跳来跳去的麻雀、热茶冒出的热气。当“我”最终发现她的真实处境时，被深深震撼，“再也无法工作”。“我”是读者的代入者，也是“被她改变的人”——小说通过“我”的转变，传达了“珍惜当下、热爱生活”的主题。</p></div>
+</div></div><div class="box"><h3>艺术特色</h3><div class="fame">
+<div class="fame-card"><div class="f-line">悬念设置与信息差叙事</div><p>小说最核心的艺术手法是“信息差”：叙述者“我”和读者都不知道“她”的真实处境，直到结尾才揭晓。前文设置了层层悬念：“带一双眼睛去”的反常、她“太怕封闭了”的感叹、“热得像地狱”的描述、“窄小的控制舱”和“异常发达的隔热系统”的细节、她对世界“不正常”的情感——所有这些在第一次阅读时都显得“奇怪”，但在真相揭晓后全部获得了合理的解释和沉重的情感重量。这种手法使小说具有“重读效应”：第二遍阅读时，每一句话都有了全新的含义。</p></div>
+<div class="fame-card"><div class="f-line">伏笔与照应</div><p>小说的伏笔极为精妙，几乎每一个细节都在结尾得到照应。“失重的铅笔”暗示她在特殊环境中（但读者误以为是太空）；“肥大的太空服”“窄小的控制舱”“隔热系统异常发达”三个细节共同指向地心的灼热和狭小；“我太怕封闭了”“热得像地狱”在结尾被证明是字面意义的真实描述；“起航前去过的地方”暗示她曾经在地面生活过；“她对这个世界的情感已丰富到不正常的程度”的“不正常”，在结尾被证明是“太正常了”——一个知道自己再也看不到世界的人，怎么可能不激动？这些伏笔如草蛇灰线，贯穿全文，使小说结构极为严谨。</p></div>
+<div class="fame-card"><div class="f-line">科幻元素与人文关怀的融合</div><p>小说是典型的“硬核科幻”：传感眼镜的工作原理（超高频信息波+脑电波采集）、落日工程的地下航行设定、地心的灼热环境，都有坚实的科学依据。但小说的核心不是科学，而是人——一个被困在地心的女孩对生活的热爱，一个被她唤醒的普通人对世界的重新发现。科幻设定是外壳，人文关怀是内核。“她”在最黑暗的处境中依然为一朵花激动、为一阵风狂喜，这种“在绝境中守护美好”的精神，超越了科幻的范畴，具有普遍的人性力量。刘慈欣曾说“好的科幻小说应该让读者在读完后，在下班的路上抬头多看星空一眼”，本文正是这样的作品。</p></div>
+<div class="fame-card"><div class="f-line">对比手法的极致运用</div><p>小说充满了各种对比：“我”的“灰色生活”与她的“丰富情感”对比；地面草原的明媚与地心的“暗无天日”对比；“天国的风”与“地狱”般的灼热对比；“我”起初的“笑”与结尾的“再也无法工作”对比；旅行前“我”对日常的“毫无意义”与旅行后“说不出的亲切”对比。这些对比层层叠加，使小说的情感张力不断增强，最终在结尾“那是她最后一次看到这个世界”达到高潮。</p></div>
+<div class="fame-card"><div class="f-line">第一人称限制视角</div><p>小说采用第一人称“我”的限制视角，读者只能通过“我”的眼睛和感受来了解故事。这种视角的好处是：读者和“我”一样处于“信息盲区”，直到结尾才和“我”一起发现真相，从而产生强烈的共鸣和震撼。如果采用第三人称全知视角，一开始就告诉读者“她”的处境，小说的悬念和情感冲击力将大打折扣。第一人称视角还使“我”的转变显得真实可信——读者亲眼看到“我”从“磨钝了感觉”到“说不出的亲切”的变化过程。</p></div>
+</div></div><div class="box"><h3>名句赏析</h3><div class="fame">
+<div class="fame-card"><div class="f-line">“我现在就像从很深很深的水底冲出来呼吸到空气，我太怕封闭了。”</div><p>她的第一次主动说话，也是全文最重要的伏笔之一。“从很深很深的水底冲出来呼吸到空气”的比喻，既写出了她获得感官自由时的狂喜，又暗示了她平时处于“深水底”般的封闭压抑之中。读完全文再回看这句话，“很深很深的水底”不再是比喻，而是她真实处境的写照——她被困在地球最深处的地心中，周围是比水更沉重的岩石和比窒息更可怕的孤独。“我太怕封闭了”六个字，轻描淡写，却重如千钧。</p></div>
+<div class="fame-card"><div class="f-line">“呀，真美！能闻闻它吗？不，别拔下它！”</div><p>她对一朵草原小花的反应，是全文最动人的段落。“呀，真美”的惊叹，写出了孩子般的纯真；“能闻闻它吗”的请求，写出了她对美好体验的渴望；而“不，别拔下它”的急呼，则写出了她对生命的极度珍视——她知道自己再也看不到花了，所以连一朵花也不忍伤害。三个短句，语气从惊叹到请求到急呼，层层递进，把一个在绝境中依然热爱生命、守护美好的女孩形象写得跃然纸上。</p></div>
+<div class="fame-card"><div class="f-line">“热，热得像……地狱。呀，天啊，这是什么？草原的风？！”</div><p>从“地狱”到“天国的风”的瞬间转换，是小说情感张力最强的段落之一。“热得像……地狱”的省略号，表示她几乎说不下去——那不是夸张，而是她真实的处境。但紧接着，“草原的风”让她从地狱的联想中猛然惊醒——“呀，天啊，这是什么？”的惊叫，写出了她对“风”这种最日常体验的陌生与狂喜。一个在地狱般灼热中待了三年的人，一阵草原的微风对她而言就是天国。“地狱”与“天国”的极致对比，把她的处境和她的坚韧同时推向了极致。</p></div>
+<div class="fame-card"><div class="f-line">“我感到，她对这个世界的情感已丰富到不正常的程度。”</div><p>“我”的判断，也是小说最重要的“反讽”之一。在“我”看来，她对一朵花、一阵风的激动是“不正常”的；但读者在结尾发现，她的“不正常”才是最正常的反应——一个知道自己再也看不到这个世界的人，怎么可能不激动？“不正常”三个字，既是“我”的疑惑，也是作者给读者的提示。这个判断在结尾被彻底推翻，产生了巨大的反讽效果：真正“不正常”的不是她，而是“我”们这些对身边美好习以为常、“磨钝了感觉”的人。</p></div>
+<div class="fame-card"><div class="f-line">“那是她最后一次看到这个世界。”</div><p>全文的最后一句话，独句成段，掷地有声。“最后一次”三个字，重如千钧——她将在黑暗的地心中度过余生，再也看不到这个世界的任何美好。这句话解释了她在草原上的一切“不正常”：为什么她对一朵花那么激动，为什么她对一阵风那么珍视，为什么她“太怕封闭了”，为什么她“热得像地狱”。一切都有了答案，而这个答案让人心碎。与开篇“我要去度假”的轻松形成极致对比，小说在最沉重的音符上结束，余味无穷。</p></div>
+</div></div><div class="box"><h3>主题思想</h3>
+<p>《带上她的眼睛》通过“我”带着一个被困地心的女宇航员的“传感眼镜”度假的故事，揭示了一个令人心碎的真相：她是“落日六号”地航飞船的宇航员，三年前飞船失事沉入地心，她将在暗无天日的地心中独自度过余生，而这次草原之旅是她最后一次“看到”这个世界。</p>
+<p>小说在科幻的外壳下包裹着深沉的人文关怀：它赞美了在绝境中依然热爱生活、守护美好的人性光辉，也反思了现代人对身边美好的习以为常和感觉麻木。“她”在最黑暗的处境中为一朵花、一阵风而狂喜，而“我”们在光明的地面上却对一切“毫无意义”——这种对比促使读者重新审视自己的生活，珍惜当下拥有的一切。正如刘慈欣所说：好的科幻小说应该让读者在读完后，在下班的路上抬头多看星空一眼。</p>
+</div></section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+<div class="sec-head"><h2>积 累</h2><span class="no">词语 · 读音 · 修辞 · 写法</span></div>
+<div class="box"><div class="acc-cat"><h3>重点词语</h3>
+<div class="acc-item"><span class="acc-w">点缀</span><span class="acc-d">加以衬托或装饰。文中指草原上到处有小花装饰。</span></div>
+<div class="acc-item"><span class="acc-w">星星点点</span><span class="acc-d">形容多而分散。文中形容小花分散在草原上。</span></div>
+<div class="acc-item"><span class="acc-w">漫步</span><span class="acc-d">没有目的而悠闲地走。</span></div>
+<div class="acc-item"><span class="acc-w">隐没</span><span class="acc-d">隐藏，渐渐看不见。文中指小溪隐藏在草丛中。</span></div>
+<div class="acc-item"><span class="acc-w">清凉</span><span class="acc-d">凉而使人清爽。文中指溪水的感觉。</span></div>
+<div class="acc-item"><span class="acc-w">流遍</span><span class="acc-d">流到各处。文中指清凉的感觉从手蔓延到全身。</span></div>
+<div class="acc-item"><span class="acc-w">不期而至</span><span class="acc-d">没有约定而到来，出乎意料地来到。</span></div>
+<div class="acc-item"><span class="acc-w">激动不已</span><span class="acc-d">激动得不能停止。不已，不停。</span></div>
+<div class="acc-item"><span class="acc-w">笼罩</span><span class="acc-d">像笼子似地罩在上面。文中指小雨覆盖草原。</span></div>
+<div class="acc-item"><span class="acc-w">蒙蒙</span><span class="acc-d">（雨点）细小、密集。</span></div>
+<div class="acc-item"><span class="acc-w">叹息</span><span class="acc-d">叹气。</span></div>
+<div class="acc-item"><span class="acc-w">忽略</span><span class="acc-d">没有注意到。</span></div>
+<div class="acc-item"><span class="acc-w">毫无意义</span><span class="acc-d">没有任何意义或价值。</span></div>
+<div class="acc-item"><span class="acc-w">亲切</span><span class="acc-d">亲近，亲密。</span></div>
+<div class="acc-item"><span class="acc-w">倒吸一口凉气</span><span class="acc-d">形容因震惊或恐惧而猛吸气。</span></div>
+<div class="acc-item"><span class="acc-w">失事</span><span class="acc-d">发生意外事故。</span></div>
+<div class="acc-item"><span class="acc-w">沉入</span><span class="acc-d">陷进去，落到下面。</span></div>
+<div class="acc-item"><span class="acc-w">暗无天日</span><span class="acc-d">黑暗得看不到太阳和天空，形容极度黑暗。</span></div>
+<div class="acc-item"><span class="acc-w">贪婪</span><span class="acc-d">渴求而不知满足。文中是褒义，指她拼命地看、感受。</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>用字与读音</h3>
+<div class="acc-item"><span class="acc-w">缀</span><span class="acc-d">读 zhuì，不读 chuò。点缀，加以衬托装饰。与“辍”（chuò，中止）区分。</span></div>
+<div class="acc-item"><span class="acc-w">迟钝</span><span class="acc-d">读 dùn，不读 dūn。（感官、思想、行动等）反应慢，不灵敏。</span></div>
+<div class="acc-item"><span class="acc-w">蒙眬</span><span class="acc-d">读 lóng，不读 lǒng。两眼半开半闭，看东西模糊的样子。注意：“蒙眬”是目字旁，与“朦胧”（月字旁，月光不明）区分。</span></div>
+<div class="acc-item"><span class="acc-w">闲暇</span><span class="acc-d">读 xiá，不读 jiǎ。闲空。暇，日字旁，与时间有关；与“瑕”（玉字旁，玉上的斑点）区分。</span></div>
+<div class="acc-item"><span class="acc-w">凸</span><span class="acc-d">读 tū，不读 tǔ。高于周围（跟“凹”相对）。</span></div>
+<div class="acc-item"><span class="acc-w">蔚蓝</span><span class="acc-d">读 wèi，不读 yù。像晴朗的天空那样的颜色。蔚，草字头。</span></div>
+<div class="acc-item"><span class="acc-w">传感</span><span class="acc-d">读 chuán，不读 zhuàn。传递感觉。传，多音字，此处读 chuán。</span></div>
+<div class="acc-item"><span class="acc-w">频率</span><span class="acc-d">读 pín，不读 bīn。物体每秒振动的次数。</span></div>
+<div class="acc-item"><span class="acc-w">脑电波</span><span class="acc-d">读 bō，不读 pō。大脑活动产生的电信号。</span></div>
+<div class="acc-item"><span class="acc-w">隔热</span><span class="acc-d">读 gé，不读 gè。隔绝热量。</span></div>
+<div class="acc-item"><span class="acc-w">异常</span><span class="acc-d">读 yì，不读 yī。不同于平常。</span></div>
+<div class="acc-item"><span class="acc-w">消磨</span><span class="acc-d">读 mó，不读 mò。（时间）过去，虚度。</span></div>
+<div class="acc-item"><span class="acc-w">磨钝</span><span class="acc-d">读 dùn，不读 dūn。比喻感觉变得迟钝。钝，金字旁。</span></div>
+<div class="acc-item"><span class="acc-w">闪烁</span><span class="acc-d">读 shuò，不读 lè。光亮动摇不定，忽明忽暗。</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>修辞方法</h3>
+<div class="acc-item"><span class="acc-w">比喻</span><span class="acc-d">“我现在就像从很深很深的水底冲出来呼吸到空气”（比喻她获得自由的狂喜）；“真像一首隐隐传来的小夜曲呢”（通感，把花香比作小夜曲）；“热得像……地狱”（比喻地心的灼热）。</span></div>
+<div class="acc-item"><span class="acc-w">通感</span><span class="acc-d">“真像一首隐隐传来的小夜曲呢”——把嗅觉（清香）转化为听觉（小夜曲），写出了花香的轻柔、悠远和梦幻。这是本文最精妙的修辞之一。</span></div>
+<div class="acc-item"><span class="acc-w">排比</span><span class="acc-d">“每一朵野花，每一棵小草，每一缕阳光”（写出她观察的细致和渴望的强烈）；“每一朵花、每一棵草、每一阵风”（结尾呼应，形成回环往复的情感节奏）。</span></div>
+<div class="acc-item"><span class="acc-w">对比</span><span class="acc-d">“我”的“灰色生活”与她的“丰富情感”对比；地面草原的明媚与地心的“暗无天日”对比；“天国的风”与“地狱”般的灼热对比；“我”起初的“笑”与结尾的“再也无法工作”对比。</span></div>
+<div class="acc-item"><span class="acc-w">反语/反讽</span><span class="acc-d">“她对这个世界的情感已丰富到不正常的程度”——“我”认为她“不正常”，但读完全文才发现，真正“不正常”的是“我”们这些对美好习以为常的人。这是小说最深刻的反讽。</span></div>
+<div class="acc-item"><span class="acc-w">伏笔</span><span class="acc-d">“失重的铅笔”“窄小的控制舱”“隔热系统异常发达”“我太怕封闭了”“热得像地狱”——这些细节在第一次阅读时显得奇怪，在结尾真相揭晓后全部获得合理解释，是小说结构严谨的体现。</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>写作借鉴</h3>
+<div class="acc-item"><span class="acc-w">信息差叙事</span><span class="acc-d">利用叙述者和读者的“信息盲区”制造悬念，在结尾揭晓真相，使前文所有细节获得全新的含义。这种手法能产生强烈的“重读效应”，是悬疑和科幻作品的常用技巧。</span></div>
+<div class="acc-item"><span class="acc-w">伏笔与照应</span><span class="acc-d">在前文设置看似平常的细节（如“窄小的控制舱”“异常发达的隔热系统”），在结尾揭示其真正含义。好的伏笔如草蛇灰线，看似不经意，实则精心安排，使小说结构极为严谨。</span></div>
+<div class="acc-item"><span class="acc-w">以小见大</span><span class="acc-d">通过一个“带眼睛度假”的小故事，探讨“珍惜当下、热爱生活”的大主题。科幻设定是外壳，人文关怀是内核——好的科幻作品总是在科学想象中包裹着对人性的思考。</span></div>
+<div class="acc-item"><span class="acc-w">第一人称限制视角</span><span class="acc-d">采用第一人称“我”的视角，使读者和叙述者一起处于“信息盲区”，在结尾一起发现真相，从而产生强烈的共鸣和震撼。限制视角比全知视角更能制造悬念和情感冲击力。</span></div>
+<div class="acc-item"><span class="acc-w">细节描写</span><span class="acc-d">“失重的铅笔飘在空中”“双手在太空服的手套里握在胸前”“微风吹在湿手上凉丝丝的”——用具体的视觉、触觉细节代替抽象的心理描写，“展示而非告知”（show, don&#x27;t tell），使人物和场景更加真实可感。</span></div>
+</div></div>
+<div class="box"><div class="acc-cat"><h3>文化常识</h3>
+<div class="acc-item"><span class="acc-w">中国科幻银河奖</span><span class="acc-d">中国科幻界的最高奖项，1986年由《科幻世界》杂志发起，每年评选一次。《带上她的眼睛》获1999年度银河奖一等奖。</span></div>
+<div class="acc-item"><span class="acc-w">刘慈欣与《三体》</span><span class="acc-d">刘慈欣是中国当代最具影响力的科幻作家，2015年凭借《三体》获雨果奖最佳长篇小说奖，是亚洲首位获此殊荣的作家。《三体》三部曲被认为是中国科幻文学的里程碑。</span></div>
+<div class="acc-item"><span class="acc-w">地心探索</span><span class="acc-d">人类对地心的探索极为困难。地壳平均厚度约17公里，地幔厚度约2900公里，地心温度高达约6000℃。目前人类钻探的最深记录（科拉超深钻孔）约12公里，远未穿透地壳。小说中的“地航飞船”是科学幻想。</span></div>
+<div class="acc-item"><span class="acc-w">传感技术</span><span class="acc-d">小说中的“传感眼镜”是虚构的科幻设定，但现实中，脑机接口（BCI）技术正在快速发展，科学家已经能够通过采集脑电波来控制外部设备，甚至实现简单的“意念打字”。小说中的设定有可能在未来成为现实。</span></div>
+<div class="acc-item"><span class="acc-w">统编版七年级下册第六单元</span><span class="acc-d">本单元主题为“探险”，包含《伟大的悲剧》（茨威格）、《太空一日》（杨利伟）、《带上她的眼睛》（刘慈欣）、《河中石兽》（纪昀）四篇课文。《带上她的眼睛》是其中唯一的科幻作品。</span></div>
+</div></div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+<div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+<div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+<div class="ptools"><button data-mode="word" data-rand="5">随机五组字形</button><button data-mode="word" data-all="1">全部字形</button><button data-mode="note" data-rand="5">随机五组词语</button><button data-mode="note" data-all="1">全部词语</button></div></section>
+
+<footer>
+  <div class="kai">《带上她的眼睛》</div>
+  <div>刘慈欣 · 现代 · 1999年获中国科幻银河奖一等奖</div>
+  <div>选自《科幻世界》，入选统编版语文七年级下册</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('daishangtadeyanjing_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('daishangtadeyanjing_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+</script>
+<script>
+var DICT_WORDS = [{"w": "缀", "py": "zhuì", "q": "广阔的草原上到处点□着星星点点的小花", "tip": "「缀」绞丝旁，点缀义；不读 chuò，与「辍」（车字旁，中止）区分"}, {"w": "钝", "py": "dùn", "q": "灰色的生活把我这方面的感觉都磨□了", "tip": "「钝」金字旁，不锋利、迟钝义；不读 dūn，与「沌」（三点水）区分"}, {"w": "漫", "py": "màn", "q": "我在草原上□步，很快来到一条隐没在草丛中的小溪旁", "tip": "「漫」三点水，随意、悠闲义；不读 wàn，与「慢」（竖心旁，速度低）区分"}, {"w": "隐", "py": "yǐn", "q": "很快来到一条□没在草丛中的小溪旁", "tip": "「隐」左耳旁+急，隐藏义；不读 wěn，与「稳」（禾字旁）区分"}, {"w": "频", "py": "pín", "q": "你所看到的一切图像由超高□信息波发射出去", "tip": "「频」页字旁，次数多、频率义；不读 bīn，与「濒」（三点水，临近）区分"}, {"w": "隔", "py": "gé", "q": "她那窄小的控制舱和□热系统异常发达的太空服", "tip": "「隔」左耳旁，遮断、隔开义；不读 gè，与「融」（虫字旁，融化）区分"}, {"w": "笼", "py": "lǒng", "q": "草原□罩在蒙蒙的小雨中", "tip": "「笼罩」的「笼」读 lǒng，不读 lóng；竹字头，像笼子似地罩住"}, {"w": "蒙蒙", "py": "méng méng", "q": "草原笼罩在□□的小雨中", "tip": "叠词，形容雨点细小密集；均为草字头，读 méng；与「矇矇」（目字旁）区分"}, {"w": "烁", "py": "shuò", "q": "城市的灯火在夜色中闪□", "tip": "「烁」火字旁，光亮动摇义；不读 lè，与「砾」（石字旁，小石块）区分"}, {"w": "婪", "py": "lán", "q": "她戴着那副传感眼镜，贪□地看着草原上的每一朵花", "tip": "「婪」林+女，贪求义；不读 fán，与「梦」（林下加夕）区分"}, {"w": "逝", "py": "shì", "q": "落日六号在航行中失□，飞船沉入了地心", "tip": "「逝」走之底，过去、死亡义；不读 shī，与「失」（独体字）音近义不同"}, {"w": "舱", "py": "cāng", "q": "她那窄小的控制□和隔热系统异常发达的太空服", "tip": "「舱」舟字旁，船或飞行器中载人或物的部分；不读 chāng，与「仓」（人字头）区分"}, {"w": "闭", "py": "bì", "q": "我现在就像从很深很深的水底冲出来呼吸到空气，我太怕封□了", "tip": "「闭」门字框+才，关、合义；不读 xián，与「闲」（门字框+木）区分"}, {"w": "飘", "py": "piāo", "q": "她面前有一支失重的铅笔□在空中", "tip": "「飘」风字旁，随风飞动义；不读 piào，与「漂」（三点水，漂浮）区分"}, {"w": "娇", "py": "jiāo", "q": "在肥大的太空服中显得很□小", "tip": "「娇」女字旁，柔嫩、美丽可爱义；不读 jiǎo，与「骄」（马字旁，骄傲）区分"}, {"w": "窄", "py": "zhǎi", "q": "她那□小的控制舱和隔热系统异常发达的太空服", "tip": "「窄」穴字头+乍，横的距离小义；不读 zǎ，与「榨」（木字旁，压榨）区分"}, {"w": "切", "py": "qiè", "q": "现在都让我感到一种说不出的亲□", "tip": "「亲切」的「切」读 qiè，不读 qiē；刀字旁，贴近、密合义"}];
+var DICT_NOTES = [{"w": "点缀", "a": "加以衬托或装饰", "q": "广阔的草原上到处点缀着星星点点的小花"}, {"w": "星星点点", "a": "形容多而分散", "q": "广阔的草原上到处点缀着星星点点的小花"}, {"w": "漫步", "a": "没有目的而悠闲地走", "q": "我在草原上漫步，很快来到一条隐没在草丛中的小溪旁"}, {"w": "隐没", "a": "隐藏，渐渐看不见", "q": "很快来到一条隐没在草丛中的小溪旁"}, {"w": "清凉", "a": "凉而使人清爽", "q": "我蹲下来把手伸进溪水，一股清凉流遍全身"}, {"w": "不期而至", "a": "没有约定而到来，出乎意料地来到", "q": "一阵不期而至的微风，都会令她激动不已"}, {"w": "激动不已", "a": "激动得不能停止。不已，不停", "q": "一阵不期而至的微风，都会令她激动不已"}, {"w": "笼罩", "a": "像笼子似地罩在上面", "q": "草原笼罩在蒙蒙的小雨中"}, {"w": "忽略", "a": "没有注意到", "q": "平时被我忽略的许多东西"}, {"w": "毫无意义", "a": "没有任何意义或价值", "q": "这些以前在我眼中毫无意义的东西"}, {"w": "倒吸一口凉气", "a": "形容因震惊或恐惧而猛吸气", "q": "搜索结果让我倒吸一口凉气"}, {"w": "失事", "a": "发生意外事故", "q": "“落日六号”在航行中失事"}, {"w": "沉入", "a": "陷进去，落到下面", "q": "飞船沉入了地心"}, {"w": "暗无天日", "a": "黑暗得看不到太阳和天空，形容极度黑暗", "q": "在那个暗无天日的地心中"}, {"w": "贪婪", "a": "渴求而不知满足。文中是褒义，指她拼命地看、感受", "q": "戴着那副传感眼镜，贪婪地看着草原上的每一朵花"}, {"w": "传感眼镜", "a": "能传递视觉、触觉和味觉的特殊眼镜，小说中的科幻设定", "q": "所谓眼睛就是一副传感眼镜"}, {"w": "落日六号", "a": "小说中虚构的地航飞船，三年前失事沉入地心", "q": "打开电脑搜索“落日六号”"}, {"w": "落日工程", "a": "小说中虚构的地下航行探险计划", "q": "“落日工程”是一项地下航行探险计划"}, {"w": "灰色的生活", "a": "比喻单调、乏味、缺乏色彩的生活", "q": "灰色的生活把我这方面的感觉都磨钝了"}, {"w": "磨钝", "a": "比喻感觉变得迟钝、不灵敏", "q": "灰色的生活把我这方面的感觉都磨钝了"}];
+</script>
+
+</body>
+</html>
