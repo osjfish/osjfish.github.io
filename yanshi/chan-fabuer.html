@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《蝉》法布尔</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">法国 · 法布尔</div>
+  <h1 class="hero-title">蝉</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+    <p>《蝉》是法国昆虫学家法布尔的一篇科学小品文，选自《昆虫记》。文章用生动活泼的文笔，介绍了蝉的地穴建造和卵的孵化过程，展现了蝉从卵到幼虫、从地下到地上的完整生命周期，表达了作者对昆虫世界的热爱和对生命的尊重。</p>
+    <p>本文是科学小品文的典范：既有说明文的准确严谨，又有散文的生动优美。作者以第一人称的观察视角，将科学知识融入文学描写之中，语言幽默风趣，充满人文关怀。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>法布尔（1823—1915），法国昆虫学家、文学家，被称为“昆虫世界的荷马”。出身于农民家庭，自幼热爱自然，靠自学获得数学和自然科学学士学位。他用毕生精力观察研究昆虫，写下了十卷本巨著《昆虫记》（又译《昆虫的故事》），详细记录了各种昆虫的生活习性。</p>
+    <p style="margin-top:10px;color:var(--ink2)">《昆虫记》不仅是一部科学著作，也是一部文学经典。法布尔用拟人化的手法描写昆虫，语言生动幽默，充满对生命的关爱和尊重。1910年，他因此书获得诺贝尔文学奖提名。</p>
+  </div>
+  <div class="box">
+    <h3>《昆虫记》简介</h3>
+    <p>《昆虫记》是法布尔以毕生精力撰写的昆虫学巨著，共十卷，约二百余万字。书中详细介绍了多种昆虫的生活习性、繁殖方式、生存智慧等，被誉为“昆虫的史诗”。</p>
+    <p style="margin-top:8px">与一般的科普作品不同，《昆虫记》将科学知识与文学描写完美结合，用散文的笔调介绍昆虫，语言生动优美，充满人文关怀。鲁迅曾评价《昆虫记》是“讲昆虫故事”“讲昆虫生活”的楷模。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>课文朗读《蝉》</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1MD4y1D7N5&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课文朗读蝉"></iframe>
+        <a href="https://www.bilibili.com/video/BV1MD4y1D7N5" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>
+      <div class="media">
+        <h4>《昆虫记》科普动画</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1iNxezMEoS&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="昆虫记科普动画"></iframe>
+        <a href="https://www.bilibili.com/video/BV1iNxezMEoS" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 说明方法 · 语言</span></div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+    <div class="pl">我有很好的环境可以研究蝉的习性。一到七月初，蝉就占据了我门前的树。我是屋里的主人，它却是门外的统治者。有了它的统治，无论怎样总是不很安静的。</div>
+    <div class="pl">每年蝉的初次出现是在夏至。在阳光曝晒的道路上有好些小圆孔，孔口与地面相平。蝉的幼虫就从这些圆孔爬出，在地面上变成完全的蝉。蝉喜欢干燥、阳光多的地方。幼虫有一种有力的工具，能够刺透晒干的泥土和沙石。我要考察它们遗弃下的储藏室，必须用刀子来挖掘。</div>
+    <div class="pl">这小圆孔约一英寸口径，周围一点土都没有。大多数掘地昆虫，例如金蜣，窠外面总有一座土堆。这种区别是由于它们工作方法的不同。金蜣的工作是由洞口开始，所以把掘出来的废料堆积在地面。蝉的幼虫是从地下上来的，最后的工作才是开辟大门口。因为门还未做，所以不可能在门口堆积泥土。</div>
+    <div class="pl">蝉的隧道大都是深十五六英寸，下面较宽大，底部却完全关闭起来。做隧道的时候，泥土搬到哪里去了呢？为什么墙壁不会塌下来呢？谁都以为蝉的幼虫用有爪的腿爬上爬下，会将泥土弄塌了，把自己的房子塞住。其实，它干起活来简直像矿工或铁路工程师。矿工用支柱支撑隧道，铁路工程师利用砖墙使地道坚固。蝉同他们一样聪明，在隧道的墙上涂上灰泥。它身子里藏有一种极黏的液体，可以用来做灰泥。地穴常常建筑在含有汁液的植物根须上，是为了从这些根须取得汁液。</div>
+    <div class="pl">能够很随便地在穴道内爬上爬下，对于它是很重要的，因为当它爬出去到日光下的时候，它必须知道外面的气候如何。所以它要工作好几个星期，甚至一个月，才做成一道坚固的墙壁，使它上下爬行都没有阻碍。它常常在隧道的顶端留一个手指厚的一层土，用来抵御外面的恶劣气候，直到最后一刹那。只要有一些好天气的消息，它就爬上来，利用顶上的薄盖考察气候的情况。</div>
+    <div class="pl">如果它估计到外面有雨或风暴，它就谨慎地溜到隧道底下。如果气候看来很温暖，它就用爪击碎天花板，爬到地面上来。</div>
+    <div class="pl">普通的蝉喜欢在干的细枝上产卵。它选择最小的枝，像枯草或铅笔那样粗细，而且往往是向上翘起，差不多已经枯死的小枝。它找到适当的细树枝，就用胸部的尖利工具刺成一排小孔。这些小孔的形成，好像用针斜刺下去，把纤维撕裂，并微微挑起。如果它不受干扰，一根枯枝上常常刺出三四十个孔。卵就产在这些孔里。小孔成为狭窄的小径，一个个斜下去，每个小孔内通常约有十个卵。所以一个蝉在一根枯枝上产卵的总数，大约有三四百个。</div>
+    <div class="pl">这是一个蝉的卵的故事。我从放大镜里见过蝉卵的孵化。开始很像极小的鱼，眼睛大而黑，身体下面有一种鳍状物，由两个前腿连结而成。这种鳍状物有些运动力，能够帮助幼虫走出壳外，并且帮助它走出有纤维的树枝——这是比较困难的事情。</div>
+    <div class="pl">鱼形幼虫一到孔外，皮即刻脱去。但脱下的皮自动形成一种线，幼虫靠它能够附着在树枝上。幼虫落地之前，在这里行日光浴，踢踢腿，试试筋力，有时却又懒洋洋地在绳端摇摆着。</div>
+    <div class="pl">它的触须现在自由了，左右挥动；腿可以伸缩；前面的爪能够张合自如。身体悬挂着，只要有一点微风就动摇不定。它在这里为将来的出世做准备。我看到的昆虫再没有比这个更奇妙的了。</div>
+    <div class="pl">不久，它落到地上来了。这危险的一刻到了。面前的危险是多种多样的。只要有一点风，它就被吹到坚硬的岩石上、车辙的污水中、不毛的黄沙里、或是那软得根本无法钻下去的黏土上。</div>
+    <div class="pl">它的身体逐渐变重，因为它体内充满了一种液体。它必须立刻到地下寻觅藏身的地方，否则就有死去的危险。寒冷的冬天就要来了，迟缓就有死亡的危险。它不得不各处寻找软土。没有疑问，许多是在没有找到以前就死去了。</div>
+    <div class="pl">最后，它找到适当的地点，用前足的钩扒掘地面。我从放大镜里见它挥动锄头，将泥土掘出抛在地面。几分钟以后，一个土穴就挖成了。这小生物钻下去，隐藏了自己，此后就不再出现了。</div>
+    <div class="pl">未长成的蝉的地下生活，至今还是个秘密。不过在它来到地面以前，地下生活所经过的时间我们是知道的，大概是四年。以后，在阳光中的生活只有五个星期。</div>
+    <div class="pl">四年黑暗中的苦工，一个月阳光下的享乐，这就是蝉的生活。我们不应当讨厌它那喧嚣的歌声，因为它是在歌颂它的快乐，难得如此短暂的生命里的快乐。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+      <div class="part-head"><span class="p-num">第一部分</span><h3>蝉的地穴</h3><span class="range">1–6 段</span></div>
+      <div class="part-overview">说明蝉的幼虫如何建造地穴、适应气候、选择时机出土，展现了蝉的生存智慧。</div>
+      <div class="verse" id="l1" data-i="0">
+        <div class="v-top"><span class="v-no">1</span><div class="v-line">我有很好的环境可以研究蝉的<span class="anno-word" data-note="长期在某种自然条件或社会环境下养成的特性">习性</span>。一到七月初，蝉就<span class="anno-word" data-note="用强力取得或保持">占据</span>了我门前的树。我是屋里的主人，它却是门外的<span class="anno-word" data-note="行使统治权力的人，文中指蝉在门外树上的主导地位">统治者</span>。有了它的统治，无论怎样总是不很安静的。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">开篇交代研究蝉的有利环境，以“门外的统治者”的幽默说法，引出说明对象——蝉。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明对象：蝉。说明语言：“统治者”用拟人手法，语言幽默生动，体现了《昆虫记》科学与文学结合的特点。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l2" data-i="1">
+        <div class="v-top"><span class="v-no">2</span><div class="v-line">每年蝉的初次出现是在<span class="anno-word" data-note="二十四节气之一，在6月21日或22日，这一天北半球白天最长">夏至</span>。在阳光<span class="anno-word" data-note="在阳光下晒">曝晒</span>的道路上有好些小圆孔，<span class="anno-word" data-note="洞孔的开口处">孔口</span>与地面<span class="anno-word" data-note="一样平、高度相同">相平</span>。蝉的<span class="anno-word" data-note="昆虫的胚胎发育后孵化出来的幼体">幼虫</span>就从这些圆孔爬出，在地面上变成完全的蝉。蝉喜欢干燥、阳光多的地方。幼虫有一种有力的工具，能够<span class="anno-word" data-note="刺穿、穿透">刺透</span>晒干的泥土和沙石。我要<span class="anno-word" data-note="实地观察调查">考察</span>它们<span class="anno-word" data-note="抛弃、丢弃">遗弃</span>下的<span class="anno-word" data-note="存放东西的房间，文中指蝉的地穴">储藏室</span>，必须用刀子来挖掘。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明蝉初次出现的时间（夏至）、幼虫出土的地点（阳光曝晒的道路上的小圆孔）和习性（喜欢干燥阳光多的地方）。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（夏至、小圆孔）、作诠释（解释幼虫如何出土）。说明语言：“初次”“相平”等词准确；“有力的工具”指幼虫的前足，表述留有余地。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l3" data-i="2">
+        <div class="v-top"><span class="v-no">3</span><div class="v-line">这小圆孔约一<span class="anno-word" data-note="英美制长度单位，1英寸约合2.54厘米">英寸</span><span class="anno-word" data-note="器物圆口的直径">口径</span>，周围一点土都没有。大多数掘地昆虫，例如<span class="anno-word" data-note="（qiāng）一种昆虫，即屎壳郎，以动物粪便为食">金蜣</span>，<span class="anno-word" data-note="（kē）昆虫、鸟兽的巢穴">窠</span>外面总有一座土堆。这种区别是由于它们工作方法的不同。金蜣的工作是由洞口开始，所以把掘出来的<span class="anno-word" data-note="生产过程中剩下的材料">废料</span>堆积在地面。蝉的幼虫是从地下上来的，最后的工作才是<span class="anno-word" data-note="打开、创立">开辟</span>大门口。因为门还未做，所以不可能在门口堆积泥土。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明蝉的小圆孔的特点（周围无土），并通过与金蜣的比较解释原因——工作方法不同。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（一英寸口径）、作比较（蝉与金蜣的比较）、举例子（金蜣）、作诠释（解释周围无土的原因）。说明语言：“约”“大多数”“总有”等词准确严密。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l4" data-i="3">
+        <div class="v-top"><span class="v-no">4</span><div class="v-line">蝉的<span class="anno-word" data-note="在山中或地下凿成的通道">隧道</span>大都是深十五六英寸，下面较<span class="anno-word" data-note="面积或容积大">宽大</span>，底部却完全关闭起来。做隧道的时候，泥土搬到哪里去了呢？为什么墙壁不会<span class="anno-word" data-note="倒下、陷下">塌</span>下来呢？谁都以为蝉的幼虫用<span class="anno-word" data-note="带爪子的腿">有爪的腿</span>爬上爬下，会将泥土弄塌了，把自己的房子<span class="anno-word" data-note="堵住、填满">塞住</span>。其实，它干起活来简直像<span class="anno-word" data-note="开采矿物的工人">矿工</span>或铁路工程师。矿工用<span class="anno-word" data-note="支撑的柱子">支柱</span>支撑隧道，铁路工程师利用砖墙使地道坚固。蝉同他们一样聪明，在隧道的墙上涂上<span class="anno-word" data-note="用来涂抹墙壁的泥">灰泥</span>。它身子里藏有一种<span class="anno-word" data-note="非常有黏性">极黏</span>的液体，可以用来做灰泥。地穴常常建筑在含有<span class="anno-word" data-note="含有某种物质的液体">汁液</span>的植物<span class="anno-word" data-note="植物的细根">根须</span>上，是为了从这些根须取得汁液。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明蝉的隧道的结构和建造方法：深十五六英寸，下面宽大底部关闭；幼虫用体内的黏液做灰泥涂墙，使隧道坚固；地穴建在植物根须上以获取汁液。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（十五六英寸）、打比方（像矿工或铁路工程师）、作比较（与矿工、铁路工程师比较）、作诠释（解释墙壁不塌的原因）。说明语言：设问句引起读者注意；“简直像”“极黏”等词生动准确。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l5" data-i="4">
+        <div class="v-top"><span class="v-no">5</span><div class="v-line">能够很<span class="anno-word" data-note="不受拘束、不受限制">随便</span>地在穴道内爬上爬下，对于它是很重要的，因为当它爬出去到日光下的时候，它必须知道外面的<span class="anno-word" data-note="一定地区里经过多年观察所得到的概括性的气象情况">气候</span>如何。所以它要工作好几个星期，甚至一个月，才做成一道坚固的墙壁，使它上下爬行都没有<span class="anno-word" data-note="使不能顺利通过或发展">阻碍</span>。它常常在隧道的顶端留一个手指厚的一层土，用来<span class="anno-word" data-note="抵抗、防御">抵御</span>外面的<span class="anno-word" data-note="很坏、非常差">恶劣</span>气候，直到最后<span class="anno-word" data-note="极短的时间">一刹那</span>。只要有一些好天气的消息，它就爬上来，利用顶上的<span class="anno-word" data-note="薄薄的一层覆盖物">薄盖</span>考察气候的情况。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明蝉的幼虫在隧道内爬上爬下的重要性，以及它如何用坚固的墙壁和顶端的薄土层来适应气候、选择出土时机。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（好几个星期、一个月、手指厚）、作诠释（解释为什么要能爬上爬下）。说明语言：“必须”“常常”“只要……就……”等词准确说明蝉的行为逻辑；“最后一刹那”生动写出出土前的紧张时刻。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l6" data-i="5">
+        <div class="v-top"><span class="v-no">6</span><div class="v-line">如果它<span class="anno-word" data-note="根据某些情况，对事物的性质、数量、变化等做大概的推断">估计</span>到外面有雨或<span class="anno-word" data-note="刮大风而且往往同时有大雨的天气现象">风暴</span>，它就<span class="anno-word" data-note="对外界事物或自己的言行密切注意，以免发生不利或不幸的事情">谨慎</span>地溜到隧道底下。如果气候看来很温暖，它就用爪<span class="anno-word" data-note="敲碎、打碎">击碎</span>天花板，爬到地面上来。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明蝉的幼虫如何根据气候决定是否出土：有雨或风暴就退回，温暖就击碎顶层出土。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：分类别（分两种情况说明）。说明语言：“估计”“谨慎”“击碎”等词生动准确，用拟人手法写蝉的行为，体现了说明文语言的生动性。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="part-head"><span class="p-num">第二部分</span><h3>蝉的卵</h3><span class="range">7–15 段</span></div>
+      <div class="part-overview">说明蝉如何产卵、卵如何孵化、幼虫如何落地入土，以及蝉的生命周期。</div>
+      <div class="verse" id="l7" data-i="6">
+        <div class="v-top"><span class="v-no">7</span><div class="v-line">普通的蝉喜欢在干的细枝上<span class="anno-word" data-note="鸟类、昆虫等生产卵">产卵</span>。它选择最小的枝，像<span class="anno-word" data-note="干枯的草">枯草</span>或铅笔那样粗细，而且往往是向上<span class="anno-word" data-note="一头向上仰起">翘起</span>，差不多已经<span class="anno-word" data-note="干枯而死">枯死</span>的小枝。它找到适当的细树枝，就用<span class="anno-word" data-note="躯干的一部分，在颈和腹之间">胸部</span>的<span class="anno-word" data-note="尖锐、锋利">尖利</span>工具刺成一排小孔。这些小孔的形成，好像用针斜刺下去，把<span class="anno-word" data-note="天然的或人工合成的细丝状物质">纤维</span><span class="anno-word" data-note="撕开、扯裂">撕裂</span>，并<span class="anno-word" data-note="稍微、表示数量不多或程度不深">微微</span>挑起。如果它不受<span class="anno-word" data-note="扰乱、打扰">干扰</span>，一根枯枝上常常刺出三四十个孔。卵就产在这些孔里。小孔成为<span class="anno-word" data-note="宽度小">狭窄</span>的<span class="anno-word" data-note="小路">小径</span>，一个个斜下去，每个小孔内通常约有十个卵。所以一个蝉在一根枯枝上产卵的总数，大约有三四百个。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明蝉产卵的地点（干的细枝）、方式（用胸部工具刺孔）和数量（一根枝上约三四百个卵）。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：打比方（像枯草或铅笔那样粗细、好像用针斜刺）、列数字（三四十个孔、十个卵、三四百个）。说明语言：“普通”“往往”“差不多”“通常”“大约”等词准确严密，体现说明文语言的准确性。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l8" data-i="7">
+        <div class="v-top"><span class="v-no">8</span><div class="v-line">这是一个蝉的卵的故事。我从<span class="anno-word" data-note="用来观察微小物体的光学仪器">放大镜</span>里见过蝉卵的<span class="anno-word" data-note="昆虫的卵在一定条件下发育成幼虫">孵化</span>。开始很像极小的鱼，眼睛大而黑，身体下面有一种<span class="anno-word" data-note="（qí）像鱼鳍一样的东西">鳍状物</span>，由两个前腿<span class="anno-word" data-note="连接、结合在一起">连结</span>而成。这种鳍状物有些<span class="anno-word" data-note="运动的能力">运动力</span>，能够帮助幼虫走出壳外，并且帮助它走出有纤维的树枝——这是比较困难的事情。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明蝉卵孵化后的形态：像极小的鱼，有鳍状物帮助幼虫走出壳外和树枝。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：打比方（很像极小的鱼）、作诠释（解释鳍状物的作用）。说明语言：“这是一个蝉的卵的故事”用文学化的语言过渡，体现《昆虫记》的文学性；“比较困难”准确说明幼虫出壳的难度。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l9" data-i="8">
+        <div class="v-top"><span class="v-no">9</span><div class="v-line">鱼形幼虫一到孔外，皮<span class="anno-word" data-note="立刻、马上">即刻</span>脱去。但脱下的皮自动形成一种线，幼虫靠它能够<span class="anno-word" data-note="较小的物体沾在较大的物体上">附着</span>在树枝上。幼虫落地之前，在这里行<span class="anno-word" data-note="让日光照射身体，文中指幼虫在阳光下活动">日光浴</span>，踢踢腿，试试<span class="anno-word" data-note="体力、力气">筋力</span>，有时却又<span class="anno-word" data-note="没精打采的样子">懒洋洋</span>地在<span class="anno-word" data-note="绳子的末端">绳端</span>摇摆着。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明鱼形幼虫出壳后的行为：脱皮形成线附着在树枝上，在落地前进行日光浴和活动。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：摹状貌（踢踢腿、试试筋力、懒洋洋地摇摆）。说明语言：“即刻”“自动”等词准确；“日光浴”“踢踢腿”“懒洋洋”等拟人化描写生动有趣，体现了科学小品文的特点。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l10" data-i="9">
+        <div class="v-top"><span class="v-no">10</span><div class="v-line">它的<span class="anno-word" data-note="昆虫头上的须，有触觉和嗅觉作用">触须</span>现在自由了，左右挥动；腿可以<span class="anno-word" data-note="伸出和缩入">伸缩</span>；前面的爪能够<span class="anno-word" data-note="张开和闭合都很灵活">张合自如</span>。身体<span class="anno-word" data-note="借助于绳子、钩子等使物体附着于高处">悬挂</span>着，只要有一点微风就<span class="anno-word" data-note="摇摆不停，不稳定">动摇不定</span>。它在这里为将来的出世做准备。我看到的昆虫再没有比这个更<span class="anno-word" data-note="稀奇巧妙">奇妙</span>的了。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明幼虫在树枝上的活动：触须挥动、腿伸缩、爪张合，身体悬挂着为出世做准备。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：摹状貌（触须挥动、腿伸缩、爪张合）。说明语言：“张合自如”“动摇不定”等词准确生动；“再没有比这个更奇妙的了”直接表达赞叹，体现作者对昆虫的热爱。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l11" data-i="10">
+        <div class="v-top"><span class="v-no">11</span><div class="v-line">不久，它落到地上来了。这危险的一刻到了。面前的危险是<span class="anno-word" data-note="各种各样、品类多">多种多样</span>的。只要有一点风，它就被吹到坚硬的岩石上、<span class="anno-word" data-note="车辆经过后车轮压在道路上凹下去的痕迹">车辙</span>的<span class="anno-word" data-note="不清洁的水">污水</span>中、<span class="anno-word" data-note="（土地）不长庄稼，形容荒凉">不毛</span>的黄沙里、或是那软得根本无法钻下去的<span class="anno-word" data-note="含沙粒很少、有黏性的土壤">黏土</span>上。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明幼虫落地后面临的多种危险：被风吹到岩石、污水、黄沙、黏土等不利于生存的地方。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：分类别（列举四种危险）、举例子（岩石、污水、黄沙、黏土）。说明语言：“危险的一刻”“多种多样”等词渲染紧张气氛；排比列举危险，增强感染力。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l12" data-i="11">
+        <div class="v-top"><span class="v-no">12</span><div class="v-line">它的身体<span class="anno-word" data-note="渐渐、逐步">逐渐</span>变重，因为它体内充满了一种液体。它必须立刻到地下<span class="anno-word" data-note="寻找">寻觅</span><span class="anno-word" data-note="躲藏、安身">藏身</span>的地方，否则就有死去的危险。寒冷的冬天就要来了，<span class="anno-word" data-note="缓慢、不迅速">迟缓</span>就有死亡的危险。它不得不各处寻找<span class="anno-word" data-note="松软的泥土">软土</span>。没有疑问，许多是在没有找到以前就死去了。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明幼虫落地后必须立刻钻入地下的原因：身体变重、冬天将至，许多幼虫在找到软土前就死去了。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：作诠释（解释为什么必须立刻钻入地下）。说明语言：“必须”“否则”“不得不”等词强调紧迫性；“没有疑问”准确说明死亡率之高，体现了对生命的悲悯。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l13" data-i="12">
+        <div class="v-top"><span class="v-no">13</span><div class="v-line">最后，它找到适当的地点，用前足的钩<span class="anno-word" data-note="刨挖">扒掘</span>地面。我从放大镜里见它挥动<span class="anno-word" data-note="松土和除草的农具，文中比喻幼虫的前足">锄头</span>，将泥土掘出抛在地面。几分钟以后，一个<span class="anno-word" data-note="土洞">土穴</span>就挖成了。这小生物钻下去，<span class="anno-word" data-note="藏起来不让发现">隐藏</span>了自己，此后就不再出现了。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明幼虫找到地点后挖掘土穴、钻入地下的过程，从此开始地下生活。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：摹状貌（挥动锄头、掘出抛在地面）、列数字（几分钟）。说明语言：“锄头”比喻前足的钩，生动形象；“此后就不再出现了”以简洁的语言收束，暗示漫长的地下生活的开始。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l14" data-i="13">
+        <div class="v-top"><span class="v-no">14</span><div class="v-line"><span class="anno-word" data-note="还没有发育成熟">未长成</span>的蝉的地下生活，至今还是个<span class="anno-word" data-note="有所隐蔽、不让人知道的事情">秘密</span>。不过在它来到地面以前，地下生活所经过的时间我们是知道的，<span class="anno-word" data-note="大致、大约">大概</span>是四年。以后，在阳光中的生活只有五个星期。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明蝉的生命周期：地下生活约四年，地上生活只有五个星期。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（四年、五个星期）、作比较（地下四年与地上五星期对比）。说明语言：“至今还是个秘密”“大概”“只有”等词准确而有分寸；数字对比突出了蝉生命的反差。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l15" data-i="14">
+        <div class="v-top"><span class="v-no">15</span><div class="v-line">四年黑暗中的<span class="anno-word" data-note="艰苦的劳动">苦工</span>，一个月阳光下的<span class="anno-word" data-note="享受安乐">享乐</span>，这就是蝉的生活。我们不应当讨厌它那<span class="anno-word" data-note="（xuān xiāo）声音杂乱、不清静">喧嚣</span>的歌声，因为它是在<span class="anno-word" data-note="用诗歌颂扬，泛指用言语文字等赞美">歌颂</span>它的快乐，难得如此<span class="anno-word" data-note="时间短">短暂</span>的生命里的快乐。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">总结全文：蝉的一生是四年地下苦工换一个月阳光下的享乐，因此不应讨厌它的歌声，那是它对短暂生命的歌颂。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：作比较（四年苦工与一个月享乐）。说明语言：“苦工”“享乐”对比鲜明，“喧嚣”准确写出蝉声的特点；结尾以议论抒情收束，表达对蝉的理解和赞美，体现了科学小品文的人文关怀。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">说明对象 · 方法 · 顺序 · 语言</span></div>
+
+  <div class="box">
+    <h3>说明对象与特征</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">说明对象：蝉的生活习性</div>
+        <p>本文的说明对象是蝉，具体介绍了蝉的地穴建造和卵的孵化两个方面。文章从蝉的幼虫出土写起，到地穴结构、出土时机、产卵方式、卵的孵化、幼虫入土，最后总结蝉的生命周期，完整展现了蝉的一生。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">核心特征：四年苦工换一月享乐</div>
+        <p>文章结尾点明蝉的生命特征：“四年黑暗中的苦工，一个月阳光下的享乐”。地下生活约四年，地上生活只有五个星期，这种巨大的反差是全文最震撼的发现，也引发了作者对生命的深刻思考。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>说明方法</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">作比较与列数字：准确而有说服力</div>
+        <p>作比较：蝉与金蜣的工作方法比较，地下四年与地上五星期的比较；列数字：“一英寸口径”“十五六英寸”“三四十个孔”“三四百个卵”“四年”“五个星期”。数字精确，比较鲜明，使说明更有说服力。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">打比方与摹状貌：生动而形象</div>
+        <p>打比方：“它干起活来简直像矿工或铁路工程师”“像枯草或铅笔那样粗细”“好像用针斜刺下去”；摹状貌：“踢踢腿，试试筋力，有时却又懒洋洋地在绳端摇摆着”“触须左右挥动，腿可以伸缩”。打比方和摹状貌使说明生动形象，如在目前。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">举例子与作诠释：具体而清晰</div>
+        <p>举例子：以金蜣为例说明掘地昆虫的一般特点；作诠释：解释蝉的地穴周围为什么没有土、墙壁为什么不会塌、幼虫为什么要能爬上爬下等。举例子和作诠释使说明内容具体清晰，易于理解。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>说明顺序</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">整体：逻辑顺序（从地穴到卵）</div>
+        <p>文章分为两大部分：第一部分写蝉的地穴（幼虫如何建造地穴、选择时机出土），第二部分写蝉的卵（如何产卵、卵如何孵化、幼虫如何入土）。从地穴到卵，从幼虫到成虫再到卵，按照蝉的生命过程安排说明顺序，逻辑清晰。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">局部：时间顺序与观察顺序</div>
+        <p>写地穴时，按照从外到内的观察顺序（小圆孔→隧道→内部结构）；写卵的孵化时，按照时间顺序（卵→鱼形幼虫→脱皮→落地→入土）。多种说明顺序综合运用，使文章条理清晰。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>说明语言的特点</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">准确严谨：科学的态度</div>
+        <p>“约一英寸”“大约有三四百个”“大概是四年”“至今还是个秘密”——“约”“大约”“大概”等修饰词，以及对未知领域的坦诚，体现了科学的严谨态度。数字精确，表述留有余地，是说明文语言准确性的典范。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">生动幽默：文学的笔法</div>
+        <p>“门外的统治者”“日光浴”“踢踢腿，试试筋力”“懒洋洋地在绳端摇摆着”——拟人化的描写使昆虫形象生动可爱；“简直像矿工或铁路工程师”的比喻幽默风趣。科学与文学的完美结合，正是《昆虫记》的独特魅力。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">人文关怀：生命的尊重</div>
+        <p>“许多是在没有找到以前就死去了”“我们不应当讨厌它那喧嚣的歌声，因为它是在歌颂它的快乐”——作者对昆虫的生命充满悲悯和尊重，不是冷冰冰的科学观察，而是带着温度的生命礼赞。这种人文关怀使文章超越了一般的科普作品。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>《蝉》通过介绍蝉的地穴建造和卵的孵化过程，展现了蝉从卵到成虫的完整生命周期，揭示了“四年黑暗中的苦工，一个月阳光下的享乐”这一生命特征，表达了作者对昆虫世界的热爱、对生命的尊重和赞美。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">词语 · 说明术语 · 用字 · 写法</span></div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">曝晒</span><span class="acc-d">（pù）在阳光下晒。</span></div>
+      <div class="acc-item"><span class="acc-w">金蜣</span><span class="acc-d">（qiāng）一种昆虫，即屎壳郎。</span></div>
+      <div class="acc-item"><span class="acc-w">窠</span><span class="acc-d">（kē）昆虫、鸟兽的巢穴。</span></div>
+      <div class="acc-item"><span class="acc-w">隧道</span><span class="acc-d">在地下凿成的通道。</span></div>
+      <div class="acc-item"><span class="acc-w">抵御</span><span class="acc-d">抵抗、防御。</span></div>
+      <div class="acc-item"><span class="acc-w">一刹那</span><span class="acc-d">（chà）极短的时间。</span></div>
+      <div class="acc-item"><span class="acc-w">纤维</span><span class="acc-d">（xiān）细丝状物质。</span></div>
+      <div class="acc-item"><span class="acc-w">孵化</span><span class="acc-d">卵在一定条件下发育成幼虫。</span></div>
+      <div class="acc-item"><span class="acc-w">鳍状物</span><span class="acc-d">（qí）像鱼鳍一样的东西。</span></div>
+      <div class="acc-item"><span class="acc-w">张合自如</span><span class="acc-d">张开和闭合都很灵活。</span></div>
+      <div class="acc-item"><span class="acc-w">车辙</span><span class="acc-d">（zhé）车轮压在道路上的痕迹。</span></div>
+      <div class="acc-item"><span class="acc-w">不毛</span><span class="acc-d">（土地）不长庄稼，形容荒凉。</span></div>
+      <div class="acc-item"><span class="acc-w">寻觅</span><span class="acc-d">寻找。</span></div>
+      <div class="acc-item"><span class="acc-w">喧嚣</span><span class="acc-d">（xuān xiāo）声音杂乱、不清静。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>说明文术语</h3>
+      <div class="acc-item"><span class="acc-w">科学小品文</span><span class="acc-d">用文学笔调介绍科学知识的说明文，兼具科学性和文学性。本文是科学小品文的典范。</span></div>
+      <div class="acc-item"><span class="acc-w">说明对象</span><span class="acc-d">文章要说明的事物。本文的说明对象是蝉的生活习性。</span></div>
+      <div class="acc-item"><span class="acc-w">作比较</span><span class="acc-d">说明方法之一，通过对比突出事物特征。如蝉与金蜣比较、地下四年与地上五星期比较。</span></div>
+      <div class="acc-item"><span class="acc-w">列数字</span><span class="acc-d">说明方法之一，用具体数字说明。如“四年”“五个星期”。</span></div>
+      <div class="acc-item"><span class="acc-w">打比方</span><span class="acc-d">说明方法之一，通过比喻介绍事物。如“像矿工或铁路工程师”。</span></div>
+      <div class="acc-item"><span class="acc-w">举例子</span><span class="acc-d">说明方法之一，举出实际事例。如以金蜣为例。</span></div>
+      <div class="acc-item"><span class="acc-w">作诠释</span><span class="acc-d">说明方法之一，解释事物的原因或原理。如解释地穴周围无土的原因。</span></div>
+      <div class="acc-item"><span class="acc-w">摹状貌</span><span class="acc-d">说明方法之一，对事物的形态进行描写。如幼虫“踢踢腿，试试筋力”。</span></div>
+      <div class="acc-item"><span class="acc-w">逻辑顺序</span><span class="acc-d">按照事物的内在逻辑关系安排说明顺序。本文从地穴到卵，按生命过程说明。</span></div>
+      <div class="acc-item"><span class="acc-w">时间顺序</span><span class="acc-d">按照时间先后安排说明顺序。写卵的孵化时用时间顺序。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">曝晒</span><span class="acc-d">（pù）日字旁；多音字，此处读pù，不读bào。</span></div>
+      <div class="acc-item"><span class="acc-w">金蜣</span><span class="acc-d">（qiāng）虫字旁；生僻字。</span></div>
+      <div class="acc-item"><span class="acc-w">窠</span><span class="acc-d">（kē）穴宝盖；与「巢」（巛字头）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">极黏</span><span class="acc-d">（nián）黍字旁；与「粘」（zhān，米字旁）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">一刹那</span><span class="acc-d">（chà）立刀旁；多音字，此处读chà，不读shā。</span></div>
+      <div class="acc-item"><span class="acc-w">纤维</span><span class="acc-d">（xiān）绞丝旁；多音字，此处读xiān，不读qiàn。</span></div>
+      <div class="acc-item"><span class="acc-w">鳍状物</span><span class="acc-d">（qí）鱼字旁；生僻字。</span></div>
+      <div class="acc-item"><span class="acc-w">车辙</span><span class="acc-d">（zhé）车字旁；与「撤」（提手旁）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">喧嚣</span><span class="acc-d">（xuān xiāo）「喧」口字旁，「嚣」页字旁；注意「嚣」的笔画。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">科学与文学结合</span><span class="acc-d">既有准确的科学知识，又有生动的文学描写，是科学小品文的典范。</span></div>
+      <div class="acc-item"><span class="acc-w">第一人称观察</span><span class="acc-d">以“我”的观察视角展开，亲切自然，增强了文章的真实性和可读性。</span></div>
+      <div class="acc-item"><span class="acc-w">拟人化描写</span><span class="acc-d">用拟人手法描写昆虫，如“统治者”“日光浴”“懒洋洋”，使昆虫形象生动可爱。</span></div>
+      <div class="acc-item"><span class="acc-w">人文关怀</span><span class="acc-d">在科学说明中融入对生命的悲悯和尊重，使文章具有温度和深度。</span></div>
+    </div>
+  </div>
+
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">《蝉》</div>
+  <div>法布尔 · 法国 · 出自《昆虫记》</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('chan_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('chan_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "曝", "py": "pù", "q": "在阳光□晒的道路上有好些小圆孔", "tip": "「曝」日字旁，晒；多音字，此处读pù不读bào"}, {"w": "蜣", "py": "qiāng", "q": "大多数掘地昆虫，例如金□", "tip": "「蜣」虫字旁，昆虫名；生僻字，注意右边是「羌」"}, {"w": "窠", "py": "kē", "q": "□外面总有一座土堆", "tip": "「窠」穴宝盖，巢穴；与「巢」（巛字头）区分"}, {"w": "黏", "py": "nián", "q": "它身子里藏有一种极□的液体", "tip": "「黏」黍字旁，有黏性；不要写成「粘」（米字旁，读zhān）"}, {"w": "刹", "py": "chà", "q": "直到最后一□那", "tip": "「刹」立刀旁，极短时间；多音字，此处读chà不读shā"}, {"w": "翘", "py": "qiào", "q": "而且往往是向上□起", "tip": "「翘」羽字旁，一头向上仰起；多音字，此处读qiào不读qiáo"}, {"w": "纤", "py": "xiān", "q": "把□维撕裂，并微微挑起", "tip": "「纤」绞丝旁，细丝；多音字，此处读xiān不读qiàn"}, {"w": "鳍", "py": "qí", "q": "身体下面有一种□状物", "tip": "「鳍」鱼字旁，鱼类的运动器官；生僻字"}, {"w": "懒", "py": "lǎn", "q": "有时却又□洋洋地在绳端摇摆着", "tip": "「懒」竖心旁，懒惰；不要写成「赖」（贝字旁）"}, {"w": "辙", "py": "zhé", "q": "车□的污水中", "tip": "「辙」车字旁，车轮压的痕迹；不要写成「撤」（提手旁）"}, {"w": "掘", "py": "jué", "q": "用前足的钩扒□地面", "tip": "「掘」提手旁，挖；不要写成「崛」（山字旁）"}, {"w": "喧", "py": "xuān", "q": "我们不应当讨厌它那□嚣的歌声", "tip": "「喧」口字旁，声音大；不要写成「暄」（日字旁）"}, {"w": "嚣", "py": "xiāo", "q": "我们不应当讨厌它那喧□的歌声", "tip": "「嚣」页字旁，吵闹；笔画多，注意中间是「页」"}];
+var DICT_NOTES = [{"w": "习性", "a": "长期养成的特性", "q": "研究蝉的习性"}, {"w": "夏至", "a": "二十四节气之一，6月21或22日", "q": "每年蝉的初次出现是在夏至"}, {"w": "金蜣", "a": "一种昆虫，即屎壳郎", "q": "例如金蜣"}, {"w": "窠", "a": "昆虫、鸟兽的巢穴", "q": "窠外面总有一座土堆"}, {"w": "隧道", "a": "在地下凿成的通道", "q": "蝉的隧道大都是深十五六英寸"}, {"w": "灰泥", "a": "用来涂抹墙壁的泥", "q": "在隧道的墙上涂上灰泥"}, {"w": "抵御", "a": "抵抗、防御", "q": "用来抵御外面的恶劣气候"}, {"w": "一刹那", "a": "极短的时间", "q": "直到最后一刹那"}, {"w": "纤维", "a": "细丝状物质", "q": "把纤维撕裂"}, {"w": "孵化", "a": "卵发育成幼虫", "q": "见过蝉卵的孵化"}, {"w": "鳍状物", "a": "像鱼鳍一样的东西", "q": "身体下面有一种鳍状物"}, {"w": "懒洋洋", "a": "没精打采的样子", "q": "懒洋洋地在绳端摇摆着"}, {"w": "张合自如", "a": "张开和闭合都很灵活", "q": "前面的爪能够张合自如"}, {"w": "车辙", "a": "车轮压在道路上的痕迹", "q": "车辙的污水中"}, {"w": "不毛", "a": "（土地）不长庄稼，形容荒凉", "q": "不毛的黄沙里"}, {"w": "寻觅", "a": "寻找", "q": "到地下寻觅藏身的地方"}, {"w": "喧嚣", "a": "声音杂乱、不清静", "q": "它那喧嚣的歌声"}, {"w": "举例子", "a": "说明方法之一，举出实际事例", "q": "例如金蜣"}, {"w": "作比较", "a": "说明方法之一，通过对比突出特点", "q": "地下生活约四年，地上只有五个星期"}, {"w": "列数字", "a": "说明方法之一，用具体数字说明", "q": "深十五六英寸"}, {"w": "打比方", "a": "说明方法之一，通过比喻介绍事物", "q": "简直像矿工或铁路工程师"}, {"w": "摹状貌", "a": "说明方法之一，对事物形态进行描写", "q": "踢踢腿，试试筋力"}, {"w": "科学小品文", "a": "用文学笔调介绍科学知识的说明文", "q": "《蝉》是科学小品文的典范"}];
+</script>
+
+</body>
+</html>
