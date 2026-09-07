@@ -1,0 +1,987 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蒲柳人家</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">现代 · 刘绍棠</div>
+  <h1 class="hero-title">蒲柳人家</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+<p><b>刘绍棠</b>（1936—1997），北京通州人，当代作家。他的作品多以京东运河一带的农村生活为题材，具有浓郁的乡土气息和地方色彩，被誉为“大运河之子”。代表作有《蒲柳人家》《蛾眉》《京门脸子》等。</p>
+<p><b>创作背景：</b>《蒲柳人家》发表于1980年，是刘绍棠的代表作。小说以20世纪30年代京东北运河一带的农村为背景，通过一个六岁孩子何满子的视角，描绘了北运河两岸劳动人民的生活和斗争，塑造了一丈青大娘、何大学问等栩栩如生的人物形象。“蒲柳人家”指普通穷苦人家，小说充满了浓郁的民俗风情和乡土气息。</p>
+</div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>鲁迅（1881—1936），原名周树人，字豫才，浙江绍兴人。中国现代伟大的文学家、思想家、革命家，中国现代文学的奠基人。1918年发表中国现代文学史上第一篇白话小说《狂人日记》，此后相继创作了蒲柳人家《药》《故乡》《阿Q正传》等小说，有小说集《呐喊》《彷徨》，散文集《朝花夕拾》，散文诗集《野草》等。</p>
+    <p style="margin-top:10px;color:var(--ink2)">鲁迅的小说以“表现人生、改良人生”为宗旨，善于用冷峻、含蓄、凝练的笔锋解剖国民灵魂。蒲柳人家写于1918年冬，是他“改造国民灵魂”主题的重要作品，也是中国现代文学史上最负盛名的短篇小说之一。</p>
+  </div>
+  <div class="box">
+    <h3>时代背景</h3>
+    <p>清末民初，科举制度虽于1905年被废除，但读书应试、追求功名的观念仍根深蒂固。孔乙己就是这个制度的牺牲品——他“读过书”却“终于没有进学”，既不能跻身仕途，又不屑于劳动谋生，最终沦为社会的边缘人。</p>
+    <p style="margin-top:8px">咸亨酒店是当时社会的缩影：长衫主顾“踱进店面隔壁的房子里”慢慢坐喝，短衣帮“靠柜外站着”热热地喝了休息——一个柜台，隔开了两个阶级。孔乙己“站着喝酒而穿长衫”，恰好处于两个阶级的夹缝之中，是一个“多余的人”。</p>
+  </div>
+  <div class="box">
+    <h3>写作缘起</h3>
+    <p>1918年冬，鲁迅在写下《狂人日记》之后，继续以小说为武器批判封建礼教与国民性。蒲柳人家以一个酒店小伙计的视角，写一个被社会抛弃的读书人的悲剧，意在暴露科举制度对读书人的毒害，以及一般群众的冷漠麻木。</p>
+    <p style="margin-top:8px">鲁迅后来在《〈中国新文学大系〉小说二集序》中说，《呐喊》中的小说“意在描写病态社会的不幸的人们，揭出病苦，引起疗救的注意”。蒲柳人家正是这一创作宗旨的典型体现。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>鲁迅蒲柳人家全文朗诵</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1k94y1S73S&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="鲁迅蒲柳人家全文朗诵"></iframe>
+        <a href="https://www.bilibili.com/video/BV1k94y1S73S" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>      <div class="media">
+        <h4>【孔乙己】话剧（完整版）</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1kx4y1P758&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="《蒲柳人家》诵读"></iframe>
+        <a href="https://www.bilibili.com/video/BV1kx4y1P758" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 词语 · 手法</span></div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+何满子的爷爷，官讳已不可考。但是，如果提起他的外号，北运河两岸，古北口内外，在卖力气走江湖的人们中间，那可真是叫得山响。<br><br>
+他给何满子的父亲起了个乳名，叫何满子。何满子是一丈青大娘的心尖子，肺叶子，眼珠子，命根子。<br><br>
+一丈青大娘，个儿高脚大，身强体健，嗓门洪亮，骂起人来，就像雨打芭蕉，长短句，四六体，鼓点似的骂一天，一气呵成，也不倒嗓子。<br><br>
+她也能打架，动起手来，别看五六十岁了，三五个大小伙子不够她打一锅的。<br><br>
+一丈青大娘大闹运河滩，是何满子童年时代一件惊心动魄的大事。<br><br>
+那年夏天，何满子的父亲在城里当厨子，母亲带着他回娘家。一天，一丈青大娘正在河边洗衣，只见几个纤夫赤身露体，只系着一条围腰，从上游下来。<br><br>
+一丈青大娘见他们目中无人，便大喝一声：“站住！”几个纤夫停了脚，嘻嘻哈哈地说：“大娘，您有什么吩咐？”<br><br>
+一丈青大娘火了，抡起扁担，朝纤夫们打去。纤夫们没想到这个老太婆这么厉害，纷纷跳水逃命。一丈青大娘不依不饶，站在河边大骂不止。<br><br>
+这件事，像插上了翅膀，很快传遍了北运河两岸。从此，一丈青大娘的威名，更是远扬。<br><br>
+何满子的爷爷，外号何大学问。他的外号，是因为他读过几年私塾，又走南闯北，见多识广。<br><br>
+何大学问人高马大，膀阔腰圆，面如重枣，浓眉朗目，一副关公相貌。他年轻的时候，给地主赶车，后来又到口外贩马，挣了一些钱，就置了几亩地，娶了媳妇。<br><br>
+何大学问好交朋友，慷慨大方。他常说：“朋友多了路好走。”家里常常高朋满座，酒肉不断。<br><br>
+但是，何大学问也有烦恼。他一辈子没读过多少书，深感遗憾，所以把希望寄托在孙子何满子身上，一心想让他读书成才。<br><br>
+他请了一位老秀才，到家里教何满子读书。老秀才年过花甲，须发皆白，但是精神矍铄，教书十分严厉。<br><br>
+何满子天性好动，哪里坐得住？他常常趁老秀才不注意，偷偷溜出去，到河边摸鱼，到树上掏鸟窝。老秀才气得吹胡子瞪眼，却也无可奈何。<br><br>
+一丈青大娘心疼孙子，常常护着他，跟老秀才吵架。何大学问左右为难，一边是老娘，一边是儿子的希望，真是进退两难。<br><br>
+这就是蒲柳人家的日常生活，有欢笑，有烦恼，有温情，有矛盾。它像一幅浓墨重彩的民俗画，展现了北运河两岸劳动人民的生活和性格。
+</div>
+    <div class="pl">我从十二岁起，便在镇口的咸亨酒店里当伙计，掌柜说，样子太傻，怕侍候不了长衫主顾，就在外面做点事罢。外面的短衣主顾，虽然容易说话，但唠唠叨叨缠夹不清的也很不少。他们往往要亲眼看着黄酒从坛子里舀出，看过壶子底里有水没有，又亲看将壶子放在热水里，然后放心：在这严重监督下，羼水也很为难。所以过了几天，掌柜又说我干不了这事。幸亏荐头的情面大，辞退不得，便改为专管温酒的一种无聊职务了。</div>
+    <div class="pl">我从此便整天的站在柜台里，专管我的职务。虽然没有什么失职，但总觉得有些单调，有些无聊。掌柜是一副凶脸孔，主顾也没有好声气，教人活泼不得；只有孔乙己到店，才可以笑几声，所以至今还记得。</div>
+    <div class="pl">孔乙己是站着喝酒而穿长衫的唯一的人。他身材很高大；青白脸色，皱纹间时常夹些伤痕；一部乱蓬蓬的花白的胡子。穿的虽然是长衫，可是又脏又破，似乎十多年没有补，也没有洗。他对人说话，总是满口之乎者也，教人半懂不懂的。因为他姓孔，别人便从描红纸上的“上大人孔乙己”这半懂不懂的话里，替他取下一个绰号，叫作孔乙己。</div>
+    <div class="pl">孔乙己一到店，所有喝酒的人便都看着他笑，有的叫道，“孔乙己，你脸上又添上新伤疤了！”他不回答，对柜里说，“温两碗酒，要一碟茴香豆。”便排出九文大钱。他们又故意的高声嚷道，“你一定又偷了人家的东西了！”孔乙己睁大眼睛说，“你怎么这样凭空污人清白……”“什么清白？我前天亲眼见你偷了何家的书，吊着打。”孔乙己便涨红了脸，额上的青筋条条绽出，争辩道，“窃书不能算偷……窃书！……读书人的事，能算偷么？”接连便是难懂的话，什么“君子固穷”，什么“者乎”之类，引得众人都哄笑起来：店内外充满了快活的空气。</div>
+    <div class="pl">听人家背地里谈论，孔乙己原来也读过书，但终于没有进学，又不会营生；于是愈过愈穷，弄到将要讨饭了。幸而写得一笔好字，便替人家钞钞书，换一碗饭吃。可惜他又有一样坏脾气，便是好喝懒做。坐不到几天，便连人和书籍纸张笔砚，一齐失踪。如是几次，叫他钞书的人也没有了。孔乙己没有法，便免不了偶然做些偷窃的事。但他在我们店里，品行却比别人都好，就是从不拖欠；虽然间或没有现钱，暂时记在粉板上，但不出一月，定然还清，从粉板上拭去了孔乙己的名字。</div>
+    <div class="pl">孔乙己喝过半碗酒，涨红的脸色渐渐复了原，旁人便又问道，“孔乙己，你当真认识字么？”孔乙己看着问他的人，显出不屑置辩的神气。他们便接着说道，“你怎的连半个秀才也捞不到呢？”孔乙己立刻显出颓唐不安模样，脸上笼上了一层灰色，嘴里说些话；这回可是全是之乎者也之类，一些不懂了。在这时候，众人也都哄笑起来：店内外充满了快活的空气。</div>
+    <div class="pl">在这些时候，我可以附和着笑，掌柜是决不责备的。而且掌柜见了孔乙己，也每每这样问他，引人发笑。孔乙己自己知道不能和他们谈天，便只好向孩子说话。有一回对我说道，“你读过书么？”我略略点一点头。他说，“读过书，……我便考你一考。茴香豆的茴字，怎样写的？”我想，讨饭一样的人，也配考我么？便回过脸去，不再理会。孔乙己等了许久，很恳切的说道，“不能写罢？……我教给你，记着！这些字应该记着。将来做掌柜的时候，写账要用。”我暗想我和掌柜的等级还很远呢，而且我们掌柜也从不将茴香豆上账；又好笑，又不耐烦，懒懒的答他道，“谁要你教，不是草头底下一个来回的回字么？”孔乙己显出极高兴的样子，将两个指头的长指甲敲着柜台，点头说，“对呀对呀！……回字有四样写法，你知道么？”我愈不耐烦了，努着嘴走远。孔乙己刚用指甲蘸了酒，想在柜上写字，见我毫不热心，便又叹一口气，显出极惋惜的样子。</div>
+    <div class="pl">有几回，邻居孩子听得笑声，也赶热闹，围住了孔乙己。他便给他们茴香豆吃，一人一颗。孩子吃完豆，仍然不散，眼睛都望着碟子。孔乙己着了慌，伸开五指将碟子罩住，弯腰下去说道，“不多了，我已经不多了。”直起身又看一看豆，自己摇头说，“不多不多！多乎哉？不多也。”于是这一群孩子都在笑声里走散了。</div>
+    <div class="pl">孔乙己是这样的使人快活，可是没有他，别人也便这么过。</div>
+    <div class="pl">有一天，大约是中秋前的两三天，掌柜正在慢慢的结账，取下粉板，忽然说，“孔乙己长久没有来了。还欠十九个钱呢！”我才也觉得他的确长久没有来了。一个喝酒的人说道，“他怎么会来？……他打折了腿了。”掌柜说，“哦！”“他总仍旧是偷。这一回，是自己发昏，竟偷到丁举人家里去了。他家的东西，偷得的么？”“后来怎么样？”“怎么样？先写服辩，后来是打，打了大半夜，再打折了腿。”“后来呢？”“后来打折了腿了。”“打折了怎样呢？”“怎样？……谁晓得？许是死了。”掌柜也不再问，仍然慢慢的算他的账。</div>
+    <div class="pl">中秋过后，秋风是一天凉比一天，看看将近初冬；我整天的靠着火，也须穿上棉袄了。一天的下半天，没有一个顾客，我正合了眼坐着。忽然间听得一个声音，“温一碗酒。”这声音虽然极低，却很耳熟。看时又全没有人。站起来向外一望，那孔乙己便在柜台下对了门槛坐着。他脸上黑而且瘦，已经不成样子；穿一件破夹袄，盘着两腿，下面垫一个蒲包，用草绳在肩上挂住；见了我，又说道，“温一碗酒。”掌柜也伸出头去，一面说，“孔乙己么？你还欠十九个钱呢！”孔乙己很颓唐的仰面答道，“这……下回还清罢。这一回是现钱，酒要好。”掌柜仍然同平常一样，笑着对他说，“孔乙己，你又偷了东西了！”但他这回却不十分分辩，单说了一句“不要取笑！”“取笑？要是不偷，怎么会打断腿？”孔乙己低声说道，“跌断，跌，跌……”他的眼色，很像恳求掌柜，不要再提。此时已经聚集了几个人，便和掌柜都笑了。我温了酒，端出去，放在门槛上。他从破衣袋里摸出四文大钱，放在我手里，见他满手是泥，原来他便用这手走来的。不一会，他喝完酒，便又在旁人的说笑声中，坐着用这手慢慢走去了。</div>
+    <div class="pl">自此以后，又长久没有看见孔乙己。到了年关，掌柜取下粉板说，“孔乙己还欠十九个钱呢！”到第二年的端午，又说“孔乙己还欠十九个钱呢！”到中秋可是没有说，再到年关也没有看见他。我到现在终于没有见——大约孔乙己的确死了。一九一九年三月。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+<div class="verse">
+<div class="v-top"><div class="v-no">1</div><div class="v-line">何满子的爷爷，<span class="anno-word" data-note="旧时指尊长或所尊敬的人的名字。讳，避讳">官讳</span>已<span class="anno-word" data-note="无法考证">不可考</span>。但是，如果提起他的外号，<span class="anno-word" data-note="即运河的北段，在今北京、天津一带">北运河</span>两岸，<span class="anno-word" data-note="长城重要关口，在今北京密云区东北">古北口</span>内外，在<span class="anno-word" data-note="指靠出卖力气或技艺在各地谋生的人">卖力气走江湖</span>的人们中间，那可真是<span class="anno-word" data-note="形容名声很大，家喻户晓">叫得山响</span>。</div></div>
+<div class="v-trans"><b>内容</b>　开篇点出何满子爷爷的外号在北运河两岸很有名，设置悬念，引出人物。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“官讳已不可考”与“外号叫得山响”形成对比，突出人物的民间色彩和江湖气息。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">2</div><div class="v-line">他给何满子的父亲起了个<span class="anno-word" data-note="小名">乳名</span>，叫何满子。何满子是<span class="anno-word" data-note="《水浒传》中扈三娘的绰号，这里借用来形容何满子的奶奶泼辣能干">一丈青</span>大娘的<span class="anno-word" data-note="比喻最疼爱的人">心尖子</span>，<span class="anno-word" data-note="比喻极其珍贵的人">肺叶子</span>，眼珠子，<span class="anno-word" data-note="比喻最最重要、不能失去的人或物">命根子</span>。</div></div>
+<div class="v-trans"><b>内容</b>　写何满子是一丈青大娘的心肝宝贝，极受宠爱。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“心尖子，肺叶子，眼珠子，命根子”四个比喻构成排比，夸张地写出一丈青大娘对孙子的极度疼爱，语言口语化，富有地方色彩。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">3</div><div class="v-line">一丈青大娘，<span class="anno-word" data-note="个子高，脚大">个儿高脚大</span>，<span class="anno-word" data-note="身体强壮健康">身强体健</span>，<span class="anno-word" data-note="声音大而响亮">嗓门洪亮</span>，骂起人来，就像<span class="anno-word" data-note="雨打在芭蕉叶上的声音，形容声音清脆密集">雨打芭蕉</span>，<span class="anno-word" data-note="词的别称，这里指骂人的话长短错落">长短句</span>，<span class="anno-word" data-note="骈文的一种，以四字句和六字句为主，这里形容骂人话有节奏">四六体</span>，鼓点似的骂一天，<span class="anno-word" data-note="一口气做成，形容做事紧凑、不间断">一气呵成</span>，也不<span class="anno-word" data-note="嗓子喊哑了">倒嗓子</span>。</div></div>
+<div class="v-trans"><b>内容</b>　描写一丈青大娘的外貌和性格——个儿高脚大、身强体健、嗓门洪亮、骂人厉害。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“雨打芭蕉”比喻骂人声，用“长短句，四六体”形容骂人的节奏感，用“鼓点似的”形容骂人的气势，生动传神，富有幽默感。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">4</div><div class="v-line">她也能打架，<span class="anno-word" data-note="打起架来">动起手来</span>，别看五六十岁了，三五个<span class="anno-word" data-note="年轻力壮的男子">大小伙子</span><span class="anno-word" data-note="不够她打的，形容她很能打">不够她打一锅的</span>。</div></div>
+<div class="v-trans"><b>内容</b>　写一丈青大娘善于打架，五六十岁还能打赢三五个小伙子。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“不够她打一锅的”这种口语化的夸张，突出一丈青大娘的勇猛强悍，语言诙谐生动。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">5</div><div class="v-line">一丈青大娘大闹<span class="anno-word" data-note="运河边的沙滩地">运河滩</span>，是何满子童年时代一件<span class="anno-word" data-note="形容使人感受很深，震动很大">惊心动魄</span>的大事。</div></div>
+<div class="v-trans"><b>内容</b>　过渡句，引出一丈青大娘大闹运河滩的故事。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">“惊心动魄”一词大词小用，渲染事件的紧张感，也带有孩子视角的夸张和幽默。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">6</div><div class="v-line">那年夏天，何满子的父亲在城里当<span class="anno-word" data-note="厨师">厨子</span>，母亲带着他回<span class="anno-word" data-note="女子结婚后称自己父母家为娘家">娘家</span>。一天，一丈青大娘正在河边洗衣，只见几个<span class="anno-word" data-note="以背纤拉船为生的人">纤夫</span><span class="anno-word" data-note="光着身子，不穿衣服">赤身露体</span>，只系着一条<span class="anno-word" data-note="围裙">围腰</span>，从上游下来。</div></div>
+<div class="v-trans"><b>内容</b>　交代故事背景：夏天，何满子随母亲回娘家，一丈青大娘在河边洗衣时遇到几个纤夫。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“赤身露体，只系着一条围腰”描写纤夫的外貌，为下文一丈青大娘的愤怒做铺垫。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">7</div><div class="v-line">一丈青大娘见他们<span class="anno-word" data-note="眼里没有别人，形容骄傲自大">目中无人</span>，便<span class="anno-word" data-note="大声喊叫">大喝一声</span>：“站住！”几个纤夫停了脚，嘻嘻哈哈地说：“大娘，您有什么<span class="anno-word" data-note="口头指派或命令">吩咐</span>？”</div></div>
+<div class="v-trans"><b>内容</b>　一丈青大娘喝止纤夫，纤夫态度轻慢。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">通过语言和神态描写，“大喝一声”写出一丈青大娘的威严，“嘻嘻哈哈”写出纤夫的轻慢，形成对比，推动情节发展。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">8</div><div class="v-line">一丈青大娘火了，<span class="anno-word" data-note="用力举起">抡起</span><span class="anno-word" data-note="挑东西的工具，用竹子或木头做成">扁担</span>，朝纤夫们打去。纤夫们没想到这个老太婆这么厉害，<span class="anno-word" data-note="接二连三地">纷纷</span>跳水逃命。一丈青大娘<span class="anno-word" data-note="不肯罢休，继续纠缠">不依不饶</span>，站在河边大骂不止。</div></div>
+<div class="v-trans"><b>内容</b>　一丈青大娘怒打纤夫，纤夫跳水逃命，她还在河边大骂。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“抡起扁担”“纷纷跳水逃命”“不依不饶”等动作描写，生动刻画一丈青大娘的泼辣勇猛，情节紧张而富有喜剧色彩。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">9</div><div class="v-line">这件事，像<span class="anno-word" data-note="比喻传播得很快">插上了翅膀</span>，很快传遍了北运河两岸。从此，一丈青大娘的<span class="anno-word" data-note="因勇猛而使人敬畏的名声">威名</span>，更是<span class="anno-word" data-note="传播到很远的地方">远扬</span>。</div></div>
+<div class="v-trans"><b>内容</b>　一丈青大娘大闹运河滩的事很快传开，威名远扬。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“像插上了翅膀”比喻消息传播之快，用“威名远扬”总结人物影响，收束这一事件。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">10</div><div class="v-line">何满子的爷爷，外号何大学问。他的外号，是因为他读过几年<span class="anno-word" data-note="旧时私人设立的教学场所">私塾</span>，又<span class="anno-word" data-note="形容到过很多地方，阅历丰富">走南闯北</span>，<span class="anno-word" data-note="见过的多，知道的广，形容阅历深、经验多">见多识广</span>。</div></div>
+<div class="v-trans"><b>内容</b>　介绍何大学问外号的由来——读过私塾、走南闯北、见多识广。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“大学问”这个外号，既写出人物的特点，也带有民间的幽默和敬意。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">11</div><div class="v-line">何大学问<span class="anno-word" data-note="形容人身材高大">人高马大</span>，<span class="anno-word" data-note="肩膀宽阔，腰肢粗壮，形容人身体强壮">膀阔腰圆</span>，<span class="anno-word" data-note="脸色像深红色的枣子，形容人脸色红润">面如重枣</span>，<span class="anno-word" data-note="眉毛浓密，眼睛明亮">浓眉朗目</span>，一副<span class="anno-word" data-note="即关羽，三国时蜀汉大将，以忠义闻名">关公</span>相貌。他年轻的时候，给地主赶车，后来又到<span class="anno-word" data-note="指长城以北的地区">口外</span><span class="anno-word" data-note="买卖马匹">贩马</span>，挣了一些钱，就<span class="anno-word" data-note="购置、买">置</span>了几亩地，娶了媳妇。</div></div>
+<div class="v-trans"><b>内容</b>　描写何大学问的外貌和经历——人高马大、像关公，年轻时赶车、贩马，后来置地娶妻。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“面如重枣，浓眉朗目，一副关公相貌”的外貌描写，突出人物的英武形象；用赶车、贩马、置地、娶妻概括人生经历，简洁有力。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">12</div><div class="v-line">何大学问好交朋友，<span class="anno-word" data-note="不吝啬，很大方">慷慨大方</span>。他常说：“朋友多了路好走。”家里常常<span class="anno-word" data-note="高贵的朋友坐满了席位，形容宾客很多">高朋满座</span>，<span class="anno-word" data-note="酒和肉不断，形容生活奢华、待客热情">酒肉不断</span>。</div></div>
+<div class="v-trans"><b>内容</b>　写何大学问好交朋友、慷慨大方的性格。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">引用“朋友多了路好走”的俗语，用“高朋满座，酒肉不断”的场景描写，突出人物的豪爽好客。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">13</div><div class="v-line">但是，何大学问也有烦恼。他一辈子没读过多少书，深感<span class="anno-word" data-note="因未能称心如愿而惋惜">遗憾</span>，所以把希望<span class="anno-word" data-note="把理想、希望等放在某人或某事上">寄托</span>在孙子何满子身上，一心想让他读书<span class="anno-word" data-note="成为有才能的人">成才</span>。</div></div>
+<div class="v-trans"><b>内容</b>　写何大学问的遗憾和期望——自己读书少，希望孙子何满子能读书成才。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“深感遗憾”“一心想让他读书成才”写出人物的心理，为下文请老秀才教孙子读书做铺垫，也深化了人物形象。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">14</div><div class="v-line">他请了一位<span class="anno-word" data-note="旧时参加科举考试未中、以教书为生的人">老秀才</span>，到家里教何满子读书。老秀才<span class="anno-word" data-note="年龄超过六十岁。花甲，指六十岁">年过花甲</span>，<span class="anno-word" data-note="胡须和头发都白了">须发皆白</span>，但是<span class="anno-word" data-note="形容老人精神健旺">精神矍铄</span>，教书十分<span class="anno-word" data-note="严肃而厉害">严厉</span>。</div></div>
+<div class="v-trans"><b>内容</b>　何大学问请老秀才教何满子读书，描写老秀才的外貌和性格。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“年过花甲，须发皆白”写老秀才的年龄，用“精神矍铄”写他的精神状态，用“十分严厉”写他的教学态度，人物形象鲜明。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">15</div><div class="v-line">何满子<span class="anno-word" data-note="先天具有的品质或性情">天性</span>好动，哪里<span class="anno-word" data-note="能安静地坐着">坐得住</span>？他常常趁老秀才不注意，偷偷<span class="anno-word" data-note="偷偷地出去">溜出去</span>，到河边<span class="anno-word" data-note="在水里捉鱼">摸鱼</span>，到树上<span class="anno-word" data-note="从鸟窝里取鸟蛋或小鸟">掏鸟窝</span>。老秀才气得<span class="anno-word" data-note="形容很生气的样子">吹胡子瞪眼</span>，却也<span class="anno-word" data-note="没有办法，无法可想">无可奈何</span>。</div></div>
+<div class="v-trans"><b>内容</b>　写何满子天性好动，不愿读书，常常偷偷溜出去玩，老秀才很生气却没办法。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“摸鱼”“掏鸟窝”等动作描写，生动刻画何满子的顽皮好动；用“吹胡子瞪眼”“无可奈何”写老秀才的生气和无奈，富有生活气息和幽默感。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">16</div><div class="v-line">一丈青大娘<span class="anno-word" data-note="疼爱、舍不得">心疼</span>孙子，常常<span class="anno-word" data-note="袒护、保护">护着</span>他，跟老秀才吵架。何大学问<span class="anno-word" data-note="左也不好，右也不好，形容无论怎样做都有难处">左右为难</span>，一边是老娘，一边是儿子的希望，真是<span class="anno-word" data-note="前进和后退都难，比喻事情无法决定，因而难以行动">进退两难</span>。</div></div>
+<div class="v-trans"><b>内容</b>　写一丈青大娘护着孙子，与老秀才吵架，何大学问左右为难。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“心疼”“护着”写一丈青大娘的溺爱，用“左右为难”“进退两难”写何大学问的窘境，家庭矛盾真实而有趣。</div></details>
+</div>
+<div class="verse">
+<div class="v-top"><div class="v-no">17</div><div class="v-line">这就是<span class="anno-word" data-note="指普通穷苦人家。蒲柳，即水杨，生长在水边，比喻低微的出身">蒲柳人家</span>的日常生活，有欢笑，有烦恼，有温情，有矛盾。它像一幅<span class="anno-word" data-note="用浓重的墨汁和色彩描绘，形容着力描写">浓墨重彩</span>的<span class="anno-word" data-note="描写民间风俗的画">民俗画</span>，<span class="anno-word" data-note="展示、表现">展现</span>了北运河两岸劳动人民的生活和性格。</div></div>
+<div class="v-trans"><b>内容</b>　总结全文，点明蒲柳人家的日常生活特点，赞美劳动人民的生活和性格。</div>
+<details class="v-more"><summary>手法</summary><div class="d-body">用“浓墨重彩的民俗画”比喻全文，总结文章的主题和艺术特色，收束全文。</div></details>
+</div>
+
+
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">人物 · 艺术 · 名句</span></div>
+  <div class="box">
+    <h3>人物形象</h3>
+    <div class="fame">
+<div class="fame-card">
+<div class="f-line">人物形象</div>
+<p><b>一丈青大娘</b>：个儿高脚大、身强体健、泼辣勇猛、嫉恶如仇，同时又极度疼爱孙子，是一个既有江湖豪气又有母性温情的农村妇女形象。</p>
+<p><b>何大学问</b>：人高马大、像关公相貌，豪爽好客、见多识广，虽然读书不多却重视教育，把希望寄托在孙子身上，是一个朴实而有追求的农民形象。</p>
+<p><b>何满子</b>：天性好动、顽皮可爱，是连接两个家庭矛盾的纽带，也是小说的叙事视角。</p>
+</div>
+<div class="fame-card">
+<div class="f-line">艺术特色</div>
+<p><b>乡土气息浓郁</b>：小说以京东运河一带的农村为背景，语言口语化、地方色彩浓厚，充满了民俗风情。</p>
+<p><b>人物塑造生动</b>：通过外貌、语言、动作、心理等多种描写手法，塑造了一丈青大娘、何大学问等栩栩如生的人物形象。</p>
+<p><b>幽默诙谐</b>：用夸张、比喻等手法，在紧张的情节中融入幽默，如“骂起人来像雨打芭蕉”“不够她打一锅的”等。</p>
+<p><b>儿童视角</b>：通过何满子的眼睛看世界，既真实又富有童趣，使小说充满了生活气息。</p>
+</div>
+<div class="fame-card">
+<div class="f-line">主题思想</div>
+<p>小说通过描写蒲柳人家的日常生活，展现了北运河两岸劳动人民的生活和性格，赞美了他们的勤劳、善良、勇敢和智慧，同时也反映了旧中国农村的社会矛盾和人民的苦难。小说充满了对乡土的热爱和对劳动人民的敬意。</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">蒲柳人家</div>
+  <div>鲁迅 · 现代 · 选自《呐喊》</div>
+  <div>本篇最初发表于 1919 年 4 月《新青年》第六卷第四号</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('puliu_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('puliu_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "讳", "py": "huì", "q": "官□已不可考", "tip": "「讳」言字旁，音 huì，勿写「伟」「违」"}, {"w": "嗓", "py": "sǎng", "q": "□门洪亮", "tip": "「嗓」口字旁，音 sǎng，勿写「搡」「桑」"}, {"w": "蕉", "py": "jiāo", "q": "雨打芭□", "tip": "「芭蕉」草字头，音 jiāo，勿写「焦」「礁」"}, {"w": "纤", "py": "qiàn", "q": "几个□夫", "tip": "「纤夫」绞丝旁，音 qiàn（拉船），勿写「迁」「钎」"}, {"w": "抡", "py": "lūn", "q": "□起扁担", "tip": "「抡」提手旁，音 lūn（用力举），勿写「轮」「伦」"}, {"w": "枣", "py": "zǎo", "q": "面如重□", "tip": "「枣」上「朿」下「冂」两点，音 zǎo，勿写「束」"}, {"w": "矍", "py": "jué", "q": "精神□铄", "tip": "「矍」目字旁，音 jué，勿写「攫」「瞿」"}, {"w": "掏", "py": "tāo", "q": "□鸟窝", "tip": "「掏」提手旁，音 tāo，勿写「淘」「滔」"}];
+var DICT_NOTES = [{"w": "官讳", "q": "何满子的爷爷，官讳已不可考。", "a": "旧时指尊长或所尊敬的人的名字。讳，避讳"}, {"w": "叫得山响", "q": "那可真是叫得山响。", "a": "形容名声很大，家喻户晓"}, {"w": "命根子", "q": "眼珠子，命根子。", "a": "比喻最最重要、不能失去的人或物"}, {"w": "一气呵成", "q": "鼓点似的骂一天，一气呵成。", "a": "一口气做成，形容做事紧凑、不间断"}, {"w": "目中无人", "q": "一丈青大娘见他们目中无人。", "a": "眼里没有别人，形容骄傲自大"}, {"w": "不依不饶", "q": "一丈青大娘不依不饶，站在河边大骂不止。", "a": "不肯罢休，继续纠缠"}, {"w": "走南闯北", "q": "又走南闯北，见多识广。", "a": "形容到过很多地方，阅历丰富"}, {"w": "见多识广", "q": "又走南闯北，见多识广。", "a": "见过的多，知道的广，形容阅历深、经验多"}, {"w": "高朋满座", "q": "家里常常高朋满座，酒肉不断。", "a": "高贵的朋友坐满了席位，形容宾客很多"}, {"w": "精神矍铄", "q": "老秀才年过花甲，须发皆白，但是精神矍铄。", "a": "形容老人精神健旺"}, {"w": "无可奈何", "q": "老秀才气得吹胡子瞪眼，却也无可奈何。", "a": "没有办法，无法可想"}, {"w": "左右为难", "q": "何大学问左右为难。", "a": "左也不好，右也不好，形容无论怎样做都有难处"}, {"w": "进退两难", "q": "真是进退两难。", "a": "前进和后退都难，比喻事情无法决定"}, {"w": "浓墨重彩", "q": "它像一幅浓墨重彩的民俗画。", "a": "用浓重的墨汁和色彩描绘，形容着力描写"}];
+</script>
+
+</body>
+</html>
