@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《恐龙无处不有》阿西莫夫</title>
+<style>
+
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  /* ========== 卷首 ========== */
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  /* ========== 导航 ========== */
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  /* ========== 主体 ========== */
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"◆ "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  /* 原文 */
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .xu-block b{color:var(--red-deep)}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  /* 序言解读条目 */
+  .xu-item{display:grid; grid-template-columns:1fr; gap:2px; padding:10px 0; border-bottom:1px dashed var(--line)}
+  .xu-item:last-child{border-bottom:none}
+  .xu-src{font-family:var(--font-kai); font-size:19px; letter-spacing:1px; color:var(--ink)}
+  .xu-src b{color:var(--red-deep); font-weight:700}
+  .xu-sub{font-size:14.8px; color:var(--ink2)}
+  .xu-sub dt{display:inline; font-weight:700; color:var(--teal-deep)}
+  .xu-sub dd{display:inline}
+  .xu-sub dd::after{content:"；"}
+  .xu-sub dd:last-child::after{content:""}
+  .xu-trans{font-size:15px; color:var(--ink2); background:rgba(61,87,102,.06); border-radius:6px; padding:6px 10px}
+  .xu-trans b{color:var(--teal-deep); font-weight:400; font-family:var(--font-kai)}
+
+  /* 逐句卡片 */
+  .part-head{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 6px; flex-wrap:wrap;
+  }
+  .part-head .p-num{
+    font-family:var(--font-kai); font-size:15px; color:#fff; background:linear-gradient(160deg,var(--teal),var(--teal-deep));
+    border-radius:8px; padding:4px 12px; letter-spacing:2px; flex:0 0 auto;
+  }
+  .part-head h3{font-family:var(--font-kai); font-size:23px; letter-spacing:3px; color:var(--ink); line-height:1; margin:0}
+  .part-head .range{font-size:12.5px; color:var(--ink3); letter-spacing:1px}
+  .part-overview{
+    font-size:14.8px; color:var(--ink2); background:rgba(168,135,79,.08);
+    border:1px solid rgba(168,135,79,.25); border-radius:10px; padding:12px 18px; margin:6px 0 16px;
+  }
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  /* 练习 · 听写 */
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  /* 听写全屏 */
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  /* 名句 */
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  /* 表格（外层可横滚，不推动整页） */
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  /* 双线 */
+  .lines{display:flex; gap:18px; flex-wrap:wrap; margin:12px 0}
+  .lane{flex:1; min-width:240px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .lane h4{font-family:var(--font-kai); font-size:17px; letter-spacing:2px; margin-bottom:10px}
+  .lane .l1{color:var(--red-deep)}
+  .lane .l2{color:var(--teal-deep)}
+  .step{display:flex; align-items:center; gap:8px; font-size:14.2px; color:var(--ink2); padding:4px 0; flex-wrap:wrap}
+  .step .dot{width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff}
+  .l1 .dot{background:var(--red)}
+  .l2 .dot{background:var(--teal)}
+  .step .arr{color:var(--ink3)}
+  .converge{
+    margin-top:14px; text-align:center; font-family:var(--font-kai); font-size:21px; letter-spacing:4px;
+    color:#f3ecd7; background:linear-gradient(90deg,#8c2f2b,#3d5766); border-radius:12px; padding:14px 10px;
+    box-shadow:0 4px 14px rgba(51,44,34,.25);
+  }
+
+  /* 积累 */
+  .glossary{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .g-item{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.6px}
+  .g-item dt{font-family:var(--font-kai); color:var(--red-deep); font-size:17px; letter-spacing:2px}
+  .g-item dd{color:var(--ink2)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  /* 打印 */
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .converge{color:#000!important}
+    .v-line,.xu-src{color:#000!important}
+    .xu-trans,.v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    .xu-block{columns:1!important}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  /* 正文字体缩放（仅作用于正文文字，界面不变） */
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2);
+    font-size:12.5px; border-radius:8px; padding:5px 6px; cursor:pointer; outline:none;
+  }
+  .fs-sel:hover{border-color:var(--teal); color:var(--teal)}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .part-overview{font-size:calc(14.8px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .xu-src{font-size:calc(19px*var(--fs))}
+  .xu-sub{font-size:calc(14.8px*var(--fs))}
+  .xu-trans{font-size:calc(15px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .step{font-size:calc(14.2px*var(--fs))}
+  .g-item{font-size:calc(14.6px*var(--fs))}
+  .g-item dt{font-size:calc(17px*var(--fs))}
+
+  /* 鸿门宴积累区补充样式 */
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  /* 解读区原文段落 */
+  .v-orig{font-family:var(--font-kai); font-size:calc(16px*var(--fs)); color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 原文可点击注释词 */
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  /* 注释弹窗 */
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  /* 字体缩放：总标题外所有文字 */
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .texttools button{font-size:calc(14px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+  /* 视频伪全屏 */
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+
+  .acc-sub{font-family:var(--font-kai,serif);font-weight:700;border-left:3px solid #b8934a;padding-left:8px;margin:12px 0 6px;color:var(--red-deep)}
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">美国 · 阿西莫夫</div>
+  <h1 class="hero-title">恐龙无处不有</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 文体 · 缘起</span></div>
+  <div class="lead">
+    <p>《恐龙无处不有》是美国科普作家阿西莫夫写的一篇科普说明文，选自《新疆域》。文章从南极发现恐龙化石这一现象出发，通过严密的逻辑推理，证明了地壳板块构造理论，体现了不同科学领域之间紧密相连的科学思想。</p>
+    <p>文章以科学发现为切入点，运用举例子、列数字、打比方、作诠释等多种说明方法，逻辑严密，语言准确而又生动幽默，是科普说明文的典范。学习本文重点在于理解作者的逻辑推理过程。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>阿西莫夫（1920—1992），美国著名科普作家、科幻小说家，美国科幻小说黄金时代的代表人物之一。他一生著述近500本，题材涉及自然科学、社会科学和文学艺术等许多领域，曾获代表科幻界最高荣誉的雨果奖和星云终身成就大师奖。</p>
+    <p style="margin-top:10px;color:var(--ink2)">阿西莫夫的科普作品以逻辑严密、语言通俗幽默著称，善于将深奥的科学知识写得深入浅出。代表作有科幻小说《基地》系列、《机器人》系列，科普作品《新疆域》等。《恐龙无处不有》和《被压扁的沙子》均选自《新疆域》。</p>
+  </div>
+  <div class="box">
+    <h3>文体知识</h3>
+    <p><b>科普说明文：</b>以介绍科学知识、解释科学原理为主要内容的说明文。它既有说明文的科学性和准确性，又讲究通俗易懂、生动有趣，使读者在轻松的阅读中获得科学知识。本文是科普说明文的典范。</p>
+    <p style="margin-top:8px"><b>逻辑推理：</b>科普说明文常通过逻辑推理来揭示科学原理。本文的推理链条是：南极发现恐龙化石→恐龙不适应南极气候→恐龙不可能自行越过大洋→是大陆在漂移→板块构造理论。推理严密，环环相扣。</p>
+    <p style="margin-top:8px"><b>说明顺序：</b>本文采用从现象到本质的逻辑顺序：先提出科学发现（现象），再分析推理（本质），最后得出结论。这种顺序符合人的认知规律，使文章条理清晰。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>课文诵读《恐龙无处不有》</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV1nZ4y1K71S&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="课文诵读恐龙无处不有"></iframe>
+        <a href="https://www.bilibili.com/video/BV1nZ4y1K71S" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>
+      <div class="media">
+        <h4>地球板块漂移科普动画</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV19s41177i9&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="地球板块漂移科普动画"></iframe>
+        <a href="https://www.bilibili.com/video/BV19s41177i9" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐段 · 逻辑推理 · 说明方法</span></div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+    <div class="pl">不同科学领域之间是紧密相连的。在一个科学领域的新发现肯定会对其他领域产生影响。</div>
+    <div class="pl">例如，在1986年1月，阿根廷南极研究所宣布在詹姆斯罗斯岛发现了一些化石骨骼。该岛是稍微离开南极海岸的一小片冰冻陆地，非常靠近南美的南端。这些骨头毫无疑问属于鸟臀目恐龙。</div>
+    <div class="pl">在地球的其他大陆上也都发现有恐龙化石。这些古老的爬行动物在南极的出现，说明恐龙确实遍布于世界各地。</div>
+    <div class="pl">如果把这个发现与南极大陆联系起来，这比仅考虑恐龙来说要重要得多。恐龙如何能在南极地区生存呢？恐龙实际上并不适应寒冷的气候，现代的两栖动物（青蛙和蟾蜍是人人皆知的现代两栖动物）更不适应南极气候。但1986年在南极确实发现了这种古老的两栖动物的化石。</div>
+    <div class="pl">恐龙不可能在每一块大陆上独立生存，那么它们是如何越过大洋到另一个大陆上去的呢？</div>
+    <div class="pl">这一问题的答案是：是大陆在漂移而不是恐龙自己在迁移。几十年前，人们发现地壳是由一些紧密拼合在一起但又在缓慢运动的大板块构成的。一些板块被拉开，而另一些则挤压在一起，一个板块也许会缓慢地向另一板块下面俯冲。“板块构造”理论很快为地质界几乎所有的问题提供了答案，如火山、地震、岛屿链、海洋深渊等等，这些在以前一直是不解之谜。</div>
+    <div class="pl">可以这样比喻，板块背上驮着许多大陆，当板块向一个或另一个方向运动时，大陆也随之一起运动。每隔一段时期，板块会将所有的大陆汇聚在一起，地球此时仅由一个主要陆地构成，称为“泛大陆”。当板块继续运动时，大陆又重新被分离开。</div>
+    <div class="pl">在四十多亿年的地球发展史中，泛大陆形成和分裂过多次，最后一次完整的泛大陆大约是在2.25亿年前形成的。这个泛大陆存在了数百万年以后，又开始显示出破裂的迹象。</div>
+    <div class="pl">早期恐龙在那时已经开始出现，并且有机会分散到泛大陆的各个地方。所有陆地似乎都处在热带和温带环境内，所以恐龙可以在泛大陆的不同地区舒适地生活。</div>
+    <div class="pl">大约在两亿年前，泛大陆分裂成四部分。北部就是现在的北美、欧洲和亚洲，南部是由现在的南美和非洲构成，南部是现在的南极洲和澳大利亚，印度是剩余的一小部分。</div>
+    <div class="pl">随着时间的流逝，北美又与亚洲和欧洲分开，南美也与非洲相离。（如果看一张地图，并假定把非洲和南美洲拼合在一起，你就会看到它们拼合得多么天衣无缝。）印度向北移动，并且大约在5000万年前与亚洲相碰撞，形成巨大的喜马拉雅山脉。两个陆块在那里聚合并缓慢地褶皱变形。南极和澳大利亚也已相互分离。</div>
+    <div class="pl">当大陆相互分离时，每一个大陆都携带着自己的恐龙而去。到6500万年以前，由于这样或那样的原因，所有的恐龙都灭绝了，大陆也已完全分开。现在的每一个大陆都有自己的恐龙化石。</div>
+    <div class="pl">南极也有自己的恐龙、两栖动物和其他在恐龙时代繁盛的植物和动物。然而，这些生物的命运比其他同类要悲惨得多，因为板块把它们向南携带到了极地。大约经历了一亿年，气候逐渐变冷，植物慢慢越来越稀少，动物的种类和数量也大量减少。气候变得越来越寒冷，夏天短而且冷，最后成为冰天雪地。</div>
+    <div class="pl">位于南极中心部位的南极洲是全球的大冰箱，地球上所有冰的十分之九都在南极冰盖。那里的冰有数英里厚，覆盖着丰富的化石。如果南极的冰雪层再薄一些的话，我们就可以找到它们。</div>
+    <div class="pl">因此，南极洲恐龙化石的发现，为支持地壳在进行缓慢但又不可抗拒的运动这一理论提供了另一个强有力的证据。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+      <div class="part-head"><span class="p-num">第一部分</span><h3>提出观点，引出发现</h3><span class="range">1–3 段</span></div>
+      <div class="part-overview">开篇点明不同科学领域紧密相连的主旨，以南极发现恐龙化石为例，说明恐龙遍布世界各地。</div>
+      <div class="verse" id="l1" data-i="0">
+        <div class="v-top"><span class="v-no">1</span><div class="v-line">不同科学<span class="anno-word" data-note="学术思想或社会活动的范围">领域</span>之间是<span class="anno-word" data-note="彼此关系密切，互相关联">紧密相连</span>的。在一个科学领域的<span class="anno-word" data-note="新的科学发现或研究成果">新发现</span>肯定会对其他领域<span class="anno-word" data-note="对别的事物起作用、引起变化">产生影响</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">开篇点明全文主旨：不同科学领域之间紧密相连，一个领域的发现会对其他领域产生影响。这是全文的逻辑基础。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明对象：不同科学领域之间的关系。说明方法：无特殊说明方法，以议论开篇。说明语言：{LQ}紧密相连{RQ}{LQ}肯定{RQ}等词准确有力，点明全文中心，为下文的逻辑推理奠定基础。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l2" data-i="1">
+        <div class="v-top"><span class="v-no">2</span><div class="v-line">例如，在1986年1月，<span class="anno-word" data-note="南美洲东南部的国家">阿根廷</span><span class="anno-word" data-note="研究南极地区科学问题的机构">南极研究所</span>宣布在<span class="anno-word" data-note="南极洲的一个岛屿，位于南极半岛附近">詹姆斯罗斯岛</span>发现了一些<span class="anno-word" data-note="古代生物的遗体或遗迹埋藏在地下变成的跟石头一样的东西，文中指恐龙的骨骼化石">化石骨骼</span>。该岛是稍微离开南极海岸的一小片<span class="anno-word" data-note="被冰雪覆盖的陆地">冰冻陆地</span>，非常靠近南美的南端。这些骨头毫无疑问属于<span class="anno-word" data-note="恐龙的一个目，骨盆结构与鸟类相似，多为植食性恐龙">鸟臀目</span>恐龙。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">以1986年南极发现恐龙化石为例，引出说明话题，介绍发现的时间、地点和化石的归属。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：举例子（南极发现恐龙化石）。说明语言：{LQ}毫无疑问{RQ}强调化石归属的确定性；{LQ}稍微离开{RQ}{LQ}非常靠近{RQ}准确描述岛屿位置，体现说明文语言的准确性。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l3" data-i="2">
+        <div class="v-top"><span class="v-no">3</span><div class="v-line">在地球的其他<span class="anno-word" data-note="地球上面积广大的陆地，全球共有六块大陆">大陆</span>上也都发现有恐龙化石。这些古老的<span class="anno-word" data-note="一类脊椎动物，体表有角质鳞片或甲，用肺呼吸，体温不恒定，如蛇、蜥蜴、恐龙等">爬行动物</span>在南极的出现，说明恐龙确实<span class="anno-word" data-note="分布到所有地方、到处都有">遍布</span>于世界各地。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">指出恐龙化石在其他大陆也有发现，结合南极的发现，得出恐龙遍布世界各地的结论。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：作比较（南极与其他大陆比较）、作诠释（解释恐龙遍布世界）。说明语言：{LQ}确实{RQ}强调结论的可靠性；{LQ}遍布{RQ}准确说明恐龙分布之广。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="part-head"><span class="p-num">第二部分</span><h3>提出问题，引出理论</h3><span class="range">4–6 段</span></div>
+      <div class="part-overview">提出恐龙如何能在南极生存的问题，引出大陆漂移和板块构造理论。</div>
+      <div class="verse" id="l4" data-i="3">
+        <div class="v-top"><span class="v-no">4</span><div class="v-line">如果把这个发现与南极大陆联系起来，这比<span class="anno-word" data-note="只考虑、单单考虑">仅考虑</span>恐龙来说要重要得多。恐龙如何能在南极地区生存呢？恐龙实际上并不<span class="anno-word" data-note="适合（客观条件或需要）">适应</span>寒冷的气候，现代的<span class="anno-word" data-note="脊椎动物的一纲，通常没有鳞或甲，皮肤裸露，幼体用鳃呼吸生活在水中，成体用肺呼吸生活在陆地，如青蛙、蟾蜍等">两栖动物</span>（青蛙和蟾蜍是<span class="anno-word" data-note="所有人都知道，形容非常著名">人人皆知</span>的现代两栖动物）更不适应南极气候。但1986年在南极确实发现了这种古老的两栖动物的化石。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">将南极恐龙化石与南极大陆联系起来思考，提出问题：恐龙如何能在南极生存？指出恐龙不适应寒冷气候，但南极确实有其化石，制造悬念，引出下文。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：作比较（恐龙与现代两栖动物比较）、举例子（青蛙和蟾蜍）。说明语言：括号中的补充说明使读者更容易理解；{LQ}实际上{RQ}{LQ}确实{RQ}准确表述，体现语言的严密性。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l5" data-i="4">
+        <div class="v-top"><span class="v-no">5</span><div class="v-line">恐龙不可能在每一块大陆上<span class="anno-word" data-note="不依靠其他条件而单独生存">独立生存</span>，那么它们是如何<span class="anno-word" data-note="跨过广阔的海洋">越过大洋</span>到另一个大陆上去的呢？</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">进一步提出核心问题：恐龙不可能独立生存于每块大陆，它们是如何越过大洋的？以设问引出下文的解答。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：设问。说明语言：独句成段，起承上启下的过渡作用；{LQ}不可能{RQ}否定一种可能，从而引出另一种解释，逻辑严密。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l6" data-i="5">
+        <div class="v-top"><span class="v-no">6</span><div class="v-line">这一问题的答案是：是大陆在<span class="anno-word" data-note="在液体表面漂浮移动，文中指大陆在地幔上缓慢移动">漂移</span>而不是恐龙自己在<span class="anno-word" data-note="离开原来的所在地而另换地点">迁移</span>。几十年前，人们发现<span class="anno-word" data-note="地球固体圈层的最外层，由岩石组成">地壳</span>是由一些紧密<span class="anno-word" data-note="合在一起、组合">拼合</span>在一起但又在缓慢运动的大<span class="anno-word" data-note="地球岩石圈分裂成的许多块体，它们在软流层上缓慢运动">板块</span>构成的。一些板块被拉开，而另一些则挤压在一起，一个板块也许会缓慢地向另一板块下面<span class="anno-word" data-note="（飞机等）以高速度和大角度向下飞，文中指一个板块插到另一个板块下面">俯冲</span>。“<span class="anno-word" data-note="一种现代地质理论，认为地球岩石圈由若干板块组成，板块在软流层上运动，板块边界是地壳活动带">板块构造</span>”理论很快为<span class="anno-word" data-note="研究地球的形成和发展的科学领域">地质界</span>几乎所有的问题提供了答案，如火山、地震、<span class="anno-word" data-note="一连串排列的岛屿">岛屿链</span>、<span class="anno-word" data-note="海洋中深度极大的地方，如海沟">海洋深渊</span>等等，这些在以前一直是<span class="anno-word" data-note="弄不明白的事情、谜">不解之谜</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">给出答案：是大陆在漂移而非恐龙迁移。介绍板块构造理论的基本内容：地壳由大板块构成，板块在运动，这一理论解释了许多地质之谜。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：作诠释（解释板块构造理论）、举例子（火山、地震等）、下定义（板块构造理论）。说明语言：{LQ}是……而不是……{RQ}明确区分两种可能；{LQ}几乎所有{RQ}{LQ}一直是不解之谜{RQ}准确表述理论的解释力，体现语言的准确性。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="part-head"><span class="p-num">第三部分</span><h3>推理过程：泛大陆的分裂</h3><span class="range">7–12 段</span></div>
+      <div class="part-overview">说明板块运动导致泛大陆的形成与分裂，恐龙随大陆漂移，最终每块大陆都有恐龙化石。</div>
+      <div class="verse" id="l7" data-i="6">
+        <div class="v-top"><span class="v-no">7</span><div class="v-line">可以这样<span class="anno-word" data-note="打比方，用相似的事物来比拟想要说的事物">比喻</span>，板块背上<span class="anno-word" data-note="用背部承受物体的重量">驮着</span>许多大陆，当板块向一个或另一个方向运动时，大陆也随之一起运动。每隔一段时期，板块会将所有的大陆<span class="anno-word" data-note="聚集、会聚">汇聚</span>在一起，地球此时仅由一个主要陆地<span class="anno-word" data-note="形成、组成">构成</span>，称为“<span class="anno-word" data-note="又称联合古陆，是地史上推测存在的超级大陆，由所有大陆连接而成">泛大陆</span>”。当板块继续运动时，大陆又重新被<span class="anno-word" data-note="分开、脱离">分离</span>开。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">用比喻说明板块运动与大陆运动的关系：板块驮着大陆运动，周期性地汇聚成泛大陆，然后又分离。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：打比方（板块背上驮着大陆）、下定义（泛大陆）、作诠释（解释泛大陆的形成和分离）。说明语言：{LQ}驮着{RQ}用拟人化的比喻生动形象；{LQ}每隔一段时期{RQ}{LQ}仅由{RQ}准确描述过程，体现科学性与生动性的统一。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l8" data-i="7">
+        <div class="v-top"><span class="v-no">8</span><div class="v-line">在四十多亿年的<span class="anno-word" data-note="地球从形成到现在的演化历史，约四十六亿年">地球发展史</span>中，泛大陆形成和<span class="anno-word" data-note="整体的事物分开">分裂</span>过多次，最后一次完整的泛大陆大约是在2.25亿年前形成的。这个泛大陆存在了数百万年以后，又开始显示出<span class="anno-word" data-note="（完整的东西）出现裂缝、开裂">破裂</span>的<span class="anno-word" data-note="指表露出来的不很显著的情况，可借以推断过去或将来">迹象</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明在地球漫长的发展史中，泛大陆多次形成和分裂，最后一次完整的泛大陆约在2.25亿年前形成，数百万年后开始破裂。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（四十多亿年、2.25亿年、数百万年）。说明语言：{LQ}大约{RQ}表示约数，{LQ}最后一次{RQ}{LQ}完整的{RQ}限定准确，体现说明文语言的准确性和严密性。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l9" data-i="8">
+        <div class="v-top"><span class="v-no">9</span><div class="v-line"><span class="anno-word" data-note="恐龙发展早期的种类，出现于约2.3亿年前">早期恐龙</span>在那时已经开始出现，并且有机会<span class="anno-word" data-note="散在各处、不集中">分散</span>到泛大陆的各个地方。所有陆地似乎都处在<span class="anno-word" data-note="赤道两侧南北回归线之间的地带，气候炎热">热带</span>和<span class="anno-word" data-note="南极圈与南回归线之间、北极圈与北回归线之间的地带，气候温和">温带</span>环境内，所以恐龙可以在泛大陆的不同地区<span class="anno-word" data-note="舒服安逸">舒适</span>地生活。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明早期恐龙出现时泛大陆尚未分裂，恐龙有机会分散到泛大陆各地，且当时陆地都处在热带和温带，恐龙可以舒适生活。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：作诠释（解释恐龙为何能遍布泛大陆）。说明语言：{LQ}似乎{RQ}表示推测，留有余地；{LQ}舒适地生活{RQ}生动说明当时气候适宜，体现语言的准确性与生动性。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l10" data-i="9">
+        <div class="v-top"><span class="v-no">10</span><div class="v-line">大约在两亿年前，泛大陆分裂成四部分。北部就是现在的<span class="anno-word" data-note="北美洲的简称，位于西半球北部">北美</span>、<span class="anno-word" data-note="位于东半球西北部的大洲">欧洲</span>和<span class="anno-word" data-note="位于东半球东北部的大洲，是世界上面积最大的洲">亚洲</span>，南部是由现在的<span class="anno-word" data-note="南美洲的简称，位于西半球南部">南美</span>和<span class="anno-word" data-note="位于东半球西南部的大洲">非洲</span>构成，南部是现在的<span class="anno-word" data-note="位于地球最南端的大洲，几乎全在南极圈内，气候严寒">南极洲</span>和<span class="anno-word" data-note="位于大洋洲的国家和大陆">澳大利亚</span>，印度是<span class="anno-word" data-note="从某个数里减去一部分后余下的">剩余</span>的一小部分。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明约两亿年前泛大陆分裂成四部分，并具体说明各部分对应的现代大陆。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（两亿年前）、分类别（分四部分说明）、作诠释（解释各部分对应的现代大陆）。说明语言：{LQ}大约{RQ}表示约数；分条说明各部分，条理清晰；{LQ}剩余的一小部分{RQ}准确描述印度的位置。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l11" data-i="10">
+        <div class="v-top"><span class="v-no">11</span><div class="v-line">随着时间的<span class="anno-word" data-note="像流水一样消逝，形容时间过去">流逝</span>，北美又与亚洲和欧洲分开，南美也与非洲相离。（如果看一张地图，并<span class="anno-word" data-note="姑且认定、假设">假定</span>把非洲和南美洲<span class="anno-word" data-note="合在一起、组合">拼合</span>在一起，你就会看到它们拼合得多么<span class="anno-word" data-note="比喻事物（多指诗文、话语等）没有一点破绽，文中指两块大陆的海岸线吻合得非常好">天衣无缝</span>。）印度向北移动，并且大约在5000万年前与亚洲相<span class="anno-word" data-note="运动着的物体跟别的物体猛然碰上">碰撞</span>，形成巨大的<span class="anno-word" data-note="世界上最高大的山脉，位于中国与尼泊尔等国交界处">喜马拉雅山脉</span>。两个<span class="anno-word" data-note="大陆板块">陆块</span>在那里聚合并缓慢地<span class="anno-word" data-note="岩层因受力而发生弯曲变形，是地壳运动的证据">褶皱变形</span>。南极和澳大利亚也已相互分离。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明泛大陆分裂后各大陆的进一步运动：北美与亚欧分开、南美与非洲相离、印度北移碰撞亚洲形成喜马拉雅山、南极与澳大利亚分离。括号中补充说明非洲与南美洲轮廓吻合，作为大陆漂移的证据。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：举例子（印度碰撞形成喜马拉雅山）、列数字（5000万年前）、作比较（非洲与南美洲拼合）。说明语言：括号中的补充说明提供了直观证据；{LQ}大约{RQ}表示约数；{LQ}天衣无缝{RQ}形容拼合完美，生动形象。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l12" data-i="11">
+        <div class="v-top"><span class="v-no">12</span><div class="v-line">当大陆相互分离时，每一个大陆都<span class="anno-word" data-note="随身带着">携带</span>着自己的恐龙而去。到6500万年以前，由于这样或那样的原因，所有的恐龙都<span class="anno-word" data-note="完全灭亡、消失">灭绝</span>了，大陆也已<span class="anno-word" data-note="彻底分离、不再相连">完全分开</span>。现在的每一个大陆都有自己的恐龙化石。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明大陆分离时各大陆带走了自己的恐龙，6500万年前恐龙灭绝，大陆完全分开，因此现在每块大陆都有恐龙化石。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（6500万年）、作诠释（解释每块大陆都有恐龙化石的原因）。说明语言：{LQ}这样或那样的原因{RQ}不确指，留有余地；{LQ}携带{RQ}用拟人手法生动说明大陆与恐龙的关系。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="part-head"><span class="p-num">第四部分</span><h3>南极生物命运与总结</h3><span class="range">13–15 段</span></div>
+      <div class="part-overview">说明南极生物因板块运动命运悲惨，南极洲冰层下覆盖丰富化石，总结恐龙化石发现为地壳运动理论提供证据。</div>
+      <div class="verse" id="l13" data-i="12">
+        <div class="v-top"><span class="v-no">13</span><div class="v-line">南极也有自己的恐龙、两栖动物和其他在恐龙时代<span class="anno-word" data-note="繁荣兴盛">繁盛</span>的植物和动物。然而，这些生物的<span class="anno-word" data-note="指生死、贫富和一切遭遇">命运</span>比其他<span class="anno-word" data-note="同一种类的生物">同类</span>要<span class="anno-word" data-note="处境或遭遇极其痛苦、令人伤心">悲惨</span>得多，因为板块把它们向南携带到了<span class="anno-word" data-note="地球的南北两极地区">极地</span>。大约经历了一亿年，气候逐渐变冷，植物慢慢越来越<span class="anno-word" data-note="事物出现得少、不多">稀少</span>，动物的种类和数量也大量减少。气候变得越来越寒冷，夏天短而且冷，最后成为<span class="anno-word" data-note="形容冰雪漫天盖地，非常寒冷">冰天雪地</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明南极生物的悲惨命运：板块将它们带到极地，经过约一亿年气候逐渐变冷，动植物大量减少，最终成为冰天雪地。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：列数字（一亿年）、作比较（南极生物与其他同类比较）、作诠释（解释南极生物命运悲惨的原因）。说明语言：{LQ}然而{RQ}转折，突出南极生物的特殊性；{LQ}逐渐{RQ}{LQ}慢慢{RQ}{LQ}越来越{RQ}准确描述气候变化的过程，体现语言的准确性。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l14" data-i="13">
+        <div class="v-top"><span class="v-no">14</span><div class="v-line">位于南极中心部位的<span class="anno-word" data-note="围绕南极的大陆，是世界上纬度最高、气候最寒冷的大洲">南极洲</span>是<span class="anno-word" data-note="全世界、整个地球">全球</span>的大冰箱，地球上所有冰的十分之九都在南极<span class="anno-word" data-note="覆盖在大陆上的巨大冰层，南极冰盖是世界上最大的冰盖">冰盖</span>。那里的冰有<span class="anno-word" data-note="几英里（1英里约1.609公里）">数英里</span>厚，覆盖着丰富的化石。如果南极的<span class="anno-word" data-note="冰和雪堆积形成的层">冰雪层</span>再薄一些的话，我们就可以找到它们。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">说明南极洲是全球的大冰箱，冰盖占全球冰的十分之九，冰层下覆盖着丰富的化石，只是因为冰层太厚难以发现。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：打比方（全球的大冰箱）、列数字（十分之九、数英里厚）。说明语言：{LQ}大冰箱{RQ}生动形象地说明南极洲的寒冷和冰量之大；{LQ}如果……就……{RQ}用假设说明化石存在但难以发现，表述准确。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l15" data-i="14">
+        <div class="v-top"><span class="v-no">15</span><div class="v-line">因此，南极洲恐龙化石的发现，为<span class="anno-word" data-note="给以鼓励或赞助，文中指为理论提供依据">支持</span>地壳在进行缓慢但又<span class="anno-word" data-note="不能抵抗、无法阻挡">不可抗拒</span>的运动这一理论提供了另一个<span class="anno-word" data-note="力量大、有说服力">强有力</span>的<span class="anno-word" data-note="能够证明事物真实性的有关事实或材料">证据</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容概括</b>
+              <div class="v-trans">总结全文，指出南极洲恐龙化石的发现为地壳运动理论提供了又一个强有力的证据，呼应开头的主旨。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法分析</b>
+              <div class="d-body"><p>说明方法：无特殊说明方法，以议论作结。说明语言：{LQ}因此{RQ}总结上文；{LQ}缓慢但又不可抗拒{RQ}准确概括地壳运动的特点；{LQ}强有力的证据{RQ}强调发现的科学价值，首尾呼应，结构严谨。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">说明对象 · 逻辑推理 · 方法 · 语言</span></div>
+
+  <div class="box">
+    <h3>说明对象与特征</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">说明对象：地壳板块构造理论</div>
+        <p>本文的说明对象不是恐龙本身，而是通过南极恐龙化石的发现来证明地壳板块构造理论。文章以“不同科学领域之间是紧密相连的”这一主旨开篇，从古生物学领域的发现（恐龙化石）推导出地质学领域的理论（板块构造），体现了跨学科思维的科学方法。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">说明中心：不同科学领域紧密相连</div>
+        <p>全文围绕“不同科学领域之间是紧密相连的”这一中心展开：开头提出主旨，中间以南极恐龙化石为例进行推理，结尾指出这一发现为地壳运动理论提供了强有力的证据。古生物学的发现为地质学理论提供了证据，两个领域相互关联、相互印证，中心明确，首尾呼应。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>逻辑推理过程（本文重点）</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">推理链条：从现象到本质</div>
+        <p>本文的逻辑推理过程环环相扣，严密有力：<br>①现象：1986年在南极发现鸟臀目恐龙化石，且其他大陆也有恐龙化石。<br>②矛盾：恐龙不适应寒冷的南极气候，不可能在每块大陆上独立生存。<br>③问题：恐龙是如何越过大洋到另一个大陆上去的？<br>④假设：是大陆在漂移而不是恐龙自己在迁移。<br>⑤理论：板块构造理论——地壳由大板块构成，板块驮着大陆缓慢运动。<br>⑥验证：泛大陆的形成与分裂过程解释了恐龙为何遍布各大陆。<br>⑦结论：南极恐龙化石的发现为地壳运动理论提供了强有力的证据。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">推理特点：严密而通俗</div>
+        <p>作者的推理有以下特点：一是“提出问题—分析问题—解决问题”的结构清晰，用设问句引导读者思考；二是善于用补充说明（括号中的内容）帮助读者理解，如用青蛙和蟾蜍解释两栖动物，用地图拼合说明大陆漂移；三是用具体的时间和数字（2.25亿年、5000万年、6500万年）增强推理的科学性；四是语言通俗幽默，使抽象的地质理论变得生动易懂。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>说明方法</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">举例子与列数字：科学而具体</div>
+        <p>举例子是本文最主要的说明方法：以南极发现恐龙化石为例引出话题，以印度北移碰撞亚洲形成喜马拉雅山为例说明板块运动，以非洲与南美洲轮廓吻合为例说明大陆漂移。列数字贯穿全文：“2.25亿年前”“5000万年前”“6500万年以前”“一亿年”“十分之九”等，数字精确具体，使说明更有科学性和说服力。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">打比方与作诠释：生动而通俗</div>
+        <p>“板块背上驮着许多大陆”用打比方（兼拟人）生动形象地说明板块与大陆的关系；“南极洲是全球的大冰箱”用打比方说明南极洲的寒冷和冰量之大。作诠释贯穿全文：解释板块构造理论的基本内容、泛大陆的形成与分裂过程、每块大陆都有恐龙化石的原因等，使深奥的科学原理变得通俗易懂。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">作比较与下定义：准确而严密</div>
+        <p>“是大陆在漂移而不是恐龙自己在迁移”用作比较明确区分两种可能；“恐龙实际上并不适应寒冷的气候，现代的两栖动物更不适应南极气候”用比较突出矛盾。下定义用于揭示概念本质：“称为泛大陆”“板块构造理论”等，用简明的语言揭示事物的本质特征。多种说明方法综合运用，文章既科学准确又生动有趣。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>说明顺序与语言</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">说明顺序：从现象到本质的逻辑顺序</div>
+        <p>本文整体采用从现象到本质的逻辑顺序：先写南极发现恐龙化石的现象（1-3段），再提出恐龙如何能在南极生存的问题（4-5段），然后引出板块构造理论并解释泛大陆的分裂过程（6-12段），最后说明南极生物的命运并总结全文（13-15段）。从现象到本质、从问题到答案，条理清晰，符合人的认知规律。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">说明语言：准确严密而又生动幽默</div>
+        <p>本文语言既准确严密，又生动幽默。准确性体现在大量修饰限制词的运用：“大约”“似乎”“几乎所有”“这样或那样的原因”等，这些词语准确地反映了科学认识的程度，体现了说明文语言的准确性。生动性体现在比喻和拟人手法的运用：“板块背上驮着许多大陆”“全球的大冰箱”等，使文章生动有趣。幽默感体现在括号中的补充说明，如“你也可以在真空中对金刚石加热，但谁愿意这样做呢？”（见《被压扁的沙子》），体现了阿西莫夫独特的语言风格。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>《恐龙无处不有》通过南极发现恐龙化石这一科学现象，经过严密的逻辑推理，证明了地壳板块构造理论，说明了不同科学领域之间是紧密相连的，一个科学领域的发现会对其他领域产生影响。文章既传播了科学知识，又展示了科学推理的思维方法，激发了读者探索自然奥秘的兴趣和跨学科思考的科学精神。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">词语 · 说明术语 · 用字 · 写法</span></div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">鸟臀目</span><span class="acc-d">恐龙的一个目，骨盆结构与鸟类相似，多为植食性恐龙。</span></div>
+      <div class="acc-item"><span class="acc-w">两栖动物</span><span class="acc-d">脊椎动物的一纲，幼体用鳃呼吸生活在水中，成体用肺呼吸生活在陆地。</span></div>
+      <div class="acc-item"><span class="acc-w">漂移</span><span class="acc-d">在液体表面漂浮移动，文中指大陆在地幔上缓慢移动。</span></div>
+      <div class="acc-item"><span class="acc-w">地壳</span><span class="acc-d">地球固体圈层的最外层，由岩石组成。</span></div>
+      <div class="acc-item"><span class="acc-w">板块构造</span><span class="acc-d">一种现代地质理论，认为地球岩石圈由若干板块组成，板块在软流层上运动。</span></div>
+      <div class="acc-item"><span class="acc-w">俯冲</span><span class="acc-d">（飞机等）以高速度和大角度向下飞，文中指一个板块插到另一个板块下面。</span></div>
+      <div class="acc-item"><span class="acc-w">泛大陆</span><span class="acc-d">又称联合古陆，是地史上推测存在的超级大陆，由所有大陆连接而成。</span></div>
+      <div class="acc-item"><span class="acc-w">天衣无缝</span><span class="acc-d">比喻事物没有一点破绽，文中指两块大陆的海岸线吻合得非常好。</span></div>
+      <div class="acc-item"><span class="acc-w">褶皱变形</span><span class="acc-d">岩层因受力而发生弯曲变形，是地壳运动的证据。</span></div>
+      <div class="acc-item"><span class="acc-w">灭绝</span><span class="acc-d">完全灭亡、消失。</span></div>
+      <div class="acc-item"><span class="acc-w">冰天雪地</span><span class="acc-d">形容冰雪漫天盖地，非常寒冷。</span></div>
+      <div class="acc-item"><span class="acc-w">不可抗拒</span><span class="acc-d">不能抵抗、无法阻挡。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>说明文术语</h3>
+      <div class="acc-item"><span class="acc-w">科普说明文</span><span class="acc-d">以介绍科学知识、解释科学原理为主要内容的说明文，既有科学性又通俗易懂。</span></div>
+      <div class="acc-item"><span class="acc-w">说明对象</span><span class="acc-d">文章要说明的事物或事理。本文通过南极恐龙化石说明地壳板块构造理论。</span></div>
+      <div class="acc-item"><span class="acc-w">逻辑顺序</span><span class="acc-d">按照事物或事理的内在逻辑关系安排说明顺序。本文采用从现象到本质的逻辑顺序。</span></div>
+      <div class="acc-item"><span class="acc-w">举例子</span><span class="acc-d">举出实际事例来说明事物。本文举了南极恐龙化石、印度碰撞形成喜马拉雅山等例子。</span></div>
+      <div class="acc-item"><span class="acc-w">列数字</span><span class="acc-d">用具体数字来说明事物。如“2.25亿年前”“6500万年以前”。</span></div>
+      <div class="acc-item"><span class="acc-w">打比方</span><span class="acc-d">通过比喻来说明事物。如“板块背上驮着许多大陆”“全球的大冰箱”。</span></div>
+      <div class="acc-item"><span class="acc-w">作比较</span><span class="acc-d">通过对比来突出事物的特征。如“是大陆在漂移而不是恐龙自己在迁移”。</span></div>
+      <div class="acc-item"><span class="acc-w">作诠释</span><span class="acc-d">对事物进行解释说明。本文大量运用作诠释来解释科学原理。</span></div>
+      <div class="acc-item"><span class="acc-w">下定义</span><span class="acc-d">用简明的语言揭示事物的本质特征。如“称为泛大陆”。</span></div>
+      <div class="acc-item"><span class="acc-w">逻辑推理</span><span class="acc-d">从已知的判断推出新判断的思维过程。本文的推理链条是本文学习的重点。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">鸟臀目</span><span class="acc-d">（tún）「臀」月字旁；不要写成「臂」（bì，月字旁但意思不同）。</span></div>
+      <div class="acc-item"><span class="acc-w">蟾蜍</span><span class="acc-d">（chán chú）都是虫字旁；「蟾」不要写成「檐」，「蜍」不要写成「余」。</span></div>
+      <div class="acc-item"><span class="acc-w">漂移</span><span class="acc-d">（piāo yí）「漂」三点水；与「飘移」（风字旁，指随风移动）区分。</span></div>
+      <div class="acc-item"><span class="acc-w">地壳</span><span class="acc-d">（qiào）「壳」士字头；多音字，此处读qiào不读ké（蛋壳）。</span></div>
+      <div class="acc-item"><span class="acc-w">俯冲</span><span class="acc-d">（fǔ chōng）「俯」单人旁；不要写成「府」（广字头）。</span></div>
+      <div class="acc-item"><span class="acc-w">褶皱</span><span class="acc-d">（zhě）「褶」衣字旁；生僻字，不要写成「折」（提手旁）。</span></div>
+      <div class="acc-item"><span class="acc-w">携带</span><span class="acc-d">（xié）「携」提手旁；不要写成「镌」（juān，金字旁）。</span></div>
+      <div class="acc-item"><span class="acc-w">覆盖</span><span class="acc-d">（fù）「覆」西字头；不要写成「复」（夂字头）。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">逻辑推理结构</span><span class="acc-d">采用“提出问题—分析问题—解决问题”的结构，用设问句引导读者，推理环环相扣。</span></div>
+      <div class="acc-item"><span class="acc-w">跨学科思维</span><span class="acc-d">从古生物学发现推导出地质学理论，体现不同科学领域之间的紧密联系。</span></div>
+      <div class="acc-item"><span class="acc-w">补充说明手法</span><span class="acc-d">善用括号中的补充说明帮助读者理解，如用青蛙和蟾蜍解释两栖动物。</span></div>
+      <div class="acc-item"><span class="acc-w">准确与幽默统一</span><span class="acc-d">修饰限制词体现准确性，比喻和拟人使文章生动，幽默的笔调使科普文更有趣。</span></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="acc-cat">
+      <h3>文化常识</h3>
+      <div class="acc-item"><span class="acc-w">板块构造理论</span><span class="acc-d">20世纪60年代发展起来的地球科学理论，是大陆漂移学说和海底扩张学说的发展。该理论认为地球岩石圈由六大板块组成，板块在软流层上运动，板块边界是地震、火山等地质活动的集中带。</span></div>
+      <div class="acc-item"><span class="acc-w">恐龙灭绝</span><span class="acc-d">约6500万年前，包括恐龙在内的大量生物灭绝，称为白垩纪末大灭绝。目前主流观点认为是小行星撞击地球所致（详见《被压扁的沙子》）。</span></div>
+    </div>
+  </div>
+
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+    <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+    <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+    <div class="ptools">
+      <button data-mode="word" data-rand="5">随机五组字形</button>
+      <button data-mode="word" data-all="1">全部字形</button>
+      <button data-mode="note" data-rand="5">随机五组词语</button>
+      <button data-mode="note" data-all="1">全部词语</button>
+    </div>
+  </section>
+
+<footer>
+  <div class="kai">《恐龙无处不有》</div>
+  <div>阿西莫夫 · 美国 · 出自《新疆域》</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+<script>
+
+(function(){
+  'use strict';
+
+  /* ---------- 导航高亮 ---------- */
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  /* ---------- 背诵模式 ---------- */
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    // 跳过开头标点，找到第一个汉字
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('＿') + '＿</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  /* ---------- 正文字体大小 ---------- */
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('konglong_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('konglong_fs', this.value); } catch(e){}
+  });
+
+  /* ---------- 一键展开/收起 ---------- */
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  /* ---------- 视频伪全屏 ---------- */
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  /* ---------- 原文注释点击弹窗 ---------- */
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  /* ---------- 听写题库 ---------- */
+  /* ---------- 听写模式 ---------- */
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '注释听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写空格中的字 ——';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '—— 默写释义 ——';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  /* ---------- 打印 ---------- */
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "臀", "py": "tún", "q": "这些骨头毫无疑问属于鸟□目恐龙", "tip": "「臀」月字旁，人体后面两股的上端和腰相连接的部分；不要写成「臂」"}, {"w": "蟾", "py": "chán", "q": "青蛙和□蜍是人人皆知的现代两栖动物", "tip": "「蟾」虫字旁，蟾蜍；不要写成「檐」（木字旁）"}, {"w": "蜍", "py": "chú", "q": "青蛙和蟾□是人人皆知的现代两栖动物", "tip": "「蜍」虫字旁，蟾蜍；不要写成「余」"}, {"w": "漂", "py": "piāo", "q": "是大陆在□移而不是恐龙自己在迁移", "tip": "「漂」三点水，漂浮移动；与「飘」（风字旁，随风飘动）区分"}, {"w": "壳", "py": "qiào", "q": "人们发现地□是由一些紧密拼合在一起但又在缓慢运动的大板块构成的", "tip": "「壳」士字头，坚硬的外皮；多音字，此处读qiào不读ké"}, {"w": "拼", "py": "pīn", "q": "地壳是由一些紧密□合在一起但又在缓慢运动的大板块构成的", "tip": "「拼」提手旁，合在一起；不要写成「迸」（bèng）"}, {"w": "俯冲", "py": "fǔ chōng", "q": "一个板块也许会缓慢地向另一板块下面□□", "tip": "「俯」单人旁，「冲」两点水；双字词整体作答，「俯」不要写成「府」"}, {"w": "渊", "py": "yuān", "q": "如火山、地震、岛屿链、海洋深□等等", "tip": "「渊」三点水，深水；不要写成「源」（也是三点水，但意思不同）"}, {"w": "驮", "py": "tuó", "q": "板块背上□着许多大陆", "tip": "「驮」马字旁，用背部承受；不要写成「驼」（马字旁，骆驼）"}, {"w": "汇", "py": "huì", "q": "板块会将所有的大陆□聚在一起", "tip": "「汇」三点水，聚集；不要写成「会」（人字头）"}, {"w": "裂", "py": "liè", "q": "又开始显示出破□的迹象", "tip": "「裂」衣字底，破开；不要写成「烈」（四点底）"}, {"w": "迹", "py": "jì", "q": "又开始显示出破裂的□象", "tip": "「迹」辶字旁，留下的印子；不要写成「际」（左耳旁）"}, {"w": "剩", "py": "shèng", "q": "印度是□余的一小部分", "tip": "「剩」立刀旁，余下的；不要写成「乘」（禾木旁）"}, {"w": "褶", "py": "zhě", "q": "两个陆块在那里聚合并缓慢地□皱变形", "tip": "「褶」衣字旁，衣服折叠留下的痕迹；生僻字，不要写成「折」"}, {"w": "携", "py": "xié", "q": "每一个大陆都□带着自己的恐龙而去", "tip": "「携」提手旁，随身带着；不要写成「镌」（juān，金字旁）"}, {"w": "灭绝", "py": "miè jué", "q": "所有的恐龙都□□了", "tip": "「灭」火字旁，「绝」绞丝旁；双字词整体作答，「灭」不要写成「灰」"}, {"w": "稀", "py": "xī", "q": "植物慢慢越来越□少", "tip": "「稀」禾字旁，事物出现得少；不要写成「希」（巾字底）"}, {"w": "覆", "py": "fù", "q": "那里的冰有数英里厚，□盖着丰富的化石", "tip": "「覆」西字头，遮盖；不要写成「复」（夂字头）"}];
+var DICT_NOTES = [{"w": "鸟臀目", "a": "恐龙的一个目，骨盆结构与鸟类相似，多为植食性恐龙", "q": "这些骨头毫无疑问属于鸟臀目恐龙"}, {"w": "两栖动物", "a": "脊椎动物的一纲，幼体用鳃呼吸生活在水中，成体用肺呼吸生活在陆地", "q": "现代的两栖动物更不适应南极气候"}, {"w": "漂移", "a": "在液体表面漂浮移动，文中指大陆在地幔上缓慢移动", "q": "是大陆在漂移而不是恐龙自己在迁移"}, {"w": "地壳", "a": "地球固体圈层的最外层，由岩石组成", "q": "人们发现地壳是由一些紧密拼合在一起的大板块构成的"}, {"w": "板块构造", "a": "一种现代地质理论，认为地球岩石圈由若干板块组成，板块在软流层上运动", "q": "板块构造理论很快为地质界几乎所有的问题提供了答案"}, {"w": "俯冲", "a": "（飞机等）以高速度和大角度向下飞，文中指一个板块插到另一个板块下面", "q": "一个板块也许会缓慢地向另一板块下面俯冲"}, {"w": "泛大陆", "a": "又称联合古陆，是地史上推测存在的超级大陆，由所有大陆连接而成", "q": "地球此时仅由一个主要陆地构成，称为泛大陆"}, {"w": "天衣无缝", "a": "比喻事物没有一点破绽，文中指两块大陆的海岸线吻合得非常好", "q": "你就会看到它们拼合得多么天衣无缝"}, {"w": "褶皱变形", "a": "岩层因受力而发生弯曲变形，是地壳运动的证据", "q": "两个陆块在那里聚合并缓慢地褶皱变形"}, {"w": "灭绝", "a": "完全灭亡、消失", "q": "所有的恐龙都灭绝了"}, {"w": "冰天雪地", "a": "形容冰雪漫天盖地，非常寒冷", "q": "最后成为冰天雪地"}, {"w": "冰盖", "a": "覆盖在大陆上的巨大冰层", "q": "地球上所有冰的十分之九都在南极冰盖"}, {"w": "不可抗拒", "a": "不能抵抗、无法阻挡", "q": "地壳在进行缓慢但又不可抗拒的运动"}, {"w": "说明对象", "a": "文章要说明的事物或事理，本文通过南极恐龙化石说明地壳运动理论", "q": "不同科学领域之间是紧密相连的"}, {"w": "逻辑顺序", "a": "按照事物或事理的内在逻辑关系安排说明顺序，本文采用从现象到本质的逻辑顺序", "q": "恐龙不可能在每一块大陆上独立生存"}, {"w": "作诠释", "a": "对事物进行解释说明的说明方法", "q": "这一问题的答案是：是大陆在漂移而不是恐龙自己在迁移"}, {"w": "打比方", "a": "通过比喻来说明事物的说明方法", "q": "板块背上驮着许多大陆"}, {"w": "举例子", "a": "举出实际事例来说明事物的说明方法", "q": "例如，在1986年1月，阿根廷南极研究所宣布"}, {"w": "列数字", "a": "用具体数字来说明事物的说明方法", "q": "大约是在2.25亿年前形成的"}, {"w": "下定义", "a": "用简明的语言揭示事物的本质特征的说明方法", "q": "称为泛大陆"}];
+</script>
+
+</body>
+</html>
