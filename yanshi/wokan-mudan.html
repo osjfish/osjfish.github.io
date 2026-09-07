@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《我看》穆旦</title>
+<style>
+  :root{
+    --paper:#f6f0e0; --paper-deep:#efe6ce; --card:#fbf7ec;
+    --ink:#332c22; --ink2:#5d5443; --ink3:#8d826c; --line:#e2d7bd;
+    --red:#8c2f2b; --red-deep:#6f211e; --teal:#3d5766; --teal-deep:#2e4552;
+    --gold:#a8874f;
+    --fs:1;
+    --font-kai:"Kaiti SC","STKaiti","KaiTi","楷体","FangSong","仿宋",serif;
+    --font-song:"Songti SC","SimSun","Noto Serif SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font-song); color:var(--ink); line-height:1.9;
+    overflow-x:clip;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(ellipse 900px 420px at 85% -60px, rgba(61,87,102,.055), transparent 65%),
+      radial-gradient(ellipse 700px 380px at 8% 120%, rgba(140,47,43,.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(60,50,30,.016) 0 1px, transparent 1px 4px);
+  }
+  ::selection{background:rgba(168,135,79,.35)}
+  .kai{font-family:var(--font-kai)}
+  a{color:var(--teal)}
+  button{font-family:inherit}
+
+  .hero{
+    position:relative; overflow:hidden; color:#f1e9d4;
+    background:
+      radial-gradient(ellipse 90% 130% at 50% -12%, rgba(240,231,206,.06), transparent 55%),
+      linear-gradient(170deg,#233241 0%, #1a2635 55%, #141d29 100%);
+    padding:54px 20px 46px; text-align:center;
+  }
+  .hero::after{
+    content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(420px,72%); height:2px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.55), transparent);
+  }
+  .hero-inner{position:relative; z-index:2}
+  .hero-side{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-family:var(--font-kai); font-size:clamp(14px,1.7vw,18px);
+    letter-spacing:.32em; text-indent:.32em; color:#cbbd9c; line-height:1.4;
+  }
+  .hero-side::before,.hero-side::after{
+    content:""; flex:0 0 auto; width:56px; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(203,171,112,.65));
+  }
+  .hero-side::after{transform:scaleX(-1)}
+  .hero-title{
+    font-family:var(--font-kai); font-size:clamp(34px,5.8vw,64px);
+    letter-spacing:.16em; text-indent:.16em; line-height:1.3;
+    color:#f4edd8; text-shadow:0 3px 22px rgba(0,0,0,.45); margin:0;
+  }
+  @media(max-width:560px){
+    .hero{padding:40px 14px 34px}
+    .hero-side{gap:10px; letter-spacing:.22em; text-indent:.22em}
+    .hero-side::before,.hero-side::after{width:26px}
+  }
+
+  .nav{
+    position:sticky; top:0; z-index:99; background:rgba(246,240,224,.96); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line); box-shadow:0 2px 10px rgba(51,44,34,.06);
+  }
+  .nav-in{max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:4px; padding:8px 14px; overflow-x:auto; scrollbar-width:none}
+  .nav-in::-webkit-scrollbar{display:none}
+  .nav a{
+    flex:0 0 auto; text-decoration:none; color:var(--ink2); font-size:14px; letter-spacing:1px;
+    padding:6px 12px; border-radius:8px; white-space:nowrap; transition:.2s;
+  }
+  .nav a:hover{background:rgba(168,135,79,.12); color:var(--ink)}
+  .nav a.on{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:var(--red-deep); font-weight:700}
+  .nav .tool{flex:0 0 auto; margin-left:auto; display:flex; gap:5px; flex-wrap:nowrap}
+  .nav .tool button{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 9px; cursor:pointer; transition:.2s; white-space:nowrap;
+  }
+  .nav .tool button:hover{border-color:var(--teal); color:var(--teal)}
+  .nav .tool .fs-sel{
+    border:1px solid var(--line); background:#fdfaf3; color:var(--ink2); font-size:12.5px;
+    border-radius:8px; padding:5px 6px; cursor:pointer; outline:none; white-space:nowrap;
+  }
+  .nav .tool .fs-sel:hover{border-color:var(--teal)}
+
+  .wrap{max-width:960px; margin:0 auto; padding:0 18px}
+  section{padding:34px 0 10px; scroll-margin-top:64px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; margin:0 0 8px}
+  .sec-head::before{content:""; width:6px; height:30px; background:linear-gradient(180deg,var(--red),var(--red-deep)); border-radius:3px; transform:translateY(6px)}
+  .sec-head h2{font-family:var(--font-kai); font-size:30px; letter-spacing:6px; font-weight:700; color:var(--ink); flex:0 0 auto}
+  .sec-head .no{font-size:12px; color:var(--ink3); letter-spacing:2px}
+  .sec-sub{color:var(--ink2); font-size:15.5px; margin:0 0 20px; padding-left:20px}
+  .divider{height:1px; background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent); margin:34px 0 8px}
+  .kai-lg{font-family:var(--font-kai)}
+
+  .lead{
+    font-family:var(--font-kai); font-size:17.5px; line-height:2.25; color:var(--ink);
+    background:linear-gradient(180deg,#fbf7ec,#f7f0dd); border:1px solid var(--line);
+    border-left:4px solid var(--gold); border-radius:10px; padding:22px 26px; margin:0 0 24px;
+    letter-spacing:.06em; overflow:hidden;
+  }
+  .box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin:0 0 18px; overflow:hidden;
+  }
+  .box h3{font-family:var(--font-kai); font-size:19px; color:var(--teal-deep); letter-spacing:2px; margin:0 0 10px}
+  .box h3::before{content:"\u25c6 "; color:var(--gold); font-size:14px}
+  .box p{font-size:15.5px; margin:16px 0}
+  .lead p{margin:14px 0}
+  .box .note{font-size:13.5px; color:var(--ink2)}
+
+  .texttools{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding-left:20px}
+  .texttools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:8px; padding:6px 16px; cursor:pointer; font-size:14px; transition:.2s;
+  }
+  .texttools button:hover{background:var(--teal); color:#fff}
+  .texttools button.off{opacity:.5}
+  .media-box{padding:16px 20px}
+  .media-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin:4px 0 6px}
+  .media{background:#fbf7ec; border:1px solid var(--line); border-radius:12px; padding:12px 14px; overflow:hidden}
+  .media h4{font-family:var(--font-kai); font-size:16.5px; letter-spacing:2px; color:var(--teal-deep); margin:0 0 8px}
+  .media iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:8px; background:#111; display:block}
+  .media a{display:inline-block; font-size:13px; margin-top:8px; color:var(--teal); text-decoration:none; border-bottom:1px dashed rgba(61,87,102,.5)}
+  .media a:hover{color:var(--red)}
+  .fsbtn{
+    display:inline-block; margin:8px 0 0 10px; border:1px solid var(--teal); color:var(--teal);
+    background:rgba(61,87,102,.06); border-radius:8px; padding:4px 12px; cursor:pointer;
+    font-size:12.5px; transition:.2s; vertical-align:middle;
+  }
+  .fsbtn:hover{background:var(--teal); color:#fff}
+  .fulltext{columns:2; column-gap:34px; column-rule:1px dashed var(--line); margin:10px 0 8px}
+  .pl{break-inside:avoid; margin:0 0 10px; font-size:17px}
+  .pl .no{color:var(--red); font-size:12px; vertical-align:super; margin-right:5px; font-family:var(--font-kai); letter-spacing:0}
+  .pl.reciteline{cursor:pointer; transition:.15s; border-radius:6px}
+  .pl.reciteline:hover{background:rgba(168,135,79,.1)}
+  .pl .rh{color:var(--red-deep); font-weight:700; font-size:inherit; vertical-align:baseline}
+  .pl .rb{letter-spacing:.14em; color:rgba(61,87,102,.55); font-size:inherit; vertical-align:baseline}
+  .tip{font-size:13px; color:var(--ink3); margin-bottom:6px}
+
+  .verse{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:0 0 16px; padding:16px 20px 14px; box-shadow:0 1px 3px rgba(51,44,34,.04); overflow:hidden;
+  }
+  .v-top{display:flex; align-items:center; gap:12px}
+  .v-no{
+    flex:0 0 auto; font-family:var(--font-kai); font-size:13px; color:var(--red-deep);
+    border:1.5px solid rgba(140,47,43,.5); border-radius:50%; width:32px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .v-line{font-family:var(--font-kai); font-size:clamp(19px,3.4vw,23px); letter-spacing:2px; color:var(--ink); flex:1; min-width:0; word-break:break-word}
+  .v-line b{color:var(--red-deep); font-weight:700}
+  .v-trans{
+    font-size:15.2px; color:var(--ink2); background:rgba(61,87,102,.055);
+    border-left:3px solid var(--teal); border-radius:0 8px 8px 0; padding:7px 12px; margin:9px 0;
+    overflow:hidden;
+  }
+  .v-trans b{color:var(--teal-deep); font-weight:400}
+  details{font-size:14.5px}
+  details summary{
+    cursor:pointer; list-style:none; font-family:var(--font-kai); letter-spacing:2px;
+    color:var(--teal-deep); font-weight:700; font-size:15px; margin:4px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"\u25b8 "; font-size:12px; color:var(--gold); transition:.2s}
+  details[open] summary::before{transform:rotate(90deg)}
+  details .d-body{padding:2px 2px 6px 16px; color:var(--ink2); font-size:14.6px; min-width:0}
+  .v-more{margin-top:8px}
+  .v-more summary{font-size:14px; letter-spacing:1px}
+  .v-sec{margin:10px 0 12px}
+  .v-sec .v-label{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; font-size:15px; letter-spacing:3px; display:block; margin:0 0 4px}
+  .term{color:var(--teal-deep); font-weight:700; margin-right:3px}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .tags span{
+    font-size:12px; color:var(--red-deep); background:rgba(140,47,43,.07);
+    border:1px solid rgba(140,47,43,.22); border-radius:12px; padding:2px 10px; letter-spacing:1px;
+  }
+
+  .ptools{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 6px}
+  .ptools button{
+    border:1px solid var(--teal); color:var(--teal); background:rgba(61,87,102,.06);
+    border-radius:10px; padding:13px 8px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:.2s;
+  }
+  .ptools button:hover{background:var(--teal); color:#fff}
+
+  .dictate{--ds:1.25; position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
+    background:radial-gradient(ellipse 90% 120% at 50% -10%, rgba(240,231,206,.08), transparent 55%),
+    linear-gradient(160deg,#1e2a39 0%, #151f2b 60%, #0f1722 100%);
+    color:#f4edd8; padding:26px 6vw 20px; font-family:var(--font-kai)}
+  .dictate[hidden]{display:none}
+  .dictate-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:4vh}
+  .dictate-mode{font-size:calc(15px * var(--ds)); letter-spacing:4px; color:#cbbd9c}
+  .dictate-progress{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:1px}
+  .dictate-exit{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 18px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:2px; transition:.2s}
+  .dictate-exit:hover{background:rgba(203,189,156,.15)}
+  .dictate-fs{border:1px solid rgba(203,189,156,.5); color:#cbbd9c; background:transparent; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:calc(14px * var(--ds)); font-family:var(--font-kai); letter-spacing:1px; transition:.2s; margin-left:6px}
+  .dictate-fs:hover{background:rgba(203,189,156,.15)}
+  .dictate-card{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:0}
+  .dictate-py{font-size:calc(clamp(34px,5.2vw,56px) * var(--ds)); color:#cbbd9c; letter-spacing:6px; margin-bottom:26px; line-height:1.3}
+  .dictate-line{font-size:calc(clamp(19px,2.6vw,28px) * var(--ds)); color:#f4edd8; opacity:.94; margin-bottom:14px; letter-spacing:1px}
+  .dictate-hint{font-size:calc(15px * var(--ds)); color:#8fa0ae; letter-spacing:3px}
+  .dictate-ans{margin-top:32px; padding:18px 36px; border:1px solid rgba(203,189,156,.38); border-radius:14px; background:rgba(203,189,156,.09); animation:fadeIn .25s ease}
+  .dictate-word{font-size:calc(clamp(30px,4.8vw,48px) * var(--ds)); color:#f0d9a8; letter-spacing:5px; margin-bottom:8px}
+  .dictate-tip{font-size:calc(15px * var(--ds)); color:#a8b6c2; letter-spacing:1px}
+  .dictate-actions{display:flex; justify-content:center; gap:14px; padding-top:2vh}
+  .dictate-actions button{border:1px solid #cbbd9c; color:#f4edd8; background:transparent; border-radius:10px; padding:10px 32px; font-size:calc(16px * var(--ds)); cursor:pointer; letter-spacing:3px; font-family:var(--font-kai); transition:.2s}
+  .dictate-actions button:hover{background:rgba(203,189,156,.18)}
+  .dictate-actions .primary{background:linear-gradient(180deg,#efe0ba,#e6d2a4); color:#7a3326; border-color:transparent; font-weight:700}
+  .dictate-actions .primary:hover{background:linear-gradient(180deg,#f4e8c8,#ecdbb2)}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  .fame{display:grid; grid-template-columns:1fr; gap:14px; margin-top:10px}
+  .fame-card{
+    background:var(--card); color:var(--ink); border-radius:12px;
+    padding:18px 22px; position:relative; border:1px solid var(--line);
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .fame-card .f-line{font-family:var(--font-kai); font-size:clamp(18px,3.2vw,22px); letter-spacing:2px; color:var(--teal-deep); margin-bottom:8px; border-left:3px solid var(--gold); padding-left:12px}
+  .fame-card .f-line b{color:var(--red-deep)}
+  .fame-card p{font-size:14.8px; color:var(--ink2); margin:4px 0; line-height:1.9}
+
+  .tw{overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; margin:0}
+  table{width:100%; border-collapse:collapse; font-size:14.4px; background:var(--card); border-radius:10px; overflow:hidden; margin:8px 0 16px; min-width:520px}
+  th,td{border:1px solid var(--line); padding:8px 12px; text-align:left; vertical-align:top; word-break:break-word}
+  th{font-family:var(--font-kai); background:#efe6ce; color:var(--teal-deep); letter-spacing:1px}
+  td .kai{font-size:16px}
+  tr:nth-child(even) td{background:rgba(246,240,224,.6)}
+
+  footer{
+    margin-top:44px; border-top:1px solid var(--line); padding:24px 0 40px;
+    text-align:center; color:var(--ink3); font-size:13px; line-height:2.2; overflow:hidden;
+  }
+  footer .kai{font-size:15px; color:var(--ink2)}
+
+  .top-btn{
+    position:fixed; right:18px; bottom:22px; z-index:90; border:1px solid var(--line);
+    background:#fdfaf3; color:var(--ink2); border-radius:50%; width:42px; height:42px;
+    font-size:17px; cursor:pointer; box-shadow:0 3px 10px rgba(51,44,34,.15); transition:.2s;
+  }
+  .top-btn:hover{color:var(--red); border-color:var(--red)}
+
+  @media print{
+    .nav,.tool,.top-btn,.tags{display:none!important}
+    .hero{display:none!important}
+    .texttools{display:none}
+    .media-box{display:none}
+    body{background:#fff!important; color:#000!important; line-height:1.5}
+    .wrap{max-width:100%}
+    section{padding:8px 0}
+    .divider{display:none}
+    .sec-head h2{font-size:20px; letter-spacing:2px}
+    .sec-head{background:none}
+    .lead,.box,.verse,.fame-card,.lane,.converge{
+      background:#fff!important; border:1px solid #999!important; box-shadow:none!important;
+      color:#000!important; border-radius:0; page-break-inside:avoid;
+    }
+    .lead{padding:8px 10px; font-size:12.5px; line-height:1.7}
+    .box{padding:8px 10px; margin-bottom:8px}
+    .box h3{color:#000!important}
+    .box p,.box .note{color:#000!important}
+    .fame-card .f-line,.fame-card p{color:#000!important}
+    .v-line{color:#000!important}
+    .v-trans{background:#fff!important; border-left:2px solid #000!important; color:#000!important}
+    details .d-body{color:#000!important}
+    .v-label{color:#000!important}
+    details{display:block}
+    details .d-body{padding-left:10px}
+    table{min-width:0!important; font-size:11.5px}
+    th{background:#eee!important; color:#000!important}
+    th,td{border:1px solid #000!important; color:#000!important; padding:3px 6px}
+    footer{border:none; color:#000!important; padding:10px 0 20px}
+  }
+
+  @media(max-width:680px){
+    .fulltext{columns:1}
+    section{padding:24px 0 6px}
+    .sec-head{flex-wrap:wrap}
+    .sec-head h2{font-size:24px; letter-spacing:3px}
+    .verse{padding:13px 14px 11px}
+    .v-line{letter-spacing:1px}
+    table{min-width:440px}
+  }
+  @media(max-width:420px){
+    table{min-width:0}
+    .box{padding:14px}
+    .lead{padding:16px 18px}
+  }
+  :root{--fs:1}
+  body[data-fs="150"]{--fs:1.5}
+  body[data-fs="200"]{--fs:2}
+  body[data-fs="250"]{--fs:2.5}
+  body[data-fs="300"]{--fs:3}
+  .lead{font-size:calc(17.5px*var(--fs))}
+  .sec-sub{font-size:calc(15.5px*var(--fs))}
+  .box p{font-size:calc(15.5px*var(--fs))}
+  .box .note{font-size:calc(13.5px*var(--fs))}
+  .pl{font-size:calc(17px*var(--fs))}
+  .v-line{font-size:calc(clamp(19px,3.4vw,23px)*var(--fs))}
+  .v-trans{font-size:calc(15.2px*var(--fs))}
+  details .d-body{font-size:calc(14.6px*var(--fs))}
+  .fame-card .f-line{font-size:calc(clamp(20px,3.6vw,26px)*var(--fs))}
+  .fame-card p{font-size:calc(14.8px*var(--fs))}
+  table{font-size:calc(14.4px*var(--fs))}
+  td .kai{font-size:calc(16px*var(--fs))}
+  th,td{line-height:calc(1.9*var(--fs))}
+  .sec-head h2{font-size:calc(30px*var(--fs))}
+  .sec-head .no{font-size:calc(12px*var(--fs))}
+  .box h3{font-size:calc(19px*var(--fs))}
+  .ptools button{font-size:calc(15px*var(--fs))}
+  .v-sec .v-label{font-size:calc(15px*var(--fs))}
+  .v-more summary{font-size:calc(14px*var(--fs))}
+  footer{font-size:calc(13px*var(--fs))}
+  .media h4{font-size:calc(15px*var(--fs))}
+  .media a,.media .fsbtn{font-size:calc(13px*var(--fs))}
+
+  .video-fs-overlay{position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; align-items:center; justify-content:center}
+  .video-fs-overlay.active{display:flex}
+  .video-fs-overlay iframe{width:100%; height:100%; max-width:100%; max-height:100%; border:0}
+  .video-fs-close{position:absolute; top:16px; right:16px; z-index:10000; background:rgba(0,0,0,.65); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:8px; padding:8px 18px; cursor:pointer; font-size:14px; letter-spacing:1px; transition:.2s}
+  .video-fs-close:hover{background:rgba(0,0,0,.85)}
+
+  .acc-cat{margin-bottom:28px}
+  .acc-cat h3{font-family:var(--font-kai); font-size:calc(20px*var(--fs)); color:var(--red-deep); border-left:4px solid var(--gold); padding-left:12px; margin-bottom:14px}
+  .acc-item{display:flex; gap:14px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:calc(15.5px*var(--fs)); line-height:1.8}
+  .acc-w{font-family:var(--font-kai); color:var(--teal-deep); font-weight:700; min-width:200px; flex-shrink:0}
+  .acc-d{color:var(--ink2); flex:1}
+  @media(max-width:640px){.acc-item{flex-direction:column; gap:2px}.acc-w{min-width:0}}
+  .anno-word{color:var(--teal-deep); border-bottom:1px dashed var(--teal); cursor:pointer; transition:.15s; padding:0 1px; border-radius:2px}
+  .anno-word:hover{background:rgba(42,107,102,.12)}
+  .anno-word.active{background:rgba(42,107,102,.2)}
+  .anno-popup{position:fixed; z-index:10000; background:#fffdf7; border:1px solid var(--gold); border-radius:10px; box-shadow:0 6px 24px rgba(51,44,34,.18); padding:12px 16px; max-width:340px; display:none; line-height:1.75}
+  .anno-popup .aw{font-family:var(--font-kai); font-weight:700; color:var(--red-deep); font-size:calc(17px*var(--fs)); margin-bottom:4px}
+  .anno-popup .an{color:var(--ink); font-size:calc(14.5px*var(--fs))}
+  .anno-popup::after{content:''; position:absolute; top:-7px; left:20px; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:7px solid var(--gold)}
+  .acc-sub{font-family:var(--font-kai);font-weight:700;border-left:3px solid #b8934a;padding-left:10px;margin:10px 0 6px;color:var(--teal-deep)}
+
+</style>
+</head>
+<body data-fs="100">
+
+<header class="hero">
+  <div class="hero-side">现代 · 穆旦</div>
+  <h1 class="hero-title">我看</h1>
+</header>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="#bg">背景</a>
+    <a href="#jielu">解读</a>
+    <a href="#app">赏析</a>
+    <a href="#acc">积累</a>
+    <a href="#practice">练习</a>
+    <div class="tool">
+      <select id="fsSel" class="fs-sel" title="正文字体大小">
+        <option value="100">100%</option>
+        <option value="150">150%</option>
+        <option value="200">200%</option>
+        <option value="250">250%</option>
+        <option value="300">300%</option>
+      </select>
+      <button id="btnAll">展开</button>
+      <button id="btnRecite">背诵</button>
+      <button id="btnPrint">打印</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+<section id="bg" class="sec">
+  <div class="sec-head"><h2>背 景</h2><span class="no">作者 · 时代 · 缘起</span></div>
+  <div class="lead">
+    <p>《我看》是穆旦的代表作，写于1938年，当时诗人正在西南联大读书。诗歌以“我看”开篇，通过对春风、青草、飞鸟、流云等自然景物的观察和思考，表达了对自然生命力的赞美和对生命意义的追寻，最终发出了“让我的呼吸与自然合流”的呼唤。</p>
+    <p>全诗共五节二十二行，从景物描写到人生感慨，从历史思考到生命升华，情感层层递进，哲思深邃，是中国现代诗歌中融写景、抒情、哲理于一体的经典之作。</p>
+  </div>
+  <div class="box">
+    <h3>作者简介</h3>
+    <p>穆旦（1918—1977），原名查良铮，浙江海宁人，中国现代著名诗人、翻译家。1934年开始发表诗歌，1935年考入清华大学外文系，抗战后随校南迁，入西南联大。1949年赴美国芝加哥大学学习英美文学，1953年回国，任南开大学外文系副教授。</p>
+    <p style="margin-top:10px;color:var(--ink2)">穆旦是“九叶诗派”的代表诗人，其诗歌融合了中国古典诗歌的意境和西方现代派的技巧，意象新颖，思想深邃，被称为“中国现代诗歌的第一人”。主要诗集有《探险队》《穆旦诗集》《旗》等，译著有《普希金抒情诗集》《拜伦抒情诗选》《雪莱抒情诗选》等。</p>
+  </div>
+  <div class="box">
+    <h3>时代背景</h3>
+    <p>1937年抗日战争全面爆发，北平、天津相继沦陷。清华大学、北京大学、南开大学南迁，先在长沙组成临时大学，后又迁至昆明，成立西南联合大学。穆旦随校南迁，经历了从长沙到昆明的三千里步行，沿途的自然风光和民间疾苦给了他深刻的感受。</p>
+    <p style="margin-top:8px">1938年，穆旦在西南联大读书期间写下了《我看》。在民族危亡的时刻，诗人没有直接写战争和苦难，而是从自然景物中寻找生命的意义和精神的力量，表达了对自然永恒生命力的赞美和对个体生命融入自然的渴望。</p>
+  </div>
+  <div class="box">
+    <h3>写作缘起</h3>
+    <p>穆旦在谈到自己的诗歌创作时说，他喜欢“在自然里寻找自我”。《我看》正是这样一首诗——诗人在傍晚的春风中，看着青草、飞鸟、流云，从自然的生机中感悟到生命的永恒和个体的渺小。</p>
+    <p style="margin-top:8px">诗歌中的“你”指大自然，诗人先是观察自然（“我看”），然后思考人生（“逝去的多少欢乐和忧戚”），再追溯历史（“远古的哲人”），最后发出呼唤（“让我的呼吸与自然合流”）。整首诗是一个从观察到思考到升华的完整过程，体现了穆旦诗歌“知性与感性并重”的特点。</p>
+  </div>
+  <div class="box media-box">
+    <h3>视听</h3>
+    <div class="media-grid">
+      <div class="media">
+        <h4>《我看》课文朗读</h4>
+        <iframe id="mediaF1" src="https://player.bilibili.com/player.html?bvid=BV18Q4y1P7K2&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="我看课文朗读"></iframe>
+        <a href="https://www.bilibili.com/video/BV18Q4y1P7K2" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF1">全屏播放</button>
+      </div>
+      <div class="media">
+        <h4>《我看》精品示范课</h4>
+        <iframe id="mediaF2" src="https://player.bilibili.com/player.html?bvid=BV1rCpneCEvX&page=1&high_quality=1&danmaku=0&autoplay=0" loading="lazy" scrolling="no" frameborder="0" allowfullscreen="true" title="我看精品示范课"></iframe>
+        <a href="https://www.bilibili.com/video/BV1rCpneCEvX" target="_blank" rel="noopener">在 B 站打开原视频</a><button class="fsbtn" data-target="mediaF2">全屏播放</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="jielu" class="sec">
+  <div class="sec-head"><h2>解 读</h2><span class="no">逐句 · 内容 · 手法</span></div>
+  <button id="btnShowAll" class="tbtn" style="display:none;margin-bottom:12px">显示全部</button>
+  <div id="fulltext" class="poem" style="display:none">
+    <div class="pl">我看一阵向晚的春风<br>悄悄揉过丰润的青草，<br>我看它们低首又低首，<br>也许远水荡起了一片绿潮；</div>
+    <div class="pl">我看飞鸟平展着翅翼<br>静静吸入深远的晴空里，<br>我看流云慢慢地红晕<br>无意沉醉了凝望它的大地。</div>
+    <div class="pl">哦，逝去的多少欢乐和忧戚，<br>我枉然在你的心胸里描画！<br>哦！多少年来你丰润的生命<br>永在寂静的谐奏里勃发。</div>
+    <div class="pl">也许远古的哲人怀着热望，<br>曾向你舒出咏赞的叹息，<br>如今却只见他生命的静流<br>随着季节的起伏而飘逸。</div>
+    <div class="pl">去吧，去吧，哦生命的飞奔，<br>叫天风挽你坦荡地漫游，<br>像鸟的歌唱，云的流盼，树的摇曳；<br>哦，让我的呼吸与自然合流！<br>让欢笑和哀愁洒向我心里，<br>像季节燃起花朵又把它吹熄。</div>
+  </div>
+  <div class="verse-list" id="verseList">
+      <div class="verse" id="l1" data-i="0">
+        <div class="v-top"><span class="v-no">1</span><div class="v-line">我看一阵<span class="anno-word" data-note="傍晚。向，将近">向晚</span>的<span class="anno-word" data-note="春天的风">春风</span></div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">诗人看一阵傍晚的春风。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>以“我看”开篇，点明观察视角。“向晚的春风”点明时间和物象——傍晚时分，春风吹拂。“一阵”写出风的短促和轻柔，为下文的景物描写奠定了宁静柔和的基调。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l2" data-i="1">
+        <div class="v-top"><span class="v-no">2</span><div class="v-line"><span class="anno-word" data-note="形容声音很轻，没有动静">悄悄</span><span class="anno-word" data-note="揉，用手来回擦，这里指风轻轻吹过，如同揉抚">揉过</span><span class="anno-word" data-note="丰满滋润。润，rùn">丰润</span>的青草，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">春风悄悄吹过丰满滋润的青草。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“悄悄”写出风的轻柔，“揉过”运用拟人手法，将风拟人化——风不是吹过，而是像手一样揉抚青草，写出风的温柔和亲昵。“丰润”写出青草的茂盛和生机。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l3" data-i="2">
+        <div class="v-top"><span class="v-no">3</span><div class="v-line">我看它们<span class="anno-word" data-note="低头。首，头">低首</span><span class="anno-word" data-note="表示重复或继续">又</span><span class="anno-word" data-note="低头。首，头">低首</span>，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">诗人看青草低头又低头。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“低首又低首”运用拟人手法，写出青草在风中摇曳的姿态——一次又一次地低头，如同在向春风致意。重复的“低首”增强了节奏感，也写出了草浪起伏的动态美。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l4" data-i="3">
+        <div class="v-top"><span class="v-no">4</span><div class="v-line">也许<span class="anno-word" data-note="远处的水">远水</span><span class="anno-word" data-note="荡，摇动；起，升起。这里指水面泛起">荡起</span>了一片<span class="anno-word" data-note="绿色的潮水，这里指草浪如潮水般起伏">绿潮</span>；</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">也许远处的水面荡起了一片绿色的潮水。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“也许”表示推测，给画面增添了想象的空间。“绿潮”是比喻，将草浪比作绿色的潮水，写出青草的茂盛和动态美。“远水”与“青草”呼应，从近处的草延伸到远处的水，画面开阔。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l5" data-i="4">
+        <div class="v-top"><span class="v-no">5</span><div class="v-line">我看<span class="anno-word" data-note="飞翔的鸟">飞鸟</span><span class="anno-word" data-note="平直地展开">平展</span>着<span class="anno-word" data-note="翅膀。翼，yì">翅翼</span></div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">诗人看飞鸟平展着翅膀。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>第二节从地面的青草转向天空的飞鸟。“平展着翅翼”写出飞鸟飞翔的姿态——翅膀平直展开，从容而自由。与第一节的“低首”形成对比，一个是地面的柔顺，一个是天空的舒展。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l6" data-i="5">
+        <div class="v-top"><span class="v-no">6</span><div class="v-line"><span class="anno-word" data-note="很安静，没有声响">静静</span><span class="anno-word" data-note="吸进去，这里指飞鸟飞入晴空，如同被晴空吸入">吸入</span><span class="anno-word" data-note="深邃而广阔">深远</span>的<span class="anno-word" data-note="晴朗的天空">晴空</span>里，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">飞鸟静静地飞入深远的晴空里。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“静静”写出飞鸟飞翔的从容，“吸入”运用拟物手法，将晴空拟人化——晴空如同一张大口，将飞鸟吸入其中。这个意象写出了天空的广阔和飞鸟的渺小，也暗示了人与自然的融合。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l7" data-i="6">
+        <div class="v-top"><span class="v-no">7</span><div class="v-line">我看<span class="anno-word" data-note="流动的云">流云</span><span class="anno-word" data-note="缓慢，不急">慢慢</span>地<span class="anno-word" data-note="中心浓而四周渐淡的一团红色，这里指云被夕阳染红。晕，yùn">红晕</span></div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">诗人看流动的云慢慢染上红色。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“红晕”名词作动词用，写出流云被夕阳慢慢染红的过程。“慢慢地”写出色彩变化的缓慢和柔和，与上句的“静静”呼应，营造出宁静而美丽的黄昏画面。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l8" data-i="7">
+        <div class="v-top"><span class="v-no">8</span><div class="v-line"><span class="anno-word" data-note="不是有意的，自然而然地">无意</span><span class="anno-word" data-note="大醉，比喻深深地沉浸在某种气氛中。醉，zuì">沉醉</span>了<span class="anno-word" data-note="目不转睛地看。凝，níng">凝望</span>它的大地。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">流云无意中沉醉了凝望着它的大地。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“无意”写出流云的自然和不经意，“沉醉”运用拟人手法，将大地拟人化——大地凝望着流云，被流云的美丽所沉醉。这一句将云与大地的关系写得亲密而动人，暗示了自然万物之间的和谐。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l9" data-i="8">
+        <div class="v-top"><span class="v-no">9</span><div class="v-line"><span class="anno-word" data-note="叹词，表示领会或感叹，这里读 ò">哦</span>，<span class="anno-word" data-note="过去，消逝">逝去</span>的多少欢乐和<span class="anno-word" data-note="忧伤。戚，qī">忧戚</span>，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">哦，逝去了多少欢乐和忧伤。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>第三节从景物描写转向抒情。“哦”一声感叹，将诗人从自然的观察拉入对人生的思考。“欢乐和忧戚”概括了人生的两种基本情感，“逝去”写出时间的无情——无论欢乐还是忧伤，都终将过去。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l10" data-i="9">
+        <div class="v-top"><span class="v-no">10</span><div class="v-line">我<span class="anno-word" data-note="得不到任何收获，白费。枉，wǎng">枉然</span>在你的<span class="anno-word" data-note="心中，内心">心胸</span>里<span class="anno-word" data-note="画画，描绘，这里指试图描绘和理解">描画</span>！</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">我白费力气地在你的心胸里描画！</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“枉然”写出诗人的无奈——人生的欢乐和忧戚太过丰富，无法用语言完全描绘。“你的心胸”中的“你”指大自然，诗人试图在自然的怀抱中寻找人生的答案，却发现一切都是徒劳。感叹号强化了这种无奈和感慨。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l11" data-i="10">
+        <div class="v-top"><span class="v-no">11</span><div class="v-line">哦！多少年来你<span class="anno-word" data-note="丰满滋润，这里指大自然充满生机">丰润</span>的<span class="anno-word" data-note="这里指大自然的生命力">生命</span></div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">哦！多少年来，你那丰满滋润的生命。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“哦！”比上一句的“哦，”情感更强烈，是对大自然生命力的赞叹。“多少年来”强调时间的漫长，“丰润的生命”写出大自然永恒的生机——无论人间如何悲欢离合，自然始终充满活力。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l12" data-i="11">
+        <div class="v-top"><span class="v-no">12</span><div class="v-line">永在<span class="anno-word" data-note="没有声音，很静">寂静</span>的<span class="anno-word" data-note="和谐的演奏。谐，xié">谐奏</span>里<span class="anno-word" data-note="焕发生机，蓬勃生发。勃，bó">勃发</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">永远在寂静的和谐演奏中蓬勃生发。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“寂静的谐奏”以动写静——在寂静中，自然万物和谐地演奏着生命的乐章。“勃发”写出生命力的旺盛和不可阻挡。这一句与上句“枉然在你的心胸里描画”形成对比：人的努力是枉然的，自然的生命是永恒的。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l13" data-i="12">
+        <div class="v-top"><span class="v-no">13</span><div class="v-line">也许<span class="anno-word" data-note="遥远的古代">远古</span>的<span class="anno-word" data-note="智慧卓越的人。哲，zhé">哲人</span>怀着<span class="anno-word" data-note="热烈的盼望">热望</span>，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">也许远古的哲人怀着热烈的盼望。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>第四节从个人的感慨转向历史的思考。“也许”表示推测，“远古的哲人”指古代的智者，“热望”写出他们对自然和人生的热烈追求。诗人将自己与远古哲人联系起来，思考人类对自然的永恒追问。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l14" data-i="13">
+        <div class="v-top"><span class="v-no">14</span><div class="v-line">曾向你<span class="anno-word" data-note="舒，伸展，发出；出，出来。这里指发出">舒出</span><span class="anno-word" data-note="歌颂赞美。咏，yǒng">咏赞</span>的<span class="anno-word" data-note="叹气，这里指感叹">叹息</span>，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">曾经向你发出歌颂赞美的叹息。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“舒出”写出哲人表达情感的从容，“咏赞的叹息”将赞美和叹息融为一体——对自然的赞美中包含着对人生的感慨。远古哲人也曾像诗人一样，在自然面前发出咏赞和叹息，说明这种情感是人类共通的。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l15" data-i="14">
+        <div class="v-top"><span class="v-no">15</span><div class="v-line"><span class="anno-word" data-note="现在">如今</span>却只见他生命的<span class="anno-word" data-note="静静的流水，比喻生命的平静流逝">静流</span></div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">如今却只看到他生命的静静流水。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“如今”与上句的“远古”形成时间对比，“却”表示转折——远古哲人曾经怀着热望，如今他们的生命已如静流般平静流逝。“静流”比喻生命的消逝，写出时间的无情和人生的短暂。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l16" data-i="15">
+        <div class="v-top"><span class="v-no">16</span><div class="v-line">随着<span class="anno-word" data-note="一年里的某个有特点的时期">季节</span>的<span class="anno-word" data-note="一起一落">起伏</span>而<span class="anno-word" data-note="飘浮，飘散。逸，yì">飘逸</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">随着季节的起伏而飘浮飘散。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“季节的起伏”写出自然的循环往复，“飘逸”写出哲人生命的消逝——如同云烟般飘散在季节的轮回中。这一句将哲人的生命与自然的季节联系起来，暗示人最终归于自然，与自然合一。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l17" data-i="16">
+        <div class="v-top"><span class="v-no">17</span><div class="v-line"><span class="anno-word" data-note="感叹词，表示呼唤和催促">去吧</span>，<span class="anno-word" data-note="感叹词，表示呼唤和催促">去吧</span>，哦生命的<span class="anno-word" data-note="很快地跑，这里指生命的奔腾">飞奔</span>，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">去吧，去吧，哦，生命的飞奔。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>第五节是全诗的高潮和升华。“去吧，去吧”反复呼唤，表达了诗人对生命的热烈追求和对自由的向往。“生命的飞奔”将生命拟人化，写出生命的奔腾和活力，与前面的“静流”形成对比。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l18" data-i="17">
+        <div class="v-top"><span class="v-no">18</span><div class="v-line">叫<span class="anno-word" data-note="天空的风">天风</span><span class="anno-word" data-note="拉，牵引。挽，wǎn">挽</span>你<span class="anno-word" data-note="宽广平坦，这里指心胸开阔">坦荡</span>地<span class="anno-word" data-note="随意游览">漫游</span>，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">让天风拉着你坦荡地漫游。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“天风”象征自然的力量，“挽”运用拟人手法，将天风拟人化——天风拉着生命去漫游。“坦荡”写出漫游的从容和自由，这一句表达了诗人对自由生命的向往——让生命在自然的怀抱中自由驰骋。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l19" data-i="18">
+        <div class="v-top"><span class="v-no">19</span><div class="v-line">像鸟的歌唱，云的<span class="anno-word" data-note="转动目光看，这里指云的飘动如目光流转。盼，pàn">流盼</span>，树的<span class="anno-word" data-note="摇荡。曳，yè">摇曳</span>；</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">像鸟的歌唱，云的流动，树的摇曳。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>三个比喻构成排比，写出生命自由的三种状态：鸟的歌唱是声音的自由，云的流盼是目光的自由，树的摇曳是身体的自由。三个意象从听觉到视觉到动作，全方位地描绘了生命与自然融合的美好状态。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l20" data-i="19">
+        <div class="v-top"><span class="v-no">20</span><div class="v-line">哦，让我的<span class="anno-word" data-note="生物体与外界进行气体交换，这里指生命的存在">呼吸</span>与自然<span class="anno-word" data-note="水流汇合，这里指融为一体">合流</span>！</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">哦，让我的呼吸与自然合为一体！</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“合流”本义是水流汇合，这里比喻人的生命与自然融为一体。这是全诗的核心诉求——诗人希望摆脱个人的悲欢，让生命与自然的永恒生命力合流。感叹号表达了强烈的渴望和决心。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l21" data-i="20">
+        <div class="v-top"><span class="v-no">21</span><div class="v-line">让<span class="anno-word" data-note="快活地笑">欢笑</span>和<span class="anno-word" data-note="悲哀忧愁">哀愁</span><span class="anno-word" data-note="洒，散落；向，朝向。这里指让情感自然地流入心中">洒向</span>我心里，</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">让欢笑和哀愁都洒向我的心里。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>“欢笑和哀愁”与第三节的“欢乐和忧戚”呼应，但态度不同——第三节是“逝去”，这里是“洒向我心里”，即主动接纳。诗人不再试图逃避或描绘悲欢，而是坦然接受，让它们成为生命的一部分。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="verse" id="l22" data-i="21">
+        <div class="v-top"><span class="v-no">22</span><div class="v-line">像季节<span class="anno-word" data-note="点燃，这里指花朵开放如火焰燃起">燃起</span>花朵又把它<span class="anno-word" data-note="吹灭，这里指花朵凋谢如火焰被吹灭。熄，xī">吹熄</span>。</div></div>
+        <details class="v-more">
+          <summary>内容 · 手法</summary>
+          <div class="d-body">
+            <div class="v-sec"><b class="v-label">内容</b>
+              <div class="v-trans">像季节点燃花朵又把它吹灭一样。</div>
+            </div>
+            <div class="v-sec"><b class="v-label">手法</b>
+              <div class="d-body"><p>最后一句以比喻收尾，将人生的悲欢比作季节的轮回——季节燃起花朵（欢乐），又把它吹熄（哀愁）。“燃起”和“吹熄”两个动词对比鲜明，写出生命的荣枯和自然的循环。全诗在这个比喻中结束，余味悠长——人生的悲欢正如花开花落，都是自然的一部分，应当坦然接受。</p></div>
+            </div>
+          </div>
+        </details>
+      </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="app" class="sec">
+  <div class="sec-head"><h2>赏 析</h2><span class="no">意象 · 艺术 · 主题</span></div>
+  <div class="box">
+    <h3>意象赏析</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">春风 / 青草 —— 地面的柔美景象</div>
+        <p>“向晚的春风”轻柔地“揉过丰润的青草”，青草“低首又低首”，远处“荡起了一片绿潮”。这一组意象从触觉（春风）到视觉（青草、绿潮），写出了春天地面景物的柔美和生机。“揉过”“低首”运用拟人手法，将风和草都写得有情有义，营造出宁静和谐的氛围。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">飞鸟 / 晴空 / 流云 —— 天空的辽远景象</div>
+        <p>“飞鸟平展着翅翼”“静静吸入深远的晴空里”，“流云慢慢地红晕”“无意沉醉了凝望它的大地”。这一组意象从地面转向天空，画面更加辽远。“吸入”将晴空拟人化，“沉醉”将大地拟人化，云和大地的关系写得亲密动人。飞鸟、晴空、流云共同构成了一幅宁静而美丽的黄昏图景。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">远古哲人 —— 历史的沉思意象</div>
+        <p>“远古的哲人怀着热望，曾向你舒出咏赞的叹息”，如今“生命的静流”“随着季节的起伏而飘逸”。这个意象将诗人的思考从当下延伸到历史——远古哲人也曾像诗人一样，在自然面前发出咏赞和叹息，但他们的生命最终如静流般消逝。这个意象写出了时间的无情和人生的短暂，也暗示了人类对自然的永恒追问。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">鸟的歌唱 / 云的流盼 / 树的摇曳 —— 生命的自由意象</div>
+        <p>“像鸟的歌唱，云的流盼，树的摇曳”三个比喻构成排比，写出了生命与自然融合后的自由状态。鸟的歌唱是声音的自由，云的流盼是目光的自由，树的摇曳是身体的自由。这组意象与前面的“低首”“吸入”形成对比——从被动的承受变为主动的自由，标志着诗人情感的升华。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>艺术特色</h3>
+    <div class="fame">
+      <div class="fame-card">
+        <div class="f-line">写景、抒情、哲理的融合</div>
+        <p>全诗前两节写景，中间两节抒情和哲理思考，最后一节升华。写景是基础，抒情是核心，哲理是升华。三者自然融合，没有割裂感。从“我看”的观察到“让我的呼吸与自然合流”的呼唤，是一个完整的情感和思想发展过程。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">拟人手法的大量运用</div>
+        <p>“揉过”将风拟人化，“低首”将草拟人化，“吸入”将晴空拟人化，“沉醉”将大地拟人化，“挽”将天风拟人化。大量的拟人手法使自然万物都具有了人的情感和动作，营造出人与自然和谐共生的美好境界。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">对比手法的巧妙运用</div>
+        <p>人的“枉然”与自然的“勃发”对比，远古哲人的“热望”与如今的“静流”对比，“低首”的柔顺与“飞奔”的自由对比，“燃起”与“吹熄”对比。对比中见出人生的短暂和自然的永恒，也见出诗人从无奈到超脱的情感转变。</p>
+      </div>
+      <div class="fame-card">
+        <div class="f-line">“我看”的反复与视角的转换</div>
+        <p>“我看”在诗中反复出现（第一、三、五句），构成了诗歌的观察线索。但诗人的视角并非一成不变——从看地面的草，到看天空的鸟和云，再到看历史和人生，最后从“看”转向“呼唤”。视角的转换使诗歌的内涵不断深化。</p>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <h3>主题思想</h3>
+    <p>《我看》通过对春风、青草、飞鸟、流云等自然景物的观察和思考，表达了对自然永恒生命力的赞美，以及对个体生命融入自然、获得永恒的渴望。</p>
+    <p style="margin-top:10px">这首诗的深刻之处在于，它没有停留在对自然美景的欣赏上，而是从自然中感悟到人生的哲理：人的欢乐和忧戚终将逝去，远古哲人的热望也化为静流，但自然的生命永远在“寂静的谐奏里勃发”。因此，诗人最终发出了“让我的呼吸与自然合流”的呼唤——只有将个体生命融入自然的永恒生命力中，才能超越生死悲欢，获得真正的自由和永恒。“像季节燃起花朵又把它吹熄”——人生的荣枯正如自然的轮回，坦然接受，便是超脱。</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="acc" class="sec">
+  <div class="sec-head"><h2>积 累</h2><span class="no">重点词语 · 用字与读音 · 修辞方法 · 写作借鉴 · 文化常识</span></div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>重点词语</h3>
+      <div class="acc-item"><span class="acc-w">向晚</span><span class="acc-d">傍晚。向，将近。</span></div>
+      <div class="acc-item"><span class="acc-w">丰润</span><span class="acc-d">丰满滋润。润，rùn。文中形容青草的茂盛和生机。</span></div>
+      <div class="acc-item"><span class="acc-w">低首</span><span class="acc-d">低头。首，头。文中形容青草在风中摇曳的姿态。</span></div>
+      <div class="acc-item"><span class="acc-w">绿潮</span><span class="acc-d">绿色的潮水，文中指草浪如潮水般起伏。</span></div>
+      <div class="acc-item"><span class="acc-w">翅翼</span><span class="acc-d">翅膀。翼，yì。</span></div>
+      <div class="acc-item"><span class="acc-w">红晕</span><span class="acc-d">中心浓而四周渐淡的一团红色，文中指云被夕阳染红。晕，yùn。</span></div>
+      <div class="acc-item"><span class="acc-w">沉醉</span><span class="acc-d">大醉，比喻深深地沉浸在某种气氛中。醉，zuì。</span></div>
+      <div class="acc-item"><span class="acc-w">凝望</span><span class="acc-d">目不转睛地看。凝，níng。</span></div>
+      <div class="acc-item"><span class="acc-w">忧戚</span><span class="acc-d">忧伤。戚，qī。</span></div>
+      <div class="acc-item"><span class="acc-w">枉然</span><span class="acc-d">得不到任何收获，白费。枉，wǎng。</span></div>
+      <div class="acc-item"><span class="acc-w">谐奏</span><span class="acc-d">和谐的演奏。谐，xié。</span></div>
+      <div class="acc-item"><span class="acc-w">勃发</span><span class="acc-d">焕发生机，蓬勃生发。勃，bó。</span></div>
+      <div class="acc-item"><span class="acc-w">飘逸</span><span class="acc-d">飘浮，飘散。逸，yì。</span></div>
+      <div class="acc-item"><span class="acc-w">摇曳</span><span class="acc-d">摇荡。曳，yè。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>用字与读音</h3>
+      <div class="acc-item"><span class="acc-w">润</span><span class="acc-d">读 rùn，不读 yùn。三点水+闰，滋润。丰润。</span></div>
+      <div class="acc-item"><span class="acc-w">翼</span><span class="acc-d">读 yì，不读 jì。羽字头+田+共，翅膀。翅翼。</span></div>
+      <div class="acc-item"><span class="acc-w">晕</span><span class="acc-d">多音字：红晕 yùn（光影四周渐淡）；晕倒 yūn（昏迷）。文中读 yùn。</span></div>
+      <div class="acc-item"><span class="acc-w">醉</span><span class="acc-d">读 zuì，不读 suì。酉字旁+卒，大醉。沉醉。</span></div>
+      <div class="acc-item"><span class="acc-w">凝</span><span class="acc-d">读 níng，不读 yí。两点水+疑，注视。凝望。</span></div>
+      <div class="acc-item"><span class="acc-w">戚</span><span class="acc-d">读 qī，不读 qì。戈字旁，忧伤。忧戚。</span></div>
+      <div class="acc-item"><span class="acc-w">枉</span><span class="acc-d">读 wǎng，不读 wāng。木字旁+王，白费。枉然。</span></div>
+      <div class="acc-item"><span class="acc-w">谐</span><span class="acc-d">读 xié，不读 jiē。言字旁+皆，和谐。谐奏。</span></div>
+      <div class="acc-item"><span class="acc-w">勃</span><span class="acc-d">读 bó，不读 bō。力字旁+孛，蓬勃。勃发。</span></div>
+      <div class="acc-item"><span class="acc-w">逸</span><span class="acc-d">读 yì，不读 tù。走之底+兔，飘散。飘逸。</span></div>
+      <div class="acc-item"><span class="acc-w">曳</span><span class="acc-d">读 yè，不读 zhuài。斜钩+丿+日，摇荡。摇曳。</span></div>
+      <div class="acc-item"><span class="acc-w">熄</span><span class="acc-d">读 xī，火字旁+息，灭。吹熄。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>修辞方法</h3>
+      <div class="acc-item"><span class="acc-w">拟人</span><span class="acc-d">“揉过”将风拟人化，“低首”将草拟人化，“吸入”将晴空拟人化，“沉醉”将大地拟人化，“挽”将天风拟人化。大量拟人使自然万物具有人的情感和动作。</span></div>
+      <div class="acc-item"><span class="acc-w">比喻</span><span class="acc-d">“绿潮”将草浪比作潮水；“静流”将生命的消逝比作流水；“像鸟的歌唱，云的流盼，树的摇曳”三个比喻写出生命的自由。</span></div>
+      <div class="acc-item"><span class="acc-w">排比</span><span class="acc-d">“像鸟的歌唱，云的流盼，树的摇曳”三个短语排比，从听觉、视觉、动作全方位描绘生命的自由。</span></div>
+      <div class="acc-item"><span class="acc-w">对比</span><span class="acc-d">人的“枉然”与自然的“勃发”对比；远古哲人的“热望”与如今的“静流”对比；“燃起”与“吹熄”对比。</span></div>
+      <div class="acc-item"><span class="acc-w">反复</span><span class="acc-d">“我看”反复出现，构成观察线索；“去吧，去吧”反复呼唤，表达对生命自由的强烈渴望。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>写作借鉴</h3>
+      <div class="acc-item"><span class="acc-w">从观察到思考到升华</span><span class="acc-d">全诗遵循“观察自然—思考人生—升华主题”的结构，层层递进。写景是基础，抒情是核心，哲理是升华，三者自然融合。</span></div>
+      <div class="acc-item"><span class="acc-w">拟人营造和谐境界</span><span class="acc-d">大量运用拟人手法，使风、草、晴空、大地、天风都具有人的情感和动作，营造出人与自然和谐共生的美好境界。</span></div>
+      <div class="acc-item"><span class="acc-w">意象的空间转换</span><span class="acc-d">意象从地面（青草）到天空（飞鸟、流云），从当下（我看）到历史（远古哲人），空间和时间的转换使诗歌内涵不断深化。</span></div>
+      <div class="acc-item"><span class="acc-w">以比喻收尾，余味悠长</span><span class="acc-d">最后一句“像季节燃起花朵又把它吹熄”以比喻收尾，将人生的悲欢比作花开花落，形象生动，余味悠长，引发读者深思。</span></div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="acc-cat">
+      <h3>文化常识</h3>
+      <div class="acc-item"><span class="acc-w">九叶诗派</span><span class="acc-d">20世纪40年代出现的诗歌流派，代表诗人有穆旦、辛笛、陈敬容、杜运燮、郑敏等。因1981年出版《九叶集》而得名。主张“知性与感性并重”，融合中国古典诗歌传统和西方现代派技巧。穆旦是九叶诗派中成就最高的诗人。</span></div>
+      <div class="acc-item"><span class="acc-w">西南联大</span><span class="acc-d">抗日战争时期，清华大学、北京大学、南开大学南迁昆明，组成国立西南联合大学（1938—1946）。西南联大在极其艰苦的条件下培养了大批人才，穆旦、汪曾祺、杨振宁、李政道等都曾在此求学。</span></div>
+      <div class="acc-item"><span class="acc-w">穆旦与查良铮</span><span class="acc-d">穆旦原名查良铮，与金庸（查良镛）是同族兄弟。穆旦以诗名世，查良铮以译著闻名，他翻译的普希金、拜伦、雪莱诗歌影响深远。“穆旦”是“查”字上下拆分的谐音（木+旦=查的变体）。</span></div>
+      <div class="acc-item"><span class="acc-w">《探险队》诗集</span><span class="acc-d">《我看》收入穆旦的第一部诗集《探险队》（1945年出版），该诗集还收录了《赞美》《诗八首》等名篇，是穆旦诗歌创作的代表作，也是中国现代诗歌的重要收获。</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+<section id="practice" class="sec">
+  <div class="sec-head"><h2>练 习</h2><span class="no">全屏听写</span></div>
+  <div class="sec-sub">点击按钮进入全屏听写模式，可按 A− / A+ 调节字体大小。</div>
+  <div class="ptools">
+    <button data-mode="word" data-rand="5">随机五组字形</button>
+    <button data-mode="word" data-all="1">全部字形</button>
+    <button data-mode="note" data-rand="5">随机五组词语</button>
+    <button data-mode="note" data-all="1">全部词语</button>
+  </div>
+</section>
+
+<footer>
+  <div class="kai">《我看》</div>
+  <div>穆旦 · 现代 · 九叶诗派代表作</div>
+  <div>统编版九年级语文上册课文</div>
+</footer>
+</main>
+
+<button class="top-btn" id="topBtn" title="回到顶部">↑</button>
+<div class="anno-popup" id="annoPopup"><div class="aw" id="annoW"></div><div class="an" id="annoN"></div></div>
+<div class="dictate" id="dictate" hidden>
+  <div class="dictate-top">
+    <span class="dictate-mode" id="dictMode">字形听写</span>
+    <span class="dictate-progress" id="dictProgress">第 1 / 5 题</span>
+    <button class="dictate-fs" id="dictFsMinus">A−</button>
+    <button class="dictate-fs" id="dictFsPlus">A+</button>
+    <button class="dictate-exit" id="dictExit">退出</button>
+  </div>
+  <div class="dictate-card">
+    <div class="dictate-py" id="dictPy"></div>
+    <div class="dictate-line" id="dictLine"></div>
+    <div class="dictate-hint" id="dictHint"></div>
+    <div class="dictate-ans" id="dictAnsBox" hidden>
+      <div class="dictate-word" id="dictWord"></div>
+      <div class="dictate-tip" id="dictTip"></div>
+    </div>
+  </div>
+  <div class="dictate-actions">
+    <button id="dictPrev">上一题</button>
+    <button class="primary" id="dictShow">显示答案</button>
+    <button id="dictNext">下一题</button>
+  </div>
+</div>
+
+<script>
+
+(function(){
+  'use strict';
+  var secs = document.querySelectorAll('main section[id]');
+  var navA = document.querySelectorAll('.nav a[href^="#"]');
+  function setActive(id){
+    navA.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + id); });
+  }
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) setActive(e.target.id); });
+    }, {rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  window.addEventListener('scroll', function(){
+    var top = document.getElementById('topBtn');
+    top.style.opacity = (window.scrollY > 500) ? '1' : '0';
+  }, {passive:true});
+  document.getElementById('topBtn').addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  var btnRecite = document.getElementById('btnRecite');
+  var btnShowAll = document.getElementById('btnShowAll');
+  var reciting = false;
+  var ft = document.getElementById('fulltext');
+  var lines = ft.querySelectorAll('.pl');
+  lines.forEach(function(line){
+    line.dataset.orig = line.innerHTML;
+    line.dataset.full = line.textContent.trim();
+    line.addEventListener('click', function(){
+      if (!reciting) return;
+      if (line.dataset.shown === '1'){
+        renderReciteLine(line);
+      } else {
+        var full = line.dataset.full;
+        var firstIdx = 0;
+        while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+          firstIdx++;
+        }
+        line.innerHTML = '<span class="rh">' + full.substring(0, firstIdx + 1) + '</span>' +
+          '<span class="rb">' + full.slice(firstIdx + 1) + '</span>';
+        line.dataset.shown = '1';
+      }
+    });
+  });
+  function renderReciteLine(line){
+    var full = line.dataset.full;
+    var firstIdx = 0;
+    while (firstIdx < full.length && /[\s\u3000-\u303f\uff00-\uffef\u0020-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/.test(full.charAt(firstIdx))) {
+      firstIdx++;
+    }
+    var hintChar = firstIdx < full.length ? full.charAt(firstIdx) : full.charAt(0);
+    var prefix = full.substring(0, firstIdx);
+    line.innerHTML = '<span class="rh">' + prefix + hintChar + '</span>' +
+      '<span class="rb">' + new Array(full.length - firstIdx).join('\uff3f') + '\uff3f</span>';
+    line.dataset.shown = '0';
+  }
+  btnRecite.addEventListener('click', function(){
+    reciting = !reciting;
+    btnRecite.textContent = reciting ? '原文' : '背诵';
+    btnRecite.classList.toggle('off', !reciting);
+    btnShowAll.style.display = reciting ? '' : 'none';
+    var ft = document.getElementById('fulltext');
+    var vl = document.getElementById('verseList');
+    if (reciting){
+      ft.style.display = '';
+      vl.style.display = 'none';
+      lines.forEach(function(l){ l.classList.add('reciteline'); renderReciteLine(l); });
+    } else {
+      ft.style.display = 'none';
+      vl.style.display = '';
+      lines.forEach(function(l){ l.classList.remove('reciteline'); l.innerHTML = l.dataset.orig; });
+    }
+  });
+  btnShowAll.addEventListener('click', function(){
+    var allShown = lines[0] && lines[0].dataset.shown === '1';
+    lines.forEach(function(l){
+      if (allShown){ renderReciteLine(l); }
+      else { l.innerHTML = '<span class="rh">' + l.dataset.full.charAt(0) + '</span>' +
+        '<span class="rb">' + l.dataset.full.slice(1) + '</span>';
+        l.dataset.shown = '1'; }
+    });
+    btnShowAll.textContent = allShown ? '显示全部' : '隐藏全部';
+  });
+
+  var fsSel = document.getElementById('fsSel');
+  var curFs = localStorage.getItem('wokan_fs') || '100';
+  fsSel.value = curFs;
+  document.body.setAttribute('data-fs', curFs);
+  fsSel.addEventListener('change', function(){
+    document.body.setAttribute('data-fs', this.value);
+    try { localStorage.setItem('wokan_fs', this.value); } catch(e){}
+  });
+
+  var btnAll = document.getElementById('btnAll');
+  var allOpen = false;
+  btnAll.addEventListener('click', function(){
+    allOpen = !allOpen;
+    document.querySelectorAll('.verse .v-more').forEach(function(d){ d.open = allOpen; });
+    btnAll.textContent = allOpen ? '收起' : '展开';
+  });
+
+  document.querySelectorAll('.fsbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var f = document.getElementById(btn.dataset.target);
+      if (!f) return;
+      var overlay = document.createElement('div');
+      overlay.className = 'video-fs-overlay active';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'video-fs-close';
+      closeBtn.textContent = '退出全屏 (Esc)';
+      overlay.appendChild(closeBtn);
+      var parent = f.parentNode;
+      var placeholder = document.createElement('span');
+      placeholder.style.display = 'none';
+      placeholder.id = f.id + '_ph';
+      parent.insertBefore(placeholder, f);
+      overlay.appendChild(f);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      function closeFs(){
+        parent.insertBefore(f, placeholder);
+        parent.removeChild(placeholder);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+      }
+      function escHandler(e){ if(e.key === 'Escape') closeFs(); }
+      closeBtn.addEventListener('click', closeFs);
+      document.addEventListener('keydown', escHandler);
+    });
+  });
+
+  var annoPopup = document.getElementById('annoPopup');
+  var annoW = document.getElementById('annoW');
+  var annoN = document.getElementById('annoN');
+  var activeAnno = null;
+  document.addEventListener('click', function(e){
+    var word = e.target.closest('.anno-word');
+    if(word){
+      e.stopPropagation();
+      if(activeAnno) activeAnno.classList.remove('active');
+      activeAnno = word;
+      word.classList.add('active');
+      annoW.textContent = word.textContent;
+      annoN.textContent = word.dataset.note;
+      annoPopup.style.display = 'block';
+      var rect = word.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      if(top + annoPopup.offsetHeight > window.innerHeight - 12){
+        top = rect.top - annoPopup.offsetHeight - 10;
+      }
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    } else if(!e.target.closest('#annoPopup')){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && annoPopup.style.display === 'block'){
+      annoPopup.style.display = 'none';
+      if(activeAnno){ activeAnno.classList.remove('active'); activeAnno = null; }
+    }
+  });
+  window.addEventListener('scroll', function(){
+    if(annoPopup.style.display === 'block' && activeAnno){
+      var rect = activeAnno.getBoundingClientRect();
+      var top = rect.bottom + 10;
+      var left = rect.left;
+      var pw = annoPopup.offsetWidth || 300;
+      if(left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if(left < 12) left = 12;
+      annoPopup.style.top = top + 'px';
+      annoPopup.style.left = left + 'px';
+    }
+  }, {passive:true});
+
+  var dictate = document.getElementById('dictate');
+  var dictMode = document.getElementById('dictMode');
+  var dictProgress = document.getElementById('dictProgress');
+  var dictPy = document.getElementById('dictPy');
+  var dictLine = document.getElementById('dictLine');
+  var dictHint = document.getElementById('dictHint');
+  var dictAnsBox = document.getElementById('dictAnsBox');
+  var dictWord = document.getElementById('dictWord');
+  var dictTip = document.getElementById('dictTip');
+  var dictShow = document.getElementById('dictShow');
+  var dictNext = document.getElementById('dictNext');
+  var dictPrev = document.getElementById('dictPrev');
+  var dictExit = document.getElementById('dictExit');
+  var dictFsMinus = document.getElementById('dictFsMinus');
+  var dictFsPlus = document.getElementById('dictFsPlus');
+  var dictScale = parseFloat(localStorage.getItem('dict_ds')) || 1.25;
+  dictate.style.setProperty('--ds', dictScale);
+  dictFsMinus.addEventListener('click', function(){ dictScale = Math.max(0.8, dictScale - 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  dictFsPlus.addEventListener('click', function(){ dictScale = Math.min(1.8, dictScale + 0.1); dictate.style.setProperty('--ds', dictScale); try{localStorage.setItem('dict_ds', dictScale);}catch(e){} });
+  var dictState = null;
+  function dictShuffle(a){ var b = a.slice(); for (var i = b.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; } return b; }
+  document.querySelectorAll('#practice .ptools button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = (btn.dataset.mode === 'word') ? DICT_WORDS : DICT_NOTES;
+      var list = btn.dataset.rand ? dictShuffle(src).slice(0, 5) : src.slice();
+      dictState = { mode: btn.dataset.mode, list: list, i: 0 };
+      dictate.hidden = false;
+      var p = document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(function(){});
+      dictRender();
+    });
+  });
+  function dictRender(){
+    var s = dictState, it = s.list[s.i];
+    dictMode.textContent = (s.mode === 'word') ? '字形听写' : '词语听写';
+    dictProgress.textContent = '第 ' + (s.i + 1) + ' / ' + s.list.length + ' 题';
+    if (s.mode === 'word'){
+      dictPy.textContent = it.py;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '\u2014\u2014 默写空格中的字 \u2014\u2014';
+      dictWord.textContent = it.w;
+      dictTip.textContent = '易错：' + it.tip;
+    } else {
+      dictPy.textContent = it.w;
+      dictLine.textContent = it.q;
+      dictHint.textContent = '\u2014\u2014 默写释义 \u2014\u2014';
+      dictWord.textContent = it.a;
+      dictTip.textContent = '';
+    }
+    dictAnsBox.hidden = true;
+    dictShow.textContent = '显示答案';
+    dictNext.textContent = (s.i === s.list.length - 1) ? '完成' : '下一题';
+    dictPrev.disabled = (s.i === 0);
+    dictPrev.style.opacity = (s.i === 0) ? '0.4' : '1';
+  }
+  dictShow.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictAnsBox.hidden){ dictAnsBox.hidden = false; dictShow.textContent = '隐藏答案'; }
+    else { dictAnsBox.hidden = true; dictShow.textContent = '显示答案'; }
+  });
+  dictNext.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i >= dictState.list.length - 1){ dictClose(); return; }
+    dictState.i++; dictRender();
+  });
+  dictPrev.addEventListener('click', function(){
+    if (!dictState) return;
+    if (dictState.i <= 0) return;
+    dictState.i--; dictRender();
+  });
+  dictExit.addEventListener('click', dictClose);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && dictate && !dictate.hidden) dictClose(); });
+  function dictClose(){
+    dictate.hidden = true; dictState = null;
+    var p = document.exitFullscreen();
+    if (p && p.catch) p.catch(function(){});
+  }
+
+  var saved = [];
+  window.addEventListener('beforeprint', function(){
+    saved = [];
+    document.querySelectorAll('.verse details').forEach(function(d){ saved.push([d, d.open]); d.open = true; });
+  });
+  window.addEventListener('afterprint', function(){
+    saved.forEach(function(p){ p[0].open = p[1]; }); saved = [];
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){ window.print(); });
+})();
+
+</script>
+<script>
+var DICT_WORDS = [{"w": "向晚", "py": "xiàng wǎn", "q": "我看一阵□□的春风", "tip": "「晚」日字旁+免，傍晚；不读 wǎn 以外的音"}, {"w": "丰润", "py": "fēng rùn", "q": "悄悄揉过□□的青草", "tip": "「润」三点水+闰，滋润；不读 yùn"}, {"w": "翅翼", "py": "chì yì", "q": "我看飞鸟平展着□□", "tip": "「翼」羽字头+田+共，翅膀；不读 jì"}, {"w": "红晕", "py": "hóng yùn", "q": "我看流云慢慢地□□", "tip": "「晕」日字头+军，红色；不读 yūn"}, {"w": "沉醉", "py": "chén zuì", "q": "无意□□了凝望它的大地", "tip": "「醉」酉字旁+卒，大醉；不读 suì"}, {"w": "凝望", "py": "níng wàng", "q": "无意沉醉了□□它的大地", "tip": "「凝」两点水+疑，注视；不读 yí"}, {"w": "忧戚", "py": "yōu qī", "q": "哦，逝去的多少欢乐和□□", "tip": "「戚」戈字旁，忧伤；不读 qì"}, {"w": "枉然", "py": "wǎng rán", "q": "我□□在你的心胸里描画", "tip": "「枉」木字旁+王，白费；不读 wāng"}, {"w": "谐奏", "py": "xié zòu", "q": "永在寂静的□□里勃发", "tip": "「谐」言字旁+皆，和谐；不读 jiē"}, {"w": "勃发", "py": "bó fā", "q": "永在寂静的谐奏里□□", "tip": "「勃」力字旁+孛，蓬勃；不读 bō"}, {"w": "哲人", "py": "zhé rén", "q": "也许远古的□□怀着热望", "tip": "「哲」口字底+折，智慧；不读 zhé 以外的音"}, {"w": "咏赞", "py": "yǒng zàn", "q": "曾向你舒出□□的叹息", "tip": "「咏」口字旁+永，歌颂；不读 yǒng 以外的音"}, {"w": "飘逸", "py": "piāo yì", "q": "随着季节的起伏而□□", "tip": "「逸」走之底+兔，飘散；不读 tù"}, {"w": "摇曳", "py": "yáo yè", "q": "像鸟的歌唱，云的流盼，树的□□", "tip": "「曳」斜钩+丿+日，摇荡；不读 zhuài"}, {"w": "流盼", "py": "liú pàn", "q": "像鸟的歌唱，云的□□，树的摇曳", "tip": "「盼」目字旁+分，看；不读 fēn"}, {"w": "吹熄", "py": "chuī xī", "q": "像季节燃起花朵又把它□□", "tip": "「熄」火字旁+息，灭；不读 xī 以外的音"}];
+var DICT_NOTES = [{"w": "向晚", "a": "傍晚", "q": "我看一阵向晚的春风"}, {"w": "丰润", "a": "丰满滋润", "q": "悄悄揉过丰润的青草"}, {"w": "揉过", "a": "揉，用手来回擦，文中指风轻轻吹过", "q": "悄悄揉过丰润的青草"}, {"w": "低首", "a": "低头", "q": "我看它们低首又低首"}, {"w": "绿潮", "a": "绿色的潮水，文中指草浪如潮水般起伏", "q": "也许远水荡起了一片绿潮"}, {"w": "翅翼", "a": "翅膀", "q": "我看飞鸟平展着翅翼"}, {"w": "吸入", "a": "吸进去，文中指飞鸟飞入晴空", "q": "静静吸入深远的晴空里"}, {"w": "红晕", "a": "中心浓而四周渐淡的一团红色，文中指云被夕阳染红", "q": "我看流云慢慢地红晕"}, {"w": "沉醉", "a": "大醉，比喻深深地沉浸在某种气氛中", "q": "无意沉醉了凝望它的大地"}, {"w": "凝望", "a": "目不转睛地看", "q": "无意沉醉了凝望它的大地"}, {"w": "忧戚", "a": "忧伤", "q": "哦，逝去的多少欢乐和忧戚"}, {"w": "枉然", "a": "得不到任何收获，白费", "q": "我枉然在你的心胸里描画"}, {"w": "谐奏", "a": "和谐的演奏", "q": "永在寂静的谐奏里勃发"}, {"w": "勃发", "a": "焕发生机，蓬勃生发", "q": "永在寂静的谐奏里勃发"}, {"w": "哲人", "a": "智慧卓越的人", "q": "也许远古的哲人怀着热望"}, {"w": "咏赞", "a": "歌颂赞美", "q": "曾向你舒出咏赞的叹息"}, {"w": "静流", "a": "静静的流水，比喻生命的平静流逝", "q": "如今却只见他生命的静流"}, {"w": "飘逸", "a": "飘浮，飘散", "q": "随着季节的起伏而飘逸"}, {"w": "坦荡", "a": "宽广平坦，文中指心胸开阔", "q": "叫天风挽你坦荡地漫游"}, {"w": "流盼", "a": "转动目光看，文中指云的飘动如目光流转", "q": "像鸟的歌唱，云的流盼，树的摇曳"}, {"w": "摇曳", "a": "摇荡", "q": "像鸟的歌唱，云的流盼，树的摇曳"}, {"w": "合流", "a": "水流汇合，文中指融为一体", "q": "哦，让我的呼吸与自然合流"}, {"w": "哀愁", "a": "悲哀忧愁", "q": "让欢笑和哀愁洒向我心里"}, {"w": "吹熄", "a": "吹灭，文中指花朵凋谢如火焰被吹灭", "q": "像季节燃起花朵又把它吹熄"}];
+</script>
+
+</body>
+</html>
