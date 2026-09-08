@@ -5,13 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--category:教育-->
 <title>智能阅卷</title>
-<link rel="manifest" href="./yuejuan.webmanifest">
-<meta name="theme-color" content="#A93226">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="智能阅卷">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f6fed'/%3E%3Cpath d='M8 16l5 5 11-11' stroke='%23fff' stroke-width='3.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -184,7 +177,6 @@ try{pdfjsLib.GlobalWorkerOptions.workerSrc='./lib/pdf.worker.min.js';}catch(e){}
 <script src="./lib/qrcode.js"></script>
 <script src="./lib/jsQR.js"></script>
 <script src="./lib/xlsx.full.min.js"></script>
-<script src="./lib/jszip.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -261,7 +253,7 @@ let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:n
 let scanCtx=null;   // 扫描会话 {examId, total, done, status, logs}
 
 /* ---------- IndexedDB ---------- */
-const DB_NAME='yuejuan_db',DB_VER=4;
+const DB_NAME='yuejuan_db',DB_VER=3;
 let db=null;
 function openDB(){
   return new Promise(function(res,rej){
@@ -299,14 +291,6 @@ function openDB(){
                 changed=true;
               }
             });
-            /* v4：旧的 dataURL 缩略图迁移进 blobs（key=id+'|t'），记录只留 hasThumb */
-            if(rec&&typeof rec.thumb==='string'){
-              if(rec.thumb.indexOf('data:')===0){
-                const tb=dataURLToBlob(rec.thumb);
-                if(tb){bstore.put({id:rec.id+'|t',blob:tb});rec.hasThumb=1;}
-              }
-              delete rec.thumb;changed=true;
-            }
             if(changed)cur.update(rec);
             cur.continue();
           };
@@ -378,7 +362,6 @@ function dlg(html,opts){
     +(opts.foot?'<div class="m-foot">'+opts.foot+'</div>':'');
   $('mOverlay').hidden=false;
   box.style.width=opts.wide?'min(94vw,1100px)':'';
-  afterRender(fillThumbs);
 }
 function dlgClose(){const ov=$('mOverlay');ov.hidden=true;$( 'mBox').innerHTML='';try{shotStop()}catch(e){}if(mResolve){const r=mResolve;mResolve=null;r(null);}}
 document.addEventListener('keydown',function(e){
@@ -452,8 +435,7 @@ function go(tab){
   $('pageTitle').innerHTML=TAB_TITLES[tab]||'';
   $('topBtns').innerHTML='';
   const f={home:renderHome,tpl:renderTpl,class:renderCls,exam:renderExam,scan:renderScan,grade:renderGrade,score:renderScore,set:renderSet}[tab]||renderHome;
-  /* 渲染函数是异步的：等 DOM 真正写入后再回填缩略图，否则列表图片仍是占位图 */
-  Promise.resolve().then(f).then(function(){afterRender(fillThumbs)}).catch(function(err){console.error(err)});
+  f();
 }
 function afterRender(fn){setTimeout(fn,0)}
 
@@ -487,12 +469,6 @@ window.addEventListener('error',function(e){
 window.__yjReady=openDB().then(function(){go(loadJSON(LS_UI,0)==='home'?'home':(loadJSON(LS_UI)&&loadJSON(LS_UI).tab)||'home')}).catch(function(err){console.error(err);toast('数据库打开失败：'+err.message,'err')});
 /* 请求持久化存储：防止 iOS/Safari 在空间压力下清空 IndexedDB 数据 */
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
-/* 离线可用：注册 Service Worker（仅缓存本应用静态资源；失败静默降级为纯在线） */
-try{
-  if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
-    navigator.serviceWorker.register('./yuejuan-sw.js',{scope:'./',updateViaCache:'none'}).catch(function(){});
-  }
-}catch(e){}
 
 
 /* ============================================================
@@ -876,9 +852,6 @@ function bytesFromB64(b64){
 }
 function b64ToBlob(b64,type){
   try{return new Blob([bytesFromB64(b64)],{type:type||'image/jpeg'})}catch(e){return null}
-}
-function dataURLToBlob(u){
-  try{const s=String(u);const i=s.indexOf(',');if(i<0)return null;const mime=(/^data:([^;]+)/.exec(s)||[])[1]||'image/jpeg';return b64ToBlob(s.slice(i+1),mime)}catch(e){return null}
 }
 function r1(v){return Math.round(v*10)/10}
 function r2(v){return Math.round(v*100)/100}
@@ -1771,41 +1744,6 @@ function releaseAllBlobURLs(){
   __urlCache.forEach(function(u){try{URL.revokeObjectURL(u)}catch(e){}});
   __urlCache.clear();
 }
-/* 缩略图存 blobs 表（key=id+'|t'），记录只留 hasThumb 标记；渲染时异步回填，列表查询不再携带图片字符串 */
-const PH_IMG='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-const __thumbPend=Object.create(null);
-function applyThumb(id,u){
-  if(!u)return;
-  const els=document.querySelectorAll('img[data-thumb]');
-  for(let i=0;i<els.length;i++){
-    const el=els[i];
-    if(el.getAttribute('data-thumb')!==id)continue;
-    if(!el.src||el.src.indexOf('data:image/gif')===0)el.src=u;
-  }
-}
-function thumbURL(id){
-  if(!id)return '';
-  const key=id+'|t';
-  const hit=__urlCache.get(key);
-  if(hit){applyThumb(id,hit);return hit;}
-  if(!__thumbPend[key]){
-    __thumbPend[key]=1;
-    getBlob(key).then(function(b){
-      delete __thumbPend[key];
-      if(!b)return;
-      applyThumb(id,blobURL(key,b));
-    }).catch(function(){delete __thumbPend[key]});
-  }
-  return '';
-}
-function thumbImg(id,style,attrs){
-  if(!id)return '<div style="'+style+';background:#EEE;border:1px solid var(--line);border-radius:6px"></div>';
-  return '<img data-thumb="'+esc(id)+'" src="'+PH_IMG+'" '+(attrs||'')+' style="background:#EEE;'+style+'">';
-}
-function fillThumbs(){
-  const els=document.querySelectorAll('img[data-thumb]');
-  for(let i=0;i<els.length;i++){const id=els[i].getAttribute('data-thumb');if(id)thumbURL(id)}
-}
 
 /* ---------- 单页识别 ---------- */
 async function recognizeCanvas(cv,layout,pageIdx,opts){
@@ -2116,7 +2054,7 @@ async function scanExamPages(exam,files,onProgress,forcePage){
     let res;
     try{res=await recognizeCanvas(it.cv,layout,pageIdx,{})}
     catch(err){
-      results.push({id:uid('pg_'),examId:exam.id,studentNo:'',pageNo:it.pageNo,
+      results.push({id:uid('pg_'),examId:exam.id,studentNo:'',pageNo:it.pageNo,blob:null,thumb:'',
         meta:{status:'error',qrFound:false,flags:['图像解析异常：'+(err.message||String(err))],perQ:[],regFlags:[],
           layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}});
       if(onProgress)onProgress(++idx,items.length,it);
@@ -2128,14 +2066,12 @@ async function scanExamPages(exam,files,onProgress,forcePage){
     if(res.studentNo)lastNo=res.studentNo;
     const realPageNo=res.detectedPageNo||it.pageNo;
     const pageRec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:realPageNo,
-      hasThumb:1,
+      thumb:canvasDataURL(canvasToThumb(it.cv,220),0.7),
       meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
         perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,
         H:res.H?res.H.h:null,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}};
     await dbPut('pages',pageRec);
     await putBlob(pageRec.id,blob);
-    const thb=dataURLToBlob(canvasDataURL(canvasToThumb(it.cv,220),0.7));
-    if(thb)await putBlob(pageRec.id+'|t',thb);
     /* 主观题裁剪入库 */
     if(res.crops){
       for(const cp of res.crops){
@@ -2144,12 +2080,10 @@ async function scanExamPages(exam,files,onProgress,forcePage){
         const old=await dbGet('crops',cid);
         await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,pageId:pageRec.id,
           studentNo:res.studentNo,qno:cp.qno,part:cp.part,score:cp.score,
-          hasThumb:1,
+          thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
           scoreVal:old&&old.scoreVal!=null?old.scoreVal:null,aiScore:old&&old.aiScore!=null?old.aiScore:null,
           aiReason:old&&old.aiReason||'',marked:old&&old.marked||null,markedBy:old&&old.markedBy||'',flag:old&&old.flag||''});
         await putBlob(cid,blob2);
-        const thb2=dataURLToBlob(canvasDataURL(canvasToThumb(cp.cv,160),0.7));
-        if(thb2)await putBlob(cid+'|t',thb2);
       }
     }
     results.push(pageRec);
@@ -2638,54 +2572,40 @@ Object.assign(ACTS,{
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-q':function(el){return tplEditQueued(function(){return tplQApply(el)})},
-  'tpl-field':function(el){return tplEditQueued(function(){return tplFieldApply(el)})}
-});
-/* 模板编辑串行化：读-改-写排队，快速连续输入不再互相覆盖（曾出现改多个选项只生效最后一个） */
-let __tplEditChain=Promise.resolve();
-function tplEditQueued(fn){
-  __tplEditChain=__tplEditChain.then(fn).catch(function(err){console.error(err);try{toast('保存出错：'+err.message,'err')}catch(e){}});
-  return __tplEditChain;
-}
-async function tplQApply(el){
-  const t=await dbGet('templates',el.dataset.id);
-  if(!t)return;
-  if(!t.questions)t.questions=normalizeQuestions(t);
-  const q=t.questions[parseInt(el.dataset.i,10)];
-  if(!q)return;
-  const f=el.dataset.f;
-  if(el.type==='checkbox'){q[f]=el.checked;}
-  else{
-    const isNum=(el.type==='number'||el.tagName==='SELECT'||f==='choices');
-    const v=isNum?parseFloat(el.value):el.value;
-    if(f==='qno'&&q.t==='obj')q.qno=Math.max(1,Math.round(v)||1);
-    else if(f==='choices')q.choices=Math.max(2,Math.min(6,Math.round(v)||4));
-    else if(f==='score')q.score=Math.max(0,Number.isFinite(v)?v:0);
-    else if(f==='cols')q.cols=Math.max(10,Math.min(40,Math.round(v)||20));
-    else if(f==='count')q.count=(Number.isFinite(v)&&v>0)?Math.round(v):null;
-    else if(f==='rows')q.rows=Math.max(1,Math.round(v)||1);
-    else q[f]=isNum&&Number.isFinite(v)?v:el.value;
+  'tpl-q':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    if(!t.questions)t.questions=normalizeQuestions(t);
+    const q=t.questions[parseInt(el.dataset.i,10)];
+    if(!q)return;
+    const f=el.dataset.f;
+    if(el.type==='checkbox'){q[f]=el.checked;}
+    else if(el.type==='number'){
+      const v=parseFloat(el.value);
+      if(f==='qno'&&q.t==='obj')q.qno=Math.max(1,Math.round(v)||1);
+      else if(f==='choices')q.choices=Math.max(2,Math.min(6,Math.round(v)||4));
+      else if(f==='score')q.score=Math.max(0,Number.isFinite(v)?v:0);
+      else if(f==='cols')q.cols=Math.max(10,Math.min(40,Math.round(v)||20));
+      else if(f==='count')q.count=(Number.isFinite(v)&&v>0)?Math.round(v):null;
+      else if(f==='rows')q.rows=Math.max(1,Math.round(v)||1);
+      else q[f]=v;
+    }
+    else q[f]=el.value;
+    await dbPut('templates',t);
+  },
+  'tpl-field':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    const f=el.dataset.f;
+    let v;
+    if(el.type==='checkbox')v=el.checked;
+    else if(el.type==='number')v=parseFloat(el.value)||0;
+    else v=el.value;
+    t[f]=v;
+    if(f==='regDigits')t.regDigits=Math.max(2,Math.min(12,Math.round(v)));
+    await dbPut('templates',t);
   }
-  await dbPut('templates',t);
-}
-async function tplFieldApply(el){
-  const t=await dbGet('templates',el.dataset.id);
-  if(!t)return;
-  const f=el.dataset.f;
-  let v;
-  if(el.type==='checkbox')v=el.checked;
-  else if(el.type==='number')v=parseFloat(el.value)||0;
-  else v=el.value;
-  t[f]=v;
-  if(f==='regDigits')t.regDigits=Math.max(2,Math.min(12,Math.round(v)));
-  await dbPut('templates',t);
-}
-async function stuFieldApply(el){
-  const s=await dbGet('students',el.dataset.id);
-  if(!s)return;
-  s[el.dataset.f]=el.value;
-  await dbPut('students',s);
-}
+});
 /* 文件输入统一在渲染时绑定 */
 function bindFileInput(id,fn){
   const f=$(id);
@@ -2804,7 +2724,12 @@ Object.assign(ACTS,{
     toast('已添加','ok');
     renderCls();
   },
-  'stu-field':function(el){return tplEditQueued(function(){return stuFieldApply(el)})},
+  'stu-field':async function(el){
+    const s=await dbGet('students',el.dataset.id);
+    if(!s)return;
+    s[el.dataset.f]=el.value;
+    await dbPut('students',s);
+  },
   'stu-del':async function(el){
     await dbDel('students',el.dataset.id);
     renderCls();
@@ -2953,8 +2878,8 @@ Object.assign(ACTS,{
     await dbDelMany('pages',pid.map(function(p){return p.id}));
     await dbDelMany('crops',cid.map(function(c){return c.id}));
     await dbDelMany('revs',(await dbByIdx('revs','byExam',ex.id)).map(function(r){return r.id}));
-    for(const p of pid){await delBlob(p.id);await delBlob(p.id+'|t');}
-    for(const c of cid){await delBlob(c.id);await delBlob(c.id+'|mk');await delBlob(c.id+'|t');}
+    for(const p of pid)await delBlob(p.id);
+    for(const c of cid){await delBlob(c.id);await delBlob(c.id+'|mk');}
     await dbDel('exams',ex.id);
     toast('已删除','ok');
     renderExam();
@@ -3201,7 +3126,7 @@ async function renderScan(){
         const m=p.meta||{};
         const ok=m.status==='ok';
         const flags=(m.flags||[]).filter(function(f){return f&&f!=='null'});
-        return '<tr><td>'+(p.hasThumb?thumbImg(p.id,'width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer','data-act="scan-page" data-id="'+p.id+'"'):'<div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--line);background:#EEE;text-align:center;line-height:44px;font-size:12px;color:#999">—</div>')+'</td>'
+        return '<tr><td>'+(p.thumb?'<img data-act="scan-page" data-id="'+p.id+'" src="'+p.thumb+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer">':'<div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--line);background:#EEE;text-align:center;line-height:44px;font-size:12px;color:#999">✕</div>')+'</td>'
           +'<td>'+(p.pageNo)+'</td>'
           +'<td><b>'+esc(p.studentNo||'—')+'</b></td>'
           +'<td>'+(ok?badge('ok','已识别'):badge('err','定位失败'))+'</td>'
@@ -3218,7 +3143,6 @@ async function renderScan(){
   afterRender(function(){
     bindFileInput('scanFiles',function(files){runScanUpload(files)});
     bindFileInput('captureInput',function(files){runScanUpload(files)});
-    fillThumbs();
   });
 }
 Object.assign(ACTS,{
@@ -3241,17 +3165,36 @@ Object.assign(ACTS,{
       +'<label class="kv" style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="shotAuto" checked> 四点检测到自动拍摄</label>'
       +'<div id="shotStatusTxt" class="kv" style="color:var(--txt2)"></div>'
       +'</div>',
-      {title:'拍照识别 · 实时定位',foot:'<button class="btn" data-act="shot-flip">切换摄像头</button><button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="shot-take">拍照识别</button>'});
+      {title:'拍照识别 · 实时定位',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="shot-take">拍照识别</button>'});
     shotAuto=true;shotStable=0;
     (function(){const a=$('shotAuto');if(a)a.addEventListener('change',function(){shotAuto=a.checked})})();
-    shotStart();
+    (function(){
+      const v=$('shotVideo'),ov=$('shotOverlay');
+      if(!v||!ov)return;
+      v.addEventListener('loadedmetadata',function(){
+        ov.width=v.videoWidth;ov.height=v.videoHeight;
+        ov.style.position='absolute';ov.style.left='0';ov.style.top='0';
+      });
+      const fit=function(){
+        const cw=v.clientWidth||480,ch=v.clientHeight||360;
+        ov.width=cw;ov.height=ch;
+      };
+      fit();setTimeout(fit,300);
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920}},audio:false})
+        .then(function(stream){
+          shotStream=stream;v.srcObject=stream;
+          v.play().catch(function(){});
+          shotTimer=setInterval(function(){shotDetectOnce(v,ov)},350);
+          setTimeout(fit,800);
+        })
+        .catch(function(err){
+          shotStop();dlgClose();
+          toast('未获取到相机权限（'+(err.name||err.message||'')+'）。已改为系统相机/文件选择。','ok');
+          const f=$('captureInput');if(f)f.click();
+        });
+    })();
   },
   'shot-take':function(){shotCapture()},
-  'shot-flip':function(){
-    shotFacing=shotFacing==='environment'?'user':'environment';
-    shotStatus('切换中…','');
-    shotStart();
-  },
   'shot-auto':function(){},
   'scan-clear':async function(){
     const ex=await dbGet('exams',ui.scanExam);
@@ -3261,19 +3204,19 @@ Object.assign(ACTS,{
     await dbDelMany('pages',pid2.map(function(p){return p.id}));
     await dbDelMany('crops',cid2.map(function(c){return c.id}));
     await dbDelMany('revs',(await dbByIdx('revs','byExam',ex.id)).map(function(r){return r.id}));
-    for(const p of pid2){await delBlob(p.id);await delBlob(p.id+'|t');}
-    for(const c of cid2){await delBlob(c.id);await delBlob(c.id+'|mk');await delBlob(c.id+'|t');}
+    for(const p of pid2)await delBlob(p.id);
+    for(const c of cid2){await delBlob(c.id);await delBlob(c.id+'|mk');}
     toast('已清空','ok');
     renderScan();
   },
   'scan-del-page':async function(el){
     const p=await dbGet('pages',el.dataset.id);
     await dbDel('pages',p.id);
-    await delBlob(p.id);await delBlob(p.id+'|t');
+    await delBlob(p.id);
     const crops=await dbByIdx('crops','byExam',p.examId);
     const deadIds=crops.filter(function(c){return c.pageId===p.id}).map(function(c){return c.id});
     await dbDelMany('crops',deadIds);
-    for(const id of deadIds){await delBlob(id);await delBlob(id+'|mk');await delBlob(id+'|t');}
+    for(const id of deadIds){await delBlob(id);await delBlob(id+'|mk');}
     renderScan();
   },
   /* 批量重识别：用当前参数/模板重建已入库页的识别结果与切割图（页图保留） */
@@ -3308,48 +3251,11 @@ Object.assign(ACTS,{
 /* 上传文件绑定由 renderScan 内的 afterRender 完成 */
 
 /* ---------- 相机拍摄（对标 Pro：取景框+实时锚点反馈；4点即拍） ---------- */
-let shotStream=null,shotTimer=null,shotBusy=false,shotAuto=true,shotStable=0,shotFacing='environment';
+let shotStream=null,shotTimer=null,shotBusy=false,shotAuto=true,shotStable=0;
 function shotStop(){
   if(shotTimer){clearInterval(shotTimer);shotTimer=null;}
   if(shotStream){try{shotStream.getTracks().forEach(function(t){t.stop()})}catch(e){}
     shotStream=null;}
-  try{const v=$('shotVideo');if(v)v.srcObject=null;}catch(e){}
-}
-/* 取景：可按 facingMode 前后切换；不支持时降级为默认摄像头 */
-function shotStart(){
-  const v=$('shotVideo'),ov=$('shotOverlay');
-  if(!v||!ov)return;
-  if(!v._yjBound){
-    v._yjBound=1;
-    v.addEventListener('loadedmetadata',function(){
-      ov.width=v.videoWidth;ov.height=v.videoHeight;
-      ov.style.position='absolute';ov.style.left='0';ov.style.top='0';
-    });
-  }
-  const fit=function(){
-    const cw=v.clientWidth||480,ch=v.clientHeight||360;
-    ov.width=cw;ov.height=ch;
-  };
-  fit();setTimeout(fit,300);
-  shotStop();
-  shotStable=0;
-  const start=function(constraints){
-    navigator.mediaDevices.getUserMedia(constraints).then(function(stream){
-      shotStream=stream;v.srcObject=stream;
-      v.play().catch(function(){});
-      shotTimer=setInterval(function(){shotDetectOnce(v,ov)},350);
-      setTimeout(fit,800);
-      shotStatus(shotFacing==='user'?'前置摄像头 · 请对准答题卡':'后置摄像头 · 请对准答题卡','');
-    }).catch(function(err){
-      if(constraints.video&&constraints.video.facingMode&&err&&(err.name==='OverconstrainedError'||err.name==='NotFoundError')){
-        return start({video:{width:{ideal:1920}},audio:false});
-      }
-      shotStop();dlgClose();
-      toast('未获取到相机权限（'+((err&&(err.name||err.message))||'')+'）。已改为系统相机/文件选择。','ok');
-      const f=$('captureInput');if(f)f.click();
-    });
-  };
-  start({video:{facingMode:shotFacing,width:{ideal:1920}},audio:false});
 }
 function shotDetectOnce(video,ov){
   try{
@@ -3531,7 +3437,7 @@ Object.assign(ACTS,{
       +'<label class="kv" style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="scanMarkOv" checked> 显示识别框选（<span style="color:var(--green)">绿=已识别</span>　<span style="color:var(--danger)">红/橙=不清晰</span>　<span style="color:#888">灰=空白</span>）</label>'
       +'</div>'
       +'<div style="display:flex;gap:12px;flex-wrap:wrap">'
-      +(p.hasThumb?'<img id="scanBigImg" data-thumb="'+p.id+'" src="'+PH_IMG+'" style="width:300px;background:#EEE;border:1px solid var(--line);border-radius:8px">':'<div id="scanBigImgBox" style="color:#999;font-size:13px">无预览</div>')
+      +(p.thumb||m.status==='error'?'<img id="scanBigImg" src="'+p.thumb+'" style="width:300px;border:1px solid var(--line);border-radius:8px"><div style="display:none"></div>':'<div id="scanBigImgBox" style="color:#999;font-size:13px">无预览</div>')
       +'<div style="flex:1;min-width:260px">'
       +'<div class="kv">页号：'+p.pageNo+'　考号：<b>'+esc(p.studentNo||'—')+'</b>　来源：'+esc(m.srcFile||'')+(m.srcW?('（'+m.srcW+'×'+m.srcH+'px）'):'')+'</div>'
       +(flags.length?'<div class="kv" style="color:var(--danger);margin:6px 0">'+flags.map(esc).join('<br>')+'</div>':'')
@@ -3552,7 +3458,7 @@ Object.assign(ACTS,{
       const ov=$('scanMarkOv');
       if(ov&&mk)ov.addEventListener('change',function(){
         const t=$('scanBigImg');
-        if(t){if(ov.checked){t.removeAttribute('data-thumb');t.src=mk}else{const tu=thumbURL(p.id);t.src=tu||t.src}t.style.width=ov.checked?'420px':'300px';}
+        if(t){t.src=ov.checked?mk:(p.thumb||'');t.style.width=ov.checked?'420px':'300px';}
       });
     })();
   },
@@ -3720,7 +3626,7 @@ Object.assign(ACTS,{
     const rev=await examReviewCount(ex.id);
     if(!rev.reg.length){toast('没有考号异常页面','ok');return}
     dlg(rev.reg.slice(0,60).map(function(p){
-      return '<div class="scan-item">'+(p.hasThumb?thumbImg(p.id,'width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)'):'<div style="width:64px;height:64px;border-radius:7px;border:1px solid var(--line);background:#EEE"></div>')
+      return '<div class="scan-item">'+(p.thumb?'<img src="'+p.thumb+'" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)">':'<div style="width:64px;height:64px;border-radius:7px;border:1px solid var(--line);background:#EEE"></div>')
         +'<div style="flex:1">第 '+p.pageNo+' 页　<b>'+esc(p.studentNo||'—')+'</b><br><span class="kv">'+((p.meta&&p.meta.regFlags||[]).join('；'))+'</span></div>'
         +'<button class="btn btn-sm btn-o" data-act="scan-fix-reg" data-id="'+p.id+'">考号改判</button></div>';
     }).join(''),{title:'考号异常（'+rev.reg.length+' 页）',wide:true});
@@ -3730,7 +3636,7 @@ Object.assign(ACTS,{
     const rev=await examReviewCount(ex.id);
     if(!rev.locate.length){toast('没有定位失败页面','ok');return}
     dlg(rev.locate.slice(0,60).map(function(p){
-      return '<div class="scan-item">'+(p.hasThumb?thumbImg(p.id,'width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)'):'<div style="width:64px;height:64px;border-radius:7px;border:1px solid var(--line);background:#EEE"></div>')
+      return '<div class="scan-item">'+(p.thumb?'<img src="'+p.thumb+'" style="width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)">':'<div style="width:64px;height:64px;border-radius:7px;border:1px solid var(--line);background:#EEE"></div>')
         +'<div style="flex:1">第 '+p.pageNo+' 页　<b>'+esc(p.studentNo||'—')+'</b><br><span class="kv">'+((p.meta&&p.meta.flags||[]).join('；'))+'</span></div>'
         +'<button class="btn btn-sm btn-o" data-act="scan-relocate" data-id="'+p.id+'">手动 4 角重定位</button></div>';
     }).join(''),{title:'定位失败（'+rev.locate.length+' 页）',wide:true});
@@ -3767,7 +3673,7 @@ async function redoPage(p,cv,layout,opts){
   const crops=await dbByIdx('crops','byExam',p.examId);
   const deadCrops=crops.filter(function(c){return c.pageId===p.id});
   await dbDelMany('crops',deadCrops.map(function(c){return c.id}));
-  for(const dc of deadCrops){await delBlob(dc.id);await delBlob(dc.id+'|mk');await delBlob(dc.id+'|t');}
+  for(const dc of deadCrops){await delBlob(dc.id);await delBlob(dc.id+'|mk');}
   /* 新裁剪 */
   if(res.crops)for(const cp of res.crops){
     const cid=p.examId+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
@@ -3775,12 +3681,10 @@ async function redoPage(p,cv,layout,opts){
     const cblob=await canvasToJpeg(cp.cv,0.85);
     await dbPut('crops',{id:cid,examId:p.examId,exam_q:p.examId+'|'+cp.qno,pageId:p.id,studentNo:res.studentNo,
       qno:cp.qno,part:cp.part,score:cp.score,
-      hasThumb:1,
+      thumb:canvasDataURL(canvasToThumb(cp.cv,160),0.7),
       scoreVal:old&&old.scoreVal!=null?old.scoreVal:null,aiScore:old&&old.aiScore!=null?old.aiScore:null,
       aiReason:old&&old.aiReason||'',marked:old&&old.marked||null,markedBy:old&&old.markedBy||'',flag:old&&old.flag||''});
     await putBlob(cid,cblob);
-    const thb3=dataURLToBlob(canvasDataURL(canvasToThumb(cp.cv,160),0.7));
-    if(thb3)await putBlob(cid+'|t',thb3);
   }
   return res;
 }
@@ -4645,13 +4549,13 @@ async function renderSet(){
   html+='<div class="card"><h3>数据备份与恢复</h3>'
     +'<div class="f-row">'
     +'<button class="btn btn-p" data-act="backup-mini">导出备份（不含扫描图）</button>'
-    +'<button class="btn" data-act="backup-full">导出完整备份（ZIP，含扫描页/裁剪图）</button>'
+    +'<button class="btn" data-act="backup-full">导出完整备份（含扫描页/裁剪图，体积大）</button>'
     +'<button class="btn btn-o" data-act="backup-import">导入备份</button>'
-    +'<input type="file" id="backupFile" accept=".zip,.json" style="display:none">'
+    +'<input type="file" id="backupFile" accept=".json" style="display:none">'
     +'<button class="btn btn-d" data-act="data-wipe">清空所有数据</button>'
     +'</div>'
     +'<div class="kv" id="storageInfo" style="margin-top:10px"></div>'
-    +'<div class="tip" style="margin-top:8px">所有数据保存在本浏览器 IndexedDB 中。换电脑/清缓存前请先导出；完整备份为 ZIP（manifest + 图片二进制，体积小、导入快），最小备份为 JSON（仅班级、学生、模板、考试、答案、识别与判分数据，页图可用原件重扫）。</div></div>';
+    +'<div class="tip" style="margin-top:8px">所有数据保存在本浏览器 IndexedDB 中。换电脑/清缓存前请先导出；最小备份含班级、学生、模板、考试、答案、识别与判分数据（页图可在需要时用原件重扫）。</div></div>';
   html+='<div class="card"><h3>打印提示 & 使用说明</h3>'
     +'<div class="tip" style="line-height:1.9">'
     +'<b>打印答题卡：</b>导出 PDF 后在打印对话框中选 <b>「实际大小 / 100% / 无缩放」</b>，不要选「适应页面」；否则非等比缩放会被检测为「版式异常」。<br>'
@@ -4729,7 +4633,7 @@ Object.assign(ACTS,{
   },
   'backup-mini':function(){backupExport(false)},
   'backup-full':async function(){
-    const ok=await dlgConfirm('完整备份','将把所有扫描页、裁剪图与批改图打包为 ZIP（含二进制图片，体积小、导入快）。数据量大时耗时较长，确定？','开始打包');
+    const ok=await dlgConfirm('完整备份','将把所有扫描页与裁剪图（可能数百 MB）转 base64 打包为 JSON，耗时较长，确定？','开始打包');
     if(!ok)return;
     backupExport(true);
   },
@@ -4744,116 +4648,72 @@ Object.assign(ACTS,{
     go('home');
   }
 });
-/* 打包进度提示（复用单个 toast 元素，避免刷屏） */
-let __packToast=null;
-function packProg(txt){
-  if(!__packToast){__packToast=document.createElement('div');__packToast.className='toast';$('toasts').appendChild(__packToast);}
-  __packToast.textContent=txt;
-}
-function packProgEnd(){if(__packToast){try{__packToast.remove()}catch(e){}__packToast=null}}
-function zipSafe(id){return String(id).replace(/[^A-Za-z0-9_-]/g,'_')}
 async function backupExport(includeBlobs){
   try{
     toast('正在打包数据…');
-    const data={classes:await dbAll('classes'),students:await dbAll('students'),templates:await dbAll('templates'),exams:await dbAll('exams')};
-    const revs=await dbAll('revs');
     const pages=await dbAll('pages');
     const crops=await dbAll('crops');
+    const head={app:'yuejuan',v:1,exportedAt:timestamp(),
+      data:{classes:await dbAll('classes'),students:await dbAll('students'),templates:await dbAll('templates'),exams:await dbAll('exams')},
+      revs:await dbAll('revs')};
     if(!includeBlobs){
-      const pack={app:'yuejuan',v:1,exportedAt:timestamp(),data:data,revs:revs,
+      const pack={app:head.app,v:1,exportedAt:head.exportedAt,data:head.data,revs:head.revs,
         pages:pages.map(function(p){return {id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta}}),
         crops:crops.map(function(c){return {id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy}})};
       download('智能阅卷备份_'+tsName()+'.json',JSON.stringify(pack),'application/json;charset=utf-8');
-      toast('备份已导出（不含扫描图）','ok');
+      toast('备份已导出','ok');
       return;
     }
-    /* 完整备份：ZIP（manifest.json + 二进制图片），避免 base64 把内存翻 1.4 倍 */
-    if(typeof JSZip==='undefined')throw new Error('打包组件未加载：lib/jszip.min.js');
-    const man={app:'yuejuan',v:2,exportedAt:timestamp(),data:data,revs:revs,pages:[],crops:[]};
-    const zip=new JSZip();
-    const total=pages.length+crops.length;let done=0;
-    const tick=function(){done++;if(done%5===0||done===total)packProg('正在打包 '+done+'/'+total)};
+    /* 完整备份：分块构造 JSON 并直接组装 Blob，避免把数百 MB 一次 stringify 成单个巨型字符串 */
+    const b64p=function(blob){return new Promise(function(res){if(!blob)return res(null);const fr=new FileReader();fr.onload=function(){res(String(fr.result||'').split(',')[1]||'')};fr.onerror=function(){res(null)};fr.readAsDataURL(blob);})};
+    const chunks=['{"app":"yuejuan","v":1,"exportedAt":'+JSON.stringify(head.exportedAt)+',"data":'+JSON.stringify(head.data)+',"revs":'+JSON.stringify(head.revs)+',"pages":['];
+    let first=true;
     for(const p of pages){
-      const rec={id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo||'',meta:p.meta||{}};
-      const b=await getBlob(p.id);
-      if(b){rec.img='pages/'+zipSafe(p.id)+'.jpg';zip.file(rec.img,b)}
-      const th=await getBlob(p.id+'|t');
-      if(th){rec.thumb='pages/'+zipSafe(p.id)+'.t.jpg';zip.file(rec.thumb,th)}
-      man.pages.push(rec);tick();
+      chunks.push((first?'':',')+JSON.stringify({id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo,meta:p.meta,b64:await b64p(await getBlob(p.id)),thumb:p.thumb||''}));
+      first=false;
     }
+    chunks.push('],"crops":[');
+    first=true;
     for(const c of crops){
-      const rec={id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo||'',qno:c.qno,part:c.part||0,score:c.score,
-        scoreVal:c.scoreVal!=null?c.scoreVal:null,aiScore:c.aiScore!=null?c.aiScore:null,aiReason:c.aiReason||'',
-        flag:c.flag||'',markedBy:c.markedBy||'',marked:c.marked||null};
-      const b=await getBlob(c.id);
-      if(b){rec.img='crops/'+zipSafe(c.id)+'.jpg';zip.file(rec.img,b)}
-      const mk=await getBlob(c.id+'|mk');
-      if(mk){rec.markedImg='crops/'+zipSafe(c.id)+'.mk.jpg';zip.file(rec.markedImg,mk)}
-      const th=await getBlob(c.id+'|t');
-      if(th){rec.thumb='crops/'+zipSafe(c.id)+'.t.jpg';zip.file(rec.thumb,th)}
-      man.crops.push(rec);tick();
+      chunks.push((first?'':',')+JSON.stringify({id:c.id,examId:c.examId,pageId:c.pageId||'',studentNo:c.studentNo,qno:c.qno,part:c.part,score:c.score,
+        scoreVal:c.scoreVal,aiScore:c.aiScore,aiReason:c.aiReason,flag:c.flag,markedBy:c.markedBy,thumb:c.thumb||'',
+        b64:await b64p(await getBlob(c.id)),markedB64:await b64p(await getBlob(c.id+'|mk'))}));
+      first=false;
     }
-    zip.file('manifest.json',JSON.stringify(man));
-    const blob=await zip.generateAsync({type:'blob',compression:'STORE'},function(m){packProg('正在压缩 '+Math.round((m&&m.percent)||0)+'%')});
-    packProgEnd();
-    download('智能阅卷备份_'+tsName()+'.zip',blob,'application/zip');
-    toast('完整备份已导出（ZIP）','ok');
-  }catch(err){packProgEnd();toast('导出失败：'+err.message,'err')}
+    chunks.push(']}');
+    download('智能阅卷备份_'+tsName()+'.json',new Blob(chunks,{type:'application/json;charset=utf-8'}),'application/json;charset=utf-8');
+    toast('备份已导出','ok');
+  }catch(err){toast('导出失败：'+err.message,'err')}
 }
 async function backupImport(file){
   try{
-    if(!file)return;
     toast('解析备份…');
-    let isZip=/\.zip$/i.test(file.name||'');
-    if(!isZip){
-      try{const hb=new Uint8Array(await file.slice(0,2).arrayBuffer());isZip=hb[0]===0x50&&hb[1]===0x4b}catch(e){}
-    }
+    const obj=JSON.parse(await file.text());
+    if(obj.app!=='yuejuan')throw new Error('不是本系统的备份文件');
     const ok=await dlgConfirm('导入备份','导入将<b>覆盖现有全部数据</b>（班级/学生/模板/考试/识别/判分）。目标环境已有数据会丢失，确定？','覆盖导入');
     if(!ok)return;
-    let obj=null,zip=null;
-    if(isZip){
-      if(typeof JSZip==='undefined')throw new Error('打包组件未加载：lib/jszip.min.js');
-      zip=await JSZip.loadAsync(file);
-      const mf=zip.file('manifest.json');
-      if(!mf)throw new Error('ZIP 备份缺少 manifest.json');
-      obj=JSON.parse(await mf.async('string'));
-    }else{
-      obj=JSON.parse(await file.text());
-    }
-    if(obj.app!=='yuejuan')throw new Error('不是本系统的备份文件');
     for(const s of ['classes','students','templates','exams','pages','crops','revs','blobs'])await dbClear(s);
-    for(const k of ['classes','students','templates','exams'])for(const it of ((obj.data&&obj.data[k])||[]))await dbPut(k,it);
+    for(const k of ['classes','students','templates','exams'])for(const it of (obj.data[k]||[]))await dbPut(k,it);
     for(const r of (obj.revs||[]))await dbPut('revs',r);
-    /* ZIP：图片按二进制还原；JSON：兼容旧版 base64（b64/markedB64/thumb dataURL） */
-    const zp=async function(path){
-      if(!zip||!path)return null;
-      const f=zip.file(path);if(!f)return null;
-      try{return await f.async('blob')}catch(e){return null}
-    };
-    const thumbOf=function(rec){return zip?zp(rec.thumb):(typeof rec.thumb==='string'&&rec.thumb.indexOf('data:')===0?dataURLToBlob(rec.thumb):null)};
-    let withImg=0;
-    for(const p of (obj.pages||[])){
-      const t=await thumbOf(p);
-      await dbPut('pages',{id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo||'',meta:p.meta||{},hasThumb:t?1:null});
-      const b=zip?await zp(p.img):(p.b64?b64ToBlob(p.b64):null);
-      if(b){await putBlob(p.id,b);withImg++}
-      if(t)await putBlob(p.id+'|t',t);
+    /* 恢复扫描页/裁剪图（完整备份按 base64 还原；最小备份仅还原元数据/判分） */
+    const full=obj.pages&&obj.pages.length&&obj.pages[0].b64;
+    if(obj.pages)for(const p of obj.pages){
+      await dbPut('pages',{id:p.id,examId:p.examId,pageNo:p.pageNo,studentNo:p.studentNo||'',meta:p.meta||{},
+        thumb:full&&p.thumb||''});
+      if(full&&p.b64){const b=await b64ToBlob(p.b64);if(b)await putBlob(p.id,b);}
     }
-    for(const c of (obj.crops||[])){
-      const t=await thumbOf(c);
-      const m=zip?await zp(c.markedImg):(c.markedB64?b64ToBlob(c.markedB64):null);
+    if(obj.crops)for(const c of obj.crops){
       await dbPut('crops',{id:c.id,examId:c.examId,exam_q:c.examId+'|'+c.qno,pageId:c.pageId||'',
         studentNo:c.studentNo||'',qno:c.qno,part:c.part||0,score:c.score,
         scoreVal:c.scoreVal!=null?c.scoreVal:null,aiScore:c.aiScore!=null?c.aiScore:null,
         aiReason:c.aiReason||'',flag:c.flag||'',markedBy:c.markedBy||'',
-        marked:m?1:(c.marked||null),hasThumb:t?1:null});
-      const b=zip?await zp(c.img):(c.b64?b64ToBlob(c.b64):null);
-      if(b){await putBlob(c.id,b);withImg++}
-      if(m)await putBlob(c.id+'|mk',m);
-      if(t)await putBlob(c.id+'|t',t);
+        marked:(full&&c.markedB64)?1:null,
+        thumb:full&&c.thumb||''});
+      if(full&&c.b64){const b=await b64ToBlob(c.b64);if(b)await putBlob(c.id,b);}
+      if(full&&c.markedB64){const mb=await b64ToBlob(c.markedB64);if(mb)await putBlob(c.id+'|mk',mb);}
     }
-    toast('导入完成（'+((obj.data&&obj.data.students)||[]).length+' 名学生 / '+((obj.data&&obj.data.exams)||[]).length+' 场考试'
-      +(withImg?' · 已恢复 '+withImg+' 张扫描图':' · 未含扫描图（可重扫）')+'）','ok');
+    toast('导入完成（'+((obj.data&&obj.data.students||[]).length)+' 名学生 / '+(obj.data.exams||[]).length+' 场考试'
+      +(full?' · 已恢复扫描图':' · 未含扫描图（可重扫）')+'）','ok');
     go('home');
   }catch(err){toast('导入失败：'+err.message,'err')}
 }
@@ -4861,7 +4721,7 @@ async function backupImport(file){
 
 /*__YJ_MORE__*/
 /* 调试钩子（供自动化校验/排障使用） */
-window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,delBlob:delBlob,dbDelMany:dbDelMany,thumbURL:thumbURL,fillThumbs:fillThumbs,dataURLToBlob:dataURLToBlob,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,cropQuad:cropQuad,dist:dist,groupQChoices:groupQChoices,qBubbleGeom:qBubbleGeom,cropViaH:cropViaH,layoutHash:layoutHash,qrPackBytes:qrPackBytes,qrUnpackBytes:qrUnpackBytes,
+window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,delBlob:delBlob,dbDelMany:dbDelMany,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,cropQuad:cropQuad,dist:dist,groupQChoices:groupQChoices,qBubbleGeom:qBubbleGeom,cropViaH:cropViaH,layoutHash:layoutHash,qrPackBytes:qrPackBytes,qrUnpackBytes:qrUnpackBytes,
   globalSolids:globalSolids,pickQuad:pickQuad,pickTriSmart:pickTriSmart,detectAnchorsGlobal:detectAnchorsGlobal,detectAnchors:detectAnchors,findSolid:findSolid,
   qrPayloadFor:qrPayloadFor,qrFromCanvas:qrFromCanvas,qrFromCrop:qrFromCrop,makeQRCanvas:makeQRCanvas,qrParsePayload:qrParsePayload,
   dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs','blobs'])dbClear(s).catch(()=>{});return 'ok'},
