@@ -1017,8 +1017,8 @@ async function qrParsePayload(data){
     const o=qrUnpackBytes(bytes);
     const page=qrSkeleton(o.w,o.h,o.regDigits,o.page,o.pages,o.info);
     page.perScore=o.perScore;
-    page.groups=o.groups;
-    page.subjective=o.subjective;
+    page.groups=o.groups||[];
+    page.subjective=o.subjective||[];
     return page;
   }
   if(flag==='2'){
@@ -1112,7 +1112,7 @@ async function exportTemplatePDF(tpl){
     });
     pdf.save('答题卡_'+tpl.name+'_'+tsName()+'.pdf');
     dlgClose();
-    toast('PDF 已导出：'+layout.pages.length+' 页（请按 100%/实际大小 打印）','ok');
+    toast('PDF 已导出：'+layout.pages.length+' 页（建议按 100%/实际大小 打印）','ok');
   }catch(err){
     console.error(err);
     dlgClose();
@@ -1428,6 +1428,9 @@ function inkRatio(bin,w,h,cx,cy,r){
 /* 同步条行检测：对每个预期行位置，在 x±2mm 竖窗内找黑色横段质心 */
 function detectRowMarks(bin,w,h,expPx,smm){
   const marks=[];
+  /* 同步条宽 0.8-1mm，选择题组左边框线只有 0.3mm：按“毫米宽度”而非固定像素数判定，
+     否则高分辨率（打印放大/高像素手机照片）时边框线也满足 c>=4，会把相邻同步条连成一条长黑带而全部漏检 */
+  const needCol=Math.max(4,Math.round(smm*0.45));
   expPx.forEach(function(exp,idx){
     const mm=smm;
     const y0=Math.round(exp.y-mm*4.2),y1=Math.round(exp.y+mm*4.2);
@@ -1437,16 +1440,16 @@ function detectRowMarks(bin,w,h,expPx,smm){
     for(let y=y0;y<=y1;y++){
       let c=0;
       for(let x=x0;x<=x1;x++)if(bin[y*w+x])c++;
-      if(c>=4){if(runY===null)runY=y;runLen++;if(c>widthMax)widthMax=c;}
+      if(c>=needCol){if(runY===null)runY=y;runLen++;if(c>widthMax)widthMax=c;}
       else{
-        if(runLen>=minRun&&runLen<=maxRun&&widthMax>=5){
+        if(runLen>=minRun&&runLen<=maxRun&&widthMax>=needCol){
           const center=runY+(runLen-1)/2;
           if(best===null||Math.abs(center-exp.y)<Math.abs(best-exp.y))best=center;
         }
         runY=null;runLen=0;widthMax=0;
       }
     }
-    if(runLen>=minRun&&runLen<=maxRun&&widthMax>=5){
+    if(runLen>=minRun&&runLen<=maxRun&&widthMax>=needCol){
       const center=runY+(runLen-1)/2;
       if(best===null||Math.abs(center-exp.y)<Math.abs(best-exp.y))best=center;
     }
@@ -1827,7 +1830,10 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       for(let i=0;i<G.length;i++)G[i]=G[i]<=lo?0:(G[i]>=hi?255:Math.round((G[i]-lo)*255/range));
     }
   }catch(e){}
-  const bin=binarize(gray.gray,gray.w,gray.h,omr.k,omr.win);
+  /* 自适应二值化窗口按物理尺寸缩放（≈1.3mm）：固定 15px 时高分辨率下实心锚点内部会被“掏空”，
+     连通域实心度跌破阈值 → 400dpi 以上扫描/高像素照片找不到锚点 */
+  const binWin=Math.max(omr.win,Math.round(smm*1.3));
+  const bin=binarize(gray.gray,gray.w,gray.h,omr.k,binWin);
   const flags=[];
   /* 源分辨率过低会同时影响判读与切割图清晰度，明确告警以便重拍 */
   if(smm<5)flags.push('扫描分辨率偏低（约'+Math.round(smm*25.4)+'dpi）：建议用 150dpi 以上扫描，或手机拍摄时选原图上传');
@@ -1950,9 +1956,15 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 裁剪二维码增强识别 */
   if(!qrFound){
     const cropData=await qrFromCrop(cv,H,geometry.qr||page.qr,smm);
-    if(cropData){try{layoutSlice=await qrParsePayload(cropData);qrFound=true}catch(e){}}
+    if(cropData){
+      try{
+        const ls=await qrParsePayload(cropData);
+        /* 只接受结构完整的版式（含 groups 数组），脏数据/截断码一律丢弃并回退到传入版式 */
+        if(ls&&(ls.minimal||Array.isArray(ls.groups))){layoutSlice=ls;qrFound=true}
+      }catch(e){}
+    }
   }
-  const pg2=layoutSlice||page;
+  const pg2=(layoutSlice&&Array.isArray(layoutSlice.groups))?layoutSlice:page;
   const reg=pg2.reg||null;
   const regDigitsN=(pg2.regDigits!=null)?pg2.regDigits:page.regDigits;
   /* 考号识别（含同步条行校正；无考号区页面跳过并向组装阶段沿用上一页考号） */
@@ -2316,7 +2328,7 @@ async function renderHome(){
       +'<div class="acts"><button class="btn btn-s btn-p" style="pointer-events:none">进入</button></div></div>';
   }).join('')
   +'</div>'
-  +'<div class="tip" style="margin-top:10px">打印提示：导出 PDF 后务必选 <b>「实际大小 / 100%」</b>；手机拍摄时手机方向与试卷方向一致、四角完整可见；识别详情页可打开「识别框选」查看每个涂点的识别状态（绿=已识别，红/橙=不清晰）。</div></div>';
+  +'<div class="tip" style="margin-top:10px">打印提示：导出 PDF 后建议选 <b>「实际大小 / 100%」</b>（识别会按四角定位点自动校正缩放，±15% 内的均匀缩放也能识别；但缩放会同时缩小涂点，涂不黑时更容易判为待复核）；手机拍摄时手机方向与试卷方向一致、四角完整可见；识别详情页可打开「识别框选」查看每个涂点的识别状态（绿=已识别，红/橙=不清晰）。</div></div>';
   let statusMap={};
   try{statusMap=await examStatusMap(exams.map(function(e){return e.id}))}catch(e){}
   let examCards='';
@@ -2426,7 +2438,7 @@ async function tplEditorHTML(tplId){
     +'<button class="btn btn-o" data-act="tpl-pdf" data-id="'+t.id+'">导出 PDF</button>'
     +'<button class="btn" data-act="tpl-export" data-id="'+t.id+'">导出 JSON</button>'
     +'<button class="btn" data-act="tpl-edit-cancel">返回列表</button>'
-    +'<span class="tip">保存时自动校验并重新排版；PDF 导出为 300dpi，打印请选「实际大小/100%」。</span></div>'
+    +'<span class="tip">保存时自动校验并重新排版；PDF 导出为 300dpi，打印建议选「实际大小/100%」（均匀缩放会被自动校正，缩得越小涂点越难点满）。</span></div>'
     +'<div class="card"><h3>基本信息</h3><div class="f-grid">'
     +'<div><label class="f-lb">模板名称</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="name" value="'+esc(t.name)+'"></div>'
     +'<div><label class="f-lb">纸型</label><select class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="paper">'
@@ -4654,7 +4666,7 @@ async function renderSet(){
     +'<div class="tip" style="margin-top:8px">所有数据保存在本浏览器 IndexedDB 中。换电脑/清缓存前请先导出；完整备份为 ZIP（manifest + 图片二进制，体积小、导入快），最小备份为 JSON（仅班级、学生、模板、考试、答案、识别与判分数据，页图可用原件重扫）。</div></div>';
   html+='<div class="card"><h3>打印提示 & 使用说明</h3>'
     +'<div class="tip" style="line-height:1.9">'
-    +'<b>打印答题卡：</b>导出 PDF 后在打印对话框中选 <b>「实际大小 / 100% / 无缩放」</b>，不要选「适应页面」；否则非等比缩放会被检测为「版式异常」。<br>'
+    +'<b>打印答题卡：</b>导出 PDF 后建议在打印对话框选 <b>「实际大小 / 100% / 无缩放」</b>。识别按四角定位点自动校正缩放与倾斜，<b>均匀缩放（约 ±15% 内）可以正常识别</b>；但「适应页面」等缩放会让涂点一起变小，填涂不足时更容易进待复核，故仍建议 100%。<br>'
     +'<b>拍照指引：</b>尽量正上方拍摄、卡片四角锚点完整、无反光强阴影；<b>手机方向与试卷方向一致</b>（竖版卡片竖拍，不要横着拍）；桌面/背景不影响（自动在全图寻找四角定位点）。<br>'
     +'<b>识别提示：</b>若得分与预期不符，多为填涂未涂黑/未涂满或定位点印刷不清/被遮挡——在「查看」页打开<b>识别框选</b>（绿=已识别，红/橙=不清晰），对照后重扫即可。<br>'
     +'<b>识别原理：</b>6 锚点定位 → 单应校正 → 同步条逐行校正 → OMR 判涂（考号 + 客观题）；页脚左下二维码自描述版式，打印后扫描无需选模板。<br>'
