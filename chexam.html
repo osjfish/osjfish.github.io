@@ -118,7 +118,7 @@ const DEFAULT_SETTINGS = {
   doubaoKey: '',
   doubaoEndpoint: '',
   apiType: 'deepseek',
-  selectedModel: 'deepseek-v4-pro'
+  selectedModel: 'deepseek-v4.1-flash-expires-on-0910'
 };
 function Column({
   title,
@@ -187,7 +187,13 @@ function App() {
   });
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('exam_settings_v4_standalone');
-    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    if (!saved) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(saved);
+    // 旧默认模型 deepseek-v4-pro 统一升级为新的默认 Flash 模型
+    if (!parsed.selectedModel || parsed.selectedModel === 'deepseek-v4-pro') {
+      parsed.selectedModel = DEFAULT_SETTINGS.selectedModel;
+    }
+    return parsed;
   });
   const [isLoading, setIsLoading] = useState(false);
   const [modalType, setModalType] = useState('none');
@@ -1603,7 +1609,7 @@ ${tempPrompt}
     size: 10
   }))), React.createElement("div", {
     className: "flex gap-2"
-  }, ['deepseek-v4-flash-vision-exp', 'deepseek-v4-pro'].map(m => React.createElement("button", {
+  }, ['deepseek-v4.1-flash-expires-on-0910', 'deepseek-v4-pro'].map(m => React.createElement("button", {
     key: m,
     onClick: () => setSettings(s => ({
       ...s,
