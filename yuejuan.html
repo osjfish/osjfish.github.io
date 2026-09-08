@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--category:教育-->
 <title>智能阅卷</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f6fed'/%3E%3Cpath d='M8 16l5 5 11-11' stroke='%23fff' stroke-width='3.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -291,7 +292,12 @@ function openDB(){
         if(d.objectStoreNames.contains('crops')){mig('crops','blob','');mig('crops','marked','|mk');}
       }catch(e){}
     };
-    req.onsuccess=function(){db=req.result;res(db)};
+    req.onsuccess=function(){
+      db=req.result;
+      db.onversionchange=function(){try{db.close()}catch(e){} db=null; try{toast('数据库已在其他标签页升级，请刷新本页','err')}catch(e){} };
+      res(db);
+    };
+    req.onblocked=function(){try{toast('请先关闭其他已打开本应用的标签页，再刷新本页以完成数据升级','err')}catch(e){}};
     req.onerror=function(){rej(req.error)};
   });
 }
@@ -415,6 +421,7 @@ function renderNav(){
   }).join('');
 }
 function go(tab){
+  releaseAllBlobURLs();
   ui.tab=tab;
   saveJSON(LS_UI,{tab:tab});
   renderNav();
@@ -2314,7 +2321,7 @@ async function tplThumb(tpl){
 }
 async function tplEditorHTML(tplId){
   const t=await dbGet('templates',tplId);
-  if(!t)return emptyBox('⚠️','模板不存在');
+  if(!t)return emptyBox('!','模板不存在');
   const qs=normalizeQuestions(t);
   const qRows=qs.map(function(q,i){
     const mv='<button class="btn btn-sm" data-act="tpl-q-up" data-id="'+t.id+'" data-i="'+i+'" title="上移"'+(i===0?' disabled':'')+'>↑</button>'
@@ -2647,8 +2654,8 @@ async function renderCls(){
     +'<input class="inp" id="stuAddName" style="width:130px" placeholder="姓名">'
     +'<input class="inp" id="stuAddNote" style="width:130px" placeholder="备注（可选）">'
     +'<button class="btn btn-p btn-s" data-act="stu-add" data-id="'+cls.id+'">添加</button>'
-    +'<button class="btn btn-o btn-s" data-act="stu-excel-tpl">⬇ 下载《考生信息表.xlsx》模板</button>'
-    +'<button class="btn btn-o btn-s" data-act="stu-excel">⬆ 导入 Excel</button>'
+    +'<button class="btn btn-o btn-s" data-act="stu-excel-tpl">下载《考生信息表.xlsx》模板</button>'
+    +'<button class="btn btn-o btn-s" data-act="stu-excel">导入 Excel</button>'
     +'<input type="file" id="stuExcelFile" accept=".xlsx,.xls,.csv" style="display:none">'
     +'<button class="btn btn-s" data-act="stu-csv">导出 CSV</button>'
     +'</div>';
@@ -2823,7 +2830,7 @@ async function renderExam(){
     +'<button class="btn btn-p" data-act="exam-new">＋ 新建考试</button>'
     +'<span class="tip">考试 = 班级 + 答题卡模板 + 客观题答案 + 主观题满分/评分要点</span></div>';
   if(!exams.length){
-    html+='<div class="card">'+emptyBox('📋','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
+    html+='<div class="card">'+emptyBox('·','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
   }else{
     const cards=[];
     let statusMap={};
@@ -3062,7 +3069,7 @@ async function renderScan(){
   }
   const ex=await dbGet('exams',ui.scanExam);
   const meta=await examMeta(ex);
-  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('⚠️','考试「'+esc(ex.name)+'」使用的答题卡模板不存在或已删除。<br>请到「答题卡模板」恢复模板后重试。')+'</div>';return}
+  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('!','考试「'+esc(ex.name)+'」使用的答题卡模板不存在或已删除。<br>请到「答题卡模板」恢复模板后重试。')+'</div>';return}
   const cls=await dbGet('classes',ex.classId);
   const students=await dbByIdx('students','byClass',ex.classId);
   const pages=await dbByIdx('pages','byExam',ex.id);
@@ -3685,7 +3692,7 @@ async function renderGrade(){
   const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
   if(!ui.gradeExam||!(exams.find(function(e){return e.id===ui.gradeExam})))ui.gradeExam=exams.length?exams[0].id:null;
   if(!ui.gradeExam){
-    $('page').innerHTML='<div class="card">'+emptyBox('📋','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
+    $('page').innerHTML='<div class="card">'+emptyBox('·','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
       +'<button class="btn btn-p" data-act="go-exam">去创建考试</button></div>';
     return;
   }
@@ -3693,7 +3700,7 @@ async function renderGrade(){
   if(!gradeCtx||gradeCtx.examId!==ex.id){gradeCtx=null;ui.gradeQno=null;}
   if(!ui.gradeQno){
     const meta=await examMeta(ex);
-    if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('⚠️','该考试使用的答题卡模板不存在或已删除。')+'</div>';return}
+    if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('!','该考试使用的答题卡模板不存在或已删除。')+'</div>';return}
     const cropsAll=await dbByIdx('crops','byExam',ex.id);
     const crops=cropsAll;
     let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
@@ -4147,9 +4154,9 @@ async function renderScore(){
   }
   const ex=await dbGet('exams',ui.scoreExam);
   const book=await computeScorebook(ex.id);
-  if(!book){$('page').innerHTML=emptyBox('⚠️','计算失败');return}
+  if(!book){$('page').innerHTML=emptyBox('!','计算失败');return}
   const meta=book.meta;
-  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('⚠️',''+(book.error||'模板缺失，无法计算成绩')+'<br>请到「答题卡模板」恢复或重建该模板。')+'</div>';return}
+  if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('!',''+(book.error||'模板缺失，无法计算成绩')+'<br>请到「答题卡模板」恢复或重建该模板。')+'</div>';return}
   const sc=book.rows.filter(function(r){return !r.absent});
   const n=sc.length;
   const sf=sc.length?sc.reduce(function(a,r){return a+r.total},0)/sc.length:0;
@@ -4710,7 +4717,7 @@ async function backupImport(file){
 window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,delBlob:delBlob,dbDelMany:dbDelMany,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,cropQuad:cropQuad,dist:dist,groupQChoices:groupQChoices,qBubbleGeom:qBubbleGeom,cropViaH:cropViaH,layoutHash:layoutHash,qrPackBytes:qrPackBytes,qrUnpackBytes:qrUnpackBytes,
   globalSolids:globalSolids,pickQuad:pickQuad,pickTriSmart:pickTriSmart,detectAnchorsGlobal:detectAnchorsGlobal,detectAnchors:detectAnchors,findSolid:findSolid,
   qrPayloadFor:qrPayloadFor,qrFromCanvas:qrFromCanvas,qrFromCrop:qrFromCrop,makeQRCanvas:makeQRCanvas,qrParsePayload:qrParsePayload,
-  dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs'])dbClear(s).catch(()=>{});return 'ok'},
+  dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs','blobs'])dbClear(s).catch(()=>{});return 'ok'},
   detectRowMarks:detectRowMarks,rowDeltas:rowDeltas,inkRatio:inkRatio,solveHomo:solveHomo,omr:omr,
   realignGrid:realignGrid,gridAbnormal:gridAbnormal,gridPitchRatio:gridPitchRatio,
   renderPageCanvas:renderPageCanvas,renderPagesAsync:renderPagesAsync,canvasDataURL:canvasDataURL,
