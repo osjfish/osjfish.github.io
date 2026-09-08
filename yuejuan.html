@@ -274,22 +274,29 @@ function openDB(){
       if(!d.objectStoreNames.contains('blobs'))d.createObjectStore('blobs',{keyPath:'id'});
       try{
         const bstore=req.transaction.objectStore('blobs');
-        const mig=function(storeName,field,idSuffix){
+        /* 单次游标同时迁移一个表内的多个图片字段，避免两次游标互相覆盖（旧记录被写回） */
+        const mig=function(storeName,fields){
+          if(!d.objectStoreNames.contains(storeName))return;
           const src=req.transaction.objectStore(storeName);
           src.openCursor().onsuccess=function(e){
             const cur=e.target.result;
             if(!cur)return;
             const rec=cur.value;
-            if(rec&&rec[field]){
-              bstore.put({id:rec.id+(idSuffix||''),blob:rec[field]});
-              delete rec[field];
-              cur.update(rec);
-            }
+            let changed=false;
+            if(rec)fields.forEach(function(f){
+              const v=rec[f.field];
+              if(v&&typeof Blob!=='undefined'&&v instanceof Blob){
+                bstore.put({id:rec.id+(f.suffix||''),blob:v});
+                if(f.flag!==undefined)rec[f.field]=f.flag;else delete rec[f.field];
+                changed=true;
+              }
+            });
+            if(changed)cur.update(rec);
             cur.continue();
           };
         };
-        if(d.objectStoreNames.contains('pages'))mig('pages','blob','');
-        if(d.objectStoreNames.contains('crops')){mig('crops','blob','');mig('crops','marked','|mk');}
+        mig('pages',[{field:'blob'}]);
+        mig('crops',[{field:'blob'},{field:'marked',suffix:'|mk',flag:1}]);
       }catch(e){}
     };
     req.onsuccess=function(){
