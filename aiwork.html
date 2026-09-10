@@ -380,7 +380,7 @@ select.fc{cursor:pointer;background:#fff}
     <div id="apiDeepseek">
       <div class="fg"><label>API Key</label><input type="password" class="fc" id="dsKey" placeholder="sk-..." autocomplete="new-password"></div>
       <div style="font-size:12px;color:#8a8279">接口地址已内置: https://api.deepseek.com</div>
-      <div style="margin-top:4px;font-size:12px;color:#8a8279">可用模型: DeepSeek V4.1 Flash / DeepSeek V4 PRO</div>
+      <div style="margin-top:4px;font-size:12px;color:#8a8279">可用模型: DeepSeek Flash（支持视觉）/ DeepSeek V4 PRO</div>
     </div>
     <div id="apiDoubao" style="display:none">
       <div class="fg"><label>API Key</label><input type="password" class="fc" id="dbKey" placeholder="sk-..." autocomplete="new-password"></div>
@@ -460,7 +460,7 @@ const $=id=>document.getElementById(id);
 
 const PROVIDERS={
   deepseek:{name:'DeepSeek',apiUrl:'https://api.deepseek.com',models:[
-    {id:'deepseek-v4.1-flash-expires-on-0910',name:'DeepSeek V4.1 Flash'},
+    {id:'deepseek-flash',name:'DeepSeek Flash'},
     {id:'deepseek-v4-pro',name:'DeepSeek V4 PRO'}
   ]},
   doubao:{name:'豆包',models:[]},
@@ -512,7 +512,7 @@ async function save(){
   }catch(e){console.error('save error',e)}
 }
 function fixModel(m){
-  return (!m||['deepseek-v4-flash-vision-exp','deepseek-v4-flash'].indexOf(m)>=0)?'deepseek-v4.1-flash-expires-on-0910':m;
+  return (!m||['deepseek-v4-flash-vision-exp','deepseek-v4-flash'].indexOf(m)>=0)?'deepseek-flash':m;
 }
 async function load(){
   try{
@@ -606,7 +606,7 @@ function appPrompt(text,defaultVal){
 }
 
 function genUniqueName(){const base='新节点';let n=base,cnt=2;while(nodes.some(x=>x.name===n))n=base+(cnt++);return n}
-function createNode(){pushUndo();const id=++nodeIdCnt;nodes.push({id,name:genUniqueName(),type:'normal',provider:'deepseek',model:'deepseek-v4.1-flash-expires-on-0910',prompt:'',output:'',loading:false,files:[],judgeSourceId:'',judgeCriteria:'wordcount_min',judgeValue:'100',judgeFailJumpId:'',maxRetries:3});activeNode=id;renderAll();save()}
+function createNode(){pushUndo();const id=++nodeIdCnt;nodes.push({id,name:genUniqueName(),type:'normal',provider:'deepseek',model:'deepseek-flash',prompt:'',output:'',loading:false,files:[],judgeSourceId:'',judgeCriteria:'wordcount_min',judgeValue:'100',judgeFailJumpId:'',maxRetries:3});activeNode=id;renderAll();save()}
 async function deleteNode(id){if(!await appConfirm('确定删除此节点？'))return;pushUndo();nodes=nodes.filter(n=>n.id!==id);if(activeNode===id)activeNode=nodes[0]?.id||null;renderAll();save()}
 function clearOutputs(){pushUndo();nodes.forEach(n=>n.output='');renderAll();save()}
 async function initWorkflow(){if(!await appConfirm('确定初始化？将清空所有节点，已保存的模板不受影响。'))return;pushUndo();nodes=[];nodeIdCnt=0;activeNode=null;save();renderAll();toast('已初始化','s')}
