@@ -2122,27 +2122,57 @@ async function scanExamPages(exam,files,onProgress,forcePage){
   const layout=layoutTemplate(tpl);
   const items=await filesToCanvases(files,2600);
   const results=[];
-  let idx=0,lastNo='';
+  let idx=0;
+  /* 续页沿用考号：分次上传时同一学生的续页在上一次上传里，批次内变量不够用，按考试持久化 */
+  const lsNoKey='yj_lastno_'+exam.id;
+  let lastNo='';
+  try{lastNo=localStorage.getItem(lsNoKey)||''}catch(e){}
   for(const it of items){
-    const pageIdx=(forcePage!=null&&forcePage>0)?Math.min(layout.pages.length-1,forcePage-1):Math.min(layout.pages.length-1,(it.pageNo||1)-1);
-    let res;
-    try{res=await recognizeCanvas(it.cv,layout,pageIdx,{})}
-    catch(err){
+    /* 页号自动匹配：多页答题卡分次上传（或续页混拍）时文件页号不可靠——模板二维码只印首页，
+       故按“读到码→优先首页，未读到→优先续页”的顺序逐一尝试，首个识别成功者即该页。 */
+    const seqIdx=Math.min(layout.pages.length-1,(it.pageNo||1)-1);
+    let order;
+    if(forcePage!=null&&forcePage>0){
+      order=[Math.min(layout.pages.length-1,forcePage-1)];
+    }else if(layout.pages.length===1){
+      order=[0];
+    }else{
+      let hasQR=false;
+      try{hasQR=!!qrFromCanvas(it.cv)}catch(e){}
+      const wq=[],nq=[];
+      layout.pages.forEach(function(p,i){(p.qr?wq:nq).push(i)});
+      const grp=hasQR?wq:nq;
+      const at=grp.indexOf(seqIdx);
+      if(at>0){grp.splice(at,1);grp.unshift(seqIdx)} /* 同组内优先按输入顺序页，减少多余尝试 */
+      order=hasQR?wq.concat(nq):nq.concat(wq);
+    }
+    let res=null,pageIdx=order[0];
+    for(const pi of order){
+      let r;
+      try{r=await recognizeCanvas(it.cv,layout,pi,{})}
+      catch(err){r={ok:false,status:'error',flags:['图像解析异常：'+(err.message||String(err))],perQ:[],regFlags:[]}}
+      if(!res){res=r;pageIdx=pi;}
+      if(r.status==='ok'){res=r;pageIdx=pi;break;}
+    }
+    if(!res||res.status==='error'){
       results.push({id:uid('pg_'),examId:exam.id,studentNo:'',pageNo:it.pageNo,
-        meta:{status:'error',qrFound:false,flags:['图像解析异常：'+(err.message||String(err))],perQ:[],regFlags:[],
-          layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}});
+        meta:{status:'error',qrFound:false,flags:(res&&res.flags)||['图像解析异常'],perQ:[],regFlags:[],
+          layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,filePage:it.pageNo,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}});
       if(onProgress)onProgress(++idx,items.length,it);
       continue;
     }
     const blob=await canvasToJpeg(it.cv,0.88);
-    /* 无考号区页面：沿用本批上一识别页的考号（页序即学生分组） */
+    /* 无考号区页面：沿用本批（或上一批）识别出的考号（页序即学生分组） */
     if(!res.studentNo&&lastNo)res.studentNo=lastNo;
-    if(res.studentNo)lastNo=res.studentNo;
+    if(res.studentNo&&res.studentNo.indexOf('_')<0&&res.studentNo.indexOf('?')<0){
+      lastNo=res.studentNo;
+      try{localStorage.setItem(lsNoKey,lastNo)}catch(e){}
+    }
     const realPageNo=res.detectedPageNo||it.pageNo;
     const pageRec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:realPageNo,
       hasThumb:1,
       meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
-        perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,
+        perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,filePage:it.pageNo,
         H:res.H?res.H.h:null,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}};
     await dbPut('pages',pageRec);
     await putBlob(pageRec.id,blob);
@@ -3186,7 +3216,7 @@ async function renderScan(){
     +meta.layout.pages.map(function(p,i){return '<option value="'+(i+1)+'"'+((ui.scanForcePage||0)===(i+1)?' selected':'')+'>本批都是第'+(i+1)+'页</option>'}).join('')
     +'</select>'
     +'<button class="btn btn-d" data-act="scan-clear">清空本场扫描结果</button>'
-    +'<span class="tip">扫描件按页顺序对应模板页；识别用「6 锚点 + 同步条 + 单应校正」，第 1 页二维码自描述版式。</span>'
+    +'<span class="tip">多页答题卡可一次全选上传，也可逐张上传——程序按二维码自动判断第几页（读到码=首页，未读到=续页）；续页自动沿用上一张识别出的考号。</span>'
     +'</div>'
     +'<div id="scanProgBox" style="margin-top:10px;display:none"><div class="prog-line"><span id="scanProgTxt"></span><div class="progress" style="flex:1"><div id="scanProgBar" style="width:0%"></div></div></div><div id="scanLog" class="tip"></div></div>'
     +'</div>';
@@ -3214,7 +3244,7 @@ async function renderScan(){
         const ok=m.status==='ok';
         const flags=(m.flags||[]).filter(function(f){return f&&f!=='null'});
         return '<tr><td>'+(p.hasThumb?thumbImg(p.id,'width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer','data-act="scan-page" data-id="'+p.id+'"'):'<div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--line);background:#EEE;text-align:center;line-height:44px;font-size:12px;color:#999">—</div>')+'</td>'
-          +'<td>'+(p.pageNo)+'</td>'
+          +'<td>'+(p.pageNo)+((m.filePage&&m.filePage!==p.pageNo)?'<div class="kv" style="font-size:10px;white-space:nowrap">第'+m.filePage+'张自动匹配</div>':'')+'</td>'
           +'<td><b>'+esc(p.studentNo||'—')+'</b></td>'
           +'<td>'+(ok?badge('ok','已识别'):badge('err','定位失败'))+'</td>'
           +'<td class="kv">'+(m.qrFound?badge('info','已读码')+' ':'')+flags.map(function(f){return badge('warn',esc(f))}).join(' ')
@@ -3750,17 +3780,47 @@ Object.assign(ACTS,{
 });
 /* 重识别单页：更新 page 记录 + 重建该页主观题裁剪 */
 async function redoPage(p,cv,layout,opts){
-  const res=await recognizeCanvas(cv,layout,p.meta.pageIdx||0,opts);
+  opts=opts||{};
+  /* 未显式指定页时自动匹配页号（修正历史错配的页：如把续页当首页扫出来的记录）；
+     显式指定 manualPts 时页号必须固定，否则手动锚点与版式不符 */
+  let res,pageIdx=opts.pageIdx;
+  if(pageIdx==null&&!opts.manualPts&&layout.pages.length>1){
+    let hasQR=false;
+    try{hasQR=!!qrFromCanvas(cv)}catch(e){}
+    const wq=[],nq=[];
+    layout.pages.forEach(function(pg,i){(pg.qr?wq:nq).push(i)});
+    const pref=p.meta&&p.meta.pageIdx;
+    const grp=hasQR?wq:nq;
+    const at=grp.indexOf(pref);
+    if(at>0){grp.splice(at,1);grp.unshift(pref)} /* 原页号优先尝试，多数情况一次命中 */
+    const order=hasQR?wq.concat(nq):nq.concat(wq);
+    for(const pi of order){
+      res=await recognizeCanvas(cv,layout,pi,opts);
+      pageIdx=pi;
+      if(res.status==='ok')break;
+    }
+  }else{
+    pageIdx=(pageIdx==null)?(p.meta.pageIdx||0):pageIdx;
+    res=await recognizeCanvas(cv,layout,pageIdx,opts);
+  }
   /* 本次自动识别考号异常（或为空）时沿用原考号，避免批量重识别冲掉人工改判 */
   const badRead=!res.studentNo||res.studentNo.indexOf('_')>=0||res.studentNo.indexOf('?')>=0;
   const oldClean=p.studentNo&&p.studentNo.indexOf('_')<0&&p.studentNo.indexOf('?')<0;
   if(badRead&&oldClean){res.studentNo=p.studentNo;res.regFlags=['沿用原考号 '+p.studentNo+'（本次自动识别未读出）'];}
+  else if(!res.studentNo){
+    /* 续页无考号区：沿用该考试最近识别出的考号（覆盖分次上传与批量重识别两种情形） */
+    let lno='';
+    try{lno=localStorage.getItem('yj_lastno_'+p.examId)||''}catch(e){}
+    if(lno){res.studentNo=lno;res.regFlags=['本页无考号区，沿用考号 '+lno];}
+  }
   const blob=await canvasToJpeg(cv,0.88);
   const oldNo=p.studentNo;
   p.studentNo=res.studentNo||'';
+  if(res.detectedPageNo)p.pageNo=res.detectedPageNo;
   p.meta={status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
-    perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:res.geometry.w,layoutH:res.geometry.h,
-    pageIdx:p.meta.pageIdx,srcFile:p.meta.srcFile||'重新识别',srcW:p.meta.srcW,srcH:p.meta.srcH,H:res.H?res.H.h:null};
+    perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:res.geometry?res.geometry.w:p.meta.layoutW,
+    layoutH:res.geometry?res.geometry.h:p.meta.layoutH,
+    pageIdx:pageIdx,filePage:p.meta.filePage,srcFile:p.meta.srcFile||'重新识别',srcW:p.meta.srcW,srcH:p.meta.srcH,H:res.H?res.H.h:null};
   await dbPut('pages',p);
   await putBlob(p.id,blob);
   /* 考号变更时，迁移该生的人工改判记录，避免复核记录变成孤儿 */
