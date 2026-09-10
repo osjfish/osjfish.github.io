@@ -571,7 +571,7 @@ function layoutTemplate(tpl){
   const regDigits=Math.max(2,Math.min(12,tpl.regDigits||5));
   const colW=11, regW=regDigits*colW;
   const qr={x:w-52,y:34,size:34};
-  /* 考号区默认居中；位数多（≥9 位）时会与左上姓名框（右缘 58mm）或右上二维码（qr.x）重叠，
+  /* 考号区默认居中；位数多（≥9 位）时会与左上姓名框或右上二维码重叠，
      此时自动隐藏姓名框，并把考号区收进 [左边距, 二维码左侧] 内居中，避免涂点印进二维码 */
   let regX=Math.round((w-regW)/2);
   let infoHide=tpl.showInfo===false;
@@ -579,21 +579,27 @@ function layoutTemplate(tpl){
     infoHide=true;
     regX=Math.round(M+Math.max(0,(qr.x-4-M-regW)/2));
   }
+  /* 首页左上「姓名/班级/座位号/考号」手写信息框：宽度收在考号涂卡区左侧，避免重叠 */
+  const infoW=Math.max(30,Math.min(58,regX-4.5-M));
+  const infoBox={x:M,y:28,w:infoW,h:56};
   const regRowsY=[];
   for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
   const reg={x:regX,y:33,colW:colW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
     numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   const pages=[];
-  /* 续页顶部只留标题下方必要间距；底部留出页脚与定位点空间（内容最深到 h-19，页脚在 h-14.5），最大化利用纸面 */
-  const contentTop=94, contentTopCont=31, contentBottom=h-19;
+  /* 首页含考号区时内容从 94mm 起；续页顶部留给手写信息区，内容从 42mm 起；底部留页脚与定位点空间 */
+  const contentTop=94, contentTopCont=42, contentBottom=h-19;
+  /* 续页手写信息区（姓名 + 考号）：首页已有信息框，续页无考号区时靠它人工核对归属 */
+  const handInfo={x:M+2,y:26,w:contentW-4,h:11};
 
   const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
-    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&!infoHide)?{x:M,y:33,w:44,h:54.6}:null,
+    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&!infoHide)?infoBox:null,
+      handInfo:(pi>0)?handInfo:null,
       reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,
       pagemarks:pageMarksFor(pi),anchors:anchors,footer:{n:pi+1,m:0}};
   }
-  /* 无考号区页面顶部从 31mm 开始（标题下方留出组标签空间）；首页 94mm */
+  /* 无考号区页面顶部从 42mm 开始（标题+手写信息区之下）；首页 94mm */
   const pageTopFor=function(pi){return (pi===0||regEvery)?contentTop:contentTopCont};
   let pg=newPage(0); pages.push(pg);
   let curY=pageTopFor(0);
@@ -738,7 +744,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     const r=page.info;
     ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
     ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
-    const rows=[['姓名',8.5],['班级',20],['座位号',31.5]];
+    const rows=[['姓名',9],['班级',20],['座位号',31]];
     ctx.font=Math.max(9,Math.round(px(3.3)))+'px "Microsoft YaHei",sans-serif';
     rows.forEach(function(rd){
       ctx.textAlign='left';
@@ -746,6 +752,27 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       ctx.beginPath();ctx.moveTo(px(r.x+16),px(r.y+rd[1]+3.4));ctx.lineTo(px(r.x+r.w-3.5),px(r.y+rd[1]+3.4));
       ctx.lineWidth=Math.max(0.7,px(0.28));ctx.strokeStyle='#555';ctx.stroke();
     });
+    /* 第四行：考号手写格（每位一格，便于人工核对与后补） */
+    ctx.textAlign='left';ctx.fillStyle='#000';
+    ctx.fillText('考号',px(r.x+3.2),px(r.y+42));
+    drawHandDigits(ctx,px,r.x+15,r.y+42,r.w-19,page.regDigits||5);
+  }
+  /* 续页手写信息区：姓名 + 考号（人工核对归属的辅助信息） */
+  if(page.handInfo){
+    const r=page.handInfo;
+    ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
+    ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
+    ctx.textAlign='left';ctx.fillStyle='#000';
+    ctx.font=Math.max(9,Math.round(px(3.2)))+'px "Microsoft YaHei",sans-serif';
+    const cy=r.y+r.h/2;
+    /* 姓名：一条书写横线 */
+    ctx.fillText('姓名',px(r.x+3.2),px(cy));
+    ctx.beginPath();ctx.moveTo(px(r.x+16),px(cy+2.4));ctx.lineTo(px(r.x+58),px(cy+2.4));
+    ctx.lineWidth=Math.max(0.7,px(0.28));ctx.strokeStyle='#555';ctx.stroke();
+    /* 考号：方格（按模板位数） */
+    ctx.fillStyle='#000';
+    ctx.fillText('考号',px(r.x+64),px(cy));
+    drawHandDigits(ctx,px,r.x+76,cy,r.w-80,page.regDigits||5);
   }
   /* 考号区（仅首页；如需每页可开启模板选项） */
   const reg=page.reg;
@@ -894,6 +921,18 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
   }
   ctx.textAlign='center';
   return cv;
+}
+/* 手写考号格：在 (x0, cy) 起按 availableW 画 n 个等宽小格（供学生手写、人工核对） */
+function drawHandDigits(ctx,px,x0,cy,availableW,n){
+  n=Math.max(1,Math.min(12,n|0));
+  const cw=Math.max(2.6,Math.min(6.5,availableW/n));
+  const ch=Math.max(5,Math.min(6.5,cw+1.6));
+  ctx.lineWidth=Math.max(0.6,px(0.2));
+  ctx.strokeStyle='#666';
+  for(let i=0;i<n;i++){
+    ctx.strokeRect(px(x0+i*cw),px(cy-ch/2),px(cw),px(ch));
+  }
+  ctx.strokeStyle='#000';
 }
 function pageRegDigits(reg,page){return (page.regDigits||regDigitsOf(page))||5}
 function regDigitsOf(page){return page.regDigits||5}
@@ -1050,9 +1089,9 @@ function qrSkeleton(w,h,rd,pg,np,info){
   const reg={x:regX,y:33,colW:11,grid:8,rowsY:rowsY,bubble:3.2,dy:4.4,
     numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   return {w:w,h:h,title:'答题卡',
-    info:info?{x:14,y:33,w:44,h:54.6}:null,notes:null,
+    info:info?{x:14,y:28,w:58,h:56}:null,handInfo:(pg>1)?{x:16,y:26,w:w-32,h:11}:null,notes:null,
     reg:reg,regDigits:rd,groups:[],subjective:[],qr:{x:w-52,y:34,size:34},
-    anchors:anchors,footer:{n:pg,m:np}};
+    anchors:anchors,pagemarks:pageMarksFor(Math.max(0,(pg|0)-1)),footer:{n:pg,m:np}};
 }
 async function qrPayloadFor(layout,tpl,page){
   /* 最小化二维码：几何全部由模板（批内）提供，仅带 模板ID + 版式指纹 */
@@ -2550,7 +2589,7 @@ async function tplEditorHTML(tplId){
     +'<div><label class="f-lb">考号位数（2-12）</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="regDigits" type="number" min="2" max="12" value="'+esc(t.regDigits)+'"></div>'
     +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">显示姓名/班级/座位号框</label>'
     +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="showInfo"'+(t.showInfo!==false?' checked':'')+'>'
-    +'<span class="kv" style="margin-left:8px">（页面左上角信息框，仅首页；考号位数 ≥9 位时空间不足会自动隐藏，右上角为版式二维码）</span></div>'
+    +'<span class="kv" style="margin-left:8px">（首页左上角信息框：姓名/班级/座位号 + 考号手写格；考号位数 ≥9 位时空间不足会自动隐藏，右上角为版式二维码）</span></div>'
     +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">每页重复显示准考证号</label>'
     +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="regEveryPage"'+(t.regEveryPage===true?' checked':'')+'>'
     +'<span class="kv" style="margin-left:8px">默认<b>仅首页</b>：第2页起只印标题/页码/二维码，识别时自动沿用上一页考号；如需逐张独立识别可选此项</span></div>'
@@ -4847,6 +4886,7 @@ async function renderSet(){
     +'<b>识别提示：</b>若得分与预期不符，多为填涂未涂黑/未涂满或定位点印刷不清/被遮挡——在「查看」页打开<b>识别框选</b>（绿=已识别，红/橙=不清晰），对照后重扫即可。<br>'
     +'<b>识别原理：</b>6 锚点定位 → 单应校正 → 同步条逐行校正 → OMR 判涂（考号 + 客观题）；首页二维码自描述版式，识别时无需选模板。<br>'
     +'<b>页码标记：</b>卡片<b>左侧边缘的黑色小方块个数就是页码</b>（第1页 1 个、第2页 2 个…），多页答题卡分次上传/混拍时程序据此自动判断第几页，请勿涂写、遮挡或裁切该区域。<br>'
+    +'<b>续页手写区：</b>第2页起顶部印有<b>手写姓名与考号格</b>，请提醒学生填写——程序按页码自动归属的同时，阅卷/归档时可人工核对每页属于谁。<br>'
     +'<b>容错策略：</b>一切不确定项（涂点模糊/多涂、考号异常、定位失败、版式异常）都会进复核队列人工处理，不会静默误判。<br>'
     +'<b>版本：</b>智能阅卷 v1.0（网页版）· 对标 答题卡助手 Pro v4.3.0 核心闭环 · 2026-09</div></div>';
   $('page').innerHTML=html;
