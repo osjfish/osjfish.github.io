@@ -255,8 +255,8 @@ function defaultOMR(){
 }
 let omr=Object.assign(defaultOMR(),loadJSON(LS_OMR)||{});
 let ai=migrateAIModel(Object.assign(defaultAI(),loadJSON(LS_AI)||{}));
-/* 阅卷偏好：给分步长（+步长/−步长按钮与分档按钮的粒度） */
-let gradePref=Object.assign({step:0.5},loadJSON(LS_GRADE)||{});
+/* 阅卷偏好：给分步长、显示用图像增强档位（0 关 / 1 轻度 / 2 强力） */
+let gradePref=Object.assign({step:0.5,enhance:0},loadJSON(LS_GRADE)||{});
 
 /* ---------- 状态 ---------- */
 let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:null,gradeExam:null,gradeQno:null,scoreExam:null};
@@ -4129,7 +4129,8 @@ Object.assign(ACTS,{
   },
   'grade-zoom':function(el){
     const url=el.dataset.url;
-    dlg('<div style="text-align:center"><img src="'+url+'" style="max-width:92vw;max-height:82vh;border-radius:8px"></div>',{title:'放大查看',wide:true});
+    if(!url)return;
+    imageViewer(url,el.dataset.title||'查看图片（可缩放）');
   }
 });
 function gradeShuffle(){
@@ -4181,6 +4182,151 @@ async function gradeToggleFlag(flag){
   }
   toast(flag==='F'?'已切换「待商榷」标记':'已切换「优秀」标记','ok');
 }
+/* ---------- 可缩放图片查看器（阅卷放大看图用）----------
+   滚轮/双指缩放（以指针位置为锚点）、拖拽平移、双击在 1:1 与“适应窗口”间切换。
+   用于看清模糊字迹、笔顺与勾画细节。 */
+function imageViewer(url,title){
+  dlg('<div id="ivWrap" style="position:relative;overflow:hidden;height:74vh;background:#1b1f24;border-radius:10px;cursor:grab;touch-action:none">'
+    +'<img id="ivImg" src="'+url+'" draggable="false" style="position:absolute;left:0;top:0;transform-origin:0 0;user-select:none;-webkit-user-drag:none;will-change:transform;image-rendering:auto">'
+    +'<div id="ivInfo" style="position:absolute;left:8px;bottom:6px;color:#e2e8f0;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:6px;font-size:12px"></div>'
+    +'</div>',
+    {title:(title||'查看图片'),wide:true,
+     foot:'<span class="kv" style="flex:1;text-align:left">滚轮 / 双指缩放 · 拖拽平移 · 双击切换 1:1 与适应窗口</span>'
+       +'<button class="btn btn-s" data-act="iv-out">−</button>'
+       +'<button class="btn btn-s" data-act="iv-in">＋</button>'
+       +'<button class="btn btn-s" data-act="iv-reset">适应窗口</button>'
+       +'<button class="btn" data-act="dlg-close">关闭</button>'});
+  const wrap=$('ivWrap'),img=$('ivImg'),info=$('ivInfo');
+  const st={scale:1,tx:0,ty:0,fit:1,nat:[1,1]};
+  function apply(){
+    img.style.transform='translate('+st.tx+'px,'+st.ty+'px) scale('+st.scale+')';
+    if(info)info.textContent=Math.round(st.scale/st.fit*100)+'%';
+  }
+  function fitView(){
+    const ww=wrap.clientWidth||600,wh=wrap.clientHeight||400;
+    const f=Math.min(ww/st.nat[0],wh/st.nat[1]);
+    st.fit=f;st.scale=f;
+    st.tx=(ww-st.nat[0]*f)/2;
+    st.ty=(wh-st.nat[1]*f)/2;
+    apply();
+  }
+  function zoomAt(cx,cy,factor){
+    const ns=Math.max(st.fit*0.25,Math.min(st.fit*16,st.scale*factor));
+    const k=ns/st.scale;
+    st.tx=cx-(cx-st.tx)*k;
+    st.ty=cy-(cy-st.ty)*k;
+    st.scale=ns;
+    apply();
+  }
+  function ready(){
+    const nw=img.naturalWidth||img.width||1,nh=img.naturalHeight||img.height||1;
+    st.nat=[nw,nh];fitView();
+  }
+  img.addEventListener('load',ready);
+  if(img.complete&&img.naturalWidth)ready();
+  /* 滚轮缩放（以指针为锚点） */
+  wrap.addEventListener('wheel',function(e){
+    e.preventDefault();
+    const r=wrap.getBoundingClientRect();
+    zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.15:1/1.15);
+  },{passive:false});
+  /* 指针拖拽平移 + 双指缩放 */
+  const pts=new Map();
+  let pinch=null;
+  wrap.addEventListener('pointerdown',function(e){
+    try{wrap.setPointerCapture(e.pointerId)}catch(x){}
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===2){
+      const a=[...pts.values()];
+      pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),scale:st.scale};
+    }
+    wrap.style.cursor='grabbing';
+  });
+  wrap.addEventListener('pointermove',function(e){
+    if(!pts.has(e.pointerId))return;
+    const prev=pts.get(e.pointerId);
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    const r=wrap.getBoundingClientRect();
+    if(pts.size===1&&!pinch){
+      st.tx+=e.clientX-prev.x;
+      st.ty+=e.clientY-prev.y;
+      apply();
+    }else if(pts.size===2&&pinch){
+      const a=[...pts.values()];
+      const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+      if(pinch.d>4){
+        const cx=(a[0].x+a[1].x)/2-r.left, cy=(a[0].y+a[1].y)/2-r.top;
+        const want=Math.max(st.fit*0.25,Math.min(st.fit*16,pinch.scale*d/pinch.d));
+        zoomAt(cx,cy,want/st.scale);
+      }
+    }
+  });
+  const up=function(e){pts.delete(e.pointerId);if(pts.size<2)pinch=null;if(!pts.size)wrap.style.cursor='grab';};
+  wrap.addEventListener('pointerup',up);
+  wrap.addEventListener('pointercancel',up);
+  /* 双击：适应窗口 ↔ 1:1（以双击点为中心） */
+  wrap.addEventListener('dblclick',function(e){
+    const r=wrap.getBoundingClientRect();
+    const cx=e.clientX-r.left,cy=e.clientY-r.top;
+    if(st.scale>st.fit*1.05)fitView();
+    else zoomAt(cx,cy,(st.fit>0?1/st.fit:1));
+  });
+  /* 按钮缩放：以视图中心为锚点 */
+  const btn=function(f){
+    return function(){zoomAt(wrap.clientWidth/2,wrap.clientHeight/2,f)};
+  };
+  ACTS['iv-in']=btn(1.25);
+  ACTS['iv-out']=btn(1/1.25);
+  ACTS['iv-reset']=function(){fitView()};
+  setTimeout(function(){if(!img.naturalWidth)ready()},80);
+}
+
+/* ---------- 图像增强（阅卷时提升模糊件可读性）----------
+   level 1 轻度：分位数拉伸 + 轻锐化；level 2 强力：更窄的拉伸区间 + 强锐化（针对拍照发灰/发虚） */
+function enhanceImageData(ctx,w,h,level){
+  const img=ctx.getImageData(0,0,w,h),d=img.data;
+  const n=w*h;
+  const hist=new Uint32Array(256);
+  const gray=new Uint8Array(n);
+  for(let i=0,j=0;i<d.length;i+=4,j++){
+    const g=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000|0;
+    gray[j]=g;hist[g]++;
+  }
+  let acc=0,lo=0,hi=255;
+  const cut=n*(level>=2?0.008:0.02);
+  for(let v=0;v<256;v++){acc+=hist[v];if(acc>cut){lo=v;break}}
+  acc=0;
+  for(let v=255;v>=0;v--){acc+=hist[v];if(acc>cut){hi=v;break}}
+  if(hi-lo<40){lo=Math.max(0,lo-12);hi=Math.min(255,hi+12)}
+  const range=Math.max(1,hi-lo);
+  for(let i=0,j=0;i<d.length;i+=4,j++){
+    let v=(gray[j]-lo)*255/range;
+    v=v<0?0:(v>255?255:v);
+    d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;
+  }
+  sharpenImageData(d,w,h,level>=2?0.75:0.35);
+  ctx.putImageData(img,0,0);
+}
+const __enhCache=new Map();
+async function enhanceCropURL(id,blob,level){
+  const key=id+'|e'+level;
+  if(__enhCache.has(key))return __enhCache.get(key);
+  try{
+    const bmp=await createImageBitmap(blob);
+    const cv=document.createElement('canvas');cv.width=bmp.width;cv.height=bmp.height;
+    const ctx=cv.getContext('2d');ctx.drawImage(bmp,0,0);
+    enhanceImageData(ctx,bmp.width,bmp.height,level);
+    const url=await new Promise(function(res){cv.toBlob(function(b){res(b?URL.createObjectURL(b):'')},'image/jpeg',0.92)});
+    if(!url)return blobURL(id,blob);
+    if(__enhCache.size>40){
+      const k=__enhCache.keys().next().value;
+      try{URL.revokeObjectURL(__enhCache.get(k))}catch(e){}
+      __enhCache.delete(k);
+    }
+    __enhCache.set(key,url);
+    return url;
+  }catch(e){return blobURL(id,blob)}
+}
 async function cropMarkedImage(crop,w,blob){
   try{
     const img=await createImageBitmap(blob||await getBlob(crop.id));
@@ -4222,8 +4368,10 @@ async function renderGradeView(ex){
     imgs='<div style="max-width:680px;margin:0 auto;border:1px solid var(--line);border-radius:8px;overflow:hidden">';
     let pIdx=0;
     for(const p of parts){
-      const url=blobURL(p.id,await getBlob(p.id));
-      imgs+='<img src="'+url+'" data-act="grade-zoom" data-url="'+url+'" style="display:block;width:100%;height:auto;max-height:none;cursor:zoom-in'+(pIdx>0?';border-top:1px dashed #bbb':'')+'">';
+      const blob=await getBlob(p.id);
+      /* 图像增强：仅影响显示，不改变存储的原图；可随时切回原图 */
+      const url=(gradePref.enhance>0&&blob)?await enhanceCropURL(p.id,blob,gradePref.enhance):blobURL(p.id,blob);
+      imgs+='<img src="'+url+'" data-act="grade-zoom" data-url="'+url+'" data-title="题 '+esc(String(gradeCtx.qno))+'（可缩放）" style="display:block;width:100%;height:auto;max-height:none;cursor:zoom-in'+(pIdx>0?';border-top:1px dashed #bbb':'')+'">';
       pIdx++;
     }
     imgs+='<div class="kv" style="padding:3px 6px;border-top:1px dashed #bbb;text-align:center">共 '+parts.length+' 部分，点击任意部分可放大查看</div></div>';
@@ -4233,6 +4381,7 @@ async function renderGradeView(ex){
   /* 快捷分按钮：常用分档（0/25%/50%/75%/满分）+ 按步长加减 */
   let scoreBtns='';
   const dstep=Number(gradePref.step)||0.5;
+  const eff=Number(gradePref.enhance)||0;
   const rstep=function(v){return Math.round(v*100)/100};
   const steps=[0,rstep(full*0.25),rstep(full*0.5),rstep(full*0.75),full];
   const uniqs=steps.filter(function(v,i){return steps.indexOf(v)===i});
@@ -4277,6 +4426,14 @@ async function renderGradeView(ex){
     +'<option value="custom"'+(dstep!==0.1&&dstep!==0.5&&dstep!==1&&dstep!==2&&dstep!==5?' selected':'')+'>自定义</option>'
     +'</select>'
     +'<input class="inp" id="gradeStepCustom" data-on="grade-step-custom" type="number" step="0.1" min="0.1" style="width:74px" placeholder="步长" value="'+dstep+'">'
+    +'</div>'
+    +'<div class="f-row" style="margin-top:6px;align-items:center;gap:6px">'
+    +'<span class="kv" style="white-space:nowrap" title="对显示图做对比度拉伸与锐化，便于看清模糊字迹；只影响显示，不改动原图">图像增强</span>'
+    +'<select class="inp" style="width:118px" data-on="grade-enhance">'
+    +'<option value="0"'+(eff===0?' selected':'')+'>关闭（原图）</option>'
+    +'<option value="1"'+(eff===1?' selected':'')+'>轻度（提对比）</option>'
+    +'<option value="2"'+(eff===2?' selected':'')+'>强力（模糊件）</option>'
+    +'</select>'
     +'</div>'
     +'<div class="gscore">'+scoreBtns+'</div>'
     +'<div class="f-row" style="justify-content:space-between;margin-top:8px">'
@@ -4336,6 +4493,12 @@ Object.assign(ACTS,{
       gradePref.step=Math.round(v*100)/100;
       saveJSON(LS_GRADE,gradePref);
     }
+  },
+  /* 图像增强档位：仅影响阅卷台显示，便于看清模糊字迹 */
+  'grade-enhance':function(el){
+    gradePref.enhance=parseInt(el.value,10)||0;
+    saveJSON(LS_GRADE,gradePref);
+    renderGrade();
   },
   /* 按步长加减当前分（未评分时从 0 起步，结果夹在 0~满分之间） */
   'grade-step-adjust':async function(el){
@@ -5098,6 +5261,7 @@ window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,
   realignGrid:realignGrid,gridAbnormal:gridAbnormal,gridPitchRatio:gridPitchRatio,
   renderPageCanvas:renderPageCanvas,renderPagesAsync:renderPagesAsync,canvasDataURL:canvasDataURL,
   canvasToThumb:canvasToThumb,
+  imageViewer:imageViewer,enhanceImageData:enhanceImageData,enhanceCropURL:enhanceCropURL,gradePref:function(){return gradePref},
   getAll:function(s){return dbAll(s)},get:dbGet,examMeta:examMeta,computeScorebook:computeScorebook,pageRegDigits:pageRegDigits};
 })();
 </script>
