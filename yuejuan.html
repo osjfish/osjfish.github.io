@@ -2159,7 +2159,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
 }
 
 /* ---------- 扫描主流程（上传文件或模拟） ---------- */
-async function scanExamPages(exam,files,onProgress,forcePage){
+async function scanExamPages(exam,files,onProgress){
   const tpl=await dbGet('templates',exam.templateId);
   if(!tpl)throw new Error('模板不存在');
   const layout=layoutTemplate(tpl);
@@ -2171,13 +2171,11 @@ async function scanExamPages(exam,files,onProgress,forcePage){
   let lastNo='';
   try{lastNo=localStorage.getItem(lsNoKey)||''}catch(e){}
   for(const it of items){
-    /* 页号自动匹配：多页答题卡分次上传（或续页混拍）时文件页号不可靠——模板二维码只印首页，
-       故按“读到码→优先首页，未读到→优先续页”的顺序逐一尝试，首个识别成功者即该页。 */
+    /* 页号候选顺序：识别内部会先按卡片左侧的页码方块直接定页（最可靠）；
+       此处的顺序只在页码读不出时（旧卡/标记被裁）用于逐个试配，顺序页优先以减少重试。 */
     const seqIdx=Math.min(layout.pages.length-1,(it.pageNo||1)-1);
     let order;
-    if(forcePage!=null&&forcePage>0){
-      order=[Math.min(layout.pages.length-1,forcePage-1)];
-    }else if(layout.pages.length===1){
+    if(layout.pages.length===1){
       order=[0];
     }else{
       let hasQR=false;
@@ -3256,12 +3254,8 @@ async function renderScan(){
     +(pages.length?'<button class="btn btn-b" data-act="scan-rerun">按当前参数重识别全部（'+pages.length+' 页）</button>':'')
     +'<input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none">'
     +'<input type="file" id="scanFiles" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tif,.webp" style="display:none">'
-    +'<select class="inp" style="width:170px" data-on="scan-force" title="多页答题卡逐张拍照时，可指定本批文件全部对应模板的某一页">'
-    +'<option value="0">页序自动对应</option>'
-    +meta.layout.pages.map(function(p,i){return '<option value="'+(i+1)+'"'+((ui.scanForcePage||0)===(i+1)?' selected':'')+'>本批都是第'+(i+1)+'页</option>'}).join('')
-    +'</select>'
     +'<button class="btn btn-d" data-act="scan-clear">清空本场扫描结果</button>'
-    +'<span class="tip">多页答题卡可一次全选上传，也可逐张上传——程序按二维码自动判断第几页（读到码=首页，未读到=续页）；续页自动沿用上一张识别出的考号。</span>'
+    +'<span class="tip">多页答题卡可一次全选上传，也可逐张上传——识别时按卡片左侧的页码方块（第1页1个、第2页2个…）自动判断第几页。续页按顺序沿用前面识别出的考号；若希望每页都能独立认人，可在模板里勾选「每页重复显示准考证号」。</span>'
     +'</div>'
     +'<div id="scanProgBox" style="margin-top:10px;display:none"><div class="prog-line"><span id="scanProgTxt"></span><div class="progress" style="flex:1"><div id="scanProgBar" style="width:0%"></div></div></div><div id="scanLog" class="tip"></div></div>'
     +'</div>';
@@ -3311,7 +3305,6 @@ async function renderScan(){
 Object.assign(ACTS,{
   'go-exam':function(){go('exam')},
   'scan-pick':async function(el){ui.scanExam=el.value;renderScan()},
-  'scan-force':function(el){ui.scanForcePage=parseInt(el.value,10)||0},
   'scan-pick-files':function(){const f=$('scanFiles');if(f)f.click()},
   'scan-shoot':function(){
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
@@ -3506,8 +3499,7 @@ function shotCapture(){
 async function runScanUpload(files){
   if(scanCtx&&scanCtx.running){toast('正在扫描/识别中，请稍候','err');return}
   const ex=await dbGet('exams',ui.scanExam);
-  const forcePage=ui.scanForcePage||0;
-  const ok=await dlgConfirm('开始识别','将扫描/识别 '+files.length+' 个文件（'+pagesEst(files)+' 页）'+(forcePage?'，全部按「第'+forcePage+'页」解析':'')+'。识别结果与现有页面共存，同页可删除重扫。','开始');
+  const ok=await dlgConfirm('开始识别','将扫描/识别 '+files.length+' 个文件（'+pagesEst(files)+' 页）。识别结果与现有页面共存，同页可删除重扫。','开始');
   if(!ok)return;
   const box=$('scanProgBox');
   box.style.display='block';
@@ -3519,7 +3511,7 @@ async function runScanUpload(files){
     const res=await scanExamPages(ex,files,function(done,total){
       $('scanProgBar').style.width=Math.round(done/total*100)+'%';
       $('scanProgTxt').textContent='识别中 '+done+'/'+total;
-    },forcePage);
+    });
     toast('识别完成：'+res.length+' 页','ok');
   }catch(err){toast('识别失败：'+err.message,'err')}
   box.style.display='none';
