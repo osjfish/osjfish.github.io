@@ -528,6 +528,32 @@ function normalizeQuestions(tpl){
   (tpl.subjective||[]).forEach(function(s){qs.push({t:'subj',qno:s.qno,score:s.score,type:s.type,rows:s.rows,cols:s.cols,count:s.count,titleLine:s.titleLine,label:s.label});});
   return qs;
 }
+/* 页码标记：页面左侧边缘的实心小方块，数量 = 页码（第1页1个、第2页2个…）。
+   比二维码鲁棒得多——模糊/低分辨率下也能数清方块个数；位置固定在左侧窄条（x 7~10mm，y 27mm 起），
+   不与姓名框（x≥14）、考号区（x≥13.5）、作答区（x≥16）、左侧小锚（y≤24.5）、四角大锚（y≤16.5）重叠 */
+const PM={x:7,size:3,gap:5,y0:27,max:20};
+function pageMarksFor(pi){
+  const n=Math.max(1,Math.min(PM.max,(pi|0)+1)),out=[];
+  for(let i=0;i<n;i++)out.push({x:PM.x,y:PM.y0+i*PM.gap,s:PM.size});
+  return out;
+}
+/* 从图上读页码：沿左侧窄条自上而下数实心方块，遇到第一个空位即停止（方块连续排列） */
+function readPageMarks(bin,w,h,H,smm){
+  try{
+    let n=0;
+    for(let i=0;i<PM.max;i++){
+      const cx=PM.x+PM.size/2, cy=PM.y0+PM.size/2+i*PM.gap;
+      const p=H(cx,cy);
+      const theory=(PM.size*0.8*smm)*(PM.size*0.8*smm);
+      const half=PM.size*smm*0.75;
+      const r=findSolid(bin,w,h,p.x,p.y,half,half,theory*0.3,theory*2.4,0.6);
+      /* 允许 ±1.2mm 的纵向偏差（透视/拉伸），但必须落在页码带内，避免误拾其它内容 */
+      if(!r||Math.abs(r.y-p.y)>1.2*smm)break;
+      n++;
+    }
+    return n>0?n:null;
+  }catch(e){return null}
+}
 function layoutTemplate(tpl){
   const wh=paperWH(tpl), w=wh.w, h=wh.h;
   const M=14, contentW=w-2*M;
@@ -562,7 +588,8 @@ function layoutTemplate(tpl){
   const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
     return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&!infoHide)?{x:M,y:33,w:44,h:54.6}:null,
-      reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,anchors:anchors,footer:{n:pi+1,m:0}};
+      reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,
+      pagemarks:pageMarksFor(pi),anchors:anchors,footer:{n:pi+1,m:0}};
   }
   /* 无考号区页面顶部从 31mm 开始（标题下方留出组标签空间）；首页 94mm */
   const pageTopFor=function(pi){return (pi===0||regEvery)?contentTop:contentTopCont};
@@ -686,6 +713,13 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     const off=(outer-inner)/2;
     ctx.fillRect(px(a.x+off),px(a.y+off),px(inner),px(inner));
   });
+  /* 页码标记：左侧边缘的实心方块，数量=页码（第1页1个、第2页2个…），供识别端读页号 */
+  if(page.pagemarks){
+    ctx.fillStyle='#000';
+    page.pagemarks.forEach(function(a){
+      ctx.fillRect(px(a.x),px(a.y),px(a.s),px(a.s));
+    });
+  }
   /* 标题 */
   ctx.fillStyle='#000';
   ctx.font='bold '+Math.max(10,Math.round(px(5.6)))+'px "Microsoft YaHei",sans-serif';
@@ -1964,7 +1998,16 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       }catch(e){}
     }
   }
-  const pg2=(layoutSlice&&Array.isArray(layoutSlice.groups))?layoutSlice:page;
+  /* 页码标记读数：左侧方块数量=页码。定位已完成（4大锚各页同位），故可直接读出页号并切换版式，
+     比二维码更鲁棒（模糊/低分辨率也能数清）；读不出则沿用传入页/二维码页 */
+  let pageMarkNo=null,effPage=page;
+  if(!layoutSlice&&layout.pages.length>1&&!opts.noPageMark){
+    pageMarkNo=readPageMarks(bin,cv.width,cv.height,H,smm);
+    if(pageMarkNo&&pageMarkNo>=1&&pageMarkNo<=layout.pages.length&&(pageMarkNo-1)!==pageIdx){
+      effPage=layout.pages[pageMarkNo-1];
+    }
+  }
+  const pg2=(layoutSlice&&Array.isArray(layoutSlice.groups))?layoutSlice:effPage;
   const reg=pg2.reg||null;
   const regDigitsN=(pg2.regDigits!=null)?pg2.regDigits:page.regDigits;
   /* 考号识别（含同步条行校正；无考号区页面跳过并向组装阶段沿用上一页考号） */
@@ -2109,7 +2152,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     }
   }
   const detectedPageNo=(pg2&&pg2.footer&&pg2.footer.n)?pg2.footer.n:null;
-  return {ok:true,status:'ok',H:H,geometry:pg2,sX:sX,sY:sY,smm:smm,detectedPageNo:detectedPageNo,
+  return {ok:true,status:'ok',H:H,geometry:pg2,sX:sX,sY:sY,smm:smm,detectedPageNo:detectedPageNo,pageMarkNo:pageMarkNo,
     qrFound:qrFound,qrLayout:!!layoutSlice,
     studentNo:studentNo,regFlags:regFlags,regPts:regPts,perQ:perQ,crops:crops,flags:flags,warn:detWarn,globalAnchors:globalUsed,
     dbg:{regMarks:regDBG&&regDBG.marks,regDeltas:regDBG&&regDBG.deltas,regExpY:regDBG&&regDBG.expY,anchorPts:pts,timingX0:regDBG&&regDBG.tx}};
@@ -2169,10 +2212,12 @@ async function scanExamPages(exam,files,onProgress,forcePage){
       try{localStorage.setItem(lsNoKey,lastNo)}catch(e){}
     }
     const realPageNo=res.detectedPageNo||it.pageNo;
+    /* 实际采用的版式页（页码标记/二维码可能已纠正传入页号） */
+    const usedIdx=res.detectedPageNo?Math.max(0,res.detectedPageNo-1):pageIdx;
     const pageRec={id:uid('pg_'),examId:exam.id,studentNo:res.studentNo||'',pageNo:realPageNo,
       hasThumb:1,
       meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
-        perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,filePage:it.pageNo,
+        perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:usedIdx,filePage:it.pageNo,pageMarkNo:res.pageMarkNo||null,
         H:res.H?res.H.h:null,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}};
     await dbPut('pages',pageRec);
     await putBlob(pageRec.id,blob);
@@ -4729,7 +4774,8 @@ async function renderSet(){
     +'<b>打印答题卡：</b>导出 PDF 后建议在打印对话框选 <b>「实际大小 / 100% / 无缩放」</b>。识别按四角定位点自动校正缩放与倾斜，<b>均匀缩放（约 ±15% 内）可以正常识别</b>；但「适应页面」等缩放会让涂点一起变小，填涂不足时更容易进待复核，故仍建议 100%。<br>'
     +'<b>拍照指引：</b>尽量正上方拍摄、卡片四角锚点完整、无反光强阴影；<b>手机方向与试卷方向一致</b>（竖版卡片竖拍，不要横着拍）；桌面/背景不影响（自动在全图寻找四角定位点）。<br>'
     +'<b>识别提示：</b>若得分与预期不符，多为填涂未涂黑/未涂满或定位点印刷不清/被遮挡——在「查看」页打开<b>识别框选</b>（绿=已识别，红/橙=不清晰），对照后重扫即可。<br>'
-    +'<b>识别原理：</b>6 锚点定位 → 单应校正 → 同步条逐行校正 → OMR 判涂（考号 + 客观题）；页脚左下二维码自描述版式，打印后扫描无需选模板。<br>'
+    +'<b>识别原理：</b>6 锚点定位 → 单应校正 → 同步条逐行校正 → OMR 判涂（考号 + 客观题）；首页二维码自描述版式，识别时无需选模板。<br>'
+    +'<b>页码标记：</b>卡片<b>左侧边缘的黑色小方块个数就是页码</b>（第1页 1 个、第2页 2 个…），多页答题卡分次上传/混拍时程序据此自动判断第几页，请勿涂写、遮挡或裁切该区域。<br>'
     +'<b>容错策略：</b>一切不确定项（涂点模糊/多涂、考号异常、定位失败、版式异常）都会进复核队列人工处理，不会静默误判。<br>'
     +'<b>版本：</b>智能阅卷 v1.0（网页版）· 对标 答题卡助手 Pro v4.3.0 核心闭环 · 2026-09</div></div>';
   $('page').innerHTML=html;
