@@ -33,6 +33,8 @@ SCALE_BLOCK = '''  /* 正文字体缩放（全库统一 · 仅作用于正文文
   .part-head .p-num{font-size:calc(15px*var(--fs))}
   .part-head h3{font-size:calc(23px*var(--fs))}
   .part-head .range{font-size:calc(12.5px*var(--fs))}
+  /* 二级之上：赏析区分点组的归属标题（管辖一、二、三、四） */
+  .app-group{font-size:calc(21px*var(--fs))}
   /* 二级：卡片标题（赏析 h3 / 积累 acc-cat h3 / 媒体 h4 / 人物 lane h4） */
   .sec-sub{font-size:calc(15.5px*var(--fs))}
   .box h3{font-size:calc(19px*var(--fs))}
@@ -88,6 +90,11 @@ ADD_BLOCK = '''  /* ========== 积累区（全库统一） ========== */
   }
   /* 解读区原文段落 */
   .v-orig{font-family:var(--font-kai); font-size:16px; color:var(--ink); line-height:2.1; margin:2px 0; text-indent:2em}
+  /* 赏析区组标题：比卡片 h3 高一级，用于管辖「一、二、三、四」分点 box */
+  .app-group{
+    font-family:var(--font-kai); font-size:21px; letter-spacing:4px; color:var(--ink);
+    margin:26px 0 14px; padding-left:14px; border-left:5px solid var(--red); line-height:1.4;
+  }
   /* 折叠正文内的段落统一继承 .d-body 字号（避免落在 .box 内时被 .box p 放大） */
   details .d-body p{font-size:inherit; margin:4px 0}
 
@@ -118,8 +125,10 @@ def build_canon():
     if MARK_TAIL in css:
         i = css.index(MARK_TAIL)
         css = css[:i]
-    # 3) 打印样式：补 .fulltext
+    # 3) 打印样式：补 .fulltext 与 .app-group
     css = css.replace('.xu-block{columns:1!important}', '.xu-block,.fulltext{columns:1!important}')
+    css = css.replace('.sec-head{background:none}',
+                      '.sec-head{background:none}\n    .app-group{color:#000!important; border-left-color:#000!important; margin:14px 0 8px}')
     # 4) 替换缩放段
     a = css.index(SCALE_START)
     b = css.index(SCALE_END)
