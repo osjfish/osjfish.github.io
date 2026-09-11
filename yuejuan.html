@@ -663,21 +663,38 @@ function layoutTemplate(tpl,opts){
     {x:w-12-sm/2,y:22-sm/2,s:sm}
   ];
   const regDigits=Math.max(2,Math.min(12,tpl.regDigits||5));
-  const regColW=11, regW=regDigits*regColW;
-  const qr={x:w-52,y:34,size:34};
-  const regX=Math.round((w-regW)/2);
-  /* 学生信息框（姓名/班级/座位号）：固定显示。
-     竖版=右上二维码下方居中；横版多列=第1列左上（与该列左缘对齐） */
-  const infoW=52, infoH=24;
-  const infoX=(nCols>1)?M:Math.round(qr.x+qr.size/2-infoW/2);
-  const infoBox={x:infoX,y:qr.y+qr.size+2,w:infoW,h:infoH};
-  const regRowsY=[];
-  for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
-  const reg={x:regX,y:33,colW:regColW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
-    numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
+  /* 页眉布局：
+     竖版=考号区居中，二维码右上，信息框其下（12 位时考号区左移避开信息框）；
+     横版多列=页眉整体收缩到第1列：行1=信息框(左)+二维码(右)，行2=考号涂卡区（位数多时压缩每位宽度），
+     第1列内容从页眉之下开始，其余列不受影响（从 42mm 起）。 */
+  const qrSize=34;
+  let qr,infoBox,reg,headBottomCol1;
+  if(nCols>1){
+    const c1x=M;
+    qr={x:c1x+colW-qrSize,y:28,size:qrSize};
+    infoBox={x:c1x,y:28,w:52,h:24};
+    const regColW=Math.min(11,Math.max(8,Math.floor(((colW-8)/regDigits)*10)/10));
+    const regW=regColW*regDigits;
+    const regRowsY=[];
+    for(let i=0;i<10;i++)regRowsY.push(66.6+i*4.4);
+    reg={x:Math.round(c1x+(colW-regW)/2),y:62,colW:regColW,grid:Math.min(8,regColW-2),rowsY:regRowsY,bubble:3.2,dy:4.4,
+      numY:68.6,labelY:65.5,boxTop:64,label:'准 考 证 号'};
+    headBottomCol1=110;   /* 末行涂点 107.2+2 */
+  }else{
+    qr={x:w-52,y:34,size:qrSize};
+    const regW0=regDigits*11;
+    /* 12 位等宽考号区较宽，居中会压到信息框——限制其右缘不超过信息框左缘 */
+    const regX0=Math.min(Math.round((w-regW0)/2),(qr.x-2-regW0));
+    infoBox={x:qr.x,y:qr.y+qrSize+2,w:52,h:24};
+    const regRowsY=[];
+    for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
+    reg={x:regX0,y:33,colW:11,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
+      numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
+    headBottomCol1=94;
+  }
   const pages=[];
   /* 首页含考号区时内容从 94mm 起；续页顶部留给手写信息区，内容从 42mm 起；底部留页脚与定位点空间 */
-  const contentTop=94, contentTopCont=42, contentBottom=h-19;
+  const contentTop=94, contentTopMulti=110, contentTopCont=42, contentBottom=h-19;
   const handInfo={x:M+2,y:26,w:contentW-4,h:11};
   function newPage(pi){
     return {w:w,h:h,title:(opts&&opts.title!=null?opts.title:(tpl.title||tpl.name||'')),info:(pi===0)?infoBox:null,
@@ -686,14 +703,15 @@ function layoutTemplate(tpl,opts){
       pagemarks:pageMarksFor(pi),anchors:anchors,nCols:nCols,colW:colW,colGap:colGap,margin:M,fullScore:fullScore,footer:{n:pi+1,m:0}};
   }
   const fullScore=totalFullOf(tpl);
+  /* 各列内容起点：第1列在页眉之下（多列横版时页眉占第1列上部），其余列 42mm 起 */
+  const colTop=function(c){return (c===0)?contentTop:contentTopCont};
   let pg=newPage(0); pages.push(pg);
-  let curCol=0, curY=contentTop;
+  let curCol=0, curY=(nCols>1)?contentTopMulti:contentTop;
   const colX=function(c){return M+c*(colW+colGap)};
-  const pageTopNow=function(){return (pages.length===1)?contentTop:contentTopCont};
   const availH=function(){return contentBottom-curY};
   function nextColOrPage(){
-    if(curCol<nCols-1){curCol++;curY=pageTopNow();return}
-    pg=newPage(pages.length);pages.push(pg);curCol=0;curY=contentTopCont;
+    if(curCol<nCols-1){curCol++;curY=(curCol===0)?contentTop:contentTopCont;return}
+    pg=newPage(pages.length);pages.push(pg);curCol=0;curY=(nCols>1)?contentTopMulti:contentTop;
   }
   function ensure(needH){ if(availH()<needH)nextColOrPage(); }
   const SEC_H=6.5;   /* 大题标题占用高度 */
@@ -2803,14 +2821,14 @@ async function tplEditorHTML(tplId){
     +'<option value="v"'+((t.choiceLayout&&t.choiceLayout.o==='v')?' selected':'')+'>纵向（A/B/C/D 逐行）</option>'
     +'</select>'
     +'<span class="kv">（全部选择题默认集中排在答题卡最开头的一个大框内）</span>'
-    +'</div>'
-    +'<div class="f-row" style="align-items:center;gap:10px;margin-top:8px">'
-    +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="scoreSec"'+(showScoreOf(t).sec?' checked':'')+'> 大题标题显示分值</label>'
-    +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="scoreItem"'+(showScoreOf(t).item?' checked':'')+'> 小题标签显示分值</label>'
-    +'<span style="flex:1"></span>'
-    +'<span class="kv" id="tplFullScore">本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分</span>'
     +'</div></div>'
     +'<div class="card"><h3>题目清单（先设大题，再加大题下的小题）</h3>'
+    +'<div class="f-row" style="margin-bottom:8px;align-items:center">'
+    +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0" title="大题标题后是否显示（共X分）"><input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="scoreSec"'+(showScoreOf(t).sec?' checked':'')+'> 大题显示分值</label>'
+    +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0" title="小题标签后是否显示（X分）"><input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="scoreItem"'+(showScoreOf(t).item?' checked':'')+'> 小题显示分值</label>'
+    +'<span style="flex:1"></span>'
+    +'<span class="kv" id="tplFullScore">本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分</span>'
+    +'</div>'
     +'<div class="tip" style="margin-bottom:8px">按试卷结构组织：一个大题（如「一、选择题」）下可放多个小题，小题题型可选 单选 / 多选 / 填空 / 问答 / 作文。全部选择题（含多选）自动集中在答题卡开头的一个框内，其余题型按清单顺序排版。题号建议全卷连续（1、2、3…）。</div>'
     +(qRows||'<div class="kv" style="margin-bottom:8px">还没有大题。点击下方「添加大题」开始，例如先建「一、选择题」。</div>')
     +'<div class="f-row">'
