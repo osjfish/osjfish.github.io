@@ -528,6 +528,11 @@ function subjTypeOf(it){
   return 'lines';
 }
 /* 选择题排列偏好：q=题目排列(v 纵向逐行 / h 横向并排)，o=选项排列(h 横向 A B C D / v 纵向逐行)；默认纵向题目+横向选项 */
+/* 分值显示开关：大题标题后 / 小题标签后是否带分值（默认都显示） */
+function showScoreOf(tpl){
+  const c=(tpl&&tpl.showScore)||{};
+  return {sec:(c.sec!==false),item:(c.item!==false)};
+}
 function choiceLayoutOf(tpl){
   const c=(tpl&&tpl.choiceLayout)||{};
   return {q:(c.q==='h'?'h':'v'),o:(c.o==='v'?'v':'h')};
@@ -575,6 +580,16 @@ function allItems(tpl){
     (s.items||[]).forEach(function(it){out.push(Object.assign({},it,{secTitle:s.title}))});
   });
   return out;
+}
+/* 全卷总分（卡面标注用）：各小题分值之和，未填分值的按类型默认（客观2/主观10） */
+function totalFullOf(tpl){
+  let t=0;
+  allItems(tpl).forEach(function(it){
+    const d=isChoiceKind(kindOf(it))?2:10;
+    const s=(it.score!=null&&Number.isFinite(Number(it.score)))?Number(it.score):d;
+    t+=s;
+  });
+  return Math.round(t*100)/100;
 }
 /* 题级选项数（模板组可指定 15:5 等覆盖；默认组 choices） */
 function groupQChoices(g,qn){
@@ -665,8 +680,9 @@ function layoutTemplate(tpl,opts){
     return {w:w,h:h,title:(opts&&opts.title!=null?opts.title:(tpl.title||tpl.name||'')),info:(pi===0)?infoBox:null,
       handInfo:(pi>0)?handInfo:null,
       reg:(pi===0)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,
-      pagemarks:pageMarksFor(pi),anchors:anchors,nCols:nCols,colW:colW,colGap:colGap,margin:M,footer:{n:pi+1,m:0}};
+      pagemarks:pageMarksFor(pi),anchors:anchors,nCols:nCols,colW:colW,colGap:colGap,margin:M,fullScore:fullScore,footer:{n:pi+1,m:0}};
   }
+  const fullScore=totalFullOf(tpl);
   let pg=newPage(0); pages.push(pg);
   let curCol=0, curY=contentTop;
   const colX=function(c){return M+c*(colW+colGap)};
@@ -934,7 +950,9 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       shown[key]=1;
       const x=(page.margin||14)+((b.col||0))*((page.colW||page.w)+((page.colGap!==undefined)?page.colGap:0));
       const isCont=/（续）$/.test(String(b.sec));
-      const txt=isCont?(b.scoreLabel?('（'+b.scoreLabel+'）'):''):(b.sec+(b.scoreLabel?('（'+b.scoreLabel+'）'):''));
+      const showSec=showScoreOf(tpl).sec;
+      const sc=(showSec&&b.scoreLabel)?('（'+b.scoreLabel+'）'):'';
+      const txt=isCont?sc:(b.sec+sc);
       if(!txt)return;
       ctx.fillStyle='#000';ctx.textAlign='left';
       ctx.font='bold '+Math.max(8,Math.round(px(3.7)))+'px "Microsoft YaHei",sans-serif';
@@ -982,7 +1000,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     ctx.strokeRect(px(sb.x),px(sb.y),px(sb.w),px(sb.h));
     ctx.fillStyle='#000';ctx.font='bold '+Math.max(8,Math.round(px(3.6)))+'px "Microsoft YaHei",sans-serif';
     ctx.textAlign='left';
-    ctx.fillText(sb.label+'（'+sb.score+'分）',px(sb.x),px(sb.y-2.6));
+    ctx.fillText(sb.label+(showScoreOf(tpl).item?('（'+sb.score+'分）'):''),px(sb.x),px(sb.y-2.6));
     const innerW=sb.w-12;
     if(sb.type==='lines'){
       /* 首行预留整行书写空间（此前首线距框顶仅 6mm，写不下字） */
@@ -2771,6 +2789,12 @@ async function tplEditorHTML(tplId){
     +'<option value="v"'+((t.choiceLayout&&t.choiceLayout.o==='v')?' selected':'')+'>纵向（A/B/C/D 逐行）</option>'
     +'</select>'
     +'<span class="kv">（全部选择题默认集中排在答题卡最开头的一个大框内）</span>'
+    +'</div>'
+    +'<div class="f-row" style="align-items:center;gap:10px;margin-top:8px">'
+    +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="scoreSec"'+(showScoreOf(t).sec?' checked':'')+'> 大题标题显示分值</label>'
+    +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="scoreItem"'+(showScoreOf(t).item?' checked':'')+'> 小题标签显示分值</label>'
+    +'<span style="flex:1"></span>'
+    +'<span class="kv" id="tplFullScore">本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分</span>'
     +'</div></div>'
     +'<div class="card"><h3>题目清单（先设大题，再加大题下的小题）</h3>'
     +'<div class="tip" style="margin-bottom:8px">按试卷结构组织：一个大题（如「一、选择题」）下可放多个小题，小题题型可选 单选 / 多选 / 填空 / 问答 / 作文。全部选择题（含多选）自动集中在答题卡开头的一个框内，其余题型按清单顺序排版。题号建议全卷连续（1、2、3…）。</div>'
@@ -3022,6 +3046,12 @@ async function tplItApply(el){
   else it[f]=el.value;
   t.sections=secs;delete t.questions;
   await dbPut('templates',t);
+  updateFullScore(t);
+}
+/* 编辑器内实时刷新「本卷总分」显示（改分值后立即更新） */
+function updateFullScore(t){
+  const el=document.getElementById('tplFullScore');
+  if(el&&t)el.innerHTML='本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分';
 }
 function tplEditQueued(fn){
   __tplEditChain=__tplEditChain.then(fn).catch(function(err){console.error(err);try{toast('保存出错：'+err.message,'err')}catch(e){}});
@@ -3060,6 +3090,9 @@ async function tplFieldApply(el){
     /* 选择题排列偏好：q 题目排列 / o 选项排列 */
     t.choiceLayout=Object.assign({q:'v',o:'h'},t.choiceLayout||{});
     t.choiceLayout[f==='clq'?'q':'o']=v;
+  }else if(f==='scoreSec'||f==='scoreItem'){
+    t.showScore=Object.assign({sec:true,item:true},t.showScore||{});
+    t.showScore[f==='scoreSec'?'sec':'item']=!!v;
   }else{
     t[f]=v;
     if(f==='regDigits')t.regDigits=Math.max(2,Math.min(12,Math.round(v)));
