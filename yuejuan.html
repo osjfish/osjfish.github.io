@@ -666,8 +666,11 @@ function layoutTemplate(tpl,opts){
   const regColW=11, regW=regDigits*regColW;
   const qr={x:w-52,y:34,size:34};
   const regX=Math.round((w-regW)/2);
+  /* 学生信息框（姓名/班级/座位号）：固定显示。
+     竖版=右上二维码下方居中；横版多列=第1列左上（与该列左缘对齐） */
   const infoW=52, infoH=24;
-  const infoBox={x:Math.round(qr.x+qr.size/2-infoW/2),y:qr.y+qr.size+2,w:infoW,h:infoH};
+  const infoX=(nCols>1)?M:Math.round(qr.x+qr.size/2-infoW/2);
+  const infoBox={x:infoX,y:qr.y+qr.size+2,w:infoW,h:infoH};
   const regRowsY=[];
   for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
   const reg={x:regX,y:33,colW:regColW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
@@ -769,16 +772,18 @@ function layoutTemplate(tpl,opts){
       qFirst+=subCount;remaining-=subCount;part++;idx+=subCount;
     }
   }
-  /* 主观题（填空/问答/作文）：按作答样式排，超高跨列/跨页 */
-  function layoutSubj(sec,it,withTitle){
+  /* 主观题（填空/问答/作文）：按作答样式排，超高跨列/跨页。
+     作文格保证为正方形：cell 固定 8mm，格数按列宽自动取整（不再压缩格子去凑列宽） */
+  function subjMetrics(it,colWmm){
     const kind=kindOf(it);
     const type=subjTypeOf(it);
-    const score=(it.score!=null&&Number.isFinite(Number(it.score)))?Number(it.score):10;
-    const innerW=colW-8;
+    const innerW=colWmm-8;
     let rowH,gridCols=null,titleHead=0,totalRows;
     if(type==='grid-cn'){
       gridCols=Math.max(10,Math.min(40,it.cols||20));
-      rowH=Math.min(8,innerW/gridCols)+1.2;
+      const cell=8;
+      gridCols=Math.max(8,Math.floor(innerW/cell));
+      rowH=cell+1.2;
       titleHead=it.titleLine?13:0;
       totalRows=(it.count?Math.max(1,Math.ceil(it.count/gridCols)):Math.max(1,it.rows||10));
     }else if(type==='grid-en'){
@@ -788,16 +793,24 @@ function layoutTemplate(tpl,opts){
     }else{
       rowH=8; totalRows=Math.max(1,it.rows||3);
     }
-    let remaining=totalRows,part=0,rowStart=0,first=withTitle;
+    return {type:type,gridCols:gridCols,rowH:rowH,titleHead:titleHead,totalRows:totalRows};
+  }
+  function layoutSubj(sec,it,withTitle){
+    const kind=kindOf(it);
+    const score=(it.score!=null&&Number.isFinite(Number(it.score)))?Number(it.score):10;
+    let remaining,part=0,rowStart=0,first=withTitle;
+    const m0=subjMetrics(it,colW);
+    remaining=m0.totalRows;
     while(remaining>0){
+      const m=(part===0)?m0:subjMetrics(it,colW); /* 首片带标题栏 */
       const secH=(part===0&&first)?SEC_H:0;
-      const tHead=(part===0)?titleHead:0;
-      if(availH()<secH+5+tHead+6+rowH)nextColOrPage();
+      const tHead=(part===0)?m.titleHead:0;
+      if(availH()<secH+5+tHead+6+m.rowH)nextColOrPage();
       const avail=availH()-secH-5-tHead-6;
-      const take=Math.min(remaining,Math.max(1,Math.floor(avail/rowH)));
-      const boxH=take*rowH+6+tHead;
-      pg.subjective.push({qno:it.qno,score:score,type:type,kind:kind,rows:take,rowH:rowH,
-        cols:gridCols,rowStart:rowStart,headH:tHead,part:part,
+      const take=Math.min(remaining,Math.max(1,Math.floor(avail/m.rowH)));
+      const boxH=take*m.rowH+6+tHead;
+      pg.subjective.push({qno:it.qno,score:score,type:m.type,kind:kind,rows:take,rowH:m.rowH,
+        cols:m.gridCols,rowStart:rowStart,headH:tHead,part:part,
         label:'题'+it.qno+(part>0?'（续）':''),
         x:colX(curCol)+4,y:curY+secH+5,w:colW-8,h:boxH,
         sec:(part===0&&first)?sec.title:(sec.title+'（续）'),topY:curY,col:curCol});
@@ -1016,8 +1029,9 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       ctx.fillText('（空白作答区）',px(sb.x+4),px(sb.y+5));
       ctx.textAlign='center';ctx.fillStyle='#000';
     }else if(sb.type==='grid-cn'){
-      const cols=Math.max(10,Math.min(40,sb.cols||20));
-      const cell=Math.min(8,innerW/cols);
+      const cols=Math.max(8,Math.min(40,sb.cols||20));
+      /* 格子恒为正方形：固定 8mm（与排版时一致），格数已在排版端按列宽取整 */
+      const cell=8;
       const gw=cols*cell, gx=sb.x+(sb.w-gw)/2, gy=sb.y+4+(sb.headH||0);
       if(sb.headH){
         /* 可选「题目」栏：居中、横线长约框宽一半 */
