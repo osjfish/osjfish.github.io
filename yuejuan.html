@@ -434,7 +434,7 @@ document.addEventListener('change',function(e){
 
 /* ---------- 导航 ---------- */
 const TABS=[
-  ['home','首页','首'],['class','班级学生','班级'],['tpl','答题卡模板','模板'],['exam','考试管理','考试'],
+  ['home','首页','首页'],['class','班级学生','班级'],['tpl','答题卡模板','模板'],['exam','考试管理','考试'],
   ['scan','扫描识别','扫描'],['grade','阅卷工作台','阅卷'],['score','成绩分析','成绩'],['set','设置','设置']
 ];
 const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩分析',set:'设置'};
@@ -568,17 +568,12 @@ function layoutTemplate(tpl){
   const regDigits=Math.max(2,Math.min(12,tpl.regDigits||5));
   const colW=11, regW=regDigits*colW;
   const qr={x:w-52,y:34,size:34};
-  /* 考号区默认居中；位数多（≥9 位）时会与左上姓名框或右上二维码重叠，
-     此时自动隐藏姓名框，并把考号区收进 [左边距, 二维码左侧] 内居中，避免涂点印进二维码 */
-  let regX=Math.round((w-regW)/2);
-  let infoHide=tpl.showInfo===false;
-  if(regX-2.5<58 || regX+regW+2.5>qr.x){
-    infoHide=true;
-    regX=Math.round(M+Math.max(0,(qr.x-4-M-regW)/2));
-  }
-  /* 首页左上「姓名/班级/座位号/考号」手写信息框：宽度收在考号涂卡区左侧，避免重叠 */
-  const infoW=Math.max(30,Math.min(58,regX-4.5-M));
-  const infoBox={x:M,y:28,w:infoW,h:56};
+  /* 考号涂卡区恒居中：学生信息框已移到右上（二维码下方），不再与它争横向空间 */
+  const regX=Math.round((w-regW)/2);
+  /* 学生信息框（姓名/班级/座位号）：固定显示，位于二维码正下方并与二维码水平居中对齐；
+     底边正好让出内容区起点（94mm），与作答区不重叠 */
+  const infoW=52, infoH=24;
+  const infoBox={x:Math.round(qr.x+qr.size/2-infoW/2),y:qr.y+qr.size+2,w:infoW,h:infoH};
   const regRowsY=[];
   for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
   const reg={x:regX,y:33,colW:colW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
@@ -589,15 +584,14 @@ function layoutTemplate(tpl){
   /* 续页手写信息区（姓名 + 考号）：首页已有信息框，续页无考号区时靠它人工核对归属 */
   const handInfo={x:M+2,y:26,w:contentW-4,h:11};
 
-  const regEvery=(tpl.regEveryPage===true);
   function newPage(pi){
-    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0&&!infoHide)?infoBox:null,
+    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0)?infoBox:null,
       handInfo:(pi>0)?handInfo:null,
-      reg:(pi===0||regEvery)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,
+      reg:(pi===0)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,
       pagemarks:pageMarksFor(pi),anchors:anchors,footer:{n:pi+1,m:0}};
   }
   /* 无考号区页面顶部从 42mm 开始（标题+手写信息区之下）；首页 94mm */
-  const pageTopFor=function(pi){return (pi===0||regEvery)?contentTop:contentTopCont};
+  const pageTopFor=function(pi){return pi===0?contentTop:contentTopCont};
   let pg=newPage(0); pages.push(pg);
   let curY=pageTopFor(0);
   function pageBreak(need){ if(curY+need<=contentBottom)return; pg=newPage(pages.length); pages.push(pg); curY=pageTopFor(pages.length-1); }
@@ -684,21 +678,6 @@ function layoutTemplate(tpl){
 
 }
 /* ---------- 内置预设 ---------- */
-function presetTemplates(){
-  return [
-    {name:'小学客观题卡（40题+解答）',paper:'A4',orient:'portrait',title:'小学答题卡',showInfo:true,regDigits:5,perScore:2,
-      choiceGroups:[{first:1,count:40,choices:4,label:'一、选择题'}],
-      subjective:[{qno:'41',score:30,type:'lines',rows:3,label:'解答题'}]},
-    {name:'语文作文卡',paper:'A4',orient:'portrait',title:'语文答题卡',showInfo:true,regDigits:5,perScore:2,
-      choiceGroups:[{first:1,count:10,choices:4,label:'一、选择题'}],
-      subjective:[{qno:'11',score:6,type:'lines',rows:2,label:'填空题'},{qno:'12',score:50,type:'grid-cn',cols:20,count:880,titleLine:true,label:'作文题（880字）'}]},
-    {name:'英语答题卡（60题+作文）',paper:'A4',orient:'portrait',title:'英语答题卡',showInfo:true,regDigits:5,perScore:1.5,
-      choiceGroups:[{first:1,count:30,choices:4,label:'一、选择题'},{first:31,count:30,choices:4,label:'二、选择题'}],
-      subjective:[{qno:'61',score:25,type:'grid-en',rows:10,label:'书面表达'}]},
-    {name:'空白自定义',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regDigits:5,perScore:2,
-      choiceGroups:[],subjective:[]}
-  ];
-}
 
 function newTemplate(name){
   return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regEveryPage:false,regDigits:5,perScore:2,choiceGroups:[],subjective:[],questions:[],createdAt:now()};
@@ -741,18 +720,14 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     const r=page.info;
     ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
     ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
-    const rows=[['姓名',9],['班级',20],['座位号',31]];
-    ctx.font=Math.max(9,Math.round(px(3.3)))+'px "Microsoft YaHei",sans-serif';
+    const rows=[['姓名',5],['班级',13],['座位号',21]];
+    ctx.font=Math.max(8,Math.round(px(3.0)))+'px "Microsoft YaHei",sans-serif';
     rows.forEach(function(rd){
       ctx.textAlign='left';
-      ctx.fillText(rd[0],px(r.x+3.2),px(r.y+rd[1]));
-      ctx.beginPath();ctx.moveTo(px(r.x+16),px(r.y+rd[1]+3.4));ctx.lineTo(px(r.x+r.w-3.5),px(r.y+rd[1]+3.4));
+      ctx.fillText(rd[0],px(r.x+2.8),px(r.y+rd[1]));
+      ctx.beginPath();ctx.moveTo(px(r.x+13.5),px(r.y+rd[1]+2.8));ctx.lineTo(px(r.x+r.w-3),px(r.y+rd[1]+2.8));
       ctx.lineWidth=Math.max(0.7,px(0.28));ctx.strokeStyle='#555';ctx.stroke();
     });
-    /* 第四行：考号手写格（每位一格，便于人工核对与后补） */
-    ctx.textAlign='left';ctx.fillStyle='#000';
-    ctx.fillText('考号',px(r.x+3.2),px(r.y+42));
-    drawHandDigits(ctx,px,r.x+15,r.y+42,r.w-19,page.regDigits||5);
   }
   /* 续页手写信息区：姓名 + 考号（人工核对归属的辅助信息） */
   if(page.handInfo){
@@ -2500,12 +2475,11 @@ async function renderTpl(){
   }else{
     html='<div class="f-row" style="margin-bottom:14px">'
       +'<button class="btn btn-p" data-act="tpl-new">＋ 新建模板</button>'
-      +'<button class="btn btn-b" data-act="tpl-from-preset">从预设创建</button>'
       +'<button class="btn btn-o" data-act="tpl-import">导入模板 JSON</button>'
       +'<input type="file" id="tplImportFile" accept=".json" style="display:none">'
       +'<span class="tip">模板 → 预览 → 导出 PDF（300dpi + 版式二维码）→ 打印后扫描可自动解析</span></div>';
     if(!tpls.length){
-      html+='<div class="card">'+emptyBox('','还没有模板。点击「新建模板」或「从预设创建」（内置小学客观题卡 / 语文作文卡 / 英语答题卡）。')+'</div>';
+      html+='<div class="card">'+emptyBox('','还没有模板。点击「新建模板」逐题添加，或「导入模板 JSON」载入他人分享的模板。')+'</div>';
     }else{
       const cards=[];
       for(const t of tpls){
@@ -2584,12 +2558,6 @@ async function tplEditorHTML(tplId){
     +'<option value="portrait"'+(t.orient!=='landscape'?' selected':'')+'>竖版</option><option value="landscape"'+(t.orient==='landscape'?' selected':'')+'>横版</option></select></div>'
     +'<div><label class="f-lb">试卷标题</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="title" value="'+esc(t.title||'')+'"></div>'
     +'<div><label class="f-lb">考号位数（2-12）</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="regDigits" type="number" min="2" max="12" value="'+esc(t.regDigits)+'"></div>'
-    +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">显示姓名/班级/座位号框</label>'
-    +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="showInfo"'+(t.showInfo!==false?' checked':'')+'>'
-    +'<span class="kv" style="margin-left:8px">（首页左上角信息框：姓名/班级/座位号 + 考号手写格；考号位数 ≥9 位时空间不足会自动隐藏，右上角为版式二维码）</span></div>'
-    +'<div class="f-row" style="align-items:center"><label class="f-lb" style="margin:0">每页重复显示准考证号</label>'
-    +'<input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="regEveryPage"'+(t.regEveryPage===true?' checked':'')+'>'
-    +'<span class="kv" style="margin-left:8px">默认<b>仅首页</b>：第2页起只印标题/页码/二维码，识别时自动沿用上一页考号；如需逐张独立识别可选此项</span></div>'
     +'</div></div>'
     +'<div class="card"><h3>题目清单（逐题添加，主客观可任意混排）</h3>'
     +'<div class="tip" style="margin-bottom:8px">客观题会自动集中排在答题卡开头：按题号升序、选项数相同的连续题号合为一组（每题 2-6 个选项）；主观题按清单顺序排在客观题之后。预览/保存后即可看到自动排版结果。</div>'
@@ -2609,30 +2577,6 @@ Object.assign(ACTS,{
     await dbPut('templates',t);
     ui.tplEdit=t.id;
     toast('已创建，请编辑后保存','ok');
-    renderTpl();
-  },
-  'tpl-from-preset':async function(){
-    const presets=presetTemplates();
-    const html='<div style="display:flex;flex-direction:column;gap:8px">'
-      +presets.map(function(p,i){
-        return '<button class="btn" style="justify-content:space-between" data-act="tpl-preset-pick" data-i="'+i+'"><span>'+esc(p.name)+'</span><span style="opacity:.55">创建并编辑 →</span></button>';
-      }).join('')+'</div>';
-    dlg(html,{title:'从预设创建答题卡模板'});
-    afterRender(function(){
-      const ps=presetTemplates();
-    });
-  },
-  'tpl-preset-pick':async function(el){
-    const p=presetTemplates()[parseInt(el.dataset.i,10)];
-    const t=newTemplate(p.name);
-    Object.assign(t,JSON.parse(JSON.stringify(p)));
-    t.id=uid('tpl_');t.createdAt=today();
-    /* 预设是旧结构（选择题组+主观题区），立即固化为逐题清单，否则空 questions 会盖掉预设内容 */
-    t.questions=normalizeQuestions({choiceGroups:t.choiceGroups,subjective:t.subjective});
-    await dbPut('templates',t);
-    dlgClose();
-    ui.tplEdit=t.id;
-    toast('预设已创建，可继续编辑','ok');
     renderTpl();
   },
   'tpl-edit':async function(el){ui.tplEdit=el.dataset.id;renderTpl()},
@@ -2892,7 +2836,7 @@ async function renderCls(){
     +'<button class="btn btn-o btn-s" data-act="stu-excel-tpl">下载《考生信息表.xlsx》模板</button>'
     +'<button class="btn btn-o btn-s" data-act="stu-excel">导入 Excel</button>'
     +'<input type="file" id="stuExcelFile" accept=".xlsx,.xls,.csv" style="display:none">'
-    +'<button class="btn btn-s" data-act="stu-csv">导出 CSV</button>'
+    +'<button class="btn btn-s" data-act="stu-csv">导出 Excel</button>'
     +'</div>';
   if(students.length){
     html+='<div class="tbl-wrap"><table class="tbl"><tr><th style="width:60px">序号</th><th style="width:150px">考号（涂卡号）</th><th style="width:150px">姓名</th><th>备注</th><th style="width:70px"></th></tr>'
@@ -2980,14 +2924,19 @@ Object.assign(ACTS,{
     toast('导入完成：新增 '+added+' 人，更新 '+updated+' 人','ok');
     renderCls();
   },
+  /* 导出与「下载模板 / 导入」统一为 xlsx，避免格式混用 */
   'stu-csv':async function(el){
     const st=await dbByIdx('students','byClass',ui.clsCur);
     if(!st.length){toast('暂无学生','err');return}
-    const q=function(s){return '"'+String(s==null?'':s).replace(/"/g,'""')+'"'};
-    const lines=[['序号','考号','姓名','备注'].join(',')]
-      .concat(st.map(function(s,i){return [i+1,s.no||'',s.name||'',s.note||''].map(q).join(',')}));
-    download('学生名单_'+tsName()+'.csv','\ufeff'+lines.join('\r\n'),'text/csv;charset=utf-8');
-    toast('CSV 已导出','ok');
+    try{
+      const aoa=[['序号','姓名','考号','备注']].concat(st.map(function(s,i){return [i+1,s.name||'',s.no||'',s.note||'']}));
+      const wb=XLSX.utils.book_new();
+      const ws=XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols']=[{wch:6},{wch:14},{wch:14},{wch:22}];
+      XLSX.utils.book_append_sheet(wb,ws,'学生名单');
+      XLSX.writeFile(wb,'学生名单_'+tsName()+'.xlsx');
+      toast('学生名单 Excel 已导出','ok');
+    }catch(e){toast('导出失败：'+e.message,'err')}
   },
   'stu-excel-tpl':function(){
     try{
