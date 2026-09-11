@@ -499,10 +499,77 @@ try{
    ============================================================ */
 
 /* ---------- 版式布局（mm 坐标系，确定性输出） ---------- */
+/* 版面方向：竖版单列 / 横版 2 列 / 横版 3 列（横版=纸张横放，内容分栏自左向右填充） */
+const LAYOUTS={
+  portrait:{label:'竖版（单列）',cols:1,land:false},
+  landscape2:{label:'横版（2 列）',cols:2,land:true},
+  landscape3:{label:'横版（3 列）',cols:3,land:true}
+};
+function tplLayout(tpl){
+  if(tpl&&tpl.layout&&LAYOUTS[tpl.layout])return LAYOUTS[tpl.layout];
+  return (tpl&&tpl.orient==='landscape')?LAYOUTS.landscape2:LAYOUTS.portrait;
+}
 function paperWH(tpl){
   const p=PAPER[tpl.paper]||PAPER.A4;
-  if(tpl.orient==='landscape')return {w:p[1],h:p[0]};
+  const lay=tplLayout(tpl);
+  if(lay.land)return {w:p[1],h:p[0]};
   return {w:p[0],h:p[1]};
+}
+/* 题型：单选/多选（涂卡）· 填空 · 问答 · 作文 */
+const KINDS={single:'单选',multi:'多选',blank:'填空',qa:'问答',essay:'作文'};
+function kindOf(it){return (it&&KINDS[it.kind])?it.kind:'single'}
+function isChoiceKind(k){return k==='single'||k==='multi'}
+/* 作答区样式 → 卡面 type（识别/切割沿用 lines|blank|grid-cn|grid-en） */
+function subjTypeOf(it){
+  const k=kindOf(it);
+  if(k==='essay')return (it.style==='lines')?'lines':(it.style==='grid-en'?'grid-en':'grid-cn');
+  if(k==='blank')return 'lines';                       /* 填空：横线作答 */
+  if(k==='qa')return (it.style==='blank')?'blank':'lines';  /* 问答：空白框 或 横线 */
+  return 'lines';
+}
+/* 题目清单归一化：新结构用 sections（大题→小题）；旧结构（扁平 questions / 选择题组+主观题区）自动归为大题 */
+function normalizeSections(tpl){
+  if(Array.isArray(tpl.sections)&&tpl.sections.length){
+    return tpl.sections.map(function(s){
+      return {title:String(s.title||''),items:(s.items||[]).map(function(it){
+        const o=Object.assign({},it);
+        o.kind=kindOf(o);
+        return o;
+      })};
+    });
+  }
+  const secs=[];
+  const qs=normalizeQuestions(tpl);
+  const objs=qs.filter(function(q){return q.t==='obj'});
+  if(objs.length){
+    secs.push({title:'一、选择题',items:objs.map(function(q){
+      return {kind:'single',qno:q.qno,choices:Math.max(2,Math.min(6,q.choices||4)),score:(q.score!=null?q.score:null)};
+    })});
+  }
+  qs.filter(function(q){return q.t==='subj'}).forEach(function(s){
+    const st=s.type||'lines';
+    const it={qno:s.qno,score:(s.score!=null?s.score:10)};
+    if(st==='grid-cn'){it.kind='essay';it.style='grid-cn';it.cols=s.cols||20;it.count=s.count;it.titleLine=!!s.titleLine;}
+    else if(st==='grid-en'){it.kind='essay';it.style='grid-en';it.rows=s.rows||6;}
+    else{it.kind='qa';it.style='lines';it.rows=s.rows||3;}
+    secs.push({title:'',items:[it]});
+  });
+  const cn='一二三四五六七八九十';
+  secs.forEach(function(s,i){
+    if(!s.title){
+      const k=s.items&&s.items.length?kindOf(s.items[0]):'qa';
+      s.title=(i<10?cn[i]:String(i+1))+'、'+(k==='essay'?'作文':(k==='qa'?'问答题':'选择题'));
+    }
+  });
+  return secs;
+}
+/* 全卷小题清单（按大题顺序展开），供识别/成绩/向导使用 */
+function allItems(tpl){
+  const out=[];
+  normalizeSections(tpl).forEach(function(s){
+    (s.items||[]).forEach(function(it){out.push(Object.assign({},it,{secTitle:s.title}))});
+  });
+  return out;
 }
 /* 题级选项数（模板组可指定 15:5 等覆盖；默认组 choices） */
 function groupQChoices(g,qn){
@@ -553,9 +620,13 @@ function readPageMarks(bin,w,h,H,smm){
     return n>0?n:null;
   }catch(e){return null}
 }
-function layoutTemplate(tpl){
+function layoutTemplate(tpl,opts){
+  opts=opts||{};
   const wh=paperWH(tpl), w=wh.w, h=wh.h;
   const M=14, contentW=w-2*M;
+  const lay=tplLayout(tpl), nCols=lay.cols;
+  const colGap=(nCols>1)?6:0;
+  const colW=(contentW-(nCols-1)*colGap)/nCols;
   const big=9, sm=5;
   const anchors=[
     {x:12-big/2,y:12-big/2,s:big},
@@ -566,116 +637,136 @@ function layoutTemplate(tpl){
     {x:w-12-sm/2,y:22-sm/2,s:sm}
   ];
   const regDigits=Math.max(2,Math.min(12,tpl.regDigits||5));
-  const colW=11, regW=regDigits*colW;
+  const regColW=11, regW=regDigits*regColW;
   const qr={x:w-52,y:34,size:34};
-  /* 考号涂卡区恒居中：学生信息框已移到右上（二维码下方），不再与它争横向空间 */
   const regX=Math.round((w-regW)/2);
-  /* 学生信息框（姓名/班级/座位号）：固定显示，位于二维码正下方并与二维码水平居中对齐；
-     底边正好让出内容区起点（94mm），与作答区不重叠 */
   const infoW=52, infoH=24;
   const infoBox={x:Math.round(qr.x+qr.size/2-infoW/2),y:qr.y+qr.size+2,w:infoW,h:infoH};
   const regRowsY=[];
   for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
-  const reg={x:regX,y:33,colW:colW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
+  const reg={x:regX,y:33,colW:regColW,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
     numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   const pages=[];
   /* 首页含考号区时内容从 94mm 起；续页顶部留给手写信息区，内容从 42mm 起；底部留页脚与定位点空间 */
   const contentTop=94, contentTopCont=42, contentBottom=h-19;
-  /* 续页手写信息区（姓名 + 考号）：首页已有信息框，续页无考号区时靠它人工核对归属 */
   const handInfo={x:M+2,y:26,w:contentW-4,h:11};
-
   function newPage(pi){
-    return {w:w,h:h,title:(tpl.title||'答题卡'),info:(pi===0)?infoBox:null,
+    return {w:w,h:h,title:(opts&&opts.title!=null?opts.title:(tpl.title||tpl.name||'')),info:(pi===0)?infoBox:null,
       handInfo:(pi>0)?handInfo:null,
       reg:(pi===0)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,
-      pagemarks:pageMarksFor(pi),anchors:anchors,footer:{n:pi+1,m:0}};
+      pagemarks:pageMarksFor(pi),anchors:anchors,nCols:nCols,colW:colW,colGap:colGap,margin:M,footer:{n:pi+1,m:0}};
   }
-  /* 无考号区页面顶部从 42mm 开始（标题+手写信息区之下）；首页 94mm */
-  const pageTopFor=function(pi){return pi===0?contentTop:contentTopCont};
   let pg=newPage(0); pages.push(pg);
-  let curY=pageTopFor(0);
-  function pageBreak(need){ if(curY+need<=contentBottom)return; pg=newPage(pages.length); pages.push(pg); curY=pageTopFor(pages.length-1); }
-  function forcePage(){ pg=newPage(pages.length); pages.push(pg); curY=pageTopFor(pages.length-1); }
-  
-  /* 逐题清单 → 排版：客观题自动集中到答题卡开头（题号升序，选项数相同的连续题号合为一组），主观题按清单顺序排在其后 */
-  const qss=normalizeQuestions(tpl);
-  const objs=qss.filter(function(q){return q.t==='obj'}).sort(function(a,b){return a.qno-b.qno});
-  const objGroups=[];
-  objs.forEach(function(o){
-    const choices=Math.max(2,Math.min(6,o.choices||4));
-    const sc=(o.score!=null&&Number.isFinite(Number(o.score)))?Number(o.score):null;
-    const last=objGroups[objGroups.length-1];
-    if(last&&o.qno===last.first+last.count&&choices===last.choices){last.count++;last.scores.push(sc);}
-    else objGroups.push({first:o.qno,count:1,choices:choices,scores:[sc]});
-  });
-  objGroups.forEach(function(gp){
-    gp.label=gp.first===gp.count+gp.first-1?('选择题（第'+gp.first+'题）'):('选择题（'+gp.first+'-'+(gp.first+gp.count-1)+'题）');
-  });
-  const subjDefs=qss.filter(function(q){return q.t==='subj'});
-  /* 选择题组（超高自动拆分为多个子组跨页，题号连续） */
-  const maxRowsPerPage=Math.max(1,Math.floor((contentBottom-contentTop-13)/5));
-  objGroups.forEach(function(gp){
-    const choices=gp.choices;
-    const total=gp.count;
+  let curCol=0, curY=contentTop;
+  const colX=function(c){return M+c*(colW+colGap)};
+  const pageTopNow=function(){return (pages.length===1)?contentTop:contentTopCont};
+  const availH=function(){return contentBottom-curY};
+  function nextColOrPage(){
+    if(curCol<nCols-1){curCol++;curY=pageTopNow();return}
+    pg=newPage(pages.length);pages.push(pg);curCol=0;curY=contentTopCont;
+  }
+  function ensure(needH){ if(availH()<needH)nextColOrPage(); }
+  const SEC_H=6.5;   /* 大题标题占用高度 */
+  function scoreLabelOf(scores){
+    const s=scores.filter(function(v){return v!=null});
+    if(!s.length)return null;
+    const uniq=s.filter(function(v,i){return s.indexOf(v)===i});
+    if(uniq.length===1)return '每题'+uniq[0]+'分';
+    return '共'+(Math.round(s.reduce(function(a,b){return a+b},0)*100)/100)+'分';
+  }
+  /* 选择题组：按列宽自动分列，超高跨列/跨页（题号连续） */
+  function layoutChoice(sec,bl,withTitle){
+    const items=bl.items, choices=bl.choices;
+    const total=items.length;
+    const scores=items.map(function(it){return (it.score!=null&&Number.isFinite(Number(it.score)))?Number(it.score):null});
     const cellW=10;
-    let cols=Math.max(1,Math.min(total,gp.cols||0));
-    if(!gp.cols){cols=Math.max(1,Math.floor((contentW-6)/(cellW+choices*7.0+1)));}
-    cols=Math.min(cols,total);
-    const x0=M+6, gridW=contentW-12;
-    const dxq=gridW/cols;
+    const maxColsIn=Math.max(1,Math.floor((colW-6)/(cellW+choices*7.0+1)));
+    const nq=Math.min(maxColsIn,total);
+    const dxq=(colW-12)/nq;
     const dxc=Math.max(3.5,(dxq-cellW)/choices);
-    const label=gp.label;
-    let qFirst=gp.first, remaining=total, part=0;
+    let qFirst=items[0].qno, remaining=total, part=0, idx=0, first=withTitle;
     while(remaining>0){
-      const rows=Math.min(remaining,Math.max(1,Math.min(Math.ceil(remaining/cols),maxRowsPerPage)));
-      const subCount=Math.min(remaining,rows*cols);
-      const hNeed=7+rows*5+6;
-      pageBreak(hNeed);
-      /* 本子组（可能跨页拆分）实际涵盖的逐题分值 → 卡面标注 */
-      const subScores=(gp.scores||[]).slice(qFirst-gp.first,qFirst-gp.first+subCount).filter(function(s){return s!=null});
-      const uniqS=subScores.filter(function(v,i){return subScores.indexOf(v)===i});
-      const scoreLabel=!subScores.length?null:(uniqS.length===1?('每题'+uniqS[0]+'分'):('共'+(Math.round(subScores.reduce(function(a,b){return a+b},0)*100)/100)+'分'));
-      const g={first:qFirst,count:subCount,choices:choices,choicesQ:gp.choicesQ||null,cols:cols,rows:rows,
-        x0:x0,y0:curY+7,dxq:dxq,dy:5,dxc:dxc,size:[4.2,2.8],timing:{dx:-2,w:1,h:2},scores:subScores,scoreLabel:scoreLabel,label:label+(part>0?'（续）':'')};
-      pg.groups.push(g);
+      const headH=(part===0&&first)?SEC_H:0;
+      if(availH()<headH+7+5+6)nextColOrPage();
+      const availRows=Math.max(1,Math.floor((availH()-headH-13)/5));
+      const rows=Math.min(remaining,Math.max(1,Math.min(Math.ceil(remaining/nq),availRows)));
+      const subCount=Math.min(remaining,rows*nq);
+      const hNeed=headH+7+rows*5+6;
+      ensure(hNeed);
+      const subScores=scores.slice(idx,idx+subCount);
+      pg.groups.push({first:qFirst,count:subCount,choices:choices,cols:nq,rows:rows,
+        x0:colX(curCol)+6,y0:curY+headH+7,dxq:dxq,dy:5,dxc:dxc,size:[4.2,2.8],
+        timing:{dx:-2,w:1,h:2},scores:subScores,scoreLabel:scoreLabelOf(subScores),
+        kind:bl.kind,label:(part===0&&first)?sec.title:(sec.title+'（续）'),
+        sec:(part===0&&first)?sec.title:(sec.title+'（续）'),topY:curY,col:curCol});
       curY+=hNeed;
-      qFirst+=subCount;remaining-=subCount;part++;
+      qFirst+=subCount;remaining-=subCount;part++;idx+=subCount;
     }
-  });
-  /* 主观题（按清单顺序，超出页面自动分页切分） */
-  subjDefs.forEach(function(sub,si){
-    const type=sub.type||'lines';
-    const cols=(type==='grid-cn')?Math.max(10,Math.min(40,sub.cols||20)):null;
-    const rowH=(type==='grid-cn')?(Math.min(8,166/cols)+1.2):(type==='grid-en')?5:8;
-    const headH=(type==='grid-cn'&&sub.titleLine)?13:0;
-    const totalRows=(type==='grid-cn'&&sub.count)?Math.max(1,Math.ceil(sub.count/cols)):Math.max(1,sub.rows||3);
-    /* 分页：每页尽量填满（首页按剩余空间，之后每页按整页容量，不做均衡拆分） */
-    let remaining=totalRows, part=0, partRowStart=0;
-    /* 主观题默认题号按“清单中第几道主观题”编号，避免多道未命名主观题互相撞号 */
-    const subjQno=sub.qno||('主观题'+(si+1));
+  }
+  /* 主观题（填空/问答/作文）：按作答样式排，超高跨列/跨页 */
+  function layoutSubj(sec,it,withTitle){
+    const kind=kindOf(it);
+    const type=subjTypeOf(it);
+    const score=(it.score!=null&&Number.isFinite(Number(it.score)))?Number(it.score):10;
+    const innerW=colW-8;
+    let rowH,gridCols=null,titleHead=0,totalRows;
+    if(type==='grid-cn'){
+      gridCols=Math.max(10,Math.min(40,it.cols||20));
+      rowH=Math.min(8,innerW/gridCols)+1.2;
+      titleHead=it.titleLine?13:0;
+      totalRows=(it.count?Math.max(1,Math.ceil(it.count/gridCols)):Math.max(1,it.rows||10));
+    }else if(type==='grid-en'){
+      rowH=5; totalRows=Math.max(1,it.rows||6);
+    }else if(type==='blank'){
+      rowH=8; totalRows=Math.max(1,it.rows||4);
+    }else{
+      rowH=8; totalRows=Math.max(1,it.rows||3);
+    }
+    let remaining=totalRows,part=0,rowStart=0,first=withTitle;
     while(remaining>0){
-      /* 可用行高空间 = 页底 contentBottom − 框顶(curY+7) − 底部内边距6 − 首部标题栏（仅首片），保证框底不越界 */
-      const partHead=(part===0)?headH:0;
-      const avail=contentBottom-(curY+7)-6-partHead;
-      let take;
-      if(avail>=rowH){
-        take=Math.min(remaining,Math.floor(avail/rowH));
-      }else{
-        forcePage();
-        take=Math.min(remaining,Math.max(1,Math.floor((contentBottom-(contentTopCont+7)-6)/rowH)));
-      }
-      const boxH=take*rowH+6+partHead;
-      const sx=M+2, sw=contentW-4, sy=curY+7;
-      pg.subjective.push({qno:subjQno,score:sub.score||10,type:type,rows:take,rowH:rowH,
-        cols:cols,rowStart:partRowStart,headH:partHead,
-        part:part,label:(sub.label||'主观题')+(part>0?'（续第'+(part+1)+'部分）':''),x:sx,y:sy,w:sw,h:boxH});
-      remaining-=take; part++; partRowStart+=take;
-      curY+=13+boxH;
+      const secH=(part===0&&first)?SEC_H:0;
+      const tHead=(part===0)?titleHead:0;
+      if(availH()<secH+5+tHead+6+rowH)nextColOrPage();
+      const avail=availH()-secH-5-tHead-6;
+      const take=Math.min(remaining,Math.max(1,Math.floor(avail/rowH)));
+      const boxH=take*rowH+6+tHead;
+      pg.subjective.push({qno:it.qno,score:score,type:type,kind:kind,rows:take,rowH:rowH,
+        cols:gridCols,rowStart:rowStart,headH:tHead,part:part,
+        label:'题'+it.qno+(part>0?'（续）':''),
+        x:colX(curCol)+4,y:curY+secH+5,w:colW-8,h:boxH,
+        sec:(part===0&&first)?sec.title:(sec.title+'（续）'),topY:curY,col:curCol});
+      remaining-=take;part++;rowStart+=take;
+      curY+=secH+5+boxH+6;
     }
+  }
+  /* 大题 → 小题：连续且同题型同选项数的选择题合成一组，其余逐题成块 */
+  const secs=normalizeSections(tpl);
+  secs.forEach(function(sec){
+    const blocks=[];
+    (sec.items||[]).forEach(function(it){
+      const k=kindOf(it);
+      if(isChoiceKind(k)){
+        const choices=Math.max(2,Math.min(6,it.choices||4));
+        const last=blocks[blocks.length-1];
+        if(last&&last.t==='choice'&&last.kind===k&&last.choices===choices&&it.qno===last.qLast+1){
+          last.items.push(it);last.qLast=it.qno;
+        }else{
+          blocks.push({t:'choice',kind:k,choices:choices,items:[it],qLast:it.qno});
+        }
+      }else{
+        blocks.push({t:'item',it:it});
+      }
+    });
+    let withTitle=true;
+    blocks.forEach(function(bl){
+      if(bl.t==='choice')layoutChoice(sec,bl,withTitle);
+      else layoutSubj(sec,bl.it,withTitle);
+      withTitle=false;
+    });
   });
   pages.forEach(function(p,i){p.footer.n=i+1;p.footer.m=pages.length});
-  return {w:w,h:h,pages:pages,regDigits:regDigits,perScore:tpl.perScore||2,id:tpl.id||'',name:tpl.name||''};
-
+  return {w:w,h:h,pages:pages,regDigits:regDigits,perScore:tpl.perScore||2,id:tpl.id||'',name:tpl.name||'',
+    nCols:nCols,colW:colW,layout:(tpl.layout||'portrait'),land:lay.land};
 }
 /* ---------- 内置预设 ---------- */
 
@@ -786,6 +877,26 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
   });
   }
   ctx.textAlign='center';
+  /* 大题标题：每页每列只画一次（该列首个块的大题名） */
+  (function(){
+    const all=page.groups.map(function(g){return g}).concat(page.subjective.map(function(s){return s}));
+    all.sort(function(a,b){return (a.col||0)-(b.col||0)||((a.topY||0)-(b.topY||0))});
+    const shown={};
+    all.forEach(function(b){
+      if(!b.sec)return;
+      const key=page.footer.n+'|'+(b.col||0);
+      if(shown[key])return;
+      shown[key]=1;
+      const x=(page.margin||14)+((b.col||0))*((page.colW||page.w)+((page.colGap!==undefined)?page.colGap:0));
+      const isCont=/（续）$/.test(String(b.sec));
+      const txt=isCont?(b.scoreLabel?('（'+b.scoreLabel+'）'):''):(b.sec+(b.scoreLabel?('（'+b.scoreLabel+'）'):''));
+      if(!txt)return;
+      ctx.fillStyle='#000';ctx.textAlign='left';
+      ctx.font='bold '+Math.max(8,Math.round(px(3.7)))+'px "Microsoft YaHei",sans-serif';
+      ctx.fillText(txt,px(x),px((b.topY||0)+4.3));
+    });
+    ctx.textAlign='center';
+  })();
   /* 选择题组 */
   page.groups.forEach(function(g){
     ctx.strokeStyle='#555';ctx.lineWidth=Math.max(0.7,px(0.3));
@@ -793,7 +904,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     ctx.fillStyle='#000';
     ctx.font='bold '+Math.max(8,Math.round(px(3.6)))+'px "Microsoft YaHei",sans-serif';
     ctx.textAlign='left';
-    ctx.fillText(g.label+'（'+(g.scoreLabel||('每题'+(pagePerScore(tpl,layout,page))+'分'))+'）',px(g.x0),px(g.y0-4.5));
+    /* 组标题不再单独绘制：大题标题行已包含组名与分值（见上方大题标题绘制） */
     ctx.textAlign='center';
     for(let c=0;c<g.cols;c++){
       const xc=g.x0+c*g.dxq;
@@ -826,14 +937,21 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     ctx.strokeRect(px(sb.x),px(sb.y),px(sb.w),px(sb.h));
     ctx.fillStyle='#000';ctx.font='bold '+Math.max(8,Math.round(px(3.6)))+'px "Microsoft YaHei",sans-serif';
     ctx.textAlign='left';
-    ctx.fillText(sb.label+'（'+sb.score+'分）',px(sb.x),px(sb.y-4.5));
+    ctx.fillText(sb.label+'（'+sb.score+'分）',px(sb.x),px(sb.y-2.6));
     const innerW=sb.w-12;
     if(sb.type==='lines'){
+      /* 首行预留整行书写空间（此前首线距框顶仅 6mm，写不下字） */
       ctx.strokeStyle='#999';ctx.lineWidth=Math.max(0.6,px(0.2));
       for(let i=0;i<sb.rows;i++){
-        const ly=sb.y+4+i*sb.rowH+2;
+        const ly=sb.y+2+(i+1)*sb.rowH-sb.rowH*0.2;
         ctx.beginPath();ctx.moveTo(px(sb.x+5),px(ly));ctx.lineTo(px(sb.x+sb.w-5),px(ly));ctx.stroke();
       }
+    }else if(sb.type==='blank'){
+      /* 问答：纯空白作答框（无横线），高度由 rows×行距决定 */
+      ctx.textAlign='left';ctx.fillStyle='#aaa';
+      ctx.font=Math.max(6,Math.round(px(2.2)))+'px "Microsoft YaHei",sans-serif';
+      ctx.fillText('（空白作答区）',px(sb.x+4),px(sb.y+5));
+      ctx.textAlign='center';ctx.fillStyle='#000';
     }else if(sb.type==='grid-cn'){
       const cols=Math.max(10,Math.min(40,sb.cols||20));
       const cell=Math.min(8,innerW/cols);
@@ -874,7 +992,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     }else if(sb.type==='grid-en'){
       ctx.strokeStyle='#999';ctx.lineWidth=Math.max(0.5,px(0.18));
       for(let i=0;i<sb.rows;i++){
-        const base=sb.y+4+i*sb.rowH;
+        const base=sb.y+3+(i+1)*sb.rowH-4.2;
         const ys=[base,base+1.4,base+2.8,base+4.2];
         ys.forEach(function(y,k){
           ctx.beginPath();ctx.moveTo(px(sb.x+4),px(y));ctx.lineTo(px(sb.x+sb.w-4),px(y));ctx.stroke();
@@ -912,7 +1030,7 @@ function regDigitsW(reg,page){return reg.colW*pageRegDigits(reg,page)}
 function regBottom(reg){return reg.rowsY[9]+3.4}
 /* 模板列表的客观题分值标注：逐题分值一致时显示“每题X分”，不同则显示“共X分” */
 function objTotalLabel(t){
-  const scs=normalizeQuestions(t).filter(function(q){return q.t==='obj'})
+  const scs=allItems(t).filter(function(q){return isChoiceKind(kindOf(q))})
     .map(function(q){return (q.score!=null&&Number.isFinite(Number(q.score)))?Number(q.score):((t.perScore!=null)?Number(t.perScore):2)});
   if(!scs.length)return '';
   const uniq=scs.filter(function(v,i){return scs.indexOf(v)===i});
@@ -1147,8 +1265,8 @@ async function makeQRCanvas(payload){
 }
 
 /* ---------- 渲染入口（异步：先备齐各页二维码） ---------- */
-async function renderPagesAsync(tpl,dpi){
-  const layout=layoutTemplate(tpl);
+async function renderPagesAsync(tpl,dpi,opts){
+  const layout=layoutTemplate(tpl,opts);
   const qrs=[];
   for(let i=0;i<layout.pages.length;i++){
     const payload=await qrPayloadFor(layout,tpl,layout.pages[i]);
@@ -1162,18 +1280,19 @@ function renderPagesSync(tpl,dpi){
 }
 
 /* ---------- PDF 导出 ---------- */
-async function exportTemplatePDF(tpl){
+async function exportTemplatePDF(tpl,opts){
+  opts=opts||{};
   if(typeof jspdf==='undefined'||!jspdf.jsPDF){toast('jsPDF 库未加载','err');return}
-  dlg('<div class="kv">正在渲染 '+tpl.name+'（'+layoutTemplate(tpl).pages.length+' 页，300dpi）…</div>',{title:'导出 PDF'});
+  dlg('<div class="kv">正在渲染 '+esc(opts.title||tpl.name)+'（'+layoutTemplate(tpl,opts).pages.length+' 页，300dpi）…</div>',{title:'导出 PDF'});
   try{
-    const {layout,canvases}=await renderPagesAsync(tpl,300);
+    const {layout,canvases}=await renderPagesAsync(tpl,300,opts);
     const wh=paperWH(tpl);
     const pdf=new jspdf.jsPDF({orientation:wh.h>=wh.w?'portrait':'landscape',unit:'mm',format:[wh.w,wh.h],compress:false});
     canvases.forEach(function(cv,i){
       if(i>0)pdf.addPage([wh.w,wh.h],wh.h>=wh.w?'portrait':'landscape');
       pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,wh.w,wh.h,undefined,'FAST');
     });
-    pdf.save('答题卡_'+tpl.name+'_'+tsName()+'.pdf');
+    pdf.save('答题卡_'+(opts.title||tpl.name)+'_'+tsName()+'.pdf');
     dlgClose();
     toast('PDF 已导出：'+layout.pages.length+' 页（建议按 100%/实际大小 打印）','ok');
   }catch(err){
@@ -2315,13 +2434,19 @@ async function examMeta(exam){
   /* 客观题逐题分值：模板中每题可单独设分（questions[].score），无则回退旧的统一分值 perScore（默认 2） */
   const choiceScores={};
   const qmap={};
-  normalizeQuestions(tpl).forEach(function(q){if(q.t==='obj')qmap[q.qno]=q;});
+  allItems(tpl).forEach(function(q){if(isChoiceKind(kindOf(q)))qmap[q.qno]=q;});
   choiceQnos.forEach(function(qn){
     const q=qmap[qn];
     const s=(q&&q.score!=null)?Number(q.score):((tpl.perScore!=null)?Number(tpl.perScore):2);
     choiceScores[qn]=(Number.isFinite(s)&&s>=0)?s:2;
   });
-  return {tpl:tpl,layout:layout,choiceQnos:choiceQnos,subjList:subjList,choiceOpts:choiceOpts,choiceScores:choiceScores};
+  /* 每题题型（供向导默认单选/多选） */
+  const choiceKinds={};
+  choiceQnos.forEach(function(qn){
+    const q=qmap[qn];
+    choiceKinds[qn]=(q&&q.kind==='multi')?'multi':'single';
+  });
+  return {tpl:tpl,layout:layout,choiceQnos:choiceQnos,subjList:subjList,choiceOpts:choiceOpts,choiceScores:choiceScores,choiceKinds:choiceKinds};
 }
 async function examReviewCount(examId){
   const {exam,pages,revs}=await examData(examId);
@@ -2484,9 +2609,9 @@ async function renderTpl(){
       const cards=[];
       for(const t of tpls){
         const lay=layoutTemplate(t);
-        const qsN=normalizeQuestions(t);
-        const choiceN=qsN.filter(function(q){return q.t==='obj'}).length;
-        const subjN=qsN.filter(function(q){return q.t==='subj'}).length;
+        const qsN=allItems(t);
+        const choiceN=qsN.filter(function(q){return isChoiceKind(kindOf(q))}).length;
+        const subjN=qsN.filter(function(q){return !isChoiceKind(kindOf(q))}).length;
         cards.push('<div class="card" style="display:flex;gap:14px;align-items:center">'
           +'<img class="tpl-thumb" data-act="tpl-preview" data-id="'+t.id+'" src="'+await tplThumb(t)+'" alt="">'
           +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+esc(t.name)+'</div>'
@@ -2517,31 +2642,60 @@ async function tplThumb(tpl){
 async function tplEditorHTML(tplId){
   const t=await dbGet('templates',tplId);
   if(!t)return emptyBox('!','模板不存在');
-  const qs=normalizeQuestions(t);
-  const qRows=qs.map(function(q,i){
-    const mv='<button class="btn btn-sm" data-act="tpl-q-up" data-id="'+t.id+'" data-i="'+i+'" title="上移"'+(i===0?' disabled':'')+'>↑</button>'
-      +'<button class="btn btn-sm" data-act="tpl-q-down" data-id="'+t.id+'" data-i="'+i+'" title="下移"'+(i===qs.length-1?' disabled':'')+'>↓</button>'
-      +'<button class="btn btn-sm btn-d" data-act="tpl-q-del" data-id="'+t.id+'" data-i="'+i+'" title="删除">✕</button>';
-    if(q.t==='obj'){
-      return '<div class="f-row" style="border:1px dashed var(--line);border-radius:9px;padding:8px;margin-bottom:8px">'
-        +badge('info','客观')+'<span class="kv">题号</span><input class="inp" style="width:70px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="qno" type="number" min="1" value="'+esc(q.qno)+'">'
-        +'<span class="kv">选项数</span><select class="inp" style="width:70px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="choices">'
-        +[2,3,4,5,6].map(function(x){return '<option value="'+x+'"'+((q.choices||4)===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select>'
-        +'<span class="kv">分值</span><input class="inp" style="width:64px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="score" type="number" step="0.5" min="0" value="'+esc(q.score!=null?q.score:2)+'">'
-        +'<span class="kv">（选项数相同的连续题号排版时自动合为一组）</span>'
-        +'<span style="flex:1"></span>'+mv+'</div>';
+  /* ===== 题目清单：大题 → 小题（分层编辑） ===== */
+  const secs=normalizeSections(t);
+  const itemRow=function(sec,si,it,ii,nItems){
+    const kind=kindOf(it);
+    const mv='<button class="btn btn-sm" data-act="tpl-it-up" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" title="上移"'+(ii===0?' disabled':'')+'>↑</button>'
+      +'<button class="btn btn-sm" data-act="tpl-it-down" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" title="下移"'+(ii===nItems-1?' disabled':'')+'>↓</button>'
+      +'<button class="btn btn-sm btn-d" data-act="tpl-it-del" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" title="删除小题">✕</button>';
+    const base='<span class="kv">题号</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="qno" value="'+esc(it.qno==null?'':it.qno)+'" title="建议全卷连续（1、2、3…）">'
+      +'<span class="kv">分值</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="score" type="number" step="0.5" min="0" value="'+esc(it.score!=null?it.score:2)+'">'
+      +'<span class="kv">题型</span><select class="inp" style="width:88px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="kind">'
+      +Object.keys(KINDS).map(function(k){return '<option value="'+k+'"'+(kind===k?' selected':'')+'>'+KINDS[k]+'</option>'}).join('')+'</select>';
+    let extra='';
+    if(isChoiceKind(kind)){
+      extra='<span class="kv">选项数</span><select class="inp" style="width:62px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="choices">'
+        +[2,3,4,5,6].map(function(x){return '<option value="'+x+'"'+((it.choices||4)===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select>';
+    }else if(kind==='blank'){
+      extra='<span class="kv">行数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rows" type="number" min="1" value="'+esc(it.rows||2)+'" title="提供给作答的横线行数">';
+    }else if(kind==='qa'){
+      extra='<span class="kv">作答</span><select class="inp" style="width:84px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="style">'
+        +[['lines','横线'],['blank','空白']].map(function(x){return '<option value="'+x[0]+'"'+((it.style||'lines')===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>'
+        +'<span class="kv">行数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rows" type="number" min="1" value="'+esc(it.rows||3)+'">';
+    }else if(kind==='essay'){
+      const sty=it.style||'grid-cn';
+      extra='<span class="kv">样式</span><select class="inp" style="width:106px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="style">'
+        +[['grid-cn','语文作文格'],['lines','横线'],['grid-en','英语作文格']].map(function(x){return '<option value="'+x[0]+'"'+(sty===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>';
+      if(sty==='grid-cn'){
+        extra+='<span class="kv" title="每行格数">每行格数</span><input class="inp" style="width:54px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="cols" type="number" min="10" max="40" value="'+esc(it.cols||20)+'">'
+          +'<span class="kv" title="总格数/总字数，填了则行数自动算">总格数</span><input class="inp" style="width:60px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="count" type="number" value="'+esc(it.count!=null?it.count:'')+'">'
+          +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap" title="作文格顶部预留「题目：＿＿」">题目栏<input type="checkbox" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="titleLine" '+(it.titleLine?'checked':'')+'></label>';
+      }else{
+        extra+='<span class="kv">行数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rows" type="number" min="1" value="'+esc(it.rows||8)+'">';
+      }
     }
-    return '<div class="f-row" style="border:1px dashed var(--line);border-radius:9px;padding:8px;margin-bottom:8px">'
-      +badge('ok','主观')+'<span class="kv">题号</span><input class="inp" style="width:64px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="qno" value="'+esc(q.qno||'')+'">'
-      +'<span class="kv">满分</span><input class="inp" style="width:64px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="score" type="number" step="0.5" value="'+esc(q.score)+'">'
-      +'<span class="kv">类型</span><select class="inp" style="width:110px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="type">'
-      +[['lines','横线作答'],['grid-cn','中文作文格'],['grid-en','英文四线格']].map(function(x){return '<option value="'+x[0]+'"'+(q.type===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>'
-      +'<span class="kv">行数</span><input class="inp" style="width:60px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="rows" type="number" value="'+esc(q.rows||'')+'">'
-      +'<span class="kv" title="中文作文格：每行格数（默认20）">每行格数</span><input class="inp" style="width:60px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="cols" type="number" value="'+esc(q.cols||20)+'">'
-      +'<span class="kv" title="中文作文格：总格数/总字数，填了则行数自动算（可留空）">总格数</span><input class="inp" style="width:64px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="count" type="number" value="'+esc(q.count!=null?q.count:'')+'">'
-      +'<span class="kv">标题</span><input class="inp" style="flex:1;min-width:120px" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="label" value="'+esc(q.label||'')+'">'
-      +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap" title="作文格顶部预留「题目：＿＿」供学生写标题">题目栏<input type="checkbox" data-on="tpl-q" data-id="'+t.id+'" data-i="'+i+'" data-f="titleLine" '+(q.titleLine?'checked':'')+'></label>'
-      +mv+'</div>';
+    return '<div class="f-row" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:6px;background:#fff">'
+      +badge(isChoiceKind(kind)?'info':'ok',KINDS[kind])+base+extra
+      +'<span style="flex:1"></span>'+mv+'</div>';
+  };
+  const qRows=secs.map(function(sec,si){
+    const items=(sec.items||[]);
+    const rows=items.map(function(it,ii){return itemRow(sec,si,it,ii,items.length)}).join('');
+    return '<div style="border:1px dashed #C9BFB0;border-radius:10px;padding:8px;margin-bottom:10px;background:#FCFAF6">'
+      +'<div class="f-row" style="margin-bottom:6px">'
+      +'<span class="kv" style="font-weight:700;white-space:nowrap">大题 '+(si+1)+'</span>'
+      +'<input class="inp" style="flex:1;min-width:160px" data-on="tpl-sec" data-id="'+t.id+'" data-s="'+si+'" data-f="title" value="'+esc(sec.title||'')+'" placeholder="如：一、选择题">'
+      +'<button class="btn btn-sm" data-act="tpl-sec-up" data-id="'+t.id+'" data-s="'+si+'"'+(si===0?' disabled':'')+'>↑</button>'
+      +'<button class="btn btn-sm" data-act="tpl-sec-down" data-id="'+t.id+'" data-s="'+si+'"'+(si===secs.length-1?' disabled':'')+'>↓</button>'
+      +'<button class="btn btn-sm btn-d" data-act="tpl-sec-del" data-id="'+t.id+'" data-s="'+si+'">删除大题</button>'
+      +'</div>'
+      +(rows||'<div class="kv" style="margin-bottom:6px">该大题下还没有小题</div>')
+      +'<div class="f-row">'
+      +['single','multi','blank','qa','essay'].map(function(k){
+        return '<button class="btn btn-sm" data-act="tpl-it-add" data-id="'+t.id+'" data-s="'+si+'" data-kind="'+k+'">＋ '+KINDS[k]+'</button>';
+      }).join('')
+      +'</div></div>';
   }).join('');
   return '<div class="f-row" style="margin-bottom:12px">'
     +'<button class="btn btn-p" data-act="tpl-save" data-id="'+t.id+'">保存模板并重新排版</button>'
@@ -2554,18 +2708,18 @@ async function tplEditorHTML(tplId){
     +'<div><label class="f-lb">模板名称</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="name" value="'+esc(t.name)+'"></div>'
     +'<div><label class="f-lb">纸型</label><select class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="paper">'
     +Object.keys(PAPER_NAMES).map(function(k){return '<option value="'+k+'"'+(t.paper===k?' selected':'')+'>'+PAPER_NAMES[k]+'</option>'}).join('')+'</select></div>'
-    +'<div><label class="f-lb">方向</label><select class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="orient">'
-    +'<option value="portrait"'+(t.orient!=='landscape'?' selected':'')+'>竖版</option><option value="landscape"'+(t.orient==='landscape'?' selected':'')+'>横版</option></select></div>'
-    +'<div><label class="f-lb">试卷标题</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="title" value="'+esc(t.title||'')+'"></div>'
+    +'<div><label class="f-lb">方向</label><select class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="layout">'
+    +Object.keys(LAYOUTS).map(function(k){
+        const cur=(t.layout||(t.orient==='landscape'?'landscape2':'portrait'));
+        return '<option value="'+k+'"'+(cur===k?' selected':'')+'>'+LAYOUTS[k].label+'</option>';
+      }).join('')+'</select></div>'
     +'<div><label class="f-lb">考号位数（2-12）</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="regDigits" type="number" min="2" max="12" value="'+esc(t.regDigits)+'"></div>'
     +'</div></div>'
-    +'<div class="card"><h3>题目清单（逐题添加，主客观可任意混排）</h3>'
-    +'<div class="tip" style="margin-bottom:8px">客观题会自动集中排在答题卡开头：按题号升序、选项数相同的连续题号合为一组（每题 2-6 个选项）；主观题按清单顺序排在客观题之后。预览/保存后即可看到自动排版结果。</div>'
-    +(qRows||'<div class="kv" style="margin-bottom:8px">还没有题目。点击下方按钮逐题添加，或批量添加客观题。</div>')
+    +'<div class="card"><h3>题目清单（先设大题，再加大题下的小题）</h3>'
+    +'<div class="tip" style="margin-bottom:8px">按试卷结构组织：一个大题（如「一、选择题」）下可放多个小题，小题题型可选 单选 / 多选 / 填空 / 问答 / 作文。选择题会自动按题号升序排在答题卡开头并按列宽分列，其余题型按清单顺序排版。题号建议全卷连续（1、2、3…）。</div>'
+    +(qRows||'<div class="kv" style="margin-bottom:8px">还没有大题。点击下方「添加大题」开始，例如先建「一、选择题」。</div>')
     +'<div class="f-row">'
-    +'<button class="btn btn-sm btn-p" data-act="tpl-q-add-obj" data-id="'+t.id+'">＋ 添加客观题</button>'
-    +'<button class="btn btn-sm btn-b" data-act="tpl-q-add-subj" data-id="'+t.id+'">＋ 添加主观题</button>'
-    +'<button class="btn btn-sm btn-o" data-act="tpl-q-batch" data-id="'+t.id+'">＋ 批量添加客观题</button>'
+    +'<button class="btn btn-sm btn-p" data-act="tpl-sec-add" data-id="'+t.id+'">＋ 添加大题</button>'
     +'</div></div>';
 }
 Object.assign(ACTS,{
@@ -2584,13 +2738,13 @@ Object.assign(ACTS,{
   'tpl-save':async function(el){
     const t=await dbGet('templates',el.dataset.id);
     try{
-      /* 题号校验：全卷统一阿拉伯编号，主客观同号也视为冲突（会重复排版、重复录答案） */
-      const qs=normalizeQuestions(t);
+      /* 题号校验：全卷统一编号，同号即冲突（会重复排版、重复录答案） */
+      const qs=allItems(t);
       const seen={},dups=[];
       qs.forEach(function(q){
-        if(q.t==='obj'||q.qno){
+        if(q.qno!=null&&q.qno!==''){
           const k='q'+q.qno;
-          if(seen[k])dups.push((q.t==='obj'?'客观 ':'主观 ')+q.qno);
+          if(seen[k])dups.push((KINDS[kindOf(q)]||'题')+' '+q.qno);
           seen[k]=true;
         }
       });
@@ -2652,89 +2806,166 @@ Object.assign(ACTS,{
   },
   'tpl-import':function(){const f=$('tplImportFile');if(f)f.click()},
   /* —— 逐题清单操作 —— */
-  'tpl-q-add-obj':async function(el){
+  /* ===== 题目清单（大题 → 小题） ===== */
+  'tpl-sec-add':async function(el){
     const t=await dbGet('templates',el.dataset.id);
     if(!t)return;
-    if(!t.questions)t.questions=normalizeQuestions(t);
+    const secs=normalizeSections(t);
+    const cn='一二三四五六七八九十';
+    const i=secs.length;
+    secs.push({title:(i<10?cn[i]:String(i+1))+'、新大题',items:[]});
+    t.sections=secs;delete t.questions;
+    await dbPut('templates',t);
+    renderTpl();
+  },
+  'tpl-sec-del':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    const secs=normalizeSections(t);
+    const si=parseInt(el.dataset.s,10);
+    const sec=secs[si];
+    if(!sec)return;
+    const ok=await dlgConfirm('删除大题','删除「'+esc(sec.title)+(sec.items&&sec.items.length?('」及其 '+(sec.items.length)+' 道小题'):'')+'」？','删除');
+    if(!ok)return;
+    secs.splice(si,1);
+    t.sections=secs;delete t.questions;
+    await dbPut('templates',t);
+    renderTpl();
+  },
+  'tpl-sec-up':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    const secs=normalizeSections(t);
+    const si=parseInt(el.dataset.s,10);
+    if(si<=0)return;
+    const tmp=secs[si-1];secs[si-1]=secs[si];secs[si]=tmp;
+    t.sections=secs;delete t.questions;
+    await dbPut('templates',t);
+    renderTpl();
+  },
+  'tpl-sec-down':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    const secs=normalizeSections(t);
+    const si=parseInt(el.dataset.s,10);
+    if(si>=secs.length-1)return;
+    const tmp=secs[si+1];secs[si+1]=secs[si];secs[si]=tmp;
+    t.sections=secs;delete t.questions;
+    await dbPut('templates',t);
+    renderTpl();
+  },
+  'tpl-sec':function(el){return tplEditQueued(function(){return tplSecApply(el)})},
+  /* 新增大题下的小题：题号自动取全卷最大 +1 */
+  'tpl-it-add':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    const secs=normalizeSections(t);
+    const si=parseInt(el.dataset.s,10);
+    const sec=secs[si];
+    if(!sec)return;
+    const kind=el.dataset.kind||'single';
     let mx=0;
-    t.questions.forEach(function(q){if(q.t==='obj'&&Number(q.qno)>mx)mx=Number(q.qno)});
-    t.questions.push({t:'obj',qno:mx+1,choices:4});
+    secs.forEach(function(s){(s.items||[]).forEach(function(it){const n=Number(it.qno);if(Number.isFinite(n)&&n>mx)mx=n})});
+    const it={kind:kind,qno:mx+1,score:2};
+    if(isChoiceKind(kind))it.choices=4;
+    else if(kind==='blank')it.rows=2;
+    else if(kind==='qa'){it.style='lines';it.rows=3;}
+    else if(kind==='essay'){it.style='grid-cn';it.cols=20;it.count=880;it.titleLine=true;}
+    sec.items=sec.items||[];sec.items.push(it);
+    t.sections=secs;delete t.questions;
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-q-add-subj':async function(el){
+  'tpl-it-del':async function(el){
     const t=await dbGet('templates',el.dataset.id);
     if(!t)return;
-    if(!t.questions)t.questions=normalizeQuestions(t);
-    /* 题号全卷统一用阿拉伯数字连续编号：默认取现有最大题号+1（客观 1-40 → 主观 41） */
-    let mx=0;
-    t.questions.forEach(function(q){const n=Number(q.qno);if(Number.isFinite(n)&&n>mx)mx=n;});
-    t.questions.push({t:'subj',qno:String(mx+1),score:10,type:'lines',rows:3,cols:20,count:null,titleLine:false,label:''});
+    const secs=normalizeSections(t);
+    const sec=secs[parseInt(el.dataset.s,10)];
+    if(!sec||!sec.items)return;
+    sec.items.splice(parseInt(el.dataset.i,10),1);
+    t.sections=secs;delete t.questions;
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-q-batch':async function(el){
-    const t=await dbGet('templates',el.dataset.id);
-    let defFirst=1;
-    if(t){
-      const qs=normalizeQuestions(t);
-      qs.forEach(function(q){if(q.t==='obj'&&Number(q.qno)>=defFirst)defFirst=Number(q.qno)+1;});
-    }
-    dlg('<div class="f-grid">'
-      +'<div><label class="f-lb">起始题号</label><input class="inp" id="qBatchFirst" type="number" value="'+defFirst+'"></div>'
-      +'<div><label class="f-lb">数量</label><input class="inp" id="qBatchCount" type="number" value="10"></div>'
-      +'<div><label class="f-lb">选项数</label><select class="inp" id="qBatchChoices">'
-      +[2,3,4,5,6].map(function(x){return '<option value="'+x+'"'+(x===4?' selected':'')+'>'+x+'</option>'}).join('')
-      +'</select></div></div>'
-      +'<div class="tip" style="margin-top:8px">批量追加客观题到题目清单；排版时选项数相同的连续题号自动合为一组。</div>',
-      {title:'批量添加客观题',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="tpl-q-batch-go" data-id="'+el.dataset.id+'">添加</button>'});
-  },
-  'tpl-q-batch-go':async function(el){
+  'tpl-it-up':async function(el){
     const t=await dbGet('templates',el.dataset.id);
     if(!t)return;
-    if(!t.questions)t.questions=normalizeQuestions(t);
-    const first=Math.max(1,Math.round(parseFloat($('qBatchFirst').value)||1));
-    const n=Math.max(1,Math.min(300,Math.round(parseFloat($('qBatchCount').value)||10)));
-    const ch=Math.max(2,Math.min(6,parseInt($('qBatchChoices').value,10)||4));
-    for(let i=0;i<n;i++)t.questions.push({t:'obj',qno:first+i,choices:ch});
-    await dbPut('templates',t);
-    dlgClose();
-    toast('已添加 '+n+' 道客观题','ok');
-    renderTpl();
-  },
-  'tpl-q-del':async function(el){
-    const t=await dbGet('templates',el.dataset.id);
-    if(!t)return;
-    if(!t.questions)t.questions=normalizeQuestions(t);
-    t.questions.splice(parseInt(el.dataset.i,10),1);
-    await dbPut('templates',t);
-    renderTpl();
-  },
-  'tpl-q-up':async function(el){
-    const t=await dbGet('templates',el.dataset.id);
-    if(!t)return;
-    if(!t.questions)t.questions=normalizeQuestions(t);
+    const secs=normalizeSections(t);
+    const items=(secs[parseInt(el.dataset.s,10)]||{}).items;
+    if(!items)return;
     const i=parseInt(el.dataset.i,10);
     if(i<=0)return;
-    const tmp=t.questions[i-1];t.questions[i-1]=t.questions[i];t.questions[i]=tmp;
+    const tmp=items[i-1];items[i-1]=items[i];items[i]=tmp;
+    t.sections=secs;delete t.questions;
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-q-down':async function(el){
+  'tpl-it-down':async function(el){
     const t=await dbGet('templates',el.dataset.id);
     if(!t)return;
-    if(!t.questions)t.questions=normalizeQuestions(t);
+    const secs=normalizeSections(t);
+    const items=(secs[parseInt(el.dataset.s,10)]||{}).items;
+    if(!items)return;
     const i=parseInt(el.dataset.i,10);
-    if(i>=t.questions.length-1)return;
-    const tmp=t.questions[i+1];t.questions[i+1]=t.questions[i];t.questions[i]=tmp;
+    if(i>=items.length-1)return;
+    const tmp=items[i+1];items[i+1]=items[i];items[i]=tmp;
+    t.sections=secs;delete t.questions;
     await dbPut('templates',t);
     renderTpl();
   },
-  'tpl-q':function(el){return tplEditQueued(function(){return tplQApply(el)})},
+  'tpl-it':function(el){return tplEditQueued(function(){return tplItApply(el)})},
   'tpl-field':function(el){return tplEditQueued(function(){return tplFieldApply(el)})}
 });
 /* 模板编辑串行化：读-改-写排队，快速连续输入不再互相覆盖（曾出现改多个选项只生效最后一个） */
 let __tplEditChain=Promise.resolve();
+async function tplSecApply(el){
+  const t=await dbGet('templates',el.dataset.id);
+  if(!t)return;
+  const secs=normalizeSections(t);
+  const sec=secs[parseInt(el.dataset.s,10)];
+  if(!sec)return;
+  sec[el.dataset.f]=el.value;
+  t.sections=secs;delete t.questions;
+  await dbPut('templates',t);
+}
+async function tplItApply(el){
+  const t=await dbGet('templates',el.dataset.id);
+  if(!t)return;
+  const secs=normalizeSections(t);
+  const sec=secs[parseInt(el.dataset.s,10)];
+  const it=sec&&sec.items?sec.items[parseInt(el.dataset.i,10)]:null;
+  if(!it)return;
+  const f=el.dataset.f;
+  if(el.type==='checkbox'){it[f]=el.checked;}
+  else if(f==='kind'){
+    const k=el.value;
+    if(it.kind!==k){
+      it.kind=k;
+      /* 切换题型时补齐该题型必需字段（保留已有值） */
+      if(isChoiceKind(k)&&it.choices==null)it.choices=4;
+      if(k==='blank'&&it.rows==null)it.rows=2;
+      if(k==='qa'){if(it.style!=='blank'&&it.style!=='lines')it.style='lines';if(it.rows==null)it.rows=3;}
+      if(k==='essay'){
+        if(['grid-cn','grid-en','lines'].indexOf(it.style)<0)it.style='grid-cn';
+        if(it.style==='grid-cn'){if(it.cols==null)it.cols=20;if(it.count==null)it.count=880;}
+        else if(it.rows==null)it.rows=8;
+      }
+    }
+  }
+  else if(el.type==='number'||el.tagName==='SELECT'||f==='choices'){
+    const v=parseFloat(el.value);
+    if(f==='qno')it.qno=(Number.isFinite(v)&&v>0)?Math.round(v):el.value;
+    else if(f==='choices')it.choices=Math.max(2,Math.min(6,Math.round(v)||4));
+    else if(f==='score')it.score=Math.max(0,Number.isFinite(v)?v:0);
+    else if(f==='cols')it.cols=Math.max(10,Math.min(40,Math.round(v)||20));
+    else if(f==='count')it.count=(Number.isFinite(v)&&v>0)?Math.round(v):null;
+    else if(f==='rows')it.rows=Math.max(1,Math.round(v)||1);
+    else it[f]=Number.isFinite(v)?v:el.value;
+  }
+  else it[f]=el.value;
+  t.sections=secs;delete t.questions;
+  await dbPut('templates',t);
+}
 function tplEditQueued(fn){
   __tplEditChain=__tplEditChain.then(fn).catch(function(err){console.error(err);try{toast('保存出错：'+err.message,'err')}catch(e){}});
   return __tplEditChain;
@@ -3024,6 +3255,7 @@ async function renderExam(){
         +'<button class="btn btn-s btn-p" data-act="exam-open" data-id="'+ex.id+'" data-to="scan">扫描</button>'
         +'<button class="btn btn-s btn-b" data-act="exam-open" data-id="'+ex.id+'" data-to="grade">阅卷</button>'
         +'<button class="btn btn-s" data-act="exam-open" data-id="'+ex.id+'" data-to="score">成绩</button>'
+        +'<button class="btn btn-s btn-o" data-act="exam-pdf" data-id="'+ex.id+'">🖨 打印答题卡</button>'
         +'<button class="btn btn-s" data-act="exam-edit" data-id="'+ex.id+'">编辑</button>'
         +'<button class="btn btn-s btn-d" data-act="exam-del" data-id="'+ex.id+'">删除</button>'
         +'</div></div>');
@@ -3034,6 +3266,14 @@ async function renderExam(){
 }
 Object.assign(ACTS,{
   'exam-new':async function(){examWizardOpen(null)},
+  /* 打印该场考试的答题卡：标题取考试设置（未设时用考试名） */
+  'exam-pdf':async function(el){
+    const ex=await dbGet('exams',el.dataset.id);
+    if(!ex)return;
+    const tpl=await dbGet('templates',ex.templateId);
+    if(!tpl){toast('该考试的答题卡模板不存在或已删除','err');return}
+    await exportTemplatePDF(tpl,{title:(ex.paperTitle||ex.name||'答题卡')});
+  },
   'exam-edit':async function(el){examWizardOpen(el.dataset.id)},
   'exam-open':async function(el){
     const id=el.dataset.id,to=el.dataset.to;
@@ -3066,6 +3306,7 @@ async function examWizardOpen(examId){
   /* 编辑已有考试时直接进入第 2 步（答案与分值）——这是最常改的内容；可点“上一步”改基本信息 */
   wiz={examId:examId,step:(examId?2:1),
     name:ex?ex.name:('期中考试 '+today()),
+    paperTitle:ex?(ex.paperTitle||''):'',
     classId:ex?ex.classId:classes[0].id,
     templateId:ex?ex.templateId:tpls[0].id,
     perScore:ex?ex.perScore:null,
@@ -3094,6 +3335,7 @@ async function wizRender(){
       +'<div><label class="f-lb">考试名称</label><input class="inp" id="wizName" value="'+esc(wiz.name)+'"></div>'
       +'<div><label class="f-lb">班级</label><select class="inp" id="wizClass">'
       +classes.map(function(c){return '<option value="'+c.id+'"'+(c.id===wiz.classId?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')+'</select></div>'
+      +'<div><label class="f-lb">答题卡标题（印在卡面顶部）</label><input class="inp" id="wizPaperTitle" value="'+esc(wiz.paperTitle||'')+'" placeholder="如：2026学年期中考试 语文答题卡"></div>'
       +'<div><label class="f-lb">答题卡模板</label><select class="inp" id="wizTpl">'
       +tpls.map(function(t){return '<option value="'+t.id+'"'+(t.id===wiz.templateId?' selected':'')+'>'+esc(t.name)+'</option>'}).join('')+'</select></div>'
       +'</div>'
@@ -3104,7 +3346,7 @@ async function wizRender(){
     meta.choiceQnos.forEach(function(qn,i){
       const a=answers[qn]||'';
       const aArr=Array.isArray(a)?a:((a&&!wiz.multi[qn])?[a]:[]);
-      const isMulti=!!(wiz.multi&&wiz.multi[qn]);
+      const isMulti=(wiz.multi&&wiz.multi[qn]!=null)?!!wiz.multi[qn]:((meta.choiceKinds&&meta.choiceKinds[qn]==='multi'));
       const nOpt=(meta.choiceOpts&&meta.choiceOpts[qn])||4;
       let opts='';
       for(let ci=0;ci<nOpt;ci++){
@@ -3150,7 +3392,8 @@ async function wizRender(){
     +(wiz.step===3?'<button class="btn btn-p" data-act="wiz-save">保存考试</button>':'');
   dlg(body,{title:(wiz.examId?'编辑考试':'新建考试')+' · 第 '+wiz.step+'/3 步',foot:foot,wide:true});
   afterRender(function(){
-    const n=$('wizName'),c=$('wizClass'),tp=$('wizTpl');
+    const n=$('wizName'),c=$('wizClass'),tp=$('wizTpl'),pt=$('wizPaperTitle');
+    if(pt)pt.addEventListener('input',function(){wiz.paperTitle=pt.value});
     if(n)n.addEventListener('input',function(){wiz.name=n.value});
     if(c)c.addEventListener('change',function(){wiz.classId=c.value});
     /* 换模板后题号体系可能不同，逐题分值需按新模板重取 */
@@ -3220,6 +3463,7 @@ Object.assign(ACTS,{
     }
     const rec=ex||{id:uid('exm_')};
     rec.name=wiz.name.trim();
+    rec.paperTitle=(wiz.paperTitle||'').trim();
     rec.classId=wiz.classId;
     rec.className=cls?cls.name:'';
     rec.templateId=wiz.templateId;
@@ -3227,7 +3471,9 @@ Object.assign(ACTS,{
     rec.perScore=null; /* 已改为逐题分值（perQScore/模板），保留字段供旧版本读取 */
     rec.answers=wiz.answers;
     rec.perQScore=(wiz.perQScore&&Object.keys(wiz.perQScore).length)?wiz.perQScore:null;
-    rec.qMulti=(wiz.multi&&Object.keys(wiz.multi).length)?wiz.multi:null;
+    const multiAll=Object.assign({},wiz.multi||{});
+    meta.choiceQnos.forEach(function(qn){if(meta.choiceKinds&&meta.choiceKinds[qn]==='multi'&&multiAll[qn]==null)multiAll[qn]=true;});
+    rec.qMulti=Object.keys(multiAll).length?multiAll:null;
     rec.subjective=wiz.subjective;
     rec.createdAt=ex?ex.createdAt:today();
     await dbPut('exams',rec);
