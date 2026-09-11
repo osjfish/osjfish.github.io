@@ -527,6 +527,11 @@ function subjTypeOf(it){
   if(k==='qa')return (it.style==='blank')?'blank':'lines';  /* 问答：空白框 或 横线 */
   return 'lines';
 }
+/* 选择题排列偏好：q=题目排列(v 纵向逐行 / h 横向并排)，o=选项排列(h 横向 A B C D / v 纵向逐行)；默认纵向题目+横向选项 */
+function choiceLayoutOf(tpl){
+  const c=(tpl&&tpl.choiceLayout)||{};
+  return {q:(c.q==='h'?'h':'v'),o:(c.o==='v'?'v':'h')};
+}
 /* 题目清单归一化：新结构用 sections（大题→小题）；旧结构（扁平 questions / 选择题组+主观题区）自动归为大题 */
 function normalizeSections(tpl){
   if(Array.isArray(tpl.sections)&&tpl.sections.length){
@@ -579,10 +584,16 @@ function groupQChoices(g,qn){
 /* 选项几何：数字区 11mm 后均分，气泡居中于槽位（渲染/识别统一公式） */
 function qBubbleGeom(g,qn,ch){
   const n=groupQChoices(g,qn);
+  if(g.optDir==='v'){
+    /* 选项纵向：题号右侧自上而下排列 */
+    const step=g.optStep||5;
+    const bh=Math.min(g.size[1],step-0.9);
+    return {bx:g.x0+11+g.size[0]/2,by:ch*step,bw:g.size[0],bh:bh,step:step,count:n,dir:'v'};
+  }
   const zone=g.dxq-11;
   const step=Math.max(4.6,zone/n);
   const bw=Math.min(g.size[0],step-0.8);
-  return {bx:g.x0+11+ch*step+(step-bw)/2+bw/2,count:n,bw:bw,bh:g.size[1],step:step};
+  return {bx:g.x0+11+ch*step+(step-bw)/2+bw/2,by:0,count:n,bw:bw,bh:g.size[1],step:step,dir:'h'};
 }
 /* 题目清单归一化：新模板用 questions 逐题数组；旧模板（选择题组+主观题区）自动推导，两边兼容 */
 function normalizeQuestions(tpl){
@@ -674,31 +685,70 @@ function layoutTemplate(tpl,opts){
     if(uniq.length===1)return '每题'+uniq[0]+'分';
     return '共'+(Math.round(s.reduce(function(a,b){return a+b},0)*100)/100)+'分';
   }
-  /* 选择题组：按列宽自动分列，超高跨列/跨页（题号连续） */
-  function layoutChoice(sec,bl,withTitle){
-    const items=bl.items, choices=bl.choices;
-    const total=items.length;
-    const scores=items.map(function(it){return (it.score!=null&&Number.isFinite(Number(it.score)))?Number(it.score):null});
-    const cellW=10;
-    const maxColsIn=Math.max(1,Math.floor((colW-6)/(cellW+choices*7.0+1)));
-    const nq=Math.min(maxColsIn,total);
-    const dxq=(colW-12)/nq;
-    const dxc=Math.max(3.5,(dxq-cellW)/choices);
-    let qFirst=items[0].qno, remaining=total, part=0, idx=0, first=withTitle;
+  /* 选择题区：全卷所有选择题（含多选）集中到答题卡开头的一个框内。
+     题目排列 q：v 纵向（每题一行）/ h 横向（多题并排）；选项排列 o：h 横向并排 / v 逐行堆叠 */
+  function layoutChoiceAll(title,items){
+    const pref=choiceLayoutOf(tpl);
+    const optV=(pref.o==='v');
+    const bw=4.2,bh=2.8,numW=11;
+    const chOf=function(qn){
+      const it=items.find(function(x){return String(x.qno)===String(qn)});
+      return it?Math.max(2,Math.min(6,it.choices||4)):2;
+    };
+    let nMax=2;
+    items.forEach(function(it){const n=Math.max(2,Math.min(6,it.choices||4));if(n>nMax)nMax=n;});
+    const optStep=optV?Math.max(4.6,bh+1.9):0;
+    const blockW=nMax>0?((optV?(numW+bw+2):(numW+nMax*7.0))):40;
+    const nq=(pref.q==='h')?Math.max(1,Math.floor((colW-6)/blockW)):1;
+    const dxq=(colW-6)/nq;
+    const dxc=optV?0:Math.max(3.5,(dxq-numW)/nMax);
+    let qFirst=items[0].qno,remaining=items.length,part=0,idx=0,first=true;
     while(remaining>0){
       const headH=(part===0&&first)?SEC_H:0;
-      if(availH()<headH+7+5+6)nextColOrPage();
-      const availRows=Math.max(1,Math.floor((availH()-headH-13)/5));
-      const rows=Math.min(remaining,Math.max(1,Math.min(Math.ceil(remaining/nq),availRows)));
+      /* 先按“当前列可容纳的行高”决定本块行数：每行高 = 该行实际最大选项数×选项步长 */
+      const avail=availH()-headH-11;
+      const rowsIdx=[];
+      let accH=0,ri=0;
+      while(ri<remaining){
+        let mx=1;
+        for(let c=0;c<nq;c++){
+          const qi=idx+c*remaining+ri;
+          if(qi>=items.length)continue;
+          mx=Math.max(mx,chOf(items[qi].qno));
+        }
+        const hRow=optV?(mx*optStep):5;
+        if(accH+hRow>avail)break;
+        rowsIdx.push(ri);accH+=hRow+(optV?1.8:0);ri++;
+      }
+      if(!rowsIdx.length){nextColOrPage();continue}
+      const rows=rowsIdx.length;
       const subCount=Math.min(remaining,rows*nq);
-      const hNeed=headH+7+rows*5+6;
+      const hNeed=headH+7+accH+4;
       ensure(hNeed);
-      const subScores=scores.slice(idx,idx+subCount);
-      pg.groups.push({first:qFirst,count:subCount,choices:choices,cols:nq,rows:rows,
-        x0:colX(curCol)+6,y0:curY+headH+7,dxq:dxq,dy:5,dxc:dxc,size:[4.2,2.8],
-        timing:{dx:-2,w:1,h:2},scores:subScores,scoreLabel:scoreLabelOf(subScores),
-        kind:bl.kind,label:(part===0&&first)?sec.title:(sec.title+'（续）'),
-        sec:(part===0&&first)?sec.title:(sec.title+'（续）'),topY:curY,col:curCol});
+      /* 每行题号中心的相对 y */
+      const rowY=[];let acc2=0,r2=0;
+      while(r2<rows){
+        let mx=1;
+        for(let c=0;c<nq;c++){
+          const qi=idx+c*remaining+r2;
+          if(qi>=items.length)continue;
+          mx=Math.max(mx,chOf(items[qi].qno));
+        }
+        const hRow=optV?(mx*optStep):5;
+        rowY.push(acc2+(optV?optStep/2:2.5));
+        acc2+=hRow+(optV?1.8:0);r2++;
+      }
+      const subItems=items.slice(idx,idx+subCount);
+      const cq={};
+      subItems.forEach(function(it){cq[it.qno]=Math.max(2,Math.min(6,it.choices||4));});
+      const scores=subItems.map(function(it){return (it.score!=null&&Number.isFinite(Number(it.score)))?Number(it.score):null});
+      pg.groups.push({first:qFirst,count:subCount,choices:nMax,choicesQ:cq,cols:nq,rows:rows,
+        x0:colX(curCol)+2,y0:curY+headH+2,dxq:dxq,dy:(optV?(optStep+1.8):5),dy0:(optV?optStep/2:2.5),
+        rowY:rowY,optDir:(optV?'v':'h'),optStep:(optV?optStep:0),size:[bw,bh],timing:{dx:-2,w:1,h:2},
+        scores:scores,scoreLabel:scoreLabelOf(scores),kind:'single',
+        box:{x:colX(curCol),y:curY+(headH?headH+2:2),w:colW,h:accH+4},
+        label:(part===0&&first)?title:(title+'（续）'),
+        sec:(part===0&&first)?title:(title+'（续）'),topY:curY,col:curCol,blockW:blockW});
       curY+=hNeed;
       qFirst+=subCount;remaining-=subCount;part++;idx+=subCount;
     }
@@ -739,30 +789,25 @@ function layoutTemplate(tpl,opts){
       curY+=secH+5+boxH+6;
     }
   }
-  /* 大题 → 小题：连续且同题型同选项数的选择题合成一组，其余逐题成块 */
   const secs=normalizeSections(tpl);
+  /* ① 全部选择题（含多选）集中到最开头，按题号升序排进同一个框 */
+  const choiceAll=[];
+  let choiceTitle=null;
   secs.forEach(function(sec){
-    const blocks=[];
     (sec.items||[]).forEach(function(it){
-      const k=kindOf(it);
-      if(isChoiceKind(k)){
-        const choices=Math.max(2,Math.min(6,it.choices||4));
-        const last=blocks[blocks.length-1];
-        if(last&&last.t==='choice'&&last.kind===k&&last.choices===choices&&it.qno===last.qLast+1){
-          last.items.push(it);last.qLast=it.qno;
-        }else{
-          blocks.push({t:'choice',kind:k,choices:choices,items:[it],qLast:it.qno});
-        }
-      }else{
-        blocks.push({t:'item',it:it});
+      if(isChoiceKind(kindOf(it))){
+        if(!choiceTitle)choiceTitle=sec.title;
+        choiceAll.push(it);
       }
     });
+  });
+  choiceAll.sort(function(a,b){return ((Number(a.qno)||0)-(Number(b.qno)||0))});
+  if(choiceAll.length)layoutChoiceAll(choiceTitle||'选择题',choiceAll);
+  /* ② 其余题型按大题顺序排版（选择题已在上面集中处理） */
+  secs.forEach(function(sec){
+    const subs=(sec.items||[]).filter(function(it){return !isChoiceKind(kindOf(it))});
     let withTitle=true;
-    blocks.forEach(function(bl){
-      if(bl.t==='choice')layoutChoice(sec,bl,withTitle);
-      else layoutSubj(sec,bl.it,withTitle);
-      withTitle=false;
-    });
+    subs.forEach(function(it){layoutSubj(sec,it,withTitle);withTitle=false;});
   });
   pages.forEach(function(p,i){p.footer.n=i+1;p.footer.m=pages.length});
   return {w:w,h:h,pages:pages,regDigits:regDigits,perScore:tpl.perScore||2,id:tpl.id||'',name:tpl.name||'',
@@ -771,7 +816,7 @@ function layoutTemplate(tpl,opts){
 /* ---------- 内置预设 ---------- */
 
 function newTemplate(name){
-  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',orient:'portrait',title:'答题卡',showInfo:true,regEveryPage:false,regDigits:5,perScore:2,choiceGroups:[],subjective:[],questions:[],createdAt:now()};
+  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',layout:'portrait',regDigits:5,choiceLayout:{q:'v',o:'h'},sections:[],createdAt:now()};
 }
 
 /* ---------- mm→px 渲染 ---------- */
@@ -899,19 +944,18 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
   })();
   /* 选择题组 */
   page.groups.forEach(function(g){
-    ctx.strokeStyle='#555';ctx.lineWidth=Math.max(0.7,px(0.3));
-    ctx.strokeRect(px(g.x0-3),px(g.y0-2),px((g.dxq*g.cols)+6),px(g.rows*g.dy+4));
-    ctx.fillStyle='#000';
-    ctx.font='bold '+Math.max(8,Math.round(px(3.6)))+'px "Microsoft YaHei",sans-serif';
-    ctx.textAlign='left';
-    /* 组标题不再单独绘制：大题标题行已包含组名与分值（见上方大题标题绘制） */
+    /* 选择题区外框（全卷选择题集中在这一个框内） */
+    if(g.box){
+      ctx.strokeStyle='#555';ctx.lineWidth=Math.max(0.7,px(0.3));
+      ctx.strokeRect(px(g.box.x),px(g.box.y),px(g.box.w),px(g.box.h));
+    }
     ctx.textAlign='center';
     for(let c=0;c<g.cols;c++){
       const xc=g.x0+c*g.dxq;
       for(let r=0;r<g.rows;r++){
         const qn=g.first+c*g.rows+r;
         if(qn>g.first+g.count-1)break;
-        const rowY=g.y0+2.5+r*g.dy;
+        const rowY=g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy);
         const nOpts=groupQChoices(g,qn);
         ctx.font='bold '+Math.max(7,Math.round(px(2.8)))+'px "Microsoft YaHei",sans-serif';
         ctx.fillStyle='#000';
@@ -919,11 +963,12 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
         for(let ch=0;ch<nOpts;ch++){
           const qg=qBubbleGeom(g,qn,ch);
           const bx=xc+(qg.bx-g.x0)-qg.bw/2;
+          const by=rowY+(qg.by||0);
           ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.6,px(0.18));
-          ctx.strokeRect(px(bx),px(rowY-qg.bh/2),px(qg.bw),px(qg.bh));
+          ctx.strokeRect(px(bx),px(by-qg.bh/2),px(qg.bw),px(qg.bh));
           ctx.font=Math.max(6,Math.round(px(2.3)))+'px Arial,sans-serif';
           ctx.fillStyle='#444';
-          ctx.fillText(String.fromCharCode(65+ch),px(bx+qg.bw/2),px(rowY+0.1));
+          ctx.fillText(String.fromCharCode(65+ch),px(bx+qg.bw/2),px(by+0.1));
         }
         /* 行同步条 */
         ctx.fillStyle='#000';
@@ -2194,7 +2239,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     const gx0=g.x0,gid=g.label;
     const expTiming=gx0-2.2;
     const expMarks=[];
-    for(let r=0;r<g.rows;r++)expMarks.push(H(expTiming,g.y0+2.5+r*g.dy));
+    for(let r=0;r<g.rows;r++)expMarks.push(H(expTiming,g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy)));
     const marks=detectRowMarks(bin,cv.width,cv.height,expMarks,smm);
     let miss=marks.filter(function(m){return m===null}).length;
     syncMiss.push({miss:miss,rows:g.rows,label:gid});
@@ -2204,14 +2249,14 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       for(let c=0;c<g.cols;c++){
         const qn=g.first+c*g.rows+rr;
         if(qn>g.first+g.count-1)continue;
-        const rowYmm=g.y0+2.5+rr*g.dy;
+        const rowYmm=g.y0+((g.rowY&&g.rowY[rr]!=null)?g.rowY[rr]:rr*g.dy);
         if(deltas[rr]===null)continue;
         const inks=[];
         const nOpts=groupQChoices(g,qn);
         for(let ch=0;ch<nOpts;ch++){
           const qg=qBubbleGeom(g,qn,ch);
           const bxmm=g.x0+c*g.dxq+(qg.bx-g.x0);
-          const p=H(bxmm,rowYmm);
+          const p=H(bxmm,rowYmm+(qg.by||0));
           const ink=inkRatio(bin,cv.width,cv.height,p.x,p.y+deltas[rr],Math.max(2,qg.bw/2*smm*0.8));
           inks.push({c:String.fromCharCode(65+ch),ink:ink});
           allInks.push(ink);
@@ -2715,8 +2760,20 @@ async function tplEditorHTML(tplId){
       }).join('')+'</select></div>'
     +'<div><label class="f-lb">考号位数（2-12）</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="regDigits" type="number" min="2" max="12" value="'+esc(t.regDigits)+'"></div>'
     +'</div></div>'
+    +'<div class="card"><h3>选择题排列</h3>'
+    +'<div class="f-row" style="align-items:center;gap:8px">'
+    +'<span class="kv">题目</span><select class="inp" style="width:190px" data-on="tpl-field" data-id="'+t.id+'" data-f="clq">'
+    +'<option value="v"'+((t.choiceLayout&&t.choiceLayout.q==='h')?'':' selected')+'>纵向（每题一行，自上而下）</option>'
+    +'<option value="h"'+((t.choiceLayout&&t.choiceLayout.q==='h')?' selected':'')+'>横向（多题并排，自左向右）</option>'
+    +'</select>'
+    +'<span class="kv">选项</span><select class="inp" style="width:190px" data-on="tpl-field" data-id="'+t.id+'" data-f="clo">'
+    +'<option value="h"'+((t.choiceLayout&&t.choiceLayout.o==='v')?'':' selected')+'>横向（A B C D 并排）</option>'
+    +'<option value="v"'+((t.choiceLayout&&t.choiceLayout.o==='v')?' selected':'')+'>纵向（A/B/C/D 逐行）</option>'
+    +'</select>'
+    +'<span class="kv">（全部选择题默认集中排在答题卡最开头的一个大框内）</span>'
+    +'</div></div>'
     +'<div class="card"><h3>题目清单（先设大题，再加大题下的小题）</h3>'
-    +'<div class="tip" style="margin-bottom:8px">按试卷结构组织：一个大题（如「一、选择题」）下可放多个小题，小题题型可选 单选 / 多选 / 填空 / 问答 / 作文。选择题会自动按题号升序排在答题卡开头并按列宽分列，其余题型按清单顺序排版。题号建议全卷连续（1、2、3…）。</div>'
+    +'<div class="tip" style="margin-bottom:8px">按试卷结构组织：一个大题（如「一、选择题」）下可放多个小题，小题题型可选 单选 / 多选 / 填空 / 问答 / 作文。全部选择题（含多选）自动集中在答题卡开头的一个框内，其余题型按清单顺序排版。题号建议全卷连续（1、2、3…）。</div>'
     +(qRows||'<div class="kv" style="margin-bottom:8px">还没有大题。点击下方「添加大题」开始，例如先建「一、选择题」。</div>')
     +'<div class="f-row">'
     +'<button class="btn btn-sm btn-p" data-act="tpl-sec-add" data-id="'+t.id+'">＋ 添加大题</button>'
@@ -2999,8 +3056,14 @@ async function tplFieldApply(el){
   if(el.type==='checkbox')v=el.checked;
   else if(el.type==='number')v=parseFloat(el.value)||0;
   else v=el.value;
-  t[f]=v;
-  if(f==='regDigits')t.regDigits=Math.max(2,Math.min(12,Math.round(v)));
+  if(f==='clq'||f==='clo'){
+    /* 选择题排列偏好：q 题目排列 / o 选项排列 */
+    t.choiceLayout=Object.assign({q:'v',o:'h'},t.choiceLayout||{});
+    t.choiceLayout[f==='clq'?'q':'o']=v;
+  }else{
+    t[f]=v;
+    if(f==='regDigits')t.regDigits=Math.max(2,Math.min(12,Math.round(v)));
+  }
   await dbPut('templates',t);
 }
 async function stuFieldApply(el){
@@ -3828,7 +3891,7 @@ async function pageMarkedImage(p){
         if(qn>g.first+g.count-1)continue;
         const q=perQmap[qn];
         if(!q)continue;
-        const rowY=g.y0+2.5+r*g.dy;
+        const rowY=g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy);
         const nOpts=groupQChoices(g,qn);
         for(let ch=0;ch<nOpts;ch++){
           const qg=qBubbleGeom(g,qn,ch);
