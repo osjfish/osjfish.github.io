@@ -668,18 +668,18 @@ function layoutTemplate(tpl,opts){
      横版多列=页眉整体收缩到第1列：行1=信息框(左)+二维码(右)，行2=考号涂卡区（位数多时压缩每位宽度），
      第1列内容从页眉之下开始，其余列不受影响（从 42mm 起）。 */
   const qrSize=34;
-  let qr,infoBox,reg;
+  let qr,infoBox,reg,headBottomCol1;
   if(nCols>1){
     const c1x=M;
     qr={x:c1x+colW-qrSize,y:28,size:qrSize};
     infoBox={x:c1x,y:28,w:52,h:24};
     const regColW=Math.min(11,Math.max(8,Math.floor(((colW-8)/regDigits)*10)/10));
     const regW=regColW*regDigits;
-    /* 与竖版同构（boxTop 64 起）：标签→列号→手写考号格→10 行涂点，纵向互不重叠 */
     const regRowsY=[];
-    for(let i=0;i<10;i++)regRowsY.push(85.1+i*4.4);
-    reg={x:Math.round(c1x+(colW-regW)/2),y:72.5,colW:regColW,grid:Math.min(8,regColW-2),rowsY:regRowsY,bubble:3.2,dy:4.4,
-      numY:70.1,labelY:66.3,boxTop:64,label:'准 考 证 号'};
+    for(let i=0;i<10;i++)regRowsY.push(66.6+i*4.4);
+    reg={x:Math.round(c1x+(colW-regW)/2),y:62,colW:regColW,grid:Math.min(8,regColW-2),rowsY:regRowsY,bubble:3.2,dy:4.4,
+      numY:68.6,labelY:65.5,boxTop:64,label:'准 考 证 号'};
+    headBottomCol1=110;   /* 末行涂点 107.2+2 */
   }else{
     qr={x:w-52,y:34,size:qrSize};
     const regW0=regDigits*11;
@@ -690,10 +690,11 @@ function layoutTemplate(tpl,opts){
     for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
     reg={x:regX0,y:33,colW:11,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
       numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
+    headBottomCol1=94;
   }
   const pages=[];
-  /* 内容起点：首页竖版 94mm / 首页横版多列第1列 134mm（页眉收缩在第1列上部：信息框/二维码/考号区到 131.5）；首页其余列与续页所有列 42mm 起（续页顶部仅手写信息条）；底部留页脚与定位点空间 */
-  const contentTop=94, contentTopMulti=134, contentTopCont=42, contentBottom=h-19;
+  /* 首页含考号区时内容从 94mm 起；续页顶部留给手写信息区，内容从 42mm 起；底部留页脚与定位点空间 */
+  const contentTop=94, contentTopMulti=110, contentTopCont=42, contentBottom=h-19;
   const handInfo={x:M+2,y:26,w:contentW-4,h:11};
   function newPage(pi){
     return {w:w,h:h,title:(opts&&opts.title!=null?opts.title:(tpl.title||tpl.name||'')),info:(pi===0)?infoBox:null,
@@ -702,14 +703,15 @@ function layoutTemplate(tpl,opts){
       pagemarks:pageMarksFor(pi),anchors:anchors,nCols:nCols,colW:colW,colGap:colGap,margin:M,fullScore:fullScore,footer:{n:pi+1,m:0}};
   }
   const fullScore=totalFullOf(tpl);
+  /* 各列内容起点：第1列在页眉之下（多列横版时页眉占第1列上部），其余列 42mm 起 */
+  const colTop=function(c){return (c===0)?contentTop:contentTopCont};
   let pg=newPage(0); pages.push(pg);
   let curCol=0, curY=(nCols>1)?contentTopMulti:contentTop;
   const colX=function(c){return M+c*(colW+colGap)};
   const availH=function(){return contentBottom-curY};
   function nextColOrPage(){
-    if(curCol<nCols-1){curCol++;curY=contentTopCont;return}
-    /* 续页没有页眉（顶部仅手写信息条），所有列统一从 42mm 起；只有首页第1列从页眉之下开始 */
-    pg=newPage(pages.length);pages.push(pg);curCol=0;curY=contentTopCont;
+    if(curCol<nCols-1){curCol++;curY=(curCol===0)?contentTop:contentTopCont;return}
+    pg=newPage(pages.length);pages.push(pg);curCol=0;curY=(nCols>1)?contentTopMulti:contentTop;
   }
   function ensure(needH){ if(availH()<needH)nextColOrPage(); }
   const SEC_H=6.5;   /* 大题标题占用高度 */
