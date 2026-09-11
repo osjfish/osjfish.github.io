@@ -1,17 +1,13 @@
 /* 智能阅卷 · Service Worker
    设计要点：
-   1) 只接管本应用静态资源（yuejuan.html / webmanifest / icon-* / lib/*），其余请求一律放行；
+   1) 只接管本应用静态资源（yuejuan.html / lib/*），其余请求一律放行；
    2) 导航请求只做「网络优先 + 离线回退预缓存」，不在导航流上写缓存——
       在导航响应上做 Response.clone()/缓存写入，一旦 CacheStorage 写入变慢会拖住页面流（表现为刷新后卡在 loading）；
    3) 预缓存清单在 install 阶段写入，因此**每次发布都要把 VER 加一**，否则用户拿到的仍是旧页面。 */
-const VER='yj-2026-09-4';
+const VER='yj-2026-09-11';
 const CACHE='yuejuan-'+VER;
 const SHELL=[
   './yuejuan.html',
-  './yuejuan.webmanifest',
-  './icon-192.png',
-  './icon-512.png',
-  './icon-180.png',
   './lib/jspdf.umd.min.js',
   './lib/qrcode.js',
   './lib/jsQR.js',
@@ -22,8 +18,8 @@ const SHELL=[
 ];
 const inScope=function(u){
   const p=u.pathname;
-  return /\/yuejuan\.html$/.test(p)||/\/yuejuan-sw\.js$/.test(p)||/\/yuejuan\.webmanifest$/.test(p)
-    ||/\/icon-\d+\.png$/.test(p)||/\/lib\/[A-Za-z0-9._-]+\.(js|css)$/.test(p);
+  return /\/yuejuan\.html$/.test(p)||/\/yuejuan-sw\.js$/.test(p)
+    ||/\/lib\/[A-Za-z0-9._-]+\.(js|css)$/.test(p);
 };
 /* 先完整读入内存，再分别构造「给页面的响应」与「缓存副本」，两者不共享底层流 */
 function splitResponse(r){
