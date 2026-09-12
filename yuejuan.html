@@ -519,10 +519,10 @@ function paperWH(tpl){
 const KINDS={single:'单选',multi:'多选',blank:'填空',qa:'问答',essay:'作文'};
 function kindOf(it){return (it&&KINDS[it.kind])?it.kind:'single'}
 function isChoiceKind(k){return k==='single'||k==='multi'}
-/* 作答区样式 → 卡面 type（识别/切割沿用 lines|blank|grid-cn|grid-en） */
+/* 作答区样式 → 卡面 type（识别/切割沿用 lines|blank|grid-cn；作文只保留语文作文格） */
 function subjTypeOf(it){
   const k=kindOf(it);
-  if(k==='essay')return (it.style==='lines')?'lines':(it.style==='grid-en'?'grid-en':'grid-cn');
+  if(k==='essay')return 'grid-cn';
   if(k==='blank')return 'lines';                       /* 填空：横线作答 */
   if(k==='qa')return (it.style==='blank')?'blank':'lines';  /* 问答：空白框 或 横线 */
   return 'lines';
@@ -560,8 +560,8 @@ function normalizeSections(tpl){
     const st=s.type||'lines';
     const it={qno:s.qno,score:(s.score!=null?s.score:10)};
     if(st==='grid-cn'){it.kind='essay';it.style='grid-cn';it.cols=s.cols||20;it.count=s.count;it.titleLine=!!s.titleLine;}
-    else if(st==='grid-en'){it.kind='essay';it.style='grid-en';it.rows=s.rows||6;}
-    else{it.kind='qa';it.style='lines';it.rows=s.rows||3;}
+    else if(st==='grid-en'){it.kind='essay';it.style='grid-cn';it.cols=20;it.count=(s.rows||6)*20;it.titleLine=!!s.titleLine;}  /* 旧英语格作文 → 语文格 */
+    else{it.kind='qa';it.style=(st==='blank')?'blank':'lines';it.rows=s.rows||3;}
     secs.push({title:'',items:[it]});
   });
   const cn='一二三四五六七八九十';
@@ -806,8 +806,6 @@ function layoutTemplate(tpl,opts){
       rowH=cell+1.2;
       titleHead=it.titleLine?13:0;
       totalRows=(it.count?Math.max(1,Math.ceil(it.count/gridCols)):Math.max(1,it.rows||10));
-    }else if(type==='grid-en'){
-      rowH=5; totalRows=Math.max(1,it.rows||6);
     }else if(type==='blank'){
       rowH=8; totalRows=Math.max(1,it.rows||4);
     }else{
@@ -1087,15 +1085,6 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
         }
       }
       ctx.textAlign='center';
-    }else if(sb.type==='grid-en'){
-      ctx.strokeStyle='#999';ctx.lineWidth=Math.max(0.5,px(0.18));
-      for(let i=0;i<sb.rows;i++){
-        const base=sb.y+3+(i+1)*sb.rowH-4.2;
-        const ys=[base,base+1.4,base+2.8,base+4.2];
-        ys.forEach(function(y,k){
-          ctx.beginPath();ctx.moveTo(px(sb.x+4),px(y));ctx.lineTo(px(sb.x+sb.w-4),px(y));ctx.stroke();
-        });
-      }
     }
   });
   /* 页脚 */
@@ -2762,16 +2751,10 @@ async function tplEditorHTML(tplId){
         +[['lines','横线'],['blank','空白']].map(function(x){return '<option value="'+x[0]+'"'+((it.style||'lines')===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>'
         +'<span class="kv">行数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rows" type="number" min="1" value="'+esc(it.rows||3)+'">';
     }else if(kind==='essay'){
-      const sty=it.style||'grid-cn';
-      extra='<span class="kv">样式</span><select class="inp" style="width:106px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="style">'
-        +[['grid-cn','语文作文格'],['lines','横线'],['grid-en','英语作文格']].map(function(x){return '<option value="'+x[0]+'"'+(sty===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>';
-      if(sty==='grid-cn'){
-        extra+='<span class="kv" title="每行格数">每行格数</span><input class="inp" style="width:54px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="cols" type="number" min="10" max="40" value="'+esc(it.cols||20)+'">'
-          +'<span class="kv" title="总格数/总字数，填了则行数自动算">总格数</span><input class="inp" style="width:60px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="count" type="number" value="'+esc(it.count!=null?it.count:'')+'">'
-          +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap" title="作文格顶部预留「题目：＿＿」">题目栏<input type="checkbox" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="titleLine" '+(it.titleLine?'checked':'')+'></label>';
-      }else{
-        extra+='<span class="kv">行数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rows" type="number" min="1" value="'+esc(it.rows||8)+'">';
-      }
+      /* 作文只保留语文作文格（横线/英语格已取消），直接给格数/总格数/题目栏 */
+      extra='<span class="kv" title="每行格数">每行格数</span><input class="inp" style="width:54px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="cols" type="number" min="10" max="40" value="'+esc(it.cols||20)+'">'
+        +'<span class="kv" title="总格数/总字数，填了则行数自动算">总格数</span><input class="inp" style="width:60px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="count" type="number" value="'+esc(it.count!=null?it.count:'')+'">'
+        +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0;white-space:nowrap" title="作文格顶部预留「题目：＿＿」">题目栏<input type="checkbox" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="titleLine" '+(it.titleLine?'checked':'')+'></label>';
     }
     return '<div class="f-row" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:6px;background:#fff">'
       +badge(isChoiceKind(kind)?'info':'ok',KINDS[kind])+base+extra
@@ -3062,9 +3045,9 @@ async function tplItApply(el){
       if(k==='blank'&&it.rows==null)it.rows=2;
       if(k==='qa'){if(it.style!=='blank'&&it.style!=='lines')it.style='lines';if(it.rows==null)it.rows=3;}
       if(k==='essay'){
-        if(['grid-cn','grid-en','lines'].indexOf(it.style)<0)it.style='grid-cn';
-        if(it.style==='grid-cn'){if(it.cols==null)it.cols=20;if(it.count==null)it.count=880;}
-        else if(it.rows==null)it.rows=8;
+        it.style='grid-cn';   /* 作文只保留语文作文格 */
+        if(it.cols==null)it.cols=20;
+        if(it.count==null)it.count=880;
       }
     }
   }
