@@ -369,9 +369,15 @@ function dbDelMany(store,keys){
 
 /* ---------- 模态框 ---------- */
 let mResolve=null;
+/* 叠加层（图片查看器等）关闭后要还原的上一层弹窗内容 */
+let __dlgPrev=null;
 function dlg(html,opts){
   opts=opts||{};
   const box=$('mBox');
+  /* opts.stacked：在已有弹窗之上再开一层，关闭时自动还原上一层（查看图片后可退回原页面） */
+  if(opts.stacked&&!$('mOverlay').hidden){
+    __dlgPrev={inner:box.innerHTML,width:box.style.width};
+  }
   box.innerHTML='<div class="m-head"><div class="m-title">'+esc(opts.title||'')+'</div><button class="m-x" data-act="dlg-close">✕</button></div>'
     +'<div class="m-body">'+html+'</div>'
     +(opts.foot?'<div class="m-foot">'+opts.foot+'</div>':'');
@@ -379,7 +385,17 @@ function dlg(html,opts){
   box.style.width=opts.wide?'min(94vw,1100px)':'';
   afterRender(fillThumbs);
 }
-function dlgClose(){const ov=$('mOverlay');ov.hidden=true;$( 'mBox').innerHTML='';try{shotStop()}catch(e){}if(mResolve){const r=mResolve;mResolve=null;r(null);}}
+function dlgClose(){
+  const ov=$('mOverlay'),box=$('mBox');
+  if(__dlgPrev){                       /* 还原上一层弹窗，而不是整体关闭 */
+    const p=__dlgPrev;__dlgPrev=null;
+    box.innerHTML=p.inner;box.style.width=p.width;
+    afterRender(fillThumbs);
+    try{shotStop()}catch(e){}
+    return;
+  }
+  ov.hidden=true;box.innerHTML='';try{shotStop()}catch(e){}if(mResolve){const r=mResolve;mResolve=null;r(null);}
+}
 document.addEventListener('keydown',function(e){
   if(!$('mOverlay').hidden){
     if(e.key==='Escape'){dlgClose();return}
@@ -4879,7 +4895,7 @@ function imageViewer(url,title){
        +'<button class="btn btn-s" data-act="iv-out">−</button>'
        +'<button class="btn btn-s" data-act="iv-in">＋</button>'
        +'<button class="btn btn-s" data-act="iv-reset">适应窗口</button>'
-       +'<button class="btn" data-act="dlg-close">关闭</button>'});
+       +'<button class="btn" data-act="dlg-close">返回</button>', stacked:true});
   const wrap=$('ivWrap'),img=$('ivImg'),info=$('ivInfo');
   const st={scale:1,tx:0,ty:0,fit:1,nat:[1,1]};
   function apply(){
@@ -5706,8 +5722,11 @@ async function exportStudentReport(examId,studentNo){
   const W=10206;   /* A4 可用宽度(twips) */
   const parts=[];
   /* 抬头 */
-  parts.push(dxPara([dxRun(ex.paperTitle||ex.name,{b:1,sz:26,color:'1F2933'})],{align:'center',after:10}));
-  parts.push(dxPara([dxRun('学生成绩报告',{b:1,sz:19,color:'8A6D3B'})],{align:'center',after:30}));
+  parts.push(dxPara([
+    dxRun(ex.paperTitle||ex.name,{b:1,sz:26,color:'1F2933'}),
+    dxRun('　·　',{sz:19,color:'C9C2B4'}),
+    dxRun('学生成绩报告',{b:1,sz:19,color:'8A6D3B'})
+  ],{align:'center',after:30}));
   parts.push(dxPara([
     dxRun('班级：'+esc(ex.className||'—'),{sz:16,color:'5A6472'}),
     dxRun('　　姓名：'+(r.name||'—'),{sz:16,color:'5A6472',b:1}),
@@ -5829,11 +5848,11 @@ async function exportStudentReport(examId,studentNo){
       const advice=wk.subj
         ?('对照评分要点重做本题并请老师面批；重点检查：'+(wk.rate*100<T.passPct?'答题要点是否齐全、表述是否规范':'细节表述与卷面'))
         :(wk.gap>=wk.full*0.5?('重做本题：先写出正确解法再核对，并整理进错题本'):('核对错因（是知识点不清还是审题/涂卡失误），做 2 道同类题巩固'));
-      rows.push([{t:wk.title+'（满分'+wk.full+'）'},
-        {t:String(Math.round(wk.got*10)/10),align:'center',b:1,color:'C0392B'},
-        {t:wk.avg.toFixed(1),align:'center'},
-        {t:('-'+Math.round(wk.gap*10)/10),align:'center',color:'C0392B'},
-        {t:advice,sz:15}]);
+      rows.push([{t:wk.title+'（满分'+wk.full+'）',sz:16},
+        {t:String(Math.round(wk.got*10)/10),align:'center',b:1,color:'C0392B',sz:16},
+        {t:wk.avg.toFixed(1),align:'center',sz:16},
+        {t:('-'+Math.round(wk.gap*10)/10),align:'center',color:'C0392B',sz:16},
+        {t:advice,sz:16}]);
     });
     parts.push(dxTable(rows,[1900,1100,1200,1000,W-5200]));
     parts.push(dxPara('',{after:60}));
@@ -5843,8 +5862,12 @@ async function exportStudentReport(examId,studentNo){
   const diffTxt=(diff>=0)?('总分高于班级平均 '+Math.abs(diff).toFixed(1)+' 分，'):('总分低于班级平均 '+Math.abs(diff).toFixed(1)+' 分，');
   const adviceTxt=(r.total>=T.ex)?'整体掌握扎实，注意保持并挑战更高目标。'
     :(r.total>=T.pass?'基础尚可，按上面「需重点加强」逐项突破即可提升。':'基础还比较薄弱，建议先从基础题和大题得分点抓起，逐题过关。');
-  parts.push(dxPara([dxRun('　　本次考试'+diffTxt,{sz:17}),dxRun(adviceTxt,{sz:16})],{after:110}));
-  parts.push(dxPara([dxRun('教师签字：________________', {sz:16,color:'5A6472'}),dxRun('　　　　家长签字：________________',{sz:16,color:'5A6472'}),dxRun('　　　　日期：____________',{sz:16,color:'5A6472'})],{align:'left',after:20}));
+  parts.push(dxPara([dxRun('　　本次考试'+diffTxt,{sz:16}),dxRun(adviceTxt,{sz:16})],{after:110}));
+  parts.push(dxPara([
+    dxRun('教师签字：______________',{sz:16,color:'5A6472'}),
+    dxRun('　　家长签字：______________',{sz:16,color:'5A6472'}),
+    dxRun('　　日期：____________',{sz:16,color:'5A6472'})
+  ],{align:'center',after:20}));
   parts.push(dxPara([dxRun('本报告由「智能阅卷」自动生成。',{sz:13,color:'9AA3AE'})],{align:'center',before:60}));
   const name=(r.name&&r.name.indexOf('（未匹配')<0)?r.name:('考号'+r.no);
   await docxDownload('成绩报告_'+name+'_'+(r.no||'')+'_'+ex.name+'_'+tsName()+'.docx',parts.join(''));
