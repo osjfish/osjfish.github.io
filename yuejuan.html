@@ -535,7 +535,7 @@ function showScoreOf(tpl){
 }
 function choiceLayoutOf(tpl){
   const c=(tpl&&tpl.choiceLayout)||{};
-  return {q:(c.q==='h'?'h':'v'),o:(c.o==='v'?'v':'h')};
+  return {q:(c.q==='h'?'h':'v'),o:(c.o==='v'?'v':'h'),rows:(c.rows!=null?Math.max(0,Math.min(50,c.rows|0)):0)};
 }
 /* 题目清单归一化：新结构用 sections（大题→小题）；旧结构（扁平 questions / 选择题组+主观题区）自动归为大题 */
 function normalizeSections(tpl){
@@ -682,14 +682,17 @@ function layoutTemplate(tpl,opts){
     reg={x:Math.round(c1x+(colW-regW)/2),y:72.5,colW:regColW,grid:Math.min(8,regColW-2),rowsY:regRowsY,bubble:3.2,dy:4.4,
       numY:70.1,labelY:66.3,boxTop:64,label:'准 考 证 号'};
   }else{
-    qr={x:w-52,y:34,size:qrSize};
-    const regW0=regDigits*11;
-    /* 12 位等宽考号区较宽，居中会压到信息框——限制其右缘不超过信息框左缘 */
-    const regX0=Math.min(Math.round((w-regW0)/2),(qr.x-2-regW0));
-    infoBox={x:qr.x,y:qr.y+qrSize+2,w:52,h:24};
+    /* 竖版：左侧一组=二维码(上)+信息框(下)，两者相互水平居中对齐；右侧=考号填涂区（剩余空间内居中，
+       位数多时压缩每位宽度，最右不越出内容区）。信息框不再顶到页边（旧版右缘正好压页边越界）。 */
+    const lzW=58;   /* 左组区域宽 */
+    qr={x:Math.round(M+(lzW-qrSize)/2),y:28,size:qrSize};
+    infoBox={x:Math.round(M+(lzW-52)/2),y:qr.y+qrSize+2,w:52,h:24};
+    const availL=M+lzW+6,availW=(w-M)-availL;
+    const regColW=Math.min(11,Math.max(8,Math.floor(((availW-8)/regDigits)*10)/10));
+    const regW0=regColW*regDigits;
     const regRowsY=[];
     for(let i=0;i<10;i++)regRowsY.push(45.6+i*4.4);
-    reg={x:regX0,y:33,colW:11,grid:8,rowsY:regRowsY,bubble:3.2,dy:4.4,
+    reg={x:Math.round(availL+(availW-regW0)/2),y:33,colW:regColW,grid:Math.min(8,regColW-2),rowsY:regRowsY,bubble:3.2,dy:4.4,
       numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   }
   const pages=[];
@@ -728,6 +731,7 @@ function layoutTemplate(tpl,opts){
   function layoutChoiceAll(title,items){
     const pref=choiceLayoutOf(tpl);
     const optV=(pref.o==='v');
+    const fixedRows=(pref.q==='h')?(pref.rows>0?pref.rows:0):0;   /* 每列行数（仅题目横向排列生效，0=自动） */
     const bw=4.2,bh=2.8,numW=11;
     const chOf=function(qn){
       const it=items.find(function(x){return String(x.qno)===String(qn)});
@@ -737,54 +741,69 @@ function layoutTemplate(tpl,opts){
     items.forEach(function(it){const n=Math.max(2,Math.min(6,it.choices||4));if(n>nMax)nMax=n;});
     const optStep=optV?Math.max(4.6,bh+1.9):0;
     const blockW=nMax>0?((optV?(numW+bw+2):(numW+nMax*7.0))):40;
-    const nq=(pref.q==='h')?Math.max(1,Math.floor((colW-6)/blockW)):1;
-    const dxq=(colW-6)/nq;
-    const dxc=optV?0:Math.max(3.5,(dxq-numW)/nMax);
-    let qFirst=items[0].qno,remaining=items.length,part=0,idx=0,first=true;
+    const widthNq=Math.max(1,Math.floor((colW-6)/blockW));
+    /* 列主序几何：第 c 列第 r 行 = items[base+c*R+r]（题号自上而下再右移一列）；
+       行高 = 该行各题实际最大选项数（修复旧版步长错误：此前行高只按第一列题计算） */
+    const rowGeom=function(R,nq,base){
+      const rowY=[];let accH=0;
+      for(let r=0;r<R;r++){
+        let mx=1;
+        for(let c=0;c<nq;c++){
+          const qi=base+c*R+r;
+          if(qi>=items.length)continue;
+          mx=Math.max(mx,chOf(items[qi].qno));
+        }
+        const hRow=optV?(mx*optStep):5;
+        rowY.push(accH+(optV?optStep/2:2.5));
+        accH+=hRow+(optV?1.8:0);
+      }
+      return {rowY:rowY,accH:accH};
+    };
+    let qFirst=items[0].qno,remaining=items.length,part=0,idx=0,first=true,retried=false;
     while(remaining>0){
       const headH=(part===0&&first)?SEC_H:0;
-      /* 先按“当前列可容纳的行高”决定本块行数：每行高 = 该行实际最大选项数×选项步长 */
       const avail=availH()-headH-11;
-      const rowsIdx=[];
-      let accH=0,ri=0;
-      while(ri<remaining){
-        let mx=1;
-        for(let c=0;c<nq;c++){
-          const qi=idx+c*remaining+ri;
-          if(qi>=items.length)continue;
-          mx=Math.max(mx,chOf(items[qi].qno));
+      let nq=1,R=0,geom=null;
+      if(pref.q!=='h'){
+        /* 纵向：每题一行，按当前列高度放尽量多题 */
+        nq=1;
+        for(R=remaining;R>=1;R--){geom=rowGeom(R,1,idx);if(geom.accH<=avail)break}
+        if(R<1){if(!retried){retried=true;nextColOrPage();continue}retried=false;R=1;geom=rowGeom(1,1,idx)}
+      }else if(fixedRows>0){
+        /* 每列行数固定为 K：列数=ceil(remaining/K)（不超过宽度上限），末列允许不满；
+           当前列放不下整块先换列/换页一次，仍放不下（行数超过页高）则收敛行数 */
+        R=fixedRows;
+        nq=Math.min(widthNq,Math.ceil(remaining/R));
+        geom=rowGeom(R,nq,idx);
+        if(geom.accH>avail&&!retried){retried=true;nextColOrPage();continue}
+        if(geom.accH>avail){
+          while(R>1){nq=Math.min(widthNq,Math.ceil(remaining/R));if(rowGeom(R,nq,idx).accH<=avail)break;R--}
+          geom=rowGeom(R,nq,idx);
         }
-        const hRow=optV?(mx*optStep):5;
-        if(accH+hRow>avail)break;
-        rowsIdx.push(ri);accH+=hRow+(optV?1.8:0);ri++;
+        retried=false;
+      }else{
+        /* 自动：R 从整列行数（最紧凑）向下试到当前列能容纳的最大值 */
+        nq=widthNq;
+        const Rmin=Math.ceil(remaining/nq);
+        for(R=Rmin;R>=1;R--){geom=rowGeom(R,nq,idx);if(geom.accH<=avail)break}
+        if(R<1){if(!retried){retried=true;nextColOrPage();continue}retried=false;R=1;geom=rowGeom(1,nq,idx)}
       }
-      if(!rowsIdx.length){nextColOrPage();continue}
-      const rows=rowsIdx.length;
-      const subCount=Math.min(remaining,rows*nq);
-      const hNeed=headH+7+accH+4;
-      ensure(hNeed);
-      /* 每行题号中心的相对 y */
-      const rowY=[];let acc2=0,r2=0;
-      while(r2<rows){
-        let mx=1;
-        for(let c=0;c<nq;c++){
-          const qi=idx+c*remaining+r2;
-          if(qi>=items.length)continue;
-          mx=Math.max(mx,chOf(items[qi].qno));
-        }
-        const hRow=optV?(mx*optStep):5;
-        rowY.push(acc2+(optV?optStep/2:2.5));
-        acc2+=hRow+(optV?1.8:0);r2++;
-      }
-      const subItems=items.slice(idx,idx+subCount);
+      const subCount=Math.min(remaining,nq*R);
+      const hNeed=headH+7+geom.accH+4;
       const cq={};
-      subItems.forEach(function(it){cq[it.qno]=Math.max(2,Math.min(6,it.choices||4));});
-      const scores=subItems.map(function(it){return (it.score!=null&&Number.isFinite(Number(it.score)))?Number(it.score):null});
-      pg.groups.push({first:qFirst,count:subCount,choices:nMax,choicesQ:cq,cols:nq,rows:rows,
-        x0:colX(curCol)+2,y0:curY+headH+2,dxq:dxq,dy:(optV?(optStep+1.8):5),dy0:(optV?optStep/2:2.5),
-        rowY:rowY,optDir:(optV?'v':'h'),optStep:(optV?optStep:0),size:[bw,bh],timing:{dx:-2,w:1,h:2},
+      const scores=[];
+      for(let c=0;c<nq;c++)for(let r=0;r<R;r++){
+        const qi=idx+c*R+r;
+        if(qi>=items.length)continue;
+        const it2=items[qi];
+        cq[it2.qno]=Math.max(2,Math.min(6,it2.choices||4));
+        scores.push((it2.score!=null&&Number.isFinite(Number(it2.score)))?Number(it2.score):null);
+      }
+      pg.groups.push({first:qFirst,count:subCount,choices:nMax,choicesQ:cq,cols:nq,rows:R,
+        x0:colX(curCol)+2,y0:curY+headH+2,dxq:(colW-6)/nq,dy:(optV?(optStep+1.8):5),dy0:(optV?optStep/2:2.5),
+        rowY:geom.rowY,optDir:(optV?'v':'h'),optStep:(optV?optStep:0),size:[bw,bh],timing:{dx:-2,w:1,h:2},
         scores:scores,scoreLabel:scoreLabelOf(scores),kind:'single',
-        box:{x:colX(curCol),y:curY+(headH?headH+2:2),w:colW,h:accH+4},
+        box:{x:colX(curCol),y:curY+(headH?headH+2:2),w:colW,h:geom.accH+4},
         label:(part===0&&first)?title:(title+'（续）'),
         sec:(part===0&&first)?title:(title+'（续）'),topY:curY,col:curCol,blockW:blockW});
       curY+=hNeed;
@@ -799,9 +818,10 @@ function layoutTemplate(tpl,opts){
     const innerW=colWmm-8;
     let rowH,gridCols=null,titleHead=0,totalRows;
     if(type==='grid-cn'){
-      /* 格子恒为 8mm 正方：优先尊重用户设置的每行格数；放不下（需给右侧字数标注留 8mm）才按列宽收缩 */
-      const cell=8,labelW=8;
-      const maxCols=Math.max(4,Math.floor((innerW-labelW)/cell));
+      /* 格子恒为 8mm 正方；块宽=列宽-2，两侧对称留边 ≥9mm（右边际放字数标注）→ 格子区在框内居中。
+         用户设置的每行格数优先，放不下才收缩 */
+      const cell=8;
+      const maxCols=Math.max(4,Math.floor((colWmm-20)/cell));
       gridCols=Math.max(4,Math.min(40,it.cols||20));
       if(gridCols>maxCols)gridCols=maxCols;
       rowH=cell+1.2;
@@ -831,7 +851,7 @@ function layoutTemplate(tpl,opts){
       pg.subjective.push({qno:it.qno,score:score,type:m.type,kind:kind,rows:take,rowH:m.rowH,
         cols:m.gridCols,rowStart:rowStart,headH:tHead,part:part,
         label:'题'+it.qno+(part>0?'（续）':''),
-        x:colX(curCol)+4,y:curY+secH+5,w:colW-8,h:boxH,
+        x:colX(curCol)+1,y:curY+secH+5,w:colW-2,h:boxH,
         sec:(part===0&&first)?sec.title:(sec.title+'（续）'),topY:curY,col:curCol});
       remaining-=take;part++;rowStart+=take;
       curY+=secH+5+boxH+6;
@@ -1051,10 +1071,10 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       ctx.textAlign='center';ctx.fillStyle='#000';
     }else if(sb.type==='grid-cn'){
       const cols=Math.max(4,Math.min(40,sb.cols||20));
-      /* 格子恒为正方形：固定 8mm（与排版时一致）；右侧留 8mm 字数标注带，网格在剩余宽度内居中，标注不再压框线 */
-      const cell=Math.min(8,(sb.w-8)/cols);
-      const labelW=8, gw=cols*cell;
-      const gx=sb.x+(sb.w-labelW-gw)/2, gy=sb.y+4+(sb.headH||0);
+      /* 格子恒为正方形 8mm；两侧对称留边（≥9mm），网格在框内居中——右侧留边即字数标注位，不再偏左 */
+      const cell=Math.min(8,(sb.w-18)/cols);
+      const gw=cols*cell;
+      const gx=sb.x+(sb.w-gw)/2, gy=sb.y+4+(sb.headH||0);
       if(sb.headH){
         /* 可选「题目」栏：居中、横线长约框宽一半 */
         const lineLen=(sb.w-26)/2;
@@ -2809,6 +2829,7 @@ async function tplEditorHTML(tplId){
     +'<option value="h"'+((t.choiceLayout&&t.choiceLayout.o==='v')?'':' selected')+'>横向（A B C D 并排）</option>'
     +'<option value="v"'+((t.choiceLayout&&t.choiceLayout.o==='v')?' selected':'')+'>纵向（A/B/C/D 逐行）</option>'
     +'</select>'
+    +'<span class="kv" title="题目横向排列时每一列放多少行题号（题号自上而下再右移一列），0=按高度自动排满">每列行数</span><input class="inp" style="width:64px" data-on="tpl-field" data-id="'+t.id+'" data-f="clrows" type="number" min="0" max="50" value="'+esc((t.choiceLayout&&t.choiceLayout.rows)||0)+'">'
     +'<span class="kv">（全部选择题默认集中排在答题卡最开头的一个大框内）</span>'
     +'</div></div>'
     +'<div class="card"><h3>题目清单（先设大题，再加大题下的小题）</h3>'
@@ -3137,6 +3158,10 @@ async function tplFieldApply(el){
     /* 选择题排列偏好：q 题目排列 / o 选项排列 */
     t.choiceLayout=Object.assign({q:'v',o:'h'},t.choiceLayout||{});
     t.choiceLayout[f==='clq'?'q':'o']=v;
+  }else if(f==='clrows'){
+    /* 每列行数（题目横向排列时生效），0=自动 */
+    t.choiceLayout=Object.assign({q:'v',o:'h',rows:0},t.choiceLayout||{});
+    t.choiceLayout.rows=Math.max(0,Math.min(50,Math.round(v)||0));
   }else if(f==='scoreSec'||f==='scoreItem'){
     t.showScore=Object.assign({sec:true,item:true},t.showScore||{});
     t.showScore[f==='scoreSec'?'sec':'item']=!!v;
