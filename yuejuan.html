@@ -253,7 +253,7 @@ function defaultOMR(){
 let omr=Object.assign(defaultOMR(),loadJSON(LS_OMR)||{});
 let ai=migrateAIModel(Object.assign(defaultAI(),loadJSON(LS_AI)||{}));
 /* 阅卷偏好：给分步长、显示用图像增强档位（0 关 / 1 轻度 / 2 强力） */
-let gradePref=Object.assign({step:0.5,enhance:0},loadJSON(LS_GRADE)||{});
+let gradePref=Object.assign({step:0.5,enhance:0,autoNext:1},loadJSON(LS_GRADE)||{});
 
 /* ---------- 状态 ---------- */
 let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:null,gradeExam:null,gradeQno:null,scoreExam:null};
@@ -4461,11 +4461,13 @@ Object.assign(ACTS,{
     const v=el.dataset.v;
     const n=parseFloat(v);
     if(!Number.isFinite(n)){toast('请输入有效分数','err');return}
+    const pre=await gradeUnscoredCount();
     await gradeSetScore(n);
+    /* 快捷按钮打分：开启「打分后自动下一份」时写分即跳下一份（最后一份停留原地） */
+    if(gradePref.autoNext&&gradeCtx&&gradeCtx.idx<gradeCtx.order.length-1)gradeCtx.idx++;
+    if(await gradeCheckComplete(pre))return;
     renderGrade();
   },
-  'grade-flag':async function(){await gradeToggleFlag('F');renderGrade()},
-  'grade-good':async function(){await gradeToggleFlag('G');renderGrade()},
   'grade-ai-one':async function(){
     const now2=gradeCtx.order[gradeCtx.idx];
     if(!now2)return;
@@ -4485,8 +4487,10 @@ Object.assign(ACTS,{
     if(!gradeCtx.order.length)return;
     if(gradeCtx.idx>=gradeCtx.order.length)gradeCtx.idx=gradeCtx.order.length-1;
     const no=gradeCtx.order[gradeCtx.idx];
+    const pre=await gradeUnscoredCount();
     await gradeSetScoreLocal(no,parseFloat(el.dataset.v));
     dlgClose();
+    if(await gradeCheckComplete(pre))return;
     renderGrade();
   },
   'grade-ai-batch-open':async function(el){
@@ -4565,6 +4569,32 @@ async function gradeSetScore(v){
   const no=gradeCtx.order[gradeCtx.idx];
   await gradeSetScoreLocal(no,v);
 }
+/* 阅卷完成度探针：q=当前题未评仂数 all=整卷未评份数（写分前后各取一次即可判断是否刚阅完） */
+async function gradeUnscoredCount(){
+  try{
+    if(!ui.gradeExam||!gradeCtx)return {q:0,all:0};
+    const cropsAll=await dbByIdx('crops','byExam',ui.gradeExam);
+    return {q:cropsAll.filter(function(c){return String(c.qno)===String(gradeCtx.qno)&&c.scoreVal==null}).length,
+            all:cropsAll.filter(function(c){return c.scoreVal==null}).length};
+  }catch(e){return {q:0,all:0}}
+}
+/* 写分后检查完成度：本题阅完 toast 提示；整卷阅完弹窗引导去成绩分析。返回 true 表示已跳转 */
+async function gradeCheckComplete(pre){
+  try{
+    if(!ui.gradeExam||!gradeCtx)return false;
+    const ex=await dbGet('exams',ui.gradeExam);
+    const cropsAll=await dbByIdx('crops','byExam',ex.id);
+    const qAll=cropsAll.filter(function(c){return String(c.qno)===String(gradeCtx.qno)});
+    const qUn=qAll.filter(function(c){return c.scoreVal==null}).length;
+    const allUn=cropsAll.filter(function(c){return c.scoreVal==null}).length;
+    if(qAll.length&&qUn===0&&(pre&&pre.q>0))toast('题 '+esc(String(gradeCtx.qno))+' 已全部阅完（'+qAll.length+' 份）','ok');
+    if(allUn===0&&(pre&&pre.all>0)){
+      const ok=await dlgConfirm('全部阅卷完成','本考试全部主观题已评完！<br>可前往「成绩分析」查看统计与导出成绩。','去成绩分析');
+      if(ok){ui.scoreExam=ex.id;ui.gradeQno=null;gradeCtx=null;go('score');return true}
+    }
+  }catch(e){}
+  return false;
+}
 async function gradeSetScoreLocal(studentNo,v){
   const ex=await dbGet('exams',ui.gradeExam);
   const cropsAll=await dbByIdx('crops','byExam',ex.id);
@@ -4584,17 +4614,6 @@ async function gradeSetScoreLocal(studentNo,v){
     releaseBlobURL(c.id+'|mk');
     await dbPut('crops',c);
   }
-}
-async function gradeToggleFlag(flag){
-  const no=gradeCtx.order[gradeCtx.idx];
-  const ex=await dbGet('exams',ui.gradeExam);
-  const cropsAll=await dbByIdx('crops','byExam',ex.id);
-  const list=cropsAll.filter(function(c){return c.studentNo===no&&String(c.qno)===String(gradeCtx.qno)});
-  for(const c of list){
-    c.flag=(flag==='F'&&c.flag==='F')?'':(flag==='G'&&c.flag==='G')?'':flag;
-    await dbPut('crops',c);
-  }
-  toast(flag==='F'?'已切换「待商榷」标记':'已切换「优秀」标记','ok');
 }
 /* ---------- 可缩放图片查看器（阅卷放大看图用）----------
    滚轮/双指缩放（以指针位置为锚点）、拖拽平移、双击在 1:1 与“适应窗口”间切换。
@@ -4707,7 +4726,7 @@ function enhanceImageData(ctx,w,h,level){
     gray[j]=g;hist[g]++;
   }
   let acc=0,lo=0,hi=255;
-  const cut=n*(level>=2?0.008:0.02);
+  const cut=n*(level>=2?0.05:0.02);
   for(let v=0;v<256;v++){acc+=hist[v];if(acc>cut){lo=v;break}}
   acc=0;
   for(let v=255;v>=0;v--){acc+=hist[v];if(acc>cut){hi=v;break}}
@@ -4793,13 +4812,22 @@ async function renderGradeView(ex){
   }else{
     imgs='<div class="empty">该生此题的裁剪图不存在</div>';
   }
-  /* 快捷分按钮：常用分档（0/25%/50%/75%/满分）+ 按步长加减 */
+  /* 快捷分按钮：0 起按步长递增至满分（0 与满分必含，最多 40 个，超限退化为常用分档）+ 按步长加减 */
   let scoreBtns='';
   const dstep=Number(gradePref.step)||0.5;
   const eff=Number(gradePref.enhance)||0;
   const rstep=function(v){return Math.round(v*100)/100};
-  const steps=[0,rstep(full*0.25),rstep(full*0.5),rstep(full*0.75),full];
-  const uniqs=steps.filter(function(v,i){return steps.indexOf(v)===i});
+  const uniqs=[];
+  if(dstep>0&&full/dstep<=40){
+    for(let i=0;i<=40;i++){
+      const v=rstep(i*dstep);
+      if(v>=full)break;
+      if(uniqs.indexOf(v)<0)uniqs.push(v);
+    }
+  }else{
+    [0,0.25,0.5,0.75].forEach(function(f){const v=rstep(full*f);if(uniqs.indexOf(v)<0)uniqs.push(v)});
+  }
+  uniqs.push(full);
   uniqs.forEach(function(v){
     scoreBtns+='<button class="gs'+(cur===v?' on':'')+'" data-act="grade-score-set" data-v="'+v+'">'+v+'</button>';
   });
@@ -4830,7 +4858,7 @@ async function renderGradeView(ex){
     +imgs
     +'<div class="gthumbs">'+thumbs+'</div></div>'
     +'<div class="gside">'
-    +'<div style="font-weight:700;margin-bottom:6px">打分（数字输入 / Enter 写分并跳下一份 / ←→ 前后 / Del 清零；点击页面空白处后可用 F 待商榷 / G 优秀）</div>'
+    +'<div style="font-weight:700;margin-bottom:6px">打分（数字输入 / Enter 写分 / ←→ 前后 / Del 清零）</div>'
     +'<input class="inp" id="gradeManualInput" type="number" step="'+dstep+'" min="0" max="'+full+'" placeholder="手动输入 0-'+full+'" value="'+esc(cur!=null?cur:'')+'">'
     +'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-s btn-p" data-act="grade-manual" style="flex:1">写入</button>'
     +'<button class="btn btn-s" data-act="grade-clear-score" style="flex:1">清零</button></div>'
@@ -4855,8 +4883,10 @@ async function renderGradeView(ex){
     +'<button class="btn btn-s" data-act="grade-prev">← 上一份</button>'
     +'<button class="btn btn-s btn-p" data-act="grade-next">下一份 →</button></div>'
     +'<button class="btn btn-s btn-o" data-act="grade-ai-one" style="width:100%;margin-top:8px">AI 建议</button>'
-    +'<button class="btn btn-s" data-act="grade-flag" style="width:100%;margin-top:6px">标记待商榷</button>'
-    +'<button class="btn btn-s" data-act="grade-good" style="width:100%;margin-top:6px">标记优秀</button>'
+    +((parts.length&&parts[0].aiScore!=null&&cur==null)?'<button class="btn btn-s btn-b" data-act="grade-ai-accept" data-v="'+esc(parts[0].aiScore)+'" style="width:100%;margin-top:6px">采纳 AI 建议 '+esc(parts[0].aiScore)+' 分</button>':'')
+    +'<div class="f-row" style="margin-top:8px;align-items:center">'
+    +'<label class="kv" style="display:flex;align-items:center;gap:5px;margin:0;white-space:nowrap;cursor:pointer"><input type="checkbox" id="gradeAutoNext"'+(gradePref.autoNext?' checked':'')+'> 打分后自动进入下一份</label>'
+    +'</div>'
     +'<div class="tip" style="margin-top:8px">所有修改即时保存，无需手动点击保存。AI 建议需在「设置」中配置视觉大模型。</div>'
     +'</div></div>';
   afterRender(function(){
@@ -4868,8 +4898,10 @@ async function renderGradeView(ex){
         else if(e.key==='ArrowLeft'){e.preventDefault();ACTS['grade-prev']();}
         e.stopPropagation();
       });
-      /* 写分后自动回到输入框并全选，保证连续录入不丢焦点 */
+      /* 写分后回到输入框并全选，保证连续录入不丢焦点 */
       inp.focus();inp.select();
+      const an=$('gradeAutoNext');
+      if(an)an.addEventListener('change',function(){gradePref.autoNext=an.checked?1:0;saveJSON(LS_GRADE,gradePref)});
     }
   });
 }
@@ -4883,9 +4915,11 @@ Object.assign(ACTS,{
     const meta=await gradeMeta(ex);
     const sq=meta.subjList.find(function(s){return String(s.qno)===String(gradeCtx.qno)});
     const full=sq?sq.score:100;
+    const pre=await gradeUnscoredCount();
     await gradeSetScoreLocal(gradeCtx.order[gradeCtx.idx],Math.min(full,Math.max(0,v)));
-    /* 写分后自动跳到下一份（最后一份停留原地） */
-    if(gradeCtx.idx<gradeCtx.order.length-1){gradeCtx.idx++;gradeCtx.buf='';}
+    /* 写分后自动跳到下一份（最后一份停留原地；可在面板关闭自动跳转） */
+    if(gradePref.autoNext&&gradeCtx.idx<gradeCtx.order.length-1){gradeCtx.idx++;gradeCtx.buf='';}
+    if(await gradeCheckComplete(pre))return;
     renderGrade();
   },
   'grade-clear-score':async function(){
@@ -4930,7 +4964,9 @@ Object.assign(ACTS,{
     const cur=(ps.length&&ps[0].scoreVal!=null)?Number(ps[0].scoreVal):0;
     let v=Math.round((cur+dir*d)*100)/100;
     v=Math.max(0,Math.min(full,v));
+    const pre=await gradeUnscoredCount();
     await gradeSetScoreLocal(no,v);
+    if(await gradeCheckComplete(pre))return;
     renderGrade();
   }
 });
@@ -4953,10 +4989,6 @@ document.addEventListener('keydown',function(e){
     e.preventDefault();ACTS['grade-next']();
   }else if(e.key==='ArrowLeft'){
     e.preventDefault();ACTS['grade-prev']();
-  }else if(e.key==='f'||e.key==='F'){
-    e.preventDefault();ACTS['grade-flag']();
-  }else if(e.key==='g'||e.key==='G'){
-    e.preventDefault();ACTS['grade-good']();
   }else if(e.key==='Delete'){
     e.preventDefault();ACTS['grade-clear-score']();
   }
@@ -5358,8 +5390,26 @@ function parseResult(text){
   let obj;
   try{obj=JSON.parse(s.slice(a,b+1))}
   catch(e){
-    const fixed=s.slice(a,b+1).replace(/,\s*([}\]])/g,'$1').replace(/[\u201c\u201d]/g,'"');
-    try{obj=JSON.parse(fixed)}catch(e2){throw new Error('JSON 解析失败：'+s.slice(0,120))}
+    const fixed=s.slice(a,b+1).replace(/,\s*([}\]])/g,'$1');
+    try{obj=JSON.parse(fixed)}catch(e2){
+      /* AI 常在字符串值里写未转义的英文双引号（如引用评分要点「空白即满分」）——
+         状态机修复：字符串内部的引号若其后不是合法的值结束符（,} ]）则视为内容，替换为「 */
+      const repaired=(function(t){
+        let out='',inStr=false;
+        for(let i=0;i<t.length;i++){
+          const ch=t[i];
+          if(ch==='\u201c'||ch==='\u201d')ch='\"';
+          if(ch!=='\"'){out+=ch;continue}
+          if(!inStr){inStr=true;out+=ch;continue}
+          let j=i+1;while(j<t.length&&(t[j]===' '||t[j]==='\n'||t[j]==='\r'||t[j]==='\t'))j++;
+          const nx=t[j];
+          if(nx===','||nx===':'||nx==='}'||nx===']'||nx===undefined){inStr=false;out+=ch}
+          else out+='」';
+        }
+        return out;
+      })(fixed);
+      try{obj=JSON.parse(repaired)}catch(e3){throw new Error('JSON 解析失败：'+s.slice(0,120))}
+    }
   }
   if(typeof obj!=='object'||obj===null)throw new Error('AI 返回内容不是对象');
   return obj;
@@ -5394,7 +5444,7 @@ async function aiSuggestItem(ex,parts,qno,ctl){
     +'2. 评分采用"从满分往下扣"：每处问题按评分要点扣除对应分数，注明扣分原因；'+strictLine+'\n'
     +'3. 得分可以有小数，不得为凑整抬高分数；每一处扣分都要能在卷面上指出来；\n'
     +'4. 若要点中各维度标有分值，必须按维度给分（dimScores），总分为各维度之和。\n'
-    +'【输出要求】只输出 JSON：{"problems":"问题清单","dimScores":{"维度":分}|null,"score":数字,"reason":"一句话总评"}，不要其他文字。';
+    +'【输出要求】只输出 JSON：{"problems":"问题清单","dimScores":{"维度":分}|null,"score":数字,"reason":"一句话总评"}，不要其他文字；字符串值内不要出现英文双引号，引用要点时请用「」。';
   const content=await withRetry(function(){return callVision(prompt,images,ctl?ctl.signal:undefined)});
   const d=parseResult(content);
   let score=d.score;
