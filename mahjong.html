@@ -185,6 +185,41 @@ body>*{position:relative;z-index:1}
 .result-panel .tile .big{font-size:13px}
 .result-panel .tile .sm{font-size:8px}
 .result-panel .tile.joker::after{font-size:7px;padding:0 2px}
+/* ===== 训练复盘（滚动教学区） ===== */
+.result-panel.wide{max-width:min(560px,95vw)}
+.train-box{margin-top:10px;border-top:1px solid rgba(176,152,88,.35);padding-top:8px;text-align:left}
+.train-title{font-size:14px;color:#ffd857;font-weight:900;letter-spacing:3px;text-align:center;margin-bottom:6px}
+.train-scroll{max-height:46vh;overflow-y:auto;overscroll-behavior:contain;margin-top:8px;padding-right:6px;border:1px solid rgba(176,152,88,.22);border-radius:8px;padding:8px;background:rgba(6,20,12,.35)}
+.train-scroll::-webkit-scrollbar{width:7px}
+.train-scroll::-webkit-scrollbar-thumb{background:rgba(176,152,88,.5);border-radius:4px}
+.train-scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.25);border-radius:4px}
+.rv-gloss{font-size:11.5px;color:#a8c8b0;line-height:1.8;background:rgba(0,0,0,.28);border:1px solid rgba(176,152,88,.2);border-radius:8px;padding:8px 10px;margin-bottom:9px}
+.rv-gloss b{color:#ffd857}
+.dec-item{border:1px solid rgba(176,152,88,.28);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:rgba(10,32,22,.5)}
+.dec-item.bad{border-color:rgba(232,146,106,.5);background:rgba(64,22,14,.32)}
+.dec-item.mid{border-color:rgba(214,194,106,.42);background:rgba(48,42,14,.28)}
+.dec-head{font-size:13px;font-weight:800;color:#cfe3d5;line-height:1.5;margin-bottom:6px}
+.dec-item.bad .dec-head{color:#ffb08a}
+.dec-item.mid .dec-head{color:#e8d68a}
+.dec-item.ok .dec-head{color:#a8d8ba}
+.dec-lbl{font-size:10.5px;color:#9fd8b5;margin:6px 0 2px;letter-spacing:1.5px}
+.rv-tiles{display:flex;flex-wrap:wrap;gap:2px;margin:2px 0}
+.rv-tile{width:23px;height:31px;border-radius:3px}
+.rv-tile .big{font-size:12px}
+.rv-tile .sm{font-size:7px}
+.rv-tile::after{font-size:7px;padding:0 1px}
+.rv-tile.rv-play{outline:2px solid #ff6b35;outline-offset:-1px;box-shadow:0 0 6px rgba(255,107,53,.5)}
+.rv-tile.rv-rec{outline:2px solid #4fd18b;outline-offset:-1px;box-shadow:0 0 6px rgba(79,209,139,.45)}
+.rv-melds{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0}
+.rv-meld{display:inline-flex;align-items:center;gap:1px}
+.rv-tag{font-size:9px;color:#a8d8ba;border:1px solid rgba(168,216,186,.5);border-radius:3px;padding:0 3px;margin-right:2px;line-height:14px}
+.rv-legend{font-size:10.5px;color:#8fb89f;margin:3px 0 0}
+.rv-legend i{font-style:normal;color:#ff6b35}
+.rv-legend em{font-style:normal;color:#4fd18b}
+.dec-ul{margin:5px 0 0 16px;padding:0}
+.dec-ul li{font-size:11.5px;color:#cfe3d5;line-height:1.75;margin:2px 0}
+.dec-tag{margin-top:5px;font-size:11.5px;color:#e8926a}
+.rv-none{font-size:12px;color:#9fd8b5;padding:8px 2px;text-align:center}
 @media (max-width:380px){
   .tile{width:34px;height:46px}
   .tile .big{font-size:17px}.tile .sm{font-size:10px}
@@ -193,6 +228,10 @@ body>*{position:relative;z-index:1}
   .result-panel .tile{width:22px;height:30px}
   .result-panel .tile .big{font-size:11px}
   .result-panel .tile .sm{font-size:7px}
+  .rv-tile{width:20px;height:27px}
+  .rv-tile .big{font-size:10px}
+  .rv-tile .sm{font-size:6px}
+  .train-scroll{max-height:40vh}
 }
 </style>
 </head>
@@ -872,21 +911,22 @@ function rankDiscards(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip){
   var scored=uniq.map(function(c){
     var rest=hand.slice(),ix=rest.indexOf(c);rest.splice(ix,1);
     var shV=handShanten(rest,jokerId,myMelds);
-    var ev;
-    if(pureFold){
-      ev=structureScore(rest,jokerId)/40;     /* 弃和：留相对成型的牌，安全第一 */
-    }else{
-      ev=0;
-      for(var j=0;j<ALL_CODES.length;j++){
-        var t=ALL_CODES[j],r=remain[t];
-        if(!r)continue;
-        var h2=rest.concat([t]);
-        ev+=r*(shantenScore(handShanten(h2,jokerId,myMelds))+structureScore(h2,jokerId)/60);
-      }
-      ev/=total;
+    var ev=0,impT=0,impN=0,winT=0,winN=0;
+    /* 遍历全部可摸牌：既算期望值，也统计「有几种几张能让手牌进步/直接成和」 */
+    for(var j=0;j<ALL_CODES.length;j++){
+      var t=ALL_CODES[j],r=remain[t];
+      if(!r)continue;
+      var h2=rest.concat([t]);
+      var s2=handShanten(h2,jokerId,myMelds);
+      if(s2<shV){impT++;impN+=r;}
+      if(shV===0&&s2===-1){winT++;winN+=r;}
+      if(!pureFold)ev+=r*(shantenScore(s2)+structureScore(h2,jokerId)/60);
     }
+    if(!pureFold)ev/=total;
+    else ev=structureScore(rest,jokerId)/40;   /* 弃和：留相对成型的牌，安全第一 */
     var penV=lambda*tileDanger(c,oppMelds,oppRiverTiles,jokerId)*45;
-    return {c:c,ev:Math.round(ev),pen:Math.round(penV),v:ev-penV,sh:shV};
+    return {c:c,ev:Math.round(ev),pen:Math.round(penV),v:ev-penV,sh:shV,
+      impT:impT,impN:impN,winT:winT,winN:winN};
   });
   scored.sort(function(a,b){return b.v-a.v;});
   return scored;
@@ -1065,10 +1105,12 @@ function discardTile(byWhom,tile){
           G.river.filter(function(r){return r.by===1;}).map(function(r){return r.t;}),
           G.wall.length,G.flip);
         rankTop=rankedAll.slice(0,5).map(function(r){
-            return {c:r.c,ev:r.ev,pen:r.pen,v:Math.round(r.v),sh:r.sh};
+            return {c:r.c,ev:r.ev,pen:r.pen,v:Math.round(r.v),sh:r.sh,
+              impT:r.impT,impN:r.impN,winT:r.winT,winN:r.winN};
           });
         rankedAll.forEach(function(r){
-          if(r.c===tile)mineEntry={c:r.c,ev:r.ev,pen:r.pen,v:Math.round(r.v),sh:r.sh};
+          if(r.c===tile)mineEntry={c:r.c,ev:r.ev,pen:r.pen,v:Math.round(r.v),sh:r.sh,
+            impT:r.impT,impN:r.impN,winT:r.winT,winN:r.winN};
         });
       }catch(e){rankTop=null;}
       G.trainLog.push({k:'discard',tile:tile,hand:sortTiles(G.hands[0]).slice(),
@@ -1420,6 +1462,7 @@ function endRound(result){
   saveState();
   renderAll(true);
   var ov=$('ovRound'),title=$('rTitle'),body=$('rBody'),next=$('rNext');
+  body.className='result-panel'+(G.train?' wide':'');
   if(result){
     var w=result.winner;
     title.textContent=G.names[w]+' 和牌！';
@@ -1474,37 +1517,86 @@ function showFinal(){
   $('ovFinal').classList.add('show');
 }
 /* ================= 训练复盘（每盘即时总结 + 跨盘累计分析） ================= */
-/* 单条弃牌决策分析：对比引擎排序与实际选择，并归类错误原因
-   cat: break=破坏牌型 / def=防守失误 / eff=牌效偏低 / forced=被迫 */
+/* 白话：把向听数翻译成「离听牌还差几步」 */
+function shPhrase(sh){
+  if(typeof sh!=='number')return '离听牌步数未知';
+  if(sh<=-1)return '已经能和牌';
+  if(sh===0)return '已经听牌（只等一张就能和）';
+  return '离听牌还差 '+sh+' 步';
+}
+/* 白话：进张面描述 */
+function tileRangeText(o){
+  if(!o)return '';
+  if(o.winT)return o.winT+' 种约 '+o.winN+' 张牌能让你直接和牌';
+  if(o.impT)return o.impT+' 种约 '+o.impN+' 张牌能让你离听牌更近';
+  return '暂时没有能直接让手牌进步的牌';
+}
+function dangerLabel(pen){
+  if(pen>=120)return '高';
+  if(pen>=60)return '中';
+  return '低';
+}
+/* 单条弃牌决策分析：对比引擎排序与实际选择，归类错误原因，并生成白话讲解
+   cat: break=破坏牌型 / def=防守失误 / eff=牌效偏低 */
 function analyzeDiscardEntry(e,st){
+  var base={hand:e.hand,melds:e.melds,tile:e.tile,oppRiver:e.oppRiver,wall:e.wall,joker:e.joker};
   var rank=e.rank||[];
-  if(!rank.length)return {cls:'ok',txt:'手里只剩字牌/赖子，无正常可打牌'};
+  if(!rank.length){
+    base.cls='ok';base.title='无正常可打牌';
+    base.bullets=['这手牌里只剩红中、发财或赖子，规则上它们不能直接打出（只能杠），所以这次出牌没有选择余地。'];
+    return base;
+  }
   var best=rank[0],mine=e.mine||null;
   if(!mine){for(var i=0;i<rank.length;i++)if(rank[i].c===e.tile)mine=rank[i];}
-  if(!mine){st.minor++;return {cls:'minor',txt:'打 '+tileName(e.tile)+'（被迫打字牌/赖子）'};}
-  var dv=Math.round(best.v-mine.v);
-  if(dv<=30){st.best++;return {cls:'best',txt:'打 '+tileName(e.tile)+'（与引擎首选一致）'};}
-  var evGap=best.ev-mine.ev,penGap=mine.pen-best.pen,cat,reason;
-  if(typeof mine.sh==='number'&&typeof best.sh==='number'&&best.sh<mine.sh){
-    cat='break';
-    reason='破坏牌型：打后向听 '+mine.sh+'（打 '+tileName(best.c)+' 则为 '+best.sh+'），拆坏了搭子/面子';
-  }else if(penGap>60&&penGap>=evGap){
-    cat='def';
-    reason='防守失误：此牌危险度 '+mine.pen+'，'+tileName(best.c)+' 仅 '+best.pen+'，对手在听牌期不应冒险';
-  }else{
-    cat='eff';
-    reason='牌效偏低：进张期望 '+mine.ev+'，'+tileName(best.c)+' 为 '+best.ev+'，留错了搭子';
+  if(!mine){
+    st.minor++;base.cls='minor';base.title='被迫打出特殊牌';
+    base.bullets=['打的是 '+tileName(e.tile)+'，没有更优解可选。'];return base;
   }
+  var dv=Math.round(best.v-mine.v);
+  if(dv<=30){
+    st.best++;base.cls='best';base.title='与引擎选择一致';
+    base.bullets=['打 '+tileName(e.tile)+'：'+shPhrase(mine.sh)+'，'+tileRangeText(mine)+'。'];
+    return base;
+  }
+  var evGap=best.ev-mine.ev,penGap=mine.pen-best.pen,cat;
+  if(typeof mine.sh==='number'&&typeof best.sh==='number'&&best.sh<mine.sh)cat='break';
+  else if(penGap>60&&penGap>=evGap)cat='def';
+  else cat='eff';
   st.reasons[cat]=(st.reasons[cat]||0)+1;
-  var txt='打 '+tileName(e.tile)+'，'+reason+'（综合差 +'+dv+'）';
-  if(dv<=400){st.minor++;return {cls:'minor',cat:cat,txt:txt};}
-  st.bad++;return {cls:'bad',cat:cat,txt:'失着：'+txt};
+  base.cat=cat;base.bestC=best.c;
+  var bl=[];
+  if(cat==='break'){
+    base.title='拆坏了牌型';
+    bl.push('你打了 '+tileName(e.tile)+'。这一打之后，'+shPhrase(mine.sh)+'。');
+    bl.push('如果改打 '+tileName(best.c)+'，'+shPhrase(best.sh)+' —— 直接比现在更接近和牌。');
+    bl.push('原因：'+tileName(e.tile)+' 本来还在帮你组成面子/搭子，打掉它等于把已经拼好的部分拆散，后面要重新摸牌补回来。');
+    bl.push('以后判断口诀：打牌前先看「打掉之后离听牌几步」，步数变多就是拆错了。');
+  }else if(cat==='def'){
+    base.title='忽略了点炮风险';
+    bl.push('你打了 '+tileName(e.tile)+'：这张牌的危险度是'+dangerLabel(mine.pen)+'（'+mine.pen+'）。');
+    bl.push('引擎推荐打 '+tileName(best.c)+'：危险度只有'+dangerLabel(best.pen)+'（'+best.pen+'），安全得多。');
+    bl.push('危险度＝你打出去之后被电脑拿去和牌（点炮）的风险。电脑已经亮出 '+((e.oppMelds||[]).length)+' 组牌'+(e.wall<=30?'、牌墙只剩 '+e.wall+' 张':'')+'，正是它可能已经听牌、最该防的阶段。');
+    bl.push('以后判断口诀：听牌期「进攻收益差不多时，先打安全牌」，点炮等于白送分。');
+  }else{
+    base.title='牌效偏低（进步更慢）';
+    bl.push('你打了 '+tileName(e.tile)+'：之后 '+shPhrase(mine.sh)+'，'+tileRangeText(mine)+'。');
+    bl.push('引擎推荐打 '+tileName(best.c)+'：同样'+shPhrase(best.sh)+'，但'+tileRangeText(best)+'。');
+    bl.push('原因：两者离听牌的步数一样，但留下的牌「更容易摸到」。牌效就是比谁的进张面更宽。');
+    bl.push('以后判断口诀：步数相同时，选进张更宽的那张（张数多＝更容易摸到）。');
+  }
+  base.bullets=bl;
+  if(dv<=400){st.minor++;base.cls='minor';base.dv=dv;}
+  else{st.bad++;base.cls='bad';base.dv=dv;}
+  return base;
 }
-/* 单条吃碰决策分析：对比 过/吃/碰/杠 的向听变化，归类原因
+/* 单条吃碰决策分析：对比 过/吃/碰/杠 的向听变化，归类原因，白话讲解
    cat: miss=错失好机会 / worsen=吃碰变差 / waste=浪费限额 */
 function analyzeClaimEntry(e,st){
   var o=e.opts||{},s0=o.pass;
-  if(typeof s0!=='number')return {cls:'ok',txt:'电脑打 '+tileName(e.tile)+'，我选「'+e.choice+'」'};
+  var base={hand:e.hand,melds:e.melds,tile:e.tile,oppRiver:e.oppRiver,wall:e.wall,joker:e.joker,choice:e.choice};
+  if(typeof s0!=='number'){
+    base.cls='ok';base.title='吃碰决策';base.bullets=['电脑打 '+tileName(e.tile)+'，你选择了「'+e.choice+'」。'];return base;
+  }
   if(e.choice==='过'){
     var bestLabel=null,bestS=s0;
     (o.chi||[]).forEach(function(c){if(c.s<bestS){bestS=c.s;bestLabel='吃 '+c.combo.map(tileName).join('');}});
@@ -1512,18 +1604,46 @@ function analyzeClaimEntry(e,st){
     (o.gang||[]).forEach(function(g){if(g.s<bestS){bestS=g.s;bestLabel='杠 '+tileName(g.tc);}});
     if(bestLabel){
       st.claimCls.miss=(st.claimCls.miss||0)+1;st.claimBad++;st.bad++;
-      return {cls:'bad',cat:'miss',txt:'失着：错失好机会——电脑打 '+tileName(e.tile)+'，'+bestLabel+'可向听 '+s0+'→'+bestS+'，却选择过'};
+      base.cls='bad';base.cat='miss';base.title='错失了让手牌前进的机会';
+      base.bullets=[
+        '电脑打出 '+tileName(e.tile)+' 时，如果你选择「'+bestLabel+'」，'+shPhrase(bestS)+'。',
+        '你选择了过，'+shPhrase(s0)+' —— 比刚才那条路更远。',
+        '原因：吃/碰能把别人打出的牌直接变成自己的面子，等于白捡一次进步；但每局吃、碰各只有 1 次额度，所以只在「能明显推进手牌」时才用。',
+        '以后判断口诀：先看吃/碰之后离听牌几步，变少了就值得吃碰。'
+      ];
+      return base;
     }
-    st.best++;return {cls:'best',txt:'电脑打 '+tileName(e.tile)+'，过（无可改善的吃碰）'};
+    st.best++;base.cls='best';base.title='过牌正确';
+    base.bullets=['电脑打 '+tileName(e.tile)+'，这次吃/碰都不能让手牌更接近听牌（都是 '+shPhrase(s0)+'），选择过是对的。'];
+    return base;
   }
-  if(e.chosenS===null||e.chosenS===undefined){st.best++;return {cls:'best',txt:e.choice};}
-  if(e.chosenS<s0){st.best++;return {cls:'best',txt:e.choice+'：向听 '+s0+'→'+e.chosenS};}
+  if(e.chosenS===null||e.chosenS===undefined){
+    st.best++;base.cls='best';base.title='吃碰决策';base.bullets=['选择了「'+e.choice+'」。'];return base;
+  }
+  if(e.chosenS<s0){
+    st.best++;base.cls='best';base.title='吃碰正确';
+    base.bullets=['选择了「'+e.choice+'」：从'+shPhrase(s0)+'进步到'+shPhrase(e.chosenS)+'，是好棋。'];
+    return base;
+  }
   if(e.chosenS===s0){
     st.minor++;st.claimCls.waste=(st.claimCls.waste||0)+1;
-    return {cls:'minor',cat:'waste',txt:e.choice+'：向听持平（'+s0+'→'+e.chosenS+'），却用掉了限一次的额度'};
+    base.cls='minor';base.cat='waste';base.title='用掉了宝贵的吃碰额度';
+    base.bullets=[
+      '选择了「'+e.choice+'」：离听牌的步数没有变化（'+shPhrase(s0)+'）。',
+      '吃、碰每局各只能用 1 次（杠不限），这次用掉了额度却没有换来进度。',
+      '以后判断口诀：额度留给「能让离听牌步数变少」的机会。'
+    ];
+    return base;
   }
+  /* 吃/碰之后反而离听牌更远 */
   st.claimBad++;st.bad++;st.claimCls.worsen=(st.claimCls.worsen||0)+1;
-  return {cls:'bad',cat:'worsen',txt:'失着：'+e.choice+'——向听反而变差 '+s0+'→'+e.chosenS+'，应过'};
+  base.cls='bad';base.cat='worsen';base.title='这手吃碰拖慢了自己';
+  base.bullets=[
+    '选择了「'+e.choice+'」：'+shPhrase(e.chosenS)+'，反而比不动（'+shPhrase(s0)+'）更远。',
+    '原因：吃/碰会把 2 张手牌换成一组成型面子，成型的同时也减少了手牌的灵活性，有时会把本来能连成的搭子拆掉。',
+    '以后判断口诀：吃碰前先算「吃完/碰完离听牌几步」，步数变多就该过。'
+  ];
+  return base;
 }
 /* 分析一盘（自 roundStart 起的日志切片），返回决策明细与分类统计 */
 function analyzeRound(entries){
@@ -1554,7 +1674,12 @@ function analyzeRound(entries){
       return;
     }
     if(e.k==='myClaim'){st.claims++;sum.items.push(analyzeClaimEntry(e,st));return;}
-    if(e.k==='myGang'){st.gangs++;sum.items.push({cls:'best',txt:'自杠 '+tileName(e.tile)});return;}
+    if(e.k==='myGang'){
+      st.gangs++;
+      sum.items.push({cls:'best',title:'自杠 '+tileName(e.tile),tile:e.tile,
+        bullets:['你杠了 '+tileName(e.tile)+'，并从牌尾补了一张牌——杠本身不占面子，但能多摸一张，是不亏的操作。']});
+      return;
+    }
   });
   return sum;
 }
@@ -1595,23 +1720,84 @@ function trainBiggestProblems(cum){
   });
   return html+'</div>';
 }
-/* 本盘复盘 HTML（嵌入回合结束面板） */
+/* 复盘用迷你牌面：橙框=你打出的牌，绿框=引擎推荐 */
+function handTilesHTML(hand,playTile,recTile){
+  var s='<div class="rv-tiles">',usedPlay=false,usedRec=false;
+  (hand||[]).forEach(function(c){
+    var cls='rv-tile';
+    if(!usedPlay&&c===playTile){cls+=' rv-play';usedPlay=true;}
+    else if(!usedRec&&recTile&&c===recTile){cls+=' rv-rec';usedRec=true;}
+    s+=tileHTML(c,cls);
+  });
+  return s+'</div>';
+}
+function meldsMiniHTML(melds){
+  if(!melds||!melds.length)return '';
+  var s='<div class="rv-melds">';
+  melds.forEach(function(m){
+    var tiles=(m.tiles&&m.tiles.length)?m.tiles
+      :(m.type==='吃'?[m.with[0],m.tile,m.with[1]]
+      :(m.type==='碰'?[m.tile,m.tile,m.tile]:[m.tile,m.tile,m.tile,m.tile]));
+    s+='<span class="rv-meld"><span class="rv-tag">'+m.type+'</span>';
+    tiles.forEach(function(c){s+=tileHTML(c,'rv-tile');});
+    s+='</span>';
+  });
+  return s+'</div>';
+}
+/* 术语对照（白话） */
+function rvGlossaryHTML(){
+  return '<div class="rv-gloss"><b>📖 术语对照</b><br>'
+    +'<b>听牌</b>：再摸到 1 张需要的牌就能和牌的状态。<br>'
+    +'<b>离听牌还差 N 步</b>：还要再摸到 N 张有用的牌，才能进入听牌。<br>'
+    +'<b>进张</b>：能让手牌往听牌方向前进的牌。「5 种约 14 张」＝有 5 种牌、场上还没出现的大约 14 张。<br>'
+    +'<b>危险度</b>：你打出去后被电脑拿去和牌（点炮）的风险，分 低／中／高。<br>'
+    +'<b>● 一致</b> 与引擎选择相同；<b>△ 小损</b> 有点亏但不严重；<b>✗ 失着</b> 明显失误，最该改的。'
+    +'</div>';
+}
+/* 单条决策卡片 */
+function decisionCardHTML(it,fallbackNo){
+  var cls=it.cls==='bad'?'bad':(it.cls==='minor'?'mid':'ok');
+  var mark=it.cls==='bad'?'✗':(it.cls==='minor'?'△':'●');
+  var s='<div class="dec-item '+cls+'">';
+  s+='<div class="dec-head">'+mark+' 第'+(it.no||fallbackNo)+'手 · '+it.title+'</div>';
+  if(it.hand&&it.hand.length){
+    s+='<div class="dec-lbl">当时我的手牌</div>';
+    s+=handTilesHTML(it.hand,it.tile,it.bestC);
+    s+=it.bestC
+      ? '<div class="rv-legend">橙框＝<i>我打出的</i>　绿框＝<em>引擎推荐</em></div>'
+      : '<div class="rv-legend">橙框＝<i>我打出的</i></div>';
+  }
+  if(it.melds&&it.melds.length){
+    s+='<div class="dec-lbl">已经亮出的副露</div>'+meldsMiniHTML(it.melds);
+  }
+  if(it.bullets&&it.bullets.length){
+    s+='<ul class="dec-ul">';
+    it.bullets.forEach(function(b){s+='<li>'+b+'</li>';});
+    s+='</ul>';
+  }
+  if(it.tag)s+='<div class="dec-tag">'+it.tag+'</div>';
+  return s+'</div>';
+}
 function trainRoundHTML(sum,cum){
   var st=sum.stats;
-  var html='<div style="border-top:1px solid rgba(176,152,88,.35);margin-top:10px;padding-top:8px">'
-    +'<div style="font-size:13px;color:#ffd857;font-weight:700;letter-spacing:2px;margin-bottom:6px">本盘复盘</div>'
+  var html='<div class="train-box">'
+    +'<div class="train-title">本盘复盘</div>'
     +'<div class="row"><span>弃牌决策</span><b>'+st.dec+' 手：●一致 '+st.best+' · △小损 '+st.minor+' · ✗失着 '+st.bad+'</b></div>'
     +'<div class="row"><span>吃碰决策</span><b>'+st.claims+' 次：失着 '+st.claimBad+' 次</b></div>'
     +'<div class="row"><span>牌面事件</span><b>牌被吃/碰 '+st.fed+' 次 · 点炮 '+st.dealt+' 次 · 自杠 '+st.gangs+' 次</b></div>';
   var notable=sum.items.filter(function(i){return i.cls!=='best';});
   var bestN=sum.items.length-notable.length;
-  if(sum.items.length)html+='<div style="font-size:11px;color:#9fd8b5;margin:4px 0">● 与引擎一致 '+bestN+' / '+sum.items.length+' 手，以下为值得注意的决策：</div>';
-  notable.forEach(function(i){
-    var mark=i.cls==='bad'?'✗':(i.cls==='ok'?'·':'△');
-    var col=i.cls==='bad'?'#e8926a':(i.cls==='ok'?'#7fa892':'#d6c26a');
-    html+='<div style="font-size:12px;margin:3px 0;color:#cfe3d5;line-height:1.5"><span style="color:'+col+'">'+mark+'</span> [第'+i.no+'手] '+i.txt+(i.tag?'<span style="color:#e8926a">｜'+i.tag+'</span>':'')+'</div>';
-  });
-  if(!sum.items.length)html+='<div style="font-size:12px;color:#7fa892;margin:4px 0">（本盘没有我方决策记录）</div>';
+  html+='<div style="font-size:11px;color:#9fd8b5;margin:5px 0 0">共 '+sum.items.length+' 手决策，其中与引擎一致 '+bestN+' 手；下面只讲需要改进的（可在框内上下滚动）：</div>';
+  /* 专门的教学区：可滚动 */
+  html+='<div class="train-scroll">'+rvGlossaryHTML();
+  if(sum.items.length===0){
+    html+='<div class="rv-none">本盘没有记录到我方决策（可能很快就结束了）</div>';
+  }else if(notable.length===0){
+    html+='<div class="rv-none">👍 这一盘每一手都和引擎选择一致，没有需要纠正的地方。</div>';
+  }else{
+    notable.forEach(function(it,idx){html+=decisionCardHTML(it,idx+1);});
+  }
+  html+='</div>';
   html+=trainBiggestProblems(cum);
   return html+'</div>';
 }
