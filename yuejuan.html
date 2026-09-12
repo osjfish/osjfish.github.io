@@ -4651,6 +4651,7 @@ async function cropMarkedImage(crop,w,blob){
 }
 async function renderGradeView(ex){
   const meta=await gradeMeta(ex);
+  if(!meta){ui.gradeQno=null;gradeCtx=null;$('page').innerHTML='<div class="card">'+emptyBox('!','该考试使用的答题卡模板不存在或已删除。')+'</div>';return}
   if(!gradeCtx.order.length){ui.gradeQno=null;gradeCtx=null;renderGrade();return}
   if(gradeCtx.idx>=gradeCtx.order.length)gradeCtx.idx=gradeCtx.order.length-1;
   const no=gradeCtx.order[gradeCtx.idx];
@@ -5262,6 +5263,7 @@ async function cropToDataURL(crop,maxW,q,blob){
 async function aiSuggestItem(ex,parts,qno,ctl){
   if(!ensureAI())throw new Error('先配置 AI');
   const meta=await examMeta(ex);
+  if(!meta)throw new Error('该考试的答题卡模板不存在或已删除');
   const sq=meta.subjList.find(function(s){return String(s.qno)===String(qno)});
   const full=sq?sq.score:100;
   const subjMeta=(ex.subjective||{})[qno]||{score:full,points:'',answer:''};
