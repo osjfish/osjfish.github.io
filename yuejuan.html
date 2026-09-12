@@ -593,8 +593,14 @@ function totalFullOf(tpl){
 }
 /* 题级选项数（模板组可指定 15:5 等覆盖；默认组 choices） */
 function groupQChoices(g,qn){
-  if(g.choicesQ&&g.choicesQ[qn]!=null)return Math.max(2,Math.min(6,g.choicesQ[qn]));
-  return g.choices;
+  if(g.choicesQ&&g.choicesQ[qn]!=null)return Math.max(2,Math.min(6,g.choicesQ[qn]));  return g.choices;
+}
+/* 选择题组内 (列c,行r) 的真实题号：布局携带 qnos 数组（真实题号有空洞时按位置携带），
+   旧组（连续题号）按 first+位置 推导。渲染/识别/复核可视化/成绩统计统一走此函数 */
+function groupQnAt(g,c,r){
+  const k=c*g.rows+r;
+  if(g.qnos&&g.qnos[k]!=null)return g.qnos[k];
+  return g.first+k;
 }
 /* 选项几何：数字区 11mm 后均分，气泡居中于槽位（渲染/识别统一公式） */
 function qBubbleGeom(g,qn,ch){
@@ -792,14 +798,16 @@ function layoutTemplate(tpl,opts){
       const hNeed=headH+7+geom.accH+3+4;
       const cq={};
       const scores=[];
+      const qnos=[];
       for(let c=0;c<nq;c++)for(let r=0;r<R;r++){
         const qi=idx+c*R+r;
         if(qi>=items.length)continue;
         const it2=items[qi];
         cq[it2.qno]=Math.max(2,Math.min(6,it2.choices||4));
         scores.push((it2.score!=null&&Number.isFinite(Number(it2.score)))?Number(it2.score):null);
+        qnos.push(it2.qno);
       }
-      pg.groups.push({first:qFirst,count:subCount,choices:nMax,choicesQ:cq,cols:nq,rows:R,
+      pg.groups.push({first:qFirst,count:subCount,choices:nMax,choicesQ:cq,cols:nq,rows:R,qnos:qnos,
         x0:colX(curCol)+2,y0:curY+headH+2+3,dxq:(colW-6)/nq,dy:(optV?(optStep+1.8):5),dy0:(optV?optStep/2:2.5),
         rowY:geom.rowY,optDir:(optV?'v':'h'),optStep:(optV?optStep:0),size:[bw,bh],timing:{dx:-3.6,w:1,h:2},
         scores:scores,scoreLabel:scoreLabelOf(scores),kind:'single',
@@ -1012,8 +1020,9 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     for(let c=0;c<g.cols;c++){
       const xc=g.x0+c*g.dxq;
       for(let r=0;r<g.rows;r++){
-        const qn=g.first+c*g.rows+r;
-        if(qn>g.first+g.count-1)break;
+        const k=c*g.rows+r;
+        if(k>=g.count)break;
+        const qn=groupQnAt(g,c,r);
         const rowY=g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy);
         const nOpts=groupQChoices(g,qn);
         ctx.font='bold '+Math.max(7,Math.round(px(2.8)))+'px "Microsoft YaHei",sans-serif';
@@ -1165,8 +1174,11 @@ async function compactSliceFor(layout,tpl,page,level){
     else a.push(r1(x.x),r1(x.y),r1(x.s));
   });
   const gs=page.groups.map(function(g){
-    if(level>=3)return [g.first,g.count,g.choices,g.cols,g.rows,rH(g.x0),rH(g.y0),rH(g.dxq),rH(g.dy),rH(g.dxc),g.size[0],g.size[1]];
-    return [g.first,g.count,g.choices,g.cols,g.rows,r1(g.x0),r1(g.y0),r2(g.dxq),r2(g.dy),r2(g.dxc),g.size[0],g.size[1]];
+    const arr=(level>=3)?[g.first,g.count,g.choices,g.cols,g.rows,rH(g.x0),rH(g.y0),rH(g.dxq),rH(g.dy),rH(g.dxc),g.size[0],g.size[1]]
+                        :[g.first,g.count,g.choices,g.cols,g.rows,r1(g.x0),r1(g.y0),r2(g.dxq),r2(g.dy),r2(g.dxc),g.size[0],g.size[1]];
+    /* 真实题号有空洞时把 qnos 纳入指纹；连续题号（qnos 与 first 顺序一致）不附加——旧印刷卡哈希不变 */
+    if(g.qnos&&g.qnos.length&&g.qnos.some(function(q,i){return String(q)!==String((g.first||0)+i)}))arr.push(g.qnos);
+    return arr;
   });
   const ss=page.subjective.map(function(s){
     if(level>=3)return [s.qno,s.score,s.type,s.rows,rH(s.rowH),rH(s.x),rH(s.y),rH(s.w),rH(s.h),s.part,s.cols||null,s.rowStart||0,s.headH||0];
@@ -2296,8 +2308,9 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     const deltas=rowDeltas(marks,expMarks.map(function(m){return m.y}));
     for(let rr=0;rr<g.rows;rr++){
       for(let c=0;c<g.cols;c++){
-        const qn=g.first+c*g.rows+rr;
-        if(qn>g.first+g.count-1)continue;
+        const k=rr+c*g.rows;
+        if(k>=g.count)continue;
+        const qn=groupQnAt(g,c,rr);
         const rowYmm=g.y0+((g.rowY&&g.rowY[rr]!=null)?g.rowY[rr]:rr*g.dy);
         if(deltas[rr]===null)continue;
         const inks=[];
@@ -2509,7 +2522,10 @@ async function examMeta(exam){
   const seen={};
   layout.pages.forEach(function(p){
     p.groups.forEach(function(g){
-      for(let q=g.first;q<g.first+g.count;q++)choiceQnos.push(q);
+      for(let c=0;c<g.cols;c++)for(let r=0;r<g.rows;r++){
+        if(c*g.rows+r>=g.count)continue;
+        choiceQnos.push(groupQnAt(g,c,r));
+      }
     });
     p.subjective.forEach(function(sb){
       if(!seen[sb.qno]){
@@ -2523,7 +2539,11 @@ async function examMeta(exam){
   });
   const choiceOpts={};
   layout.pages.forEach(function(p){p.groups.forEach(function(g){
-    for(let q=g.first;q<g.first+g.count;q++)choiceOpts[q]=groupQChoices(g,q);
+    for(let c=0;c<g.cols;c++)for(let r=0;r<g.rows;r++){
+      if(c*g.rows+r>=g.count)continue;
+      const qn=groupQnAt(g,c,r);
+      choiceOpts[qn]=groupQChoices(g,qn);
+    }
   })});
   /* 客观题逐题分值：模板中每题可单独设分（questions[].score），无则回退旧的统一分值 perScore（默认 2） */
   const choiceScores={};
@@ -3989,8 +4009,8 @@ async function pageMarkedImage(p){
     (p.meta.perQ||[]).forEach(function(q){perQmap[q.qno]=q});
     page.groups.forEach(function(g){
       for(let r=0;r<g.rows;r++)for(let c=0;c<g.cols;c++){
-        const qn=g.first+c*g.rows+r;
-        if(qn>g.first+g.count-1)continue;
+        if(r+c*g.rows>=g.count)continue;
+        const qn=groupQnAt(g,c,r);
         const q=perQmap[qn];
         if(!q)continue;
         const rowY=g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy);
