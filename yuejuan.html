@@ -692,11 +692,13 @@ function layoutTemplate(tpl,opts){
       numY:30.6,labelY:26.8,boxTop:24.5,label:'准 考 证 号'};
   }
   const pages=[];
-  /* 内容起点：首页竖版 94mm / 首页横版多列第1列 134mm（页眉收缩在第1列上部：信息框/二维码/考号区到 131.5）；首页其余列与续页所有列 42mm 起（续页顶部仅手写信息条）；底部留页脚与定位点空间 */
-  const contentTop=94, contentTopMulti=134, contentTopCont=42, contentBottom=h-19;
-  const handInfo={x:M+2,y:26,w:contentW-4,h:11};
+  /* 内容起点：首页竖版 94mm / 首页横版多列第1列 134mm（页眉收缩在第1列上部：信息框/二维码/考号区到 131.5）；首页其余列与续页所有列 35mm 起（续页顶部仅窄版手写信息条 23-32mm）；底部留页脚与定位点空间 */
+  const contentTop=94, contentTopMulti=134, contentTopCont=35, contentBottom=h-19;
+  /* 续页手写信息条：窄版、水平居中放在标题位置（宽度随考号位数收缩，姓名线+考号小格一行排下） */
+  const handInfo={x:Math.round((w-(79+regDigits*6.2))/2),y:23,w:Math.round(79+regDigits*6.2),h:9};
   function newPage(pi){
-    return {w:w,h:h,title:(opts&&opts.title!=null?opts.title:(tpl.title||tpl.name||'')),info:(pi===0)?infoBox:null,
+    /* 标题只印第1页；续页顶部标题位置留给窄版手写信息条 */
+    return {w:w,h:h,title:(pi===0)?(opts&&opts.title!=null?opts.title:(tpl.title||tpl.name||'')):'',info:(pi===0)?infoBox:null,
       handInfo:(pi>0)?handInfo:null,
       reg:(pi===0)?reg:null,regDigits:regDigits,groups:[],subjective:[],qr:(pi===0)?qr:null,
       pagemarks:pageMarksFor(pi),anchors:anchors,nCols:nCols,colW:colW,colGap:colGap,margin:M,fullScore:fullScore,footer:{n:pi+1,m:0}};
@@ -796,9 +798,11 @@ function layoutTemplate(tpl,opts){
     const innerW=colWmm-8;
     let rowH,gridCols=null,titleHead=0,totalRows;
     if(type==='grid-cn'){
-      gridCols=Math.max(10,Math.min(40,it.cols||20));
-      const cell=8;
-      gridCols=Math.max(8,Math.floor(innerW/cell));
+      /* 格子恒为 8mm 正方：优先尊重用户设置的每行格数；放不下（需给右侧字数标注留 8mm）才按列宽收缩 */
+      const cell=8,labelW=8;
+      const maxCols=Math.max(4,Math.floor((innerW-labelW)/cell));
+      gridCols=Math.max(4,Math.min(40,it.cols||20));
+      if(gridCols>maxCols)gridCols=maxCols;
       rowH=cell+1.2;
       titleHead=it.titleLine?13:0;
       totalRows=(it.count?Math.max(1,Math.ceil(it.count/gridCols)):Math.max(1,it.rows||10));
@@ -1045,10 +1049,11 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       ctx.fillText('（空白作答区）',px(sb.x+4),px(sb.y+5));
       ctx.textAlign='center';ctx.fillStyle='#000';
     }else if(sb.type==='grid-cn'){
-      const cols=Math.max(8,Math.min(40,sb.cols||20));
-      /* 格子恒为正方形：固定 8mm（与排版时一致），格数已在排版端按列宽取整 */
-      const cell=8;
-      const gw=cols*cell, gx=sb.x+(sb.w-gw)/2, gy=sb.y+4+(sb.headH||0);
+      const cols=Math.max(4,Math.min(40,sb.cols||20));
+      /* 格子恒为正方形：固定 8mm（与排版时一致）；右侧留 8mm 字数标注带，网格在剩余宽度内居中，标注不再压框线 */
+      const cell=Math.min(8,(sb.w-8)/cols);
+      const labelW=8, gw=cols*cell;
+      const gx=sb.x+(sb.w-labelW-gw)/2, gy=sb.y+4+(sb.headH||0);
       if(sb.headH){
         /* 可选「题目」栏：居中、横线长约框宽一半 */
         const lineLen=(sb.w-26)/2;

@@ -265,7 +265,7 @@ jl.append('</div>')
 # 全文（背诵区）
 ft = ['<div id="fulltext" class="poem" style="display:none">']
 for line in FULLTEXT:
-    ft.append('<p>%s</p>' % line)
+    ft.append('<div class="pl">%s</div>' % line)
 ft.append('</div>')
 
 # 背景区
@@ -337,9 +337,9 @@ nav = '''<nav class="nav"><div class="nav-in">
       <option value="250">250%</option>
       <option value="300">300%</option>
     </select>
-    <button id="btnAll" onclick="toggleAll()">展开</button>
-    <button id="btnRecite" onclick="toggleRecite()">背诵</button>
-    <button id="btnPrint" onclick="window.print()">打印</button>
+    <button id="btnAll">展开</button>
+    <button id="btnRecite">背诵</button>
+    <button id="btnPrint">打印</button>
   </div>
 </div></nav>'''
 
