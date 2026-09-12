@@ -7,7 +7,7 @@
   · 字形题答案 w 的拼音 py 与注释区标注是否矛盾（仅提示）
 用法：python _audit_quiz.py
 """
-import os, re, sys, json, collections, html
+import os, re, sys, json, collections, html, difflib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP = {'zixinli.html'}
@@ -93,14 +93,22 @@ def audit(fn):
             segs = [x for x in re.split(r'[，。、；：！？…—]+', qc) if len(x) >= 2]
             hit = bool(segs) and all(bare(x) in bare_body for x in segs)
         if not hit:
+            # 软规则：若 q 与原文存在较长连续公共片段（≥60%字符连续匹配），视为合理节选/意引，不报
+            qb = bare(qc)
+            sm = difflib.SequenceMatcher(None, qb, bare_body, autojunk=False)
+            longest = max((b.size for b in sm.get_matching_blocks()), default=0)
+            if longest >= max(4, int(len(qb) * 0.6)):
+                continue
             iss['注释题句非原文'].append('%s|%s' % (w, q[:26]))
         else:
-            # 词须出现在句中：去掉注音括号、省略号分段匹配、多例句以 / 分隔
+            # 注释题 w 是"要默写的词"，不要求出现在例句 q 中；
+            # 真问题：该词在课文正文中完全找不到（学生无从定位）
             w2 = re.sub(r'[（(][^）)]*[)）]', '', w)
-            parts = [x.strip() for x in re.split(r'……|\.\.\.|/|、', w2) if x.strip()]
-            qs = [x.strip() for x in q.split('/')]
-            if not all(any(p in s for s in qs) for p in parts):
-                iss['注释题词不在句中'].append('%s|%s' % (w, q[:26]))
+            if '/' in w or '……' in w or '...' in w:
+                continue
+            wb = bare(w2)
+            if wb and wb not in bare_body:
+                iss['注释词不在课文'].append('%s|%s' % (w, q[:26]))
 
     return iss
 

@@ -5415,10 +5415,9 @@ async function renderScore(){
     +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>'
     +'<span class="kv">'+esc(ex.className||'')+'　·　'+esc(ex.templateName||'')+'　·　客观题 '+meta.choiceQnos.length+' 题（'+book.objFull+' 分）+ 主观题 '+meta.subjList.length+' 题（'+book.subjFull+' 分）　·　全卷满分 '+(book.objFull+book.subjFull)+' 分</span>'
     +'<span style="flex:1"></span>'
-    +'<button class="btn btn-p" data-act="score-xlsx" data-id="'+ex.id+'">导出成绩册（按人）</button>'
-    +'<button class="btn btn-b" data-act="score-byq" data-id="'+ex.id+'">按题导出（讲评用）</button>'
+    +'<button class="btn btn-p" data-act="score-report" data-id="'+ex.id+'">导出分析报告（Excel）</button>'
     +'<button class="btn" data-act="score-json" data-id="'+ex.id+'">导出原始数据 JSON</button>'
-    +'</div></div>';
+    +'</div><div class="kv" style="margin-top:6px">一份文件包含：成绩册（按人）、讲评清单（按得分率排序）、客观题选项分布（每个选项分别是谁）、主观题得分名单（每个分数分别是谁）、题目分析统计。</div></div>';
   html+=statCards([
     {n:n,l:'参评人数'},{n:sf.toFixed(1),l:'平均总分'},{n:max,l:'最高分'},{n:min,l:'最低分'},
     {n:(n?Math.round(sc.filter(function(r){return r.total>=full*0.8}).length/n*100):0)+'%',l:'优秀率(≥80%)'},
@@ -5596,21 +5595,145 @@ function drawPassDonut(full,rows){
 Object.assign(ACTS,{
   'score-pick':async function(el){ui.scoreExam=el.value;renderScore()},
   'score-sort':function(el){ui.scoreSort=el.value;renderScore()},
-  /* 按题导出（讲评用）：Sheet1 题目分析（逐题得分率/难度/明细，含大题汇总）、Sheet2 逐题得分明细（行=学生，列=各题） */
-  'score-byq':async function(el){
+  /* 导出成绩分析报告：一份 Excel、多张表——
+     ①成绩册(按人) ②讲评清单(按得分率排序+建议) ③客观题选项分布(每个选项分别是谁)
+     ④主观题得分名单(每个分数分别是谁) ⑤题目分析(大题汇总+逐题统计) */
+  'score-report':async function(el){
     const book=await computeScorebook(el.dataset.id);
     if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
     const meta=book.meta;
+    const rows=book.rows;
+    const stu=function(r){return r.no+(r.name&&r.name.indexOf('（未匹配')<0?(' '+r.name):'')};
     const rateLv=function(pct){return pct>=80?'易':(pct>=60?'中':'难')};
-    /* Sheet1：题目分析（大题汇总在前，逐题在后，按得分率升序便于找薄弱题） */
-    const a1=[['题目分析（按得分率升序，便于定位需重点讲评的题）'],[]];
-    a1.push(['大题','小题数','满分','班级平均','得分率','掌握情况']);
-    (book.sections||[]).forEach(function(sec){
-      const pct=Math.round(sec.rate*100);
-      a1.push([sec.title+'（'+sec.qnos.join('、')+'）',sec.count,sec.full,Math.round(sec.avg*10)/10,pct+'%',pct>=80?'良好':(pct>=60?'一般':'薄弱')]);
+    const handLv=function(pct){return pct>=80?'掌握良好':(pct>=60?'一般，需巩固':'薄弱，重点讲评')};
+    const wb=XLSX.utils.book_new();
+    /* ---- ① 成绩册（按人） ---- */
+    const h1=['排名','考号','姓名','备注','客观题得分','客观题满分'];
+    meta.subjList.forEach(function(sq){h1.push('题'+sq.qno+'得分');h1.push('题'+sq.qno+'满分')});
+    h1.push('主观题得分','主观题满分','总分','全卷满分','得分率','状态');
+    const secList=(book.sections&&book.sections.length>1)?book.sections:[];
+    secList.forEach(function(sec,i2){h1.push('大题'+(i2+1)+'得分');h1.push('大题'+(i2+1)+'满分')});
+    const a1=[h1];
+    const fullAll=book.objFull+book.subjFull;
+    rows.forEach(function(r){
+      const line=[r.rank,r.no,r.name,r.note,r.absent?'':r.objScore,book.objFull];
+      meta.subjList.forEach(function(sq){
+        const sub=r.subj[sq.qno]||{};
+        line.push(sub.score!=null?sub.score:'',sub.full!=null?sub.full:sq.score);
+      });
+      line.push(r.absent?'':r.subjScore,book.subjFull,r.absent?'缺考':r.total,fullAll,
+        r.absent?'':((r.total/fullAll*100).toFixed(1)+'%'),
+        r.absent?'缺考':(r.subjGraded<meta.subjList.length?'阅卷中':'完成'));
+      secList.forEach(function(sec){
+        if(r.absent){line.push('',sec.full);return}
+        let sum=0;
+        sec.qnos.forEach(function(qn){
+          if(meta.choiceQnos.indexOf(qn)>=0){sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;}
+          else{const v=r.subj[qn];sum+=((v&&v.score!=null)?Number(v.score):0);}
+        });
+        line.push(sum,sec.full);
+      });
+      a1.push(line);
     });
-    a1.push([]);
-    a1.push(['题号','题型','满分','班级平均','得分率','难度','明细']);
+    const ws1=XLSX.utils.aoa_to_sheet(a1);
+    ws1['!cols']=h1.map(function(h2,i2){return {wch:(i2<4?12:10)}});
+    XLSX.utils.book_append_sheet(wb,ws1,'成绩册(按人)');
+    /* ---- ② 讲评清单 ---- */
+    const a2=[['讲评清单（按得分率升序：越靠前越需要重点讲评）'],[],['顺序','题号','题型','满分','班级平均','得分率','难度','掌握情况','讲评建议']];
+    (book.itemStats||[]).slice().sort(function(a,b){return a.rate-b.rate}).forEach(function(it,idx){
+      const pct=Math.round(it.rate*100);
+      let advice='';
+      if(it.subj){
+        advice='平均 '+it.avg.toFixed(1)+'/'+it.full+'；满分 '+it.perfect+' 人、0 分 '+it.zero+' 人；已阅 '+it.graded+'/'+(it.total||0);
+        if(it.zero&&it.zero>=Math.max(2,(it.graded||1)*0.2))advice+='；0 分偏多，建议讲清基本步骤';
+        advice+=(it.rate>=0.8)?'；整体掌握好，可略讲':(it.rate>=0.6?'；中等，挑典型错误讲':'；薄弱，建议重点讲评并加练');
+      }else{
+        const dist=it.dist||{};
+        const top=Object.keys(dist).sort(function(x,y){return dist[y]-dist[x]})[0];
+        advice='对 '+it.ok+'、错 '+it.wrong+'、空/多涂 '+(it.blank+it.multi)+(it.review?('、待复核 '+it.review):'');
+        if(top)advice+='；错选集中在 '+top+'（'+dist[top]+' 人）';
+        advice+=(it.rate>=0.8)?'；整体掌握好，可略讲':(it.rate>=0.6?'；重点讲错选项':'；薄弱，建议重点讲评');
+      }
+      a2.push([idx+1,it.qno,it.subj?'主观':(it.kind==='multi'?'多选':'单选'),it.full,
+        Math.round(it.avg*10)/10,pct+'%',rateLv(pct),handLv(pct),advice]);
+    });
+    const ws2=XLSX.utils.aoa_to_sheet(a2);
+    ws2['!cols']=[{wch:7},{wch:7},{wch:7},{wch:7},{wch:10},{wch:8},{wch:7},{wch:14},{wch:62}];
+    XLSX.utils.book_append_sheet(wb,ws2,'讲评清单');
+    /* ---- ③ 客观题选项分布：每个选项分别有哪些人 ---- */
+    const a3=[['客观题选项分布（每个选项分别是哪些学生；【正确】为该题标准答案）'],[]];
+    meta.choiceQnos.forEach(function(qn){
+      const rawAns=(book.exam.answers||{})[qn];
+      const ansArr=rawAns==null?[]:(Array.isArray(rawAns)?rawAns.map(function(x){return String(x).toUpperCase()}):String(rawAns).toUpperCase().split(''));
+      const nOpt=Math.max(2,Math.min(6,(book.meta.choiceOpts&&book.meta.choiceOpts[qn])||4));
+      const st=book.perQStat[qn]||{rate:0,n:0};
+      const pct=Math.round((st.rate||0)*100);
+      a3.push(['题 '+qn+'（满分 '+book.scoreOf(qn)+'　标准答案 '+(ansArr.join('')||'—')+'　得分率 '+pct+'%　难度 '+rateLv(pct)+'）']);
+      a3.push(['选项 / 情况','人数','学生名单']);
+      const pick={},blankList=[],multiList=[],reviewList=[],norecList=[],absentList=[];
+      const letters=[];
+      for(let i2=0;i2<nOpt;i2++){const L=String.fromCharCode(65+i2);letters.push(L);pick[L]=[];}
+      rows.forEach(function(r){
+        if(r.absent){absentList.push(stu(r));return}
+        const v=r.obj[qn];
+        if(!v||v.verdict==='NOREC'){norecList.push(stu(r));return}
+        if(v.verdict==='BLANK'){blankList.push(stu(r));return}
+        if(v.verdict==='MULTI'){multiList.push(stu(r)+(v.choice?('（'+v.choice+'）'):''));return}
+        if(v.verdict==='REVIEW'){reviewList.push(stu(r));return}
+        const ch=String(v.choice||'');
+        if(!ch){norecList.push(stu(r));return}
+        ch.toUpperCase().split('').forEach(function(L){if(pick[L])pick[L].push(stu(r))});
+      });
+      letters.forEach(function(L){
+        a3.push([L+(ansArr.indexOf(L)>=0?'【正确】':''),pick[L].length,pick[L].join('、')]);
+      });
+      if(blankList.length)a3.push(['空白（未涂）',blankList.length,blankList.join('、')]);
+      if(multiList.length)a3.push(['多涂（涂多个）',multiList.length,multiList.join('、')]);
+      if(reviewList.length)a3.push(['待复核',reviewList.length,reviewList.join('、')]);
+      if(norecList.length)a3.push(['未识别/无记录',norecList.length,norecList.join('、')]);
+      if(absentList.length)a3.push(['缺考',absentList.length,absentList.join('、')]);
+      a3.push([]);
+    });
+    const ws3=XLSX.utils.aoa_to_sheet(a3);
+    ws3['!cols']=[{wch:22},{wch:8},{wch:84}];
+    XLSX.utils.book_append_sheet(wb,ws3,'客观题选项分布');
+    /* ---- ④ 主观题得分名单：每个分数分别有哪些人 ---- */
+    const a4=[['主观题得分名单（每个分数分别是哪些学生）'],[]];
+    meta.subjList.forEach(function(sq){
+      const st=book.subjStat[sq.qno]||{avg:0,rate:0,graded:0,perfect:0,zero:0,n:0};
+      const pct=Math.round((st.rate||0)*100);
+      a4.push(['题 '+sq.qno+'（满分 '+sq.score+'　班级平均 '+st.avg.toFixed(1)+'　得分率 '+pct+'%　难度 '+rateLv(pct)+'　满分 '+st.perfect+' 人　0 分 '+st.zero+' 人）']);
+      a4.push(['得分','人数','学生名单']);
+      const byGroup={},ungraded=[],absentList2=[];
+      rows.forEach(function(r){
+        if(r.absent){absentList2.push(stu(r));return}
+        const v=r.subj[sq.qno];
+        if(!v||v.score==null){ungraded.push(stu(r));return}
+        const s=Number(v.score);
+        if(!byGroup[s])byGroup[s]=[];
+        byGroup[s].push(stu(r)+(v.ai!=null?('（AI建议'+v.ai+'）'):''));
+      });
+      Object.keys(byGroup).map(Number).sort(function(x,y){return y-x}).forEach(function(s){
+        a4.push([s,byGroup[s].length,byGroup[s].join('、')+(s>=sq.score?'　← 满分':'')+(s<=0?'　← 0 分':'')]);
+      });
+      if(ungraded.length)a4.push(['未阅',ungraded.length,ungraded.join('、')]);
+      if(absentList2.length)a4.push(['缺考',absentList2.length,absentList2.join('、')]);
+      a4.push([]);
+    });
+    const ws4=XLSX.utils.aoa_to_sheet(a4);
+    ws4['!cols']=[{wch:10},{wch:8},{wch:92}];
+    XLSX.utils.book_append_sheet(wb,ws4,'主观题得分名单');
+    /* ---- ⑤ 题目分析（大题汇总 + 逐题统计） ---- */
+    const a5=[['题目分析统计'],[]];
+    if((book.sections||[]).length){
+      a5.push(['大题','小题','小题数','大题满分','班级平均','得分率','掌握情况']);
+      book.sections.forEach(function(sec){
+        const pct=Math.round(sec.rate*100);
+        a5.push([sec.title,sec.qnos.join('、'),sec.count,sec.full,Math.round(sec.avg*10)/10,pct+'%',handLv(pct)]);
+      });
+      a5.push([]);
+    }
+    a5.push(['题号','题型','满分','班级平均','得分率','难度','明细']);
     (book.itemStats||[]).slice().sort(function(a,b){return a.rate-b.rate}).forEach(function(it){
       const pct=Math.round(it.rate*100);
       let detail='';
@@ -5619,73 +5742,13 @@ Object.assign(ACTS,{
         const dist=Object.keys(it.dist||{}).map(function(k){return k+':'+it.dist[k]}).join(' ');
         detail='对 '+it.ok+'，错 '+it.wrong+'，空/多涂 '+(it.blank+it.multi)+(it.review?('，待复核 '+it.review):'')+(dist?('，错选 '+dist):'');
       }
-      a1.push([it.qno,it.subj?'主观':(it.kind==='multi'?'多选':'单选'),it.full,Math.round(it.avg*10)/10,pct+'%',rateLv(pct),detail]);
+      a5.push([it.qno,it.subj?'主观':(it.kind==='multi'?'多选':'单选'),it.full,Math.round(it.avg*10)/10,pct+'%',rateLv(pct),detail]);
     });
-    /* Sheet2：逐题得分明细（行=学生） */
-    const qnos=(book.itemStats||[]).map(function(it){return it.qno});
-    const a2=[['排名','考号','姓名','备注'].concat(qnos.map(function(q){return '题'+q})).concat(['客观','主观','总分','状态'])];
-    book.rows.forEach(function(r){
-      const line=[r.rank,r.no,r.name,r.note];
-      qnos.forEach(function(qn){
-        if(meta.choiceQnos.indexOf(qn)>=0){
-          const v=r.obj[qn];
-          const got=(v&&v.verdict==='RIGHT')?(book.scoreOf(qn)||0):0;
-          const mark=v?(VERDICT_NAMES[v.verdict]||v.verdict):'未识别';
-          line.push(got+'（'+(v&&v.choice?v.choice:mark)+'）');
-        }else{
-          const v=r.subj[qn];
-          line.push((v&&v.score!=null)?v.score:'未阅');
-        }
-      });
-      line.push(r.absent?'缺考':r.objScore,r.absent?'缺考':r.subjScore,r.absent?'缺考':r.total,
-        r.absent?'缺考':(r.subjGraded<meta.subjList.length?'阅卷中':'完成'));
-      a2.push(line);
-    });
-    const wb=XLSX.utils.book_new();
-    const ws1=XLSX.utils.aoa_to_sheet(a1);
-    ws1['!cols']=[{wch:26},{wch:8},{wch:7},{wch:10},{wch:9},{wch:10},{wch:46}];
-    XLSX.utils.book_append_sheet(wb,ws1,'题目分析');
-    const ws2=XLSX.utils.aoa_to_sheet(a2);
-    ws2['!cols']=a2[0].map(function(h2,i2){return {wch:(i2<4?12:9)}});
-    XLSX.utils.book_append_sheet(wb,ws2,'逐题得分明细');
-    XLSX.writeFile(wb,'题目分析_'+book.exam.name+'_'+tsName()+'.xlsx');
-    toast('题目分析 Excel 已导出（含大题汇总/逐题得分率/逐题明细）','ok');
-  },
-    'score-xlsx':async function(el){
-    const book=await computeScorebook(el.dataset.id);
-    if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
-    const head=['排名','考号','姓名','备注','客观题得分','客观题满分'];
-    book.meta.subjList.forEach(function(sq){head.push('题'+sq.qno+'得分');head.push('题'+sq.qno+'满分')});
-    head.push('主观题得分','主观题满分','总分','状态');
-    const secList=(book.sections&&book.sections.length>1)?book.sections:[];
-    secList.forEach(function(sec,i2){head.push('大题'+(i2+1)+'得分');head.push('大题'+(i2+1)+'满分')});
-    const aoa=[head];
-    const full=max0(book);
-    book.rows.forEach(function(r){
-      const rowv=[r.rank,r.no,r.name,r.note,r.objScore,book.objFull];
-      book.meta.subjList.forEach(function(sq){
-        const sub=r.subj[sq.qno]||{};
-        rowv.push(sub.score!=null?sub.score:'未阅',sub.full!=null?sub.full:sq.score);
-      });
-      rowv.push(r.subjScore,book.meta.subjList.reduce(function(a,s2){return a+s2.score},0),
-        r.absent?'缺考':r.total,r.absent?'缺考':(r.subjGraded<book.meta.subjList.length?'阅卷中':'完成'));
-      secList.forEach(function(sec){
-        if(r.absent){rowv.push('缺考',sec.full);return}
-        let sum=0;
-        sec.qnos.forEach(function(qn){
-          if(book.meta.choiceQnos.indexOf(qn)>=0){sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;}
-          else{const v=r.subj[qn];sum+=((v&&v.score!=null)?Number(v.score):0);}
-        });
-        rowv.push(sum,sec.full);
-      });
-      aoa.push(rowv);
-    });
-    const wb=XLSX.utils.book_new();
-    const ws=XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols']=head.map(function(hname,i2){return {wch:(i2<5?12:10)}});
-    XLSX.utils.book_append_sheet(wb,ws,'成绩册');
-    XLSX.writeFile(wb,'成绩册_'+book.exam.name+'_'+tsName()+'.xlsx');
-    toast('成绩册 Excel 已导出','ok');
+    const ws5=XLSX.utils.aoa_to_sheet(a5);
+    ws5['!cols']=[{wch:24},{wch:16},{wch:9},{wch:9},{wch:10},{wch:9},{wch:54}];
+    XLSX.utils.book_append_sheet(wb,ws5,'题目分析');
+    XLSX.writeFile(wb,'成绩分析_'+book.exam.name+'_'+tsName()+'.xlsx');
+    toast('分析报告已导出（5 张表）','ok');
   },
 'score-json':async function(el){
     const book=await computeScorebook(el.dataset.id);
