@@ -957,6 +957,17 @@ function layoutTemplate(tpl,opts){
 }
 /* ---------- 内置预设 ---------- */
 
+/* 模板已用过的知识点（供输入时提示，减少手打与写法不一致） */
+function kpSuggestions(tpl,extra){
+  const set={};
+  (extra||[]).forEach(function(k){if(k)set[k]=1});
+  try{
+    normalizeSections(tpl||{}).forEach(function(sec){
+      (sec.items||[]).forEach(function(it){if(it.kp)set[it.kp]=1});
+    });
+  }catch(e){}
+  return Object.keys(set);
+}
 function newTemplate(name){
   return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',layout:'portrait',regDigits:5,choiceLayout:{q:'v',o:'h'},infoRow3:'座位号',sections:[],createdAt:now()};
 }
@@ -2854,6 +2865,7 @@ async function tplEditorHTML(tplId){
       +'<button class="btn btn-sm btn-d" data-act="tpl-it-del" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" title="删除小题">✕</button>';
     const base='<span class="kv">题号</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="qno" value="'+esc(it.qno==null?'':it.qno)+'" title="建议全卷连续（1、2、3…）">'
       +'<span class="kv">分值</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="score" type="number" step="0.5" min="0" value="'+esc(it.score!=null?it.score:3)+'">'
+      +'<span class="kv" title="可选。填写后成绩分析会按知识点汇总掌握情况（如：文言实词、二次函数）">知识点</span><input class="inp" style="width:118px" list="kpList" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="kp" value="'+esc(it.kp||'')+'" placeholder="可选">'
       +'<span class="kv">题型</span><select class="inp" style="width:88px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="kind">'
       +Object.keys(KINDS).map(function(k){return '<option value="'+k+'"'+(kind===k?' selected':'')+'>'+KINDS[k]+'</option>'}).join('')+'</select>';
     let extra='';
@@ -2932,7 +2944,8 @@ async function tplEditorHTML(tplId){
     +'<span style="flex:1"></span>'
     +'<span class="kv" id="tplFullScore">本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分</span>'
     +'</div>'
-    +'<div class="tip" style="margin-bottom:8px">先建大题，再在大题下加小题。全部选择题自动集中在答题卡最前的一个框内，其余题型按清单顺序排版（题号建议全卷连续）。</div>'
+    +'<div class="tip" style="margin-bottom:8px">先建大题，再在大题下加小题。全部选择题自动集中在答题卡最前的一个框内，其余题型按清单顺序排版（题号建议全卷连续）。<br>小题可填「知识点」（可选）——填了之后，成绩分析会按知识点汇总掌握情况。</div>'
+    +'<datalist id="kpList">'+kpSuggestions(t).map(function(k){return '<option value="'+esc(k)+'"></option>'}).join('')+'</datalist>'
     +'<div class="f-row" style="margin-bottom:8px;align-items:center">'
     +'<span class="kv" style="white-space:nowrap">批量设分：第</span><input class="inp" id="tplBatchFrom" type="number" style="width:60px"><span class="kv">题 至 第</span><input class="inp" id="tplBatchTo" type="number" style="width:60px"><span class="kv">题，每题</span><input class="inp" id="tplBatchScore" type="number" step="0.5" min="0.5" style="width:60px" value="3"><span class="kv">分</span>'
     +'<button class="btn btn-sm" data-act="tpl-batch-score" data-id="'+t.id+'">应用</button>'
@@ -5441,6 +5454,31 @@ async function computeScorebook(examId){
         rate:full>0?(avg/full):0,n:stN});
     });
   }
+  /* 知识点维度：跨题/跨大题汇总（模板里给小题填了「知识点」才产出） */
+  const kpStats=[];
+  if(tpl){
+    const kpMap={};
+    normalizeSections(tpl).forEach(function(sec){
+      (sec.items||[]).forEach(function(it){
+        const k=String(it.kp||'').trim();
+        if(!k||fullOf[it.qno]==null)return;
+        if(!kpMap[k])kpMap[k]=[];
+        if(kpMap[k].indexOf(it.qno)<0)kpMap[k].push(it.qno);
+      });
+    });
+    Object.keys(kpMap).forEach(function(k){
+      const qnos=kpMap[k];
+      const full=qnos.reduce(function(a,qn){return a+(fullOf[qn]||0)},0);
+      let sum=0,stN=0;
+      rows.forEach(function(r){
+        if(r.absent)return;
+        stN++;qnos.forEach(function(qn){sum+=scoreOfStu(r,qn)});
+      });
+      const avg=stN?sum/stN:0;
+      kpStats.push({kp:k,qnos:qnos,count:qnos.length,full:full,avg:avg,rate:full>0?(avg/full):0,n:stN});
+    });
+    kpStats.sort(function(a,b){return a.rate-b.rate});
+  }
   /* 逐题分析统一表（客观+主观），供「按得分率排序」与按题导出 */
   const itemStats=meta.choiceQnos.map(function(qn){
     const s=perQStat[qn];
@@ -5453,7 +5491,7 @@ async function computeScorebook(examId){
   }));
   itemStats.sort(function(a,b){return (Number(a.qno)||0)-(Number(b.qno)||0)});
   return {exam:exam,meta:meta,rows:rows,perQStat:perQStat,perScore:perScore,objFull:objFull,scoreOf:scoreOf,
-    subjStat:subjStat,sections:sections,itemStats:itemStats,
+    subjStat:subjStat,sections:sections,itemStats:itemStats,kpStats:kpStats,fullOf:fullOf,
     subjFull:meta.subjList.reduce(function(a,s){return a+s.score},0)};
 }
 /* 成绩册勾选（批量导出学生报告用） */
@@ -5543,12 +5581,30 @@ async function renderScore(){
     });
     html+='</table></div></div>';
   }
+  /* 知识点掌握情况（模板里给小题填了「知识点」才显示） */
+  if(book.kpStats&&book.kpStats.length){
+    html+='<div class="card"><h3>知识点掌握情况</h3>'
+      +'<div class="kv" style="margin-bottom:8px">按知识点汇总其涉及题目的总得分率（不分大题），升序排列——最上面的就是最需要补的知识点。</div>'
+      +'<div class="tbl-wrap"><table class="tbl"><tr><th>知识点</th><th>涉及题号</th><th>满分</th><th>班级平均</th><th style="min-width:190px">得分率</th><th>掌握</th></tr>';
+    book.kpStats.forEach(function(k){
+      const pct=Math.round(k.rate*100);
+      const lv=pct>=th().exPct?['ok','良好']:(pct>=th().passPct?['warn','一般']:['err','薄弱']);
+      html+='<tr><td><b>'+esc(k.kp)+'</b></td>'
+        +'<td class="kv">'+k.count+' 题（'+k.qnos.map(function(q){return esc(String(q))}).join('、')+'）</td>'
+        +'<td>'+k.full+'</td><td>'+k.avg.toFixed(1)+'</td>'
+        +'<td><div style="display:flex;align-items:center;gap:8px"><div class="progress" style="flex:1"><div style="width:'+pct+'%;background:'+(pct>=th().exPct?'var(--green)':pct>=th().passPct?'var(--gold)':'var(--zhu2)')+'"></div></div><b>'+pct+'%</b></div></td>'
+        +'<td>'+badge(lv[0],lv[1])+'</td></tr>';
+    });
+    html+='</table></div></div>';
+  }
   /* 逐题得分分析（客观+主观合并，可按得分率排序 → 快速定位要重点讲的题） */
   const sortMode=ui.scoreSort||'no';
   const items=(book.itemStats||[]).slice();
   if(sortMode==='rateAsc')items.sort(function(a,b){return a.rate-b.rate||(Number(a.qno)-Number(b.qno))});
   else if(sortMode==='rateDesc')items.sort(function(a,b){return b.rate-a.rate||(Number(a.qno)-Number(b.qno))});
   const KIND_LABEL={single:'单选',multi:'多选'};
+  const kpOfQ={};
+  (book.kpStats||[]).forEach(function(k){k.qnos.forEach(function(qn){kpOfQ[qn]=k.kp})});
   html+='<div class="card"><h3>逐题得分分析（'+items.length+' 题）</h3>'
     +'<div class="f-row" style="margin-bottom:8px">'
     +'<span class="kv">排序</span><select class="inp" style="width:184px" data-on="score-sort">'
@@ -5556,7 +5612,7 @@ async function renderScore(){
       return '<option value="'+o[0]+'"'+(sortMode===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')
     +'</select>'
     +'<span class="kv">难度：易 ≥80%　中 60~79%　难 &lt;60%；得分率低且分值大的题优先讲评</span></div>'
-    +'<div class="tbl-wrap"><table class="tbl"><tr><th>题</th><th>题型</th><th>满分</th><th>班级平均</th><th style="min-width:170px">得分率</th><th>难度</th><th>明细</th></tr>';
+    +'<div class="tbl-wrap"><table class="tbl tbl-nowrap"><tr><th>题</th><th>题型</th><th>知识点</th><th>满分</th><th>班级平均</th><th style="min-width:170px">得分率</th><th>难度</th><th>明细</th></tr>';
   items.forEach(function(it){
     const pct=Math.round(it.rate*100);
     const lv=pct>=80?['ok','易']:pct>=60?['warn','中']:['err','难'];
@@ -5569,6 +5625,7 @@ async function renderScore(){
     }
     html+='<tr><td><b>'+esc(String(it.qno))+'</b></td>'
       +'<td class="kv">'+(it.subj?'主观':(KIND_LABEL[it.kind]||'客观'))+'</td>'
+      +'<td class="kv">'+esc(kpOfQ[it.qno]||'—')+'</td>'
       +'<td>'+it.full+'</td><td>'+it.avg.toFixed(1)+'</td>'
       +'<td><div style="display:flex;align-items:center;gap:8px"><div class="progress" style="flex:1"><div style="width:'+pct+'%;background:'+(pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--zhu2)')+'"></div></div><b>'+pct+'%</b></div></td>'
       +'<td>'+badge(lv[0],lv[1])+'</td><td class="kv">'+detail+'</td></tr>';
@@ -5925,6 +5982,8 @@ function buildStudentReportXml(book,r){
     parts.push(dxPara('',{after:30}));
   }
   /* 需重点加强：低于班级平均且失分较多的题 */
+  const kpOfQ={};
+  (book.kpStats||[]).forEach(function(k){k.qnos.forEach(function(qn){kpOfQ[qn]=k.kp})});
   const weak=[];
   (book.itemStats||[]).forEach(function(it){
     let got,avgIt=it.avg;
@@ -5933,7 +5992,7 @@ function buildStudentReportXml(book,r){
     if(got==null)return;
     const gap=avgIt-got;
     if(gap>0.05||it.rate*100<T.passPct){
-      weak.push({qno:it.qno,subj:it.subj,full:it.full,got:got,avg:avgIt,gap:gap,rate:it.rate,
+      weak.push({qno:it.qno,subj:it.subj,full:it.full,got:got,avg:avgIt,gap:gap,rate:it.rate,kp:kpOfQ[it.qno]||'',
         title:it.subj?('主观题 '+it.qno):((it.kind==='multi'?'多选题 ':'单选题 ')+it.qno)});
     }
   });
@@ -5950,7 +6009,7 @@ function buildStudentReportXml(book,r){
       const advice=wk.subj
         ?('对照评分要点重做本题并请老师面批；重点检查：'+(wk.rate*100<T.passPct?'答题要点是否齐全、表述是否规范':'细节表述与卷面'))
         :(wk.gap>=wk.full*0.5?('重做本题：先写出正确解法再核对，并整理进错题本'):('核对错因（是知识点不清还是审题/涂卡失误），做 2 道同类题巩固'));
-      rows.push([{t:wk.title+'（满分'+wk.full+'）',sz:16},
+      rows.push([{t:wk.title+'（满分'+wk.full+'）'+(wk.kp?('　【'+wk.kp+'】'):''),sz:16},
         {t:String(Math.round(wk.got*10)/10),align:'center',b:1,color:'C0392B',sz:16},
         {t:wk.avg.toFixed(1),align:'center',sz:16},
         {t:('-'+Math.round(wk.gap*10)/10),align:'center',color:'C0392B',sz:16},
@@ -5962,8 +6021,26 @@ function buildStudentReportXml(book,r){
   /* 寄语与签字 */
   parts.push(dxPara([dxRun('教师寄语：',{b:1,sz:16,color:'8A6D3B'})],{before:40,after:18}));
   const diffTxt=(diff>=0)?('总分高于班级平均 '+Math.abs(diff).toFixed(1)+' 分，'):('总分低于班级平均 '+Math.abs(diff).toFixed(1)+' 分，');
-  const adviceTxt=(r.total>=T.ex)?'整体掌握扎实，注意保持并挑战更高目标。'
+  let adviceTxt=(r.total>=T.ex)?'整体掌握扎实，注意保持并挑战更高目标。'
     :(r.total>=T.pass?'基础尚可，按上面「需重点加强」逐项突破即可提升。':'基础还比较薄弱，建议先从基础题和大题得分点抓起，逐题过关。');
+  /* 有知识点标签时，点出最需要加强的知识点（本人得分率最低者；并给班级对比） */
+  if((book.kpStats||[]).length>1){
+    const mine=(book.kpStats||[]).map(function(k){
+      let sum=0;
+      k.qnos.forEach(function(qn){
+        if(book.meta.choiceQnos.indexOf(qn)>=0){sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;}
+        else{const v=r.subj[qn];sum+=((v&&v.score!=null)?Number(v.score):0);}
+      });
+      return {kp:k.kp,rate:k.full>0?(sum/k.full):0,classRate:k.rate};
+    }).sort(function(a,b){return (a.rate-b.rate)||((a.rate-a.classRate)-(b.rate-b.classRate))});
+    const worst=mine[0];
+    if(worst){
+      const cmp='（本人得分率 '+Math.round(worst.rate*100)+'%，班级 '+Math.round(worst.classRate*100)+'%）';
+      adviceTxt+=(worst.rate<worst.classRate-0.03)
+        ?('其中「'+worst.kp+'」相对薄弱'+cmp+'，建议优先补这一块。')
+        :((worst.rate<T.exPct/100)?('若要继续提升，可加强「'+worst.kp+'」'+cmp+'。'):'');
+    }
+  }
   parts.push(dxPara([dxRun('　　本次考试'+diffTxt,{sz:16}),dxRun(adviceTxt,{sz:16})],{after:110}));
   parts.push(dxPara([
     dxRun('教师签字：______________',{sz:16,color:'5A6472'}),
@@ -6284,6 +6361,8 @@ Object.assign(ACTS,{
     a1.push(['平均总分 '+avgT.toFixed(1),'','最高 '+maxT,'最低 '+minT,'优秀率 '+rateOf(th().ex)+'%　及格率 '+rateOf(th().pass)+'%']);
     a1.push([]);
     /* 表头：各题/各段满分直接写在列名里 */
+    const kpOfQ={};
+    (book.kpStats||[]).forEach(function(k){k.qnos.forEach(function(qn){kpOfQ[qn]=k.kp})});
     const hasObj=meta.choiceQnos.length>0, hasSubj=meta.subjList.length>0;
     const h1=['排名','考号','姓名','备注'];
     qnosAll.forEach(function(qn){h1.push('题'+qn+'('+fullQ[qn]+')')});
@@ -6425,7 +6504,7 @@ Object.assign(ACTS,{
       });
       a5.push([]);
     }
-    a5.push(['题号','题型','满分','班级平均','得分率','难度','明细']);
+    a5.push(['题号','题型','知识点','满分','班级平均','得分率','难度','明细']);
     (book.itemStats||[]).slice().sort(function(a,b){return a.rate-b.rate}).forEach(function(it){
       const pct=Math.round(it.rate*100);
       let detail='';
@@ -6434,11 +6513,23 @@ Object.assign(ACTS,{
         const dist=Object.keys(it.dist||{}).map(function(k){return k+':'+it.dist[k]}).join(' ');
         detail='对 '+it.ok+'，错 '+it.wrong+'，空/多涂 '+(it.blank+it.multi)+(it.review?('，待复核 '+it.review):'')+(dist?('，错选 '+dist):'');
       }
-      a5.push([it.qno,it.subj?'主观':(it.kind==='multi'?'多选':'单选'),it.full,Math.round(it.avg*10)/10,pct+'%',rateLv(pct),detail]);
+      a5.push([it.qno,it.subj?'主观':(it.kind==='multi'?'多选':'单选'),kpOfQ[it.qno]||'',it.full,Math.round(it.avg*10)/10,pct+'%',rateLv(pct),detail]);
     });
     const ws5=XLSX.utils.aoa_to_sheet(a5);
-    ws5['!cols']=[{wch:24},{wch:16},{wch:9},{wch:9},{wch:10},{wch:9},{wch:54}];
+    ws5['!cols']=[{wch:24},{wch:16},{wch:16},{wch:9},{wch:9},{wch:10},{wch:9},{wch:52}];
     XLSX.utils.book_append_sheet(wb,ws5,'题目分析');
+    /* 知识点掌握情况（模板填了知识点才产出） */
+    if((book.kpStats||[]).length){
+      const a6=[['知识点掌握情况（按得分率升序，越靠前越需要补）'],[],['知识点','涉及题号','题数','满分','班级平均','得分率','掌握情况']];
+      book.kpStats.forEach(function(k){
+        const pct=Math.round(k.rate*100);
+        a6.push([k.kp,k.qnos.join('、'),k.count,k.full,Math.round(k.avg*10)/10,pct+'%',
+          pct>=th().exPct?'良好':(pct>=th().passPct?'一般，需巩固':'薄弱，重点讲评')]);
+      });
+      const ws6=XLSX.utils.aoa_to_sheet(a6);
+      ws6['!cols']=[{wch:20},{wch:20},{wch:7},{wch:8},{wch:10},{wch:9},{wch:16}];
+      XLSX.utils.book_append_sheet(wb,ws6,'知识点掌握');
+    }
     XLSX.writeFile(wb,'成绩分析_'+book.exam.name+'_'+tsName()+'.xlsx');
     toast('分析报告已导出（5 张表）','ok');
   },
