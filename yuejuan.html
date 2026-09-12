@@ -2692,7 +2692,7 @@ async function renderHome(){
       +'<div class="acts"><button class="btn btn-s btn-p" style="pointer-events:none">进入</button></div></div>';
   }).join('')
   +'</div>'
-  +'<div class="tip" style="margin-top:10px">打印提示：导出 PDF 后建议选 <b>「实际大小 / 100%」</b>（识别会按四角定位点自动校正缩放，±15% 内的均匀缩放也能识别；但缩放会同时缩小涂点，涂不黑时更容易判为待复核）；手机拍摄时手机方向与试卷方向一致、四角完整可见；识别详情页可打开「识别框选」查看每个涂点的识别状态（绿=已识别，红/橙=不清晰）。</div></div>';
+  +'<div class="tip" style="margin-top:10px">打印答题卡请选 <b>「实际大小 / 100%」</b>；拍照时手机方向与试卷方向一致、四角完整。识别异常的涂点可在扫描页「查看 → 识别框选」核对（绿=已识别，红/橙=不清晰）。</div></div>';
   let statusMap={};
   try{statusMap=await examStatusMap(exams.map(function(e){return e.id}))}catch(e){}
   let examCards='';
@@ -2732,7 +2732,7 @@ async function renderTpl(){
       +'<button class="btn btn-p" data-act="tpl-new">＋ 新建模板</button>'
       +'<button class="btn btn-o" data-act="tpl-import">导入模板 JSON</button>'
       +'<input type="file" id="tplImportFile" accept=".json" style="display:none">'
-      +'<span class="tip">模板 → 预览 → 导出 PDF（300dpi + 版式二维码）→ 打印后扫描可自动解析</span></div>';
+      +'<span class="tip">导出 PDF 打印后即可用于扫描识别</span></div>';
     if(!tpls.length){
       html+='<div class="card">'+emptyBox('','还没有模板。点击「新建模板」逐题添加，或「导入模板 JSON」载入他人分享的模板。')+'</div>';
     }else{
@@ -2745,7 +2745,7 @@ async function renderTpl(){
         cards.push('<div class="card" style="display:flex;gap:14px;align-items:center">'
           +'<img class="tpl-thumb" data-act="tpl-preview" data-id="'+t.id+'" src="'+await tplThumb(t)+'" alt="">'
           +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+esc(t.name)+'</div>'
-          +'<div class="kv" style="margin:4px 0">'+(PAPER_NAMES[t.paper]||t.paper)+'　·　'+lay.pages.length+' 页　·　客观题 '+choiceN+' 题'+objTotalLabel(t)+'　·　主观题 '+subjN+' 题<br>考号 '+t.regDigits+' 位　·　标题：'+esc(t.title||'')+'　·　创建 '+esc(t.createdAt||'')+'</div>'
+          +'<div class="kv" style="margin:4px 0">'+(PAPER_NAMES[t.paper]||t.paper)+'　·　'+lay.pages.length+' 页　·　客观题 '+choiceN+' 题'+objTotalLabel(t)+'　·　主观题 '+subjN+' 题<br>考号 '+t.regDigits+' 位　·　创建 '+esc(t.createdAt||'')+'</div>'
           +'<div class="kv">定位锚点 ×6　·　同步条行校正　·　二维码自描述版式（扫描自动识别排版，无需选模板）</div></div>'
           +'<div class="f-row" style="flex-shrink:0;flex-direction:column;align-items:stretch">'
           +'<button class="btn btn-s btn-p" data-act="tpl-edit" data-id="'+t.id+'">编辑</button>'
@@ -2827,7 +2827,7 @@ async function tplEditorHTML(tplId){
     +'<button class="btn btn-o" data-act="tpl-pdf" data-id="'+t.id+'">导出 PDF</button>'
     +'<button class="btn" data-act="tpl-export" data-id="'+t.id+'">导出 JSON</button>'
     +'<button class="btn" data-act="tpl-edit-cancel">返回列表</button>'
-    +'<span class="tip">保存时自动校验并重新排版；PDF 导出为 300dpi，打印建议选「实际大小/100%」（均匀缩放会被自动校正，缩得越小涂点越难点满）。</span></div>'
+    +'<span class="tip">打印请选「实际大小 / 100%」</span></div>'
     +'<div class="card"><h3>基本信息</h3><div class="f-grid">'
     +'<div><label class="f-lb">模板名称</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="name" value="'+esc(t.name)+'"></div>'
     +'<div><label class="f-lb">纸型</label><select class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="paper">'
@@ -2859,7 +2859,7 @@ async function tplEditorHTML(tplId){
     +'<span style="flex:1"></span>'
     +'<span class="kv" id="tplFullScore">本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分</span>'
     +'</div>'
-    +'<div class="tip" style="margin-bottom:8px">按试卷结构组织：一个大题（如「一、选择题」）下可放多个小题，小题题型可选 单选 / 多选 / 填空 / 问答 / 作文。全部选择题（含多选）自动集中在答题卡开头的一个框内，其余题型按清单顺序排版。题号建议全卷连续（1、2、3…）。</div>'
+    +'<div class="tip" style="margin-bottom:8px">先建大题，再在大题下加小题。全部选择题自动集中在答题卡最前的一个框内，其余题型按清单顺序排版（题号建议全卷连续）。</div>'
     +'<div class="f-row" style="margin-bottom:8px;align-items:center">'
     +'<span class="kv" style="white-space:nowrap">批量设分：第</span><input class="inp" id="tplBatchFrom" type="number" style="width:60px"><span class="kv">题 至 第</span><input class="inp" id="tplBatchTo" type="number" style="width:60px"><span class="kv">题，每题</span><input class="inp" id="tplBatchScore" type="number" step="0.5" min="0.5" style="width:60px" value="3"><span class="kv">分</span>'
     +'<button class="btn btn-sm" data-act="tpl-batch-score" data-id="'+t.id+'">应用</button>'
@@ -3227,7 +3227,7 @@ async function renderCls(){
   if(!ui.clsCur||!(classes.find(function(c){return c.id===ui.clsCur})))ui.clsCur=classes.length?classes[0].id:null;
   let html='<div class="f-row" style="margin-bottom:14px">'
     +'<button class="btn btn-p" data-act="cls-new">＋ 新建班级</button>'
-    +'<span class="tip">学生考号 = 答题卡上涂写的准考证号（请与卡上位数一致），识别后按考号自动匹配成绩</span></div>';
+    +'<span class="tip">考号 = 答题卡上涂写的号码，识别后据此匹配成绩</span></div>';
   if(!classes.length){
     html+='<div class="card">'+emptyBox('','还没有班级。点击「新建班级」，然后导入学生名单。')+'</div>';
     $('page').innerHTML=html;
@@ -3426,7 +3426,7 @@ async function renderExam(){
   const tpls=await dbAll('templates');
   let html='<div class="f-row" style="margin-bottom:14px">'
     +'<button class="btn btn-p" data-act="exam-new">＋ 新建考试</button>'
-    +'<span class="tip">考试 = 班级 + 答题卡模板 + 客观题答案 + 主观题满分/评分要点</span></div>';
+    +'<span class="tip">考试 = 班级（可多选）+ 答题卡模板 + 客观题答案 + 主观题满分/评分要点</span></div>';
   if(!exams.length){
     html+='<div class="card">'+emptyBox('·','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
   }else{
@@ -3537,7 +3537,7 @@ async function wizRender(){
       +'<div><label class="f-lb">答题卡模板</label><select class="inp" id="wizTpl">'
       +tpls.map(function(t){return '<option value="'+t.id+'"'+(t.id===wiz.templateId?' selected':'')+'>'+esc(t.name)+'</option>'}).join('')+'</select></div>'
       +'</div>'
-      +'<div class="tip" style="margin-top:10px">模板：'+esc(tpl.name)+'（'+meta.choiceQnos.length+' 道客观题，'+meta.subjList.map(function(s){return esc(s.qno)}).join('、')+' 等主观题区）<br>客观题各题分值在「答案与分值」页签逐题设置：已按模板中每题的分值预填，可直接修改，此处修改只影响本次考试（不回写模板）。</div>';
+      +'<div class="tip" style="margin-top:10px">模板：'+esc(tpl.name)+'（'+meta.choiceQnos.length+' 道客观题，主观题 '+meta.subjList.map(function(s){return esc(s.qno)}).join('、')+'）<br>分值在「答案与分值」页签逐题设置，已按模板预填；此处修改只影响本次考试。</div>';
   }else{
     const answers=wiz.answers;
     const ansN=Object.keys(answers).length;
@@ -3741,7 +3741,7 @@ async function renderScan(){
     +'<input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none">'
     +'<input type="file" id="scanFiles" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tif,.webp" style="display:none">'
     +'<button class="btn btn-d" data-act="scan-clear">清空本场扫描结果</button>'
-    +'<span class="tip">多页答题卡可一次全选上传，也可逐张上传——识别时按卡片左侧的页码方块（第1页1个、第2页2个…）自动判断第几页。续页按顺序沿用前面识别出的考号；若希望每页都能独立认人，可在模板里勾选「每页重复显示准考证号」。</span>'
+    +'<span class="tip">多页答题卡可一次全选，也可逐张上传；按卡面左侧页码方块自动判断页数，续页沿用前面识别出的考号（未填涂考号时可在列表中「考号改判」，续页会自动归属）。</span>'
     +'</div>'
     +'<div id="scanProgBox" style="margin-top:10px;display:none"><div class="prog-line"><span id="scanProgTxt"></span><div class="progress" style="flex:1"><div id="scanProgBar" style="width:0%"></div></div></div><div id="scanLog" class="tip"></div></div>'
     +'</div>';
@@ -4152,7 +4152,7 @@ Object.assign(ACTS,{
             return '<option value="'+d+'"'+(ch===d?' selected':'')+'>'+d+'</option>'}).join('')
           +'</select></div>';
       }).join('')+'</div>'
-      +'<div class="tip" style="margin-top:8px">保存后将重新识别该页并重建主观题裁剪（考号用于分组与成绩匹配）。未填涂考号的续页也可在此直接指定。</div>',
+      +'<div class="tip" style="margin-top:8px">保存后重新识别该页并重建作答图；同一份答题卡的续页会自动归属此考号。</div>',
       {title:'考号改判 · 第 '+p.pageNo+' 页',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="scan-reg-save" data-id="'+p.id+'">保存重识别</button>'});
   },
   'scan-reg-save':async function(el){
@@ -4584,7 +4584,7 @@ async function renderGrade(){
     let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
       +'<select class="inp" style="width:220px" data-on="grade-pick">'
       +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>'
-      +'<span class="tip">按主观题逐题阅卷；每小题对应一份裁剪图，打分即存。</span>'
+      +'<span class="tip">按题阅卷，打分即存。</span>'
       +'<span style="flex:1"></span>'
       +'<button class="btn btn-o" data-act="grade-ai-all" data-id="'+ex.id+'" data-ws="0">全卷 AI 预评</button>'
       +'<button class="btn btn-p" data-act="grade-ai-all" data-id="'+ex.id+'" data-ws="1">全卷 AI 给分</button>'
@@ -5136,7 +5136,7 @@ async function renderGradeView(ex){
     +'<div class="f-row" style="margin-top:8px;align-items:center">'
     +'<label class="kv" style="display:flex;align-items:center;gap:5px;margin:0;white-space:nowrap;cursor:pointer"><input type="checkbox" id="gradeAutoNext"'+(gradePref.autoNext?' checked':'')+'> 打分后自动进入下一份</label>'
     +'</div>'
-    +'<div class="tip" style="margin-top:8px">所有修改即时保存，无需手动点击保存。AI 建议需在「设置」中配置视觉大模型。</div>'
+    +'<div class="tip" style="margin-top:8px">打分即时保存。AI 建议需先在「设置」配置视觉大模型。</div>'
     +'</div></div>';
   afterRender(function(){
     const inp=$('gradeManualInput');
@@ -5634,7 +5634,7 @@ function dxTable(rows,widths){
     +'</w:tblBorders>';
   let xml='<w:tbl><w:tblPr><w:tblW w:w="'+total+'" w:type="dxa"/>'+bd
     +'<w:tblLayout w:type="fixed"/>'
-    +'<w:tblCellMar><w:top w:w="20" w:type="dxa"/><w:left w:w="70" w:type="dxa"/><w:bottom w:w="20" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar>'
+    +'<w:tblCellMar><w:top w:w="8" w:type="dxa"/><w:left w:w="55" w:type="dxa"/><w:bottom w:w="8" w:type="dxa"/><w:right w:w="55" w:type="dxa"/></w:tblCellMar>'
     +'</w:tblPr><w:tblGrid>'+grid+'</w:tblGrid>';
   rows.forEach(function(r){
     xml+='<w:tr>';
@@ -5672,7 +5672,7 @@ async function docxDownload(fileName,bodyXml){
   const DOC='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+bodyXml
     +'<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
-    +'<w:pgMar w:top="850" w:right="850" w:bottom="850" w:left="850" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>'
+    +'<w:pgMar w:top="680" w:right="680" w:bottom="680" w:left="680" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>'
     +'</w:body></w:document>';
   if(typeof JSZip==='undefined'){toast('打包组件未加载：lib/jszip.min.js','err');return}
   const zip=new JSZip();
@@ -5706,14 +5706,14 @@ async function exportStudentReport(examId,studentNo){
   const W=10206;   /* A4 可用宽度(twips) */
   const parts=[];
   /* 抬头 */
-  parts.push(dxPara([dxRun(ex.paperTitle||ex.name,{b:1,sz:30,color:'1F2933'})],{align:'center',after:20}));
-  parts.push(dxPara([dxRun('学生成绩报告',{b:1,sz:22,color:'8A6D3B'})],{align:'center',after:60}));
+  parts.push(dxPara([dxRun(ex.paperTitle||ex.name,{b:1,sz:26,color:'1F2933'})],{align:'center',after:10}));
+  parts.push(dxPara([dxRun('学生成绩报告',{b:1,sz:19,color:'8A6D3B'})],{align:'center',after:30}));
   parts.push(dxPara([
     dxRun('班级：'+esc(ex.className||'—'),{sz:16,color:'5A6472'}),
     dxRun('　　姓名：'+(r.name||'—'),{sz:16,color:'5A6472',b:1}),
     dxRun('　　考号：'+(r.no||'—'),{sz:16,color:'5A6472'}),
     dxRun('　　生成：'+timestamp(),{sz:16,color:'9AA3AE'})
-  ],{align:'center',after:140,border:'D8D2C6'}));
+  ],{align:'center',after:90,border:'D8D2C6'}));
   /* 成绩概览卡 */
   const cardW=Math.floor(W/4);
   const cardRow=function(label,val,color,sub){
@@ -5724,19 +5724,19 @@ async function exportStudentReport(examId,studentNo){
      {t:'得分率',align:'center',shd:'F2EEE6',b:1,sz:16,color:'5A6472'},
      {t:'班级排名',align:'center',shd:'F2EEE6',b:1,sz:16,color:'5A6472'},
      {t:'与班级平均',align:'center',shd:'F2EEE6',b:1,sz:16,color:'5A6472'}],
-    [{t:r.total+' / '+fullAll,align:'center',b:1,sz:22,color:lv[1]},
-     {t:pct(rate),align:'center',b:1,sz:22,color:lv[1]},
-     {t:r.rank+' / '+book.rows.length,align:'center',b:1,sz:22},
-     {t:sign(diff)+' 分',align:'center',b:1,sz:22,color:diff>=0?'1F8A70':'C0392B'}]
+    [{t:r.total+' / '+fullAll,align:'center',b:1,sz:20,color:lv[1]},
+     {t:pct(rate),align:'center',b:1,sz:20,color:lv[1]},
+     {t:r.rank+' / '+book.rows.length,align:'center',b:1,sz:20},
+     {t:sign(diff)+' 分',align:'center',b:1,sz:20,color:diff>=0?'1F8A70':'C0392B'}]
   ],[cardW,cardW,cardW,W-cardW*3]));
   parts.push(dxPara([dxRun('等级：'+lv[0],{b:1,sz:17,color:lv[1]}),
     dxRun('　　班级平均 '+avgAll.toFixed(1)+' 分',{sz:16,color:'5A6472'}),
     dxRun('　　班级最高 '+maxAll+' 分',{sz:16,color:'5A6472'}),
     dxRun('　　客观题 '+r.objScore+'/'+book.objFull,{sz:16,color:'5A6472'}),
-    dxRun('　　主观题 '+r.subjScore+'/'+book.subjFull,{sz:16,color:'5A6472'})],{after:150}));
+    dxRun('　　主观题 '+r.subjScore+'/'+book.subjFull,{sz:16,color:'5A6472'})],{after:90}));
   /* 大题得分 */
   if(book.sections&&book.sections.length){
-    parts.push(dxPara([dxRun('一、大题得分情况',{b:1,sz:20,color:'8A6D3B'})],{after:40}));
+    parts.push(dxPara([dxRun('一、大题得分情况',{b:1,sz:19,color:'8A6D3B'})],{before:40,after:24}));
     const rows=[[{t:'大题',b:1,shd:'F2EEE6'},{t:'满分',b:1,align:'center',shd:'F2EEE6'},
       {t:'得分',b:1,align:'center',shd:'F2EEE6'},{t:'得分率',b:1,align:'center',shd:'F2EEE6'},
       {t:'班级平均',b:1,align:'center',shd:'F2EEE6'},{t:'对比',b:1,align:'center',shd:'F2EEE6'}]];
@@ -5755,11 +5755,11 @@ async function exportStudentReport(examId,studentNo){
         {t:sign(d)+arrow(d),align:'center',color:d>=0?'1F8A70':'C0392B'}]);
     });
     parts.push(dxTable(rows,[3406,1000,1000,1300,1500,W-8206]));
-    parts.push(dxPara('',{after:80}));
+    parts.push(dxPara('',{after:30}));
   }
   /* 客观题明细 */
   if(meta.choiceQnos.length){
-    parts.push(dxPara([dxRun('二、客观题明细',{b:1,sz:20,color:'8A6D3B'})],{after:40}));
+    parts.push(dxPara([dxRun('二、客观题明细',{b:1,sz:19,color:'8A6D3B'})],{before:40,after:24}));
     const rows=[[{t:'题号',b:1,shd:'F2EEE6'},{t:'分值',b:1,align:'center',shd:'F2EEE6'},
       {t:'你的答案',b:1,align:'center',shd:'F2EEE6'},{t:'正确答案',b:1,align:'center',shd:'F2EEE6'},
       {t:'判定',b:1,align:'center',shd:'F2EEE6'},{t:'得分',b:1,align:'center',shd:'F2EEE6'}]];
@@ -5778,11 +5778,11 @@ async function exportStudentReport(examId,studentNo){
         {t:String(got),align:'center',shd:shd,b:1,color:ok?'1F8A70':'C0392B'}]);
     });
     parts.push(dxTable(rows,[1400,1200,2000,2000,1806,1800]));
-    parts.push(dxPara('',{after:80}));
+    parts.push(dxPara('',{after:30}));
   }
   /* 主观题明细 */
   if(meta.subjList.length){
-    parts.push(dxPara([dxRun('三、主观题明细',{b:1,sz:20,color:'8A6D3B'})],{after:40}));
+    parts.push(dxPara([dxRun('三、主观题明细',{b:1,sz:19,color:'8A6D3B'})],{before:40,after:24}));
     const rows=[[{t:'题号',b:1,shd:'F2EEE6'},{t:'满分',b:1,align:'center',shd:'F2EEE6'},
       {t:'得分',b:1,align:'center',shd:'F2EEE6'},{t:'得分率',b:1,align:'center',shd:'F2EEE6'},
       {t:'班级平均',b:1,align:'center',shd:'F2EEE6'},{t:'对比 / AI 建议',b:1,align:'center',shd:'F2EEE6'}]];
@@ -5801,7 +5801,7 @@ async function exportStudentReport(examId,studentNo){
         {t:(d!=null?(sign(d)+arrow(d)):'—')+((sub.ai!=null)?('　AI建议 '+sub.ai):''),align:'center',color:(d!=null&&d<0)?'C0392B':null}]);
     });
     parts.push(dxTable(rows,[1400,1200,1200,1400,1800,3206]));
-    parts.push(dxPara('',{after:80}));
+    parts.push(dxPara('',{after:30}));
   }
   /* 需重点加强：低于班级平均且失分较多的题 */
   const weak=[];
@@ -5818,7 +5818,7 @@ async function exportStudentReport(examId,studentNo){
   });
   weak.sort(function(a,b){return b.gap-a.gap||(a.rate-b.rate)});
   const top=weak.slice(0,6);
-  parts.push(dxPara([dxRun('四、需重点加强',{b:1,sz:20,color:'8A6D3B'})],{after:40}));
+  parts.push(dxPara([dxRun('四、需重点加强',{b:1,sz:19,color:'8A6D3B'})],{before:40,after:24}));
   if(!top.length){
     parts.push(dxPara([dxRun('本次考试各题均达到或超过班级平均水平，继续保持。',{sz:17,color:'1F8A70'})],{after:150}));
   }else{
@@ -5833,19 +5833,19 @@ async function exportStudentReport(examId,studentNo){
         {t:String(Math.round(wk.got*10)/10),align:'center',b:1,color:'C0392B'},
         {t:wk.avg.toFixed(1),align:'center'},
         {t:('-'+Math.round(wk.gap*10)/10),align:'center',color:'C0392B'},
-        {t:advice,sz:16}]);
+        {t:advice,sz:15}]);
     });
     parts.push(dxTable(rows,[1900,1100,1200,1000,W-5200]));
-    parts.push(dxPara('',{after:120}));
+    parts.push(dxPara('',{after:60}));
   }
   /* 寄语与签字 */
-  parts.push(dxPara([dxRun('教师寄语：',{b:1,sz:17,color:'8A6D3B'})],{after:30}));
+  parts.push(dxPara([dxRun('教师寄语：',{b:1,sz:16,color:'8A6D3B'})],{before:40,after:18}));
   const diffTxt=(diff>=0)?('总分高于班级平均 '+Math.abs(diff).toFixed(1)+' 分，'):('总分低于班级平均 '+Math.abs(diff).toFixed(1)+' 分，');
   const adviceTxt=(r.total>=T.ex)?'整体掌握扎实，注意保持并挑战更高目标。'
     :(r.total>=T.pass?'基础尚可，按上面「需重点加强」逐项突破即可提升。':'基础还比较薄弱，建议先从基础题和大题得分点抓起，逐题过关。');
-  parts.push(dxPara([dxRun('　　本次考试'+diffTxt,{sz:17}),dxRun(adviceTxt,{sz:17})],{after:200}));
-  parts.push(dxPara([dxRun('教师签字：________________', {sz:17,color:'5A6472'}),dxRun('　　　　家长签字：________________',{sz:17,color:'5A6472'}),dxRun('　　　　日期：____________',{sz:17,color:'5A6472'})],{align:'left',after:40}));
-  parts.push(dxPara([dxRun('本报告由「智能阅卷」自动生成，数据来源：答题卡扫描识别与阅卷结果。',{sz:14,color:'9AA3AE'})],{align:'center',before:120}));
+  parts.push(dxPara([dxRun('　　本次考试'+diffTxt,{sz:17}),dxRun(adviceTxt,{sz:16})],{after:110}));
+  parts.push(dxPara([dxRun('教师签字：________________', {sz:16,color:'5A6472'}),dxRun('　　　　家长签字：________________',{sz:16,color:'5A6472'}),dxRun('　　　　日期：____________',{sz:16,color:'5A6472'})],{align:'left',after:20}));
+  parts.push(dxPara([dxRun('本报告由「智能阅卷」自动生成。',{sz:13,color:'9AA3AE'})],{align:'center',before:60}));
   const name=(r.name&&r.name.indexOf('（未匹配')<0)?r.name:('考号'+r.no);
   await docxDownload('成绩报告_'+name+'_'+(r.no||'')+'_'+ex.name+'_'+tsName()+'.docx',parts.join(''));
   toast('学生成绩报告（Word）已导出','ok');
@@ -6125,16 +6125,26 @@ Object.assign(ACTS,{
       html+='<tr><td>'+(qn)+'</td><td>'+badge(cls,VERDICT_NAMES[v.verdict]||v.verdict)+'</td><td>'+esc(v.choice||'—')+'</td><td>'+((v.verdict==='RIGHT')?(v.full!=null?v.full:book.perScore):0)+'</td></tr>';
     });
     html+='</table></div>';
-    /* 主观题已批图 */
-    html+='<div class="f-row" style="margin-top:10px;flex-wrap:wrap">';
+    /* 主观题作答图：跨页题目有多个部分，全部列出（已批图优先，否则显示原切割图） */
+    const cropsAll=await dbByIdx('crops','byExam',ui.scoreExam);
+    const mine=cropsAll.filter(function(c){return c.studentNo===no});
+    html+='<div style="margin-top:10px">';
     for(const sq of book.meta.subjList){
       const sub=r.subj[sq.qno]||{};
-      if(sub.marked&&sub.cropId){
-        const url=blobURL(sub.cropId+'|mk',await getBlob(sub.cropId+'|mk'));
-        html+='<div><img src="'+url+'" style="width:210px;height:auto;border:1px solid var(--line);border-radius:8px" data-act="grade-zoom" data-url="'+url+'" data-large="1"><div class="kv" style="text-align:center">题 '+esc(String(sq.qno))+'　<b>'+sub.score+'</b>/'+sub.full+'</div></div>';
-      }else{
-        html+='<div class="kv">题 '+esc(String(sq.qno))+'：'+(sub.score!=null?sub.score+'分':'未阅')+'</div>';
+      const parts=mine.filter(function(c){return String(c.qno)===String(sq.qno)}).sort(function(a,b){return (a.part||0)-(b.part||0)});
+      html+='<div style="margin-bottom:10px"><div class="kv" style="margin-bottom:4px"><b>题 '+esc(String(sq.qno))+'</b>（满分 '+sq.score+'）：'
+        +(sub.score!=null?('得分 <b>'+sub.score+'</b>'):'<span style="color:var(--warn)">未阅</span>')
+        +(sub.ai!=null?('　AI 建议 '+esc(String(sub.ai))):'')
+        +(parts.length>1?('　共 '+parts.length+' 部分（跨页）'):'')+'</div>';
+      if(!parts.length){html+='<div class="kv">无作答图</div></div>';continue}
+      html+='<div class="f-row" style="flex-wrap:wrap;align-items:flex-start">';
+      for(const p of parts){
+        const mkUrl=p.marked?blobURL(p.id+'|mk',await getBlob(p.id+'|mk')):null;
+        const showUrl=mkUrl||blobURL(p.id,await getBlob(p.id));
+        html+='<div><img src="'+showUrl+'" style="width:210px;height:auto;border:1px solid var(--line);border-radius:8px" data-act="grade-zoom" data-url="'+showUrl+'" data-large="1">'
+          +'<div class="kv" style="text-align:center">'+(parts.length>1?('第 '+((p.part||0)+1)+' 部分'):'作答图')+(p.marked?'（已批）':'')+'</div></div>';
       }
+      html+='</div></div>';
     }
     html+='</div>';
     dlg(html,{title:'学生成绩明细 · '+esc(r.no)+' '+esc(r.name||''),wide:true,
@@ -6283,7 +6293,7 @@ async function aiSuggestExam(examId,studentNo,qno){
 /* ---------- 设置 ---------- */
 async function renderSet(){
   const keys=ai.keys||{};
-  let html='<div class="card"><h3>AI 服务（主观题 AI 建议 · 严格扣分式提示词）</h3>'
+  let html='<div class="card"><h3>AI 服务（主观题 AI 建议）</h3>'
     +'<div class="f-grid">'
     +'<div><label class="f-lb">服务商</label><select class="inp" id="aiProvider" data-on="ai-provider">'
     +Object.keys(PROVIDERS).map(function(k){return '<option value="'+k+'"'+(ai.provider===k?' selected':'')+'>'+PROVIDERS[k].label+'</option>'}).join('')
@@ -6301,7 +6311,7 @@ async function renderSet(){
     +'<div class="f-row" style="margin-top:10px">'
     +'<button class="btn btn-p" data-act="ai-save">保存 AI 设置</button>'
     +'<button class="btn btn-b" data-act="ai-test">测试连接</button>'
-    +'<span class="tip">测试将发送一条短消息（不发送图片）。AI 需<b>支持图片输入</b>（视觉模型）。建议完整填写考试中的「评分要点」后再使用。</span></div></div>';
+    +'<span class="tip">需使用<b>支持图片输入</b>的模型；建议先填写考试中的「评分要点」。</span></div></div>';
   html+='<div class="card"><h3>识别参数（OMR）</h3>'
     +'<div class="f-grid">'
     +'<div><label class="f-lb">灵敏度预设</label><select class="inp" id="omrSens" data-on="omr-sens">'
@@ -6314,7 +6324,7 @@ async function renderSet(){
     +[['loose','宽松'],['std','适中（推荐）'],['strict','严格']].map(function(x){return '<option value="'+x[0]+'"'+(omr.aiStrict===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></div>'
     +'</div>'
     +'<div class="f-row" style="margin-top:10px"><button class="btn btn-p" data-act="omr-save">保存识别参数</button>'
-    +'<span class="tip">涂点 ink ∈ (低阈值,高阈值) 视为「模糊」→ 进复核，绝不静默乱判。</span></div></div>';
+    +'<span class="tip">涂点墨量处于两个阈值之间时判为「待复核」，不会静默乱判。</span></div></div>';
   html+='<div class="card"><h3>数据备份与恢复</h3>'
     +'<div class="f-row">'
     +'<button class="btn btn-p" data-act="backup-mini">导出备份（不含扫描图）</button>'
@@ -6324,17 +6334,14 @@ async function renderSet(){
     +'<button class="btn btn-d" data-act="data-wipe">清空所有数据</button>'
     +'</div>'
     +'<div class="kv" id="storageInfo" style="margin-top:10px"></div>'
-    +'<div class="tip" style="margin-top:8px">所有数据保存在本浏览器 IndexedDB 中。换电脑/清缓存前请先导出；完整备份为 ZIP（manifest + 图片二进制，体积小、导入快），最小备份为 JSON（仅班级、学生、模板、考试、答案、识别与判分数据，页图可用原件重扫）。</div></div>';
+    +'<div class="tip" style="margin-top:8px">数据保存在本浏览器中，换电脑或清缓存前请先导出。完整备份（ZIP）含扫描图；不含扫描图的备份（JSON）体积小，页图可用原件重扫。</div></div>';
   html+='<div class="card"><h3>打印提示 & 使用说明</h3>'
     +'<div class="tip" style="line-height:1.9">'
-    +'<b>打印答题卡：</b>导出 PDF 后建议在打印对话框选 <b>「实际大小 / 100% / 无缩放」</b>。识别按四角定位点自动校正缩放与倾斜，<b>均匀缩放（约 ±15% 内）可以正常识别</b>；但「适应页面」等缩放会让涂点一起变小，填涂不足时更容易进待复核，故仍建议 100%。<br>'
-    +'<b>拍照指引：</b>尽量正上方拍摄、卡片四角锚点完整、无反光强阴影；<b>手机方向与试卷方向一致</b>（竖版卡片竖拍，不要横着拍）；桌面/背景不影响（自动在全图寻找四角定位点）。<br>'
-    +'<b>识别提示：</b>若得分与预期不符，多为填涂未涂黑/未涂满或定位点印刷不清/被遮挡——在「查看」页打开<b>识别框选</b>（绿=已识别，红/橙=不清晰），对照后重扫即可。<br>'
-    +'<b>识别原理：</b>6 锚点定位 → 单应校正 → 同步条逐行校正 → OMR 判涂（考号 + 客观题）；首页二维码自描述版式，识别时无需选模板。<br>'
-    +'<b>页码标记：</b>卡片<b>左侧边缘的黑色小方块个数就是页码</b>（第1页 1 个、第2页 2 个…），多页答题卡分次上传/混拍时程序据此自动判断第几页，请勿涂写、遮挡或裁切该区域。<br>'
-    +'<b>续页手写区：</b>第2页起顶部印有<b>手写姓名与考号格</b>，请提醒学生填写——程序按页码自动归属的同时，阅卷/归档时可人工核对每页属于谁。<br>'
-    +'<b>容错策略：</b>一切不确定项（涂点模糊/多涂、考号异常、定位失败、版式异常）都会进复核队列人工处理，不会静默误判。<br>'
-    +'<b>版本：</b>智能阅卷 v1.0（网页版）· 对标 答题卡助手 Pro v4.3.0 核心闭环 · 2026-09</div></div>';
+    +'<b>打印：</b>导出 PDF 后选 <b>「实际大小 / 100%」</b>；缩放会让涂点一起变小，填涂不足时容易进待复核。<br>'
+    +'<b>拍照：</b>正上方拍摄、四角完整、无反光；<b>手机方向与试卷方向一致</b>。背景不限（自动全图定位）。<br>'
+    +'<b>多页答题卡：</b>左侧小方块个数即页码（请勿遮挡/裁切，用于自动排序）；第 2 页起顶部有手写姓名/考号格，请提醒学生填写，便于核对归属。<br>'
+    +'<b>识别不准时：</b>多为填涂未涂黑/未涂满或定位点不清；在扫描页「查看 → 识别框选」对照后重扫。不确定项会自动进入复核队列。<br>'
+    +'<b>版本：</b>智能阅卷 v1.0（网页版）· 2026-09</div></div>';
   $('page').innerHTML=html;
   afterRender(async function(){
     bindFileInput('backupFile',function(files){backupImport(files[0])});
