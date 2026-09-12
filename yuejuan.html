@@ -686,7 +686,7 @@ function layoutTemplate(tpl,opts){
        位数多时压缩每位宽度，最右不越出内容区）。信息框不再顶到页边（旧版右缘正好压页边越界）。 */
     const lzW=58;   /* 左组区域宽 */
     qr={x:Math.round(M+(lzW-qrSize)/2),y:28,size:qrSize};
-    infoBox={x:Math.round(M+(lzW-52)/2),y:qr.y+qrSize+2,w:52,h:24};
+    infoBox={x:Math.round(M+(lzW-52)/2),y:qr.y+qrSize+2,w:52,h:26};
     const availL=M+lzW+6,availW=(w-M)-availL;
     const regColW=Math.min(11,Math.max(8,Math.floor(((availW-8)/regDigits)*10)/10));
     const regW0=regColW*regDigits;
@@ -884,7 +884,7 @@ function layoutTemplate(tpl,opts){
 /* ---------- 内置预设 ---------- */
 
 function newTemplate(name){
-  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',layout:'portrait',regDigits:5,choiceLayout:{q:'v',o:'h'},sections:[],createdAt:now()};
+  return {id:uid('tpl_'),name:name||'新答题卡模板',paper:'A4',layout:'portrait',regDigits:5,choiceLayout:{q:'v',o:'h'},infoRow3:'座位号',sections:[],createdAt:now()};
 }
 
 /* ---------- mm→px 渲染 ---------- */
@@ -924,14 +924,15 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     const r=page.info;
     ctx.strokeStyle='#000';ctx.lineWidth=Math.max(0.7,px(0.25));
     ctx.strokeRect(px(r.x),px(r.y),px(r.w),px(r.h));
-    /* 三行书写行随框高均分（h=24 时基线 5/13/21 与旧版一致） */
-    const rows=['姓名','班级','座位号'];
+    /* 三行书写行：按框高四等分定位（末行距底边 ≥4mm，不再压底）；第三行标签可自定义（默认座位号） */
+    const rows=['姓名','班级',(tpl.infoRow3||'座位号')];
     ctx.font=Math.max(8,Math.round(px(3.0)))+'px "Microsoft YaHei",sans-serif';
     rows.forEach(function(lb,i){
-      const by=r.h*(2*i+1)/6+1;
+      const by=r.h*(i+1)/4-1;
       ctx.textAlign='left';
       ctx.fillText(lb,px(r.x+2.8),px(r.y+by));
-      ctx.beginPath();ctx.moveTo(px(r.x+13.5),px(r.y+by+2.8));ctx.lineTo(px(r.x+r.w-3),px(r.y+by+2.8));
+      const ls=r.x+Math.max(13.5,2.8+lb.length*3.2+1.2);
+      ctx.beginPath();ctx.moveTo(px(ls),px(r.y+by+2.8));ctx.lineTo(px(r.x+r.w-3),px(r.y+by+2.8));
       ctx.lineWidth=Math.max(0.7,px(0.28));ctx.strokeStyle='#555';ctx.stroke();
     });
   }
@@ -2801,6 +2802,7 @@ async function tplEditorHTML(tplId){
         return '<option value="'+k+'"'+(cur===k?' selected':'')+'>'+LAYOUTS[k].label+'</option>';
       }).join('')+'</select></div>'
     +'<div><label class="f-lb">考号位数（2-12）</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="regDigits" type="number" min="2" max="12" value="'+esc(t.regDigits)+'"></div>'
+    +'<div><label class="f-lb" title="首页信息框第三行的标签，如：座位号 / 学号 / 家长签字">信息框第三行</label><input class="inp" data-on="tpl-field" data-id="'+t.id+'" data-f="infoRow3" maxlength="6" value="'+esc(t.infoRow3||'座位号')+'"></div>'
     +'</div></div>'
     +'<div class="card"><h3>选择题排列</h3>'
     +'<div class="f-row" style="align-items:center;gap:8px">'
