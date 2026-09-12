@@ -264,6 +264,7 @@ body>*{position:relative;z-index:1}
   <p style="text-align:left;font-size:13px;line-height:2.0">
   · 牌型：万条筒1-9各4张 + 红中发财白板东南西北各4张，共136张<br>
   · 胡牌：4组面子（顺子或刻子）+ 一对将；或七对子<br>
+  · <b style="color:#ffd857">将牌</b>：屁胡的将必须是二、五、八（万条筒均可）；清一色、碰碰胡、七对等大胡任意对子作将<br>
   · <b style="color:#ffd857">赖子</b>：开局翻一张明牌，它的下一张是赖子（翻九万则一万，翻红中/发财则白板）。赖子可代替任何牌参与组牌和胡牌<br>
   · <b style="color:#ffd857">杠</b>：暗杠（手中4张相同）、明杠（对方打出的第4张）、补杠（碰后再摸到同牌）；<b style="color:#ffd857">红中和发财随时可杠</b>（手中有一张即可），杠后从牌尾摸一张补牌<br>
   · <b style="color:#ffd857">开口</b>：屁胡必须先有吃、碰或明杠至少一次才能胡牌；清一色、碰碰胡、七对等大和不需要开口<br>
@@ -399,19 +400,23 @@ function canFormBody(cnt,jokers){
   }
   return false;
 }
-/* 标准和：选一对将 + 其余拆成 body */
-function canWinStd(tiles,jokerId,needSets){
+/* 屁胡将牌集合：武汉规则二五八将（万/条/筒的2、5、8）；大胡任意对子作将 */
+var JIANG258={m2:1,m5:1,m8:1,t2:1,t5:1,t8:1,d2:1,d5:1,d8:1};
+/* 标准和：选一对将 + 其余拆成 body。
+   jiangSet 传入时，将中真实牌必须属于该集合（纯赖子对/赖子配真实将不受限）；null=任意对子 */
+function canWinStd(tiles,jokerId,needSets,jiangSet){
   var cm=countMap(tiles,jokerId);
   var total=tiles.length;
   if(total!==needSets*3+2)return false;
   var cnt=cm.cnt,J=cm.jokers;
   var types=Object.keys(cnt);
-  /* 纯赖子对 */
+  /* 纯赖子对（赖子可作任意将） */
   if(J>=2){
     if(canFormBody(copyCnt(cnt),J-2))return true;
   }
   for(var i=0;i<types.length;i++){
     var t=types[i];
+    if(jiangSet&&!jiangSet[t])continue;
     /* 真实对 */
     if(cnt[t]>=2){cnt[t]-=2;if(canFormBody(copyCnt(cnt),J))return true;cnt[t]+=2;}
     /* 混合对（1真+1赖） */
@@ -494,8 +499,10 @@ function isQingYiSe(tiles,jokerId,meldTiles){
 /* 综合和牌判定：返回 null 或 {pattern,big,kong,pts}
    openCount=开口数（吃/碰/明杠）；武汉规则：屁和必须开口，大和免
    meldInfo 传副露数组以正确判定清一色/碰碰胡（也兼容传副露数）
-   赖子限制：非杠上开时，手中最多1张赖子；杠上开不限 */
-function checkWin(hand,meldInfo,jokerId,fromKong,openCount){
+   赖子限制：非杠上开时，手中最多1张赖子；杠上开不限
+   将牌限制：屁和必须二五八将，清一色/碰碰胡/七对等大和任意对；
+   noJiangGate=true 仅供听牌提示绕过将牌限制看形状 */
+function checkWin(hand,meldInfo,jokerId,fromKong,openCount,noJiangGate){
   var melds=Array.isArray(meldInfo)?meldInfo:null;
   var st=melds?structuralMeldTiles(melds):{tiles:[],hasSeq:false};
   var meldCount=melds?winMeldCount(melds):(meldInfo||0);
@@ -504,7 +511,8 @@ function checkWin(hand,meldInfo,jokerId,fromKong,openCount){
   var jokerCount=0;
   if(jokerId){for(var ji=0;ji<hand.length;ji++)if(hand[ji]===jokerId)jokerCount++;}
   if(!fromKong&&jokerCount>1)return null;
-  var std=canWinStd(hand,jokerId,needSets);
+  var std258=canWinStd(hand,jokerId,needSets,JIANG258);
+  var std=std258||canWinStd(hand,jokerId,needSets,null);
   var seven=(needSets===4)&&canSevenPairs(hand,jokerId);
   if(!std&&!seven)return null;
   var pattern;
@@ -513,6 +521,8 @@ function checkWin(hand,meldInfo,jokerId,fromKong,openCount){
   else if(!st.hasSeq&&checkPengPeng(hand,jokerId))pattern='碰碰胡';
   else pattern='平胡';
   var big=(pattern==='清一色'||pattern==='碰碰胡'||pattern==='七对');
+  /* 将牌门槛：屁和必须二五八将，大和任意对 */
+  if(pattern==='平胡'&&!std258&&!(noJiangGate&&std))return null;
   /* 开口门槛：屁和必须至少开口一次（吃/碰/明杠），大和不受限 */
   if(pattern==='平胡'&&(openCount||0)<1)return null;
   var pts=big?30:(fromKong?20:10);
@@ -803,9 +813,11 @@ function humanTurnUI(winRes,gangs){
       addBtn(bar,'自摸和！'+winRes.pattern+' +'+winRes.pts,'win',function(){doWin(G.turn,null,winRes);});
       setHint('你可以自摸和牌，也可以继续打');
     }else{
-      var winShape=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,countOpens(G.melds[G.turn])));
-      if(winShape && winShape.pattern==='平胡'){
-        setHint('已成牌型，但屁和需要先吃/碰/明杠一次');
+      var opensNow=countOpens(G.melds[G.turn]);
+      var shapeAny=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,opensNow),true);
+      if(shapeAny && shapeAny.pattern==='平胡'){
+        var shape258=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,opensNow),false);
+        setHint(shape258?'已成牌型，但屁和需要先吃/碰/明杠一次':'已成牌型，但屁和的将必须是二、五、八');
       }
     }
     if(G.selected>=0){
