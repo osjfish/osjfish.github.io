@@ -5591,6 +5591,259 @@ function drawPassDonut(full,rows){
   ctx.fillStyle='#666';ctx.font='11px sans-serif';ctx.textAlign='center';
   ctx.fillText('优秀'+good+'　良好'+well+'　合格'+pass+'　待合格'+fail,cx,h-4);
 }
+/* ============ Word（.docx）学生成绩报告 ============ */
+/* 用 JSZip 直接拼最小 OOXML 包（无需额外库）：A4、窄边距、表格紧凑、标题行带底色 */
+const DX_ESC=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')};
+function dxRun(text,o){
+  o=o||{};
+  const rPr='<w:rPr>'+(o.b?'<w:b/>':'')+(o.i?'<w:i/>':'')
+    +'<w:rFonts w:ascii="Calibri" w:eastAsia="Microsoft YaHei" w:hAnsi="Calibri"/>'
+    +(o.color?('<w:color w:val="'+o.color+'"/>'):'')
+    +'<w:sz w:val="'+(o.sz||18)+'"/><w:szCs w:val="'+(o.sz||18)+'"/></w:rPr>';
+  return '<w:r>'+rPr+'<w:t xml:space="preserve">'+DX_ESC(text)+'</w:t></w:r>';
+}
+function dxPara(runs,o){
+  o=o||{};
+  const pPr='<w:pPr><w:spacing w:before="'+(o.before||0)+'" w:after="'+(o.after!=null?o.after:60)+'" w:line="'+(o.line||240)+'" w:lineRule="auto"/>'
+    +'<w:jc w:val="'+(o.align||'left')+'"/>'
+    +(o.border?('<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="2" w:color="'+o.border+'"/></w:pBdr>'):'')
+    +'</w:pPr>';
+  const rs=Array.isArray(runs)?runs.join(''):dxRun(runs,o);
+  return '<w:p>'+pPr+rs+'</w:p>';
+}
+function dxCell(c,w){
+  const o=Object.assign({},c);
+  const tcPr='<w:tcPr><w:tcW w:w="'+(w||o.w||1500)+'" w:type="dxa"/>'
+    +(o.gridSpan?('<w:gridSpan w:val="'+o.gridSpan+'"/>'):'')
+    +(o.shd?('<w:shd w:val="clear" w:color="auto" w:fill="'+o.shd+'"/>'):'')
+    +'<w:vAlign w:val="center"/></w:tcPr>';
+  return '<w:tc>'+tcPr+'<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="'+(o.align||'left')+'"/></w:pPr>'
+    +dxRun(o.t,{b:o.b,sz:o.sz||18,color:o.color,i:o.i})+'</w:p></w:tc>';
+}
+function dxTable(rows,widths){
+  const total=widths.reduce(function(a,b){return a+b},0);
+  const grid=widths.map(function(w){return '<w:gridCol w:w="'+w+'"/>'}).join('');
+  const bd='<w:tblBorders>'
+    +['top','left','bottom','right','insideH','insideV'].map(function(k){
+      return '<w:'+k+' w:val="single" w:sz="4" w:space="0" w:color="D8D2C6"/>'}).join('')
+    +'</w:tblBorders>';
+  let xml='<w:tbl><w:tblPr><w:tblW w:w="'+total+'" w:type="dxa"/>'+bd
+    +'<w:tblLayout w:type="fixed"/>'
+    +'<w:tblCellMar><w:top w:w="20" w:type="dxa"/><w:left w:w="70" w:type="dxa"/><w:bottom w:w="20" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar>'
+    +'</w:tblPr><w:tblGrid>'+grid+'</w:tblGrid>';
+  rows.forEach(function(r){
+    xml+='<w:tr>';
+    let ci=0;
+    r.forEach(function(c){
+      const span=c.gridSpan||1;
+      let w=0;for(let i=ci;i<ci+span&&i<widths.length;i++)w+=widths[i];
+      ci+=span;
+      xml+=dxCell(c,w);
+    });
+    xml+='</w:tr>';
+  });
+  return xml+'</w:tbl>';
+}
+async function docxDownload(fileName,bodyXml){
+  const CT='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+    +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+    +'<Default Extension="xml" ContentType="application/xml"/>'
+    +'<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+    +'<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+    +'</Types>';
+  const RELS='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+    +'</Relationships>';
+  const DRELS='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+    +'</Relationships>';
+  const STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+    +'<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:eastAsia="Microsoft YaHei" w:hAnsi="Calibri"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:rPrDefault>'
+    +'<w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>';
+  const DOC='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+bodyXml
+    +'<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
+    +'<w:pgMar w:top="850" w:right="850" w:bottom="850" w:left="850" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>'
+    +'</w:body></w:document>';
+  if(typeof JSZip==='undefined'){toast('打包组件未加载：lib/jszip.min.js','err');return}
+  const zip=new JSZip();
+  zip.file('[Content_Types].xml',CT);
+  zip.folder('_rels').file('.rels',RELS);
+  const wd=zip.folder('word');
+  wd.file('document.xml',DOC);
+  wd.file('styles.xml',STYLES);
+  wd.folder('_rels').file('document.xml.rels',DRELS);
+  const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',compression:'DEFLATE'});
+  download(fileName,blob);
+}
+/* 单个学生的考试报告：概览→大题→客观题→主观题→需重点加强→签字栏 */
+async function exportStudentReport(examId,studentNo){
+  const book=await computeScorebook(examId);
+  if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
+  const meta=book.meta,ex=book.exam;
+  const r=book.rows.find(function(x){return String(x.no)===String(studentNo)});
+  if(!r){toast('未找到该学生成绩','err');return}
+  const fullAll=book.objFull+book.subjFull;
+  const sc=book.rows.filter(function(x){return !x.absent});
+  const avgAll=sc.length?(sc.reduce(function(a,x){return a+x.total},0)/sc.length):0;
+  const maxAll=sc.length?Math.max.apply(null,sc.map(function(x){return x.total})):0;
+  const rate=fullAll?(r.total/fullAll):0;
+  const pct=function(v){return Math.round(v*100)+'%'};
+  const lv=rate>=0.8?['优秀','1F8A70']:rate>=0.7?['良好','33507A']:rate>=0.6?['合格','B8860B']:['待合格','C0392B'];
+  const diff=r.total-avgAll;
+  const sign=function(v){return (v>=0?'+':'')+ (Math.round(v*10)/10)};
+  const arrow=function(v){return v>0.05?' ↑':(v<-0.05?' ↓':' —')};
+  const W=10206;   /* A4 可用宽度(twips) */
+  const parts=[];
+  /* 抬头 */
+  parts.push(dxPara([dxRun(ex.paperTitle||ex.name,{b:1,sz:30,color:'1F2933'})],{align:'center',after:20}));
+  parts.push(dxPara([dxRun('学生成绩报告',{b:1,sz:22,color:'8A6D3B'})],{align:'center',after:60}));
+  parts.push(dxPara([
+    dxRun('班级：'+esc(ex.className||'—'),{sz:16,color:'5A6472'}),
+    dxRun('　　姓名：'+(r.name||'—'),{sz:16,color:'5A6472',b:1}),
+    dxRun('　　考号：'+(r.no||'—'),{sz:16,color:'5A6472'}),
+    dxRun('　　生成：'+timestamp(),{sz:16,color:'9AA3AE'})
+  ],{align:'center',after:140,border:'D8D2C6'}));
+  /* 成绩概览卡 */
+  const cardW=Math.floor(W/4);
+  const cardRow=function(label,val,color,sub){
+    return {t:label+'\n'+val+(sub?('  '+sub):''),align:'center',sz:16,color:color||'1F2933',shd:'FBF8F2',b:1};
+  };
+  parts.push(dxTable([
+    [{t:'总分',align:'center',shd:'F2EEE6',b:1,sz:16,color:'5A6472'},
+     {t:'得分率',align:'center',shd:'F2EEE6',b:1,sz:16,color:'5A6472'},
+     {t:'班级排名',align:'center',shd:'F2EEE6',b:1,sz:16,color:'5A6472'},
+     {t:'与班级平均',align:'center',shd:'F2EEE6',b:1,sz:16,color:'5A6472'}],
+    [{t:r.total+' / '+fullAll,align:'center',b:1,sz:22,color:lv[1]},
+     {t:pct(rate),align:'center',b:1,sz:22,color:lv[1]},
+     {t:r.rank+' / '+book.rows.length,align:'center',b:1,sz:22},
+     {t:sign(diff)+' 分',align:'center',b:1,sz:22,color:diff>=0?'1F8A70':'C0392B'}]
+  ],[cardW,cardW,cardW,W-cardW*3]));
+  parts.push(dxPara([dxRun('等级：'+lv[0],{b:1,sz:17,color:lv[1]}),
+    dxRun('　　班级平均 '+avgAll.toFixed(1)+' 分',{sz:16,color:'5A6472'}),
+    dxRun('　　班级最高 '+maxAll+' 分',{sz:16,color:'5A6472'}),
+    dxRun('　　客观题 '+r.objScore+'/'+book.objFull,{sz:16,color:'5A6472'}),
+    dxRun('　　主观题 '+r.subjScore+'/'+book.subjFull,{sz:16,color:'5A6472'})],{after:150}));
+  /* 大题得分 */
+  if(book.sections&&book.sections.length){
+    parts.push(dxPara([dxRun('一、大题得分情况',{b:1,sz:20,color:'8A6D3B'})],{after:40}));
+    const rows=[[{t:'大题',b:1,shd:'F2EEE6'},{t:'满分',b:1,align:'center',shd:'F2EEE6'},
+      {t:'得分',b:1,align:'center',shd:'F2EEE6'},{t:'得分率',b:1,align:'center',shd:'F2EEE6'},
+      {t:'班级平均',b:1,align:'center',shd:'F2EEE6'},{t:'对比',b:1,align:'center',shd:'F2EEE6'}]];
+    book.sections.forEach(function(sec){
+      let sum=0;
+      sec.qnos.forEach(function(qn){
+        if(meta.choiceQnos.indexOf(qn)>=0){sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;}
+        else{const v=r.subj[qn];sum+=((v&&v.score!=null)?Number(v.score):0);}
+      });
+      const rt=sec.full?(sum/sec.full):0;
+      const d=sum-sec.avg;
+      const c=rt>=0.8?'1F8A70':(rt>=0.6?'B8860B':'C0392B');
+      rows.push([{t:sec.title+'（'+sec.qnos.join('、')+'）'},
+        {t:String(sec.full),align:'center'},{t:String(Math.round(sum*10)/10),align:'center',b:1,color:c},
+        {t:pct(rt),align:'center',color:c,b:1},{t:sec.avg.toFixed(1),align:'center'},
+        {t:sign(d)+arrow(d),align:'center',color:d>=0?'1F8A70':'C0392B'}]);
+    });
+    parts.push(dxTable(rows,[3406,1000,1000,1300,1500,W-8206]));
+    parts.push(dxPara('',{after:80}));
+  }
+  /* 客观题明细 */
+  if(meta.choiceQnos.length){
+    parts.push(dxPara([dxRun('二、客观题明细',{b:1,sz:20,color:'8A6D3B'})],{after:40}));
+    const rows=[[{t:'题号',b:1,shd:'F2EEE6'},{t:'分值',b:1,align:'center',shd:'F2EEE6'},
+      {t:'你的答案',b:1,align:'center',shd:'F2EEE6'},{t:'正确答案',b:1,align:'center',shd:'F2EEE6'},
+      {t:'判定',b:1,align:'center',shd:'F2EEE6'},{t:'得分',b:1,align:'center',shd:'F2EEE6'}]];
+    meta.choiceQnos.forEach(function(qn){
+      const v=r.obj[qn]||{verdict:'NOREC'};
+      const rawAns=(ex.answers||{})[qn];
+      const ansArr=rawAns==null?'—':(Array.isArray(rawAns)?rawAns.join(''):String(rawAns));
+      const ok=v.verdict==='RIGHT';
+      const shd=ok?null:'FDECEA';
+      const got=ok?(book.scoreOf(qn)||0):0;
+      rows.push([{t:String(qn),shd:shd,color:ok?null:'C0392B'},
+        {t:String(book.scoreOf(qn)),align:'center',shd:shd},
+        {t:(v.choice||(v.verdict==='BLANK'?'未涂':'—')),align:'center',shd:shd,b:ok?0:1,color:ok?null:'C0392B'},
+        {t:ansArr,align:'center',shd:shd},
+        {t:(VERDICT_NAMES[v.verdict]||v.verdict),align:'center',shd:shd,color:ok?'1F8A70':'C0392B'},
+        {t:String(got),align:'center',shd:shd,b:1,color:ok?'1F8A70':'C0392B'}]);
+    });
+    parts.push(dxTable(rows,[1400,1200,2000,2000,1806,1800]));
+    parts.push(dxPara('',{after:80}));
+  }
+  /* 主观题明细 */
+  if(meta.subjList.length){
+    parts.push(dxPara([dxRun('三、主观题明细',{b:1,sz:20,color:'8A6D3B'})],{after:40}));
+    const rows=[[{t:'题号',b:1,shd:'F2EEE6'},{t:'满分',b:1,align:'center',shd:'F2EEE6'},
+      {t:'得分',b:1,align:'center',shd:'F2EEE6'},{t:'得分率',b:1,align:'center',shd:'F2EEE6'},
+      {t:'班级平均',b:1,align:'center',shd:'F2EEE6'},{t:'对比 / AI 建议',b:1,align:'center',shd:'F2EEE6'}]];
+    meta.subjList.forEach(function(sq){
+      const sub=r.subj[sq.qno]||{};
+      const st=book.subjStat[sq.qno]||{avg:0};
+      const sv=(sub.score!=null)?Number(sub.score):null;
+      const rt=(sv!=null&&sq.score)?(sv/sq.score):0;
+      const d=(sv!=null)?(sv-st.avg):null;
+      const c=(sv==null)?'9AA3AE':(rt>=0.8?'1F8A70':(rt>=0.6?'B8860B':'C0392B'));
+      rows.push([{t:String(sq.qno)},
+        {t:String(sq.score),align:'center'},
+        {t:(sv!=null?String(sv):'未阅'),align:'center',b:1,color:c},
+        {t:(sv!=null?pct(rt):'—'),align:'center',color:c},
+        {t:st.avg.toFixed(1),align:'center'},
+        {t:(d!=null?(sign(d)+arrow(d)):'—')+((sub.ai!=null)?('　AI建议 '+sub.ai):''),align:'center',color:(d!=null&&d<0)?'C0392B':null}]);
+    });
+    parts.push(dxTable(rows,[1400,1200,1200,1400,1800,3206]));
+    parts.push(dxPara('',{after:80}));
+  }
+  /* 需重点加强：低于班级平均且失分较多的题 */
+  const weak=[];
+  (book.itemStats||[]).forEach(function(it){
+    let got,avgIt=it.avg;
+    if(it.subj){const v=r.subj[it.qno];got=(v&&v.score!=null)?Number(v.score):null;}
+    else{got=(r.obj[it.qno]&&r.obj[it.qno].verdict==='RIGHT')?(book.scoreOf(it.qno)||0):0;}
+    if(got==null)return;
+    const gap=avgIt-got;
+    if(gap>0.05||it.rate<0.6){
+      weak.push({qno:it.qno,subj:it.subj,full:it.full,got:got,avg:avgIt,gap:gap,rate:it.rate,
+        title:it.subj?('主观题 '+it.qno):((it.kind==='multi'?'多选题 ':'单选题 ')+it.qno)});
+    }
+  });
+  weak.sort(function(a,b){return b.gap-a.gap||(a.rate-b.rate)});
+  const top=weak.slice(0,6);
+  parts.push(dxPara([dxRun('四、需重点加强',{b:1,sz:20,color:'8A6D3B'})],{after:40}));
+  if(!top.length){
+    parts.push(dxPara([dxRun('本次考试各题均达到或超过班级平均水平，继续保持。',{sz:17,color:'1F8A70'})],{after:150}));
+  }else{
+    const rows=[[{t:'题目',b:1,shd:'F2EEE6'},{t:'你的得分',b:1,align:'center',shd:'F2EEE6'},
+      {t:'班级平均',b:1,align:'center',shd:'F2EEE6'},{t:'差距',b:1,align:'center',shd:'F2EEE6'},
+      {t:'建议',b:1,shd:'F2EEE6'}]];
+    top.forEach(function(wk){
+      const advice=wk.subj
+        ?('对照评分要点重做本题并请老师面批；重点检查：'+(wk.rate<0.6?'答题要点是否齐全、表述是否规范':'细节表述与卷面'))
+        :(wk.gap>=wk.full*0.5?('重做本题：先写出正确解法再核对，并整理进错题本'):('核对错因（是知识点不清还是审题/涂卡失误），做 2 道同类题巩固'));
+      rows.push([{t:wk.title+'（满分'+wk.full+'）'},
+        {t:String(Math.round(wk.got*10)/10),align:'center',b:1,color:'C0392B'},
+        {t:wk.avg.toFixed(1),align:'center'},
+        {t:('-'+Math.round(wk.gap*10)/10),align:'center',color:'C0392B'},
+        {t:advice,sz:16}]);
+    });
+    parts.push(dxTable(rows,[1900,1100,1200,1000,W-5200]));
+    parts.push(dxPara('',{after:120}));
+  }
+  /* 寄语与签字 */
+  parts.push(dxPara([dxRun('教师寄语：',{b:1,sz:17,color:'8A6D3B'})],{after:30}));
+  const diffTxt=(diff>=0)?('总分高于班级平均 '+Math.abs(diff).toFixed(1)+' 分，'):('总分低于班级平均 '+Math.abs(diff).toFixed(1)+' 分，');
+  const adviceTxt=(rate>=0.8)?'整体掌握扎实，注意保持并挑战更高目标。'
+    :(rate>=0.6?'基础尚可，按上面「需重点加强」逐项突破即可提升。':'基础还比较薄弱，建议先从基础题和大题得分点抓起，逐题过关。');
+  parts.push(dxPara([dxRun('　　本次考试'+diffTxt,{sz:17}),dxRun(adviceTxt,{sz:17})],{after:200}));
+  parts.push(dxPara([dxRun('教师签字：________________', {sz:17,color:'5A6472'}),dxRun('　　　　家长签字：________________',{sz:17,color:'5A6472'}),dxRun('　　　　日期：____________',{sz:17,color:'5A6472'})],{align:'left',after:40}));
+  parts.push(dxPara([dxRun('本报告由「智能阅卷」自动生成，数据来源：答题卡扫描识别与阅卷结果。',{sz:14,color:'9AA3AE'})],{align:'center',before:120}));
+  const name=(r.name&&r.name.indexOf('（未匹配')<0)?r.name:('考号'+r.no);
+  await docxDownload('成绩报告_'+name+'_'+(r.no||'')+'_'+ex.name+'_'+tsName()+'.docx',parts.join(''));
+  toast('学生成绩报告（Word）已导出','ok');
+}
 /* 成绩导出 */
 Object.assign(ACTS,{
   'score-pick':async function(el){ui.scoreExam=el.value;renderScore()},
@@ -5789,7 +6042,12 @@ Object.assign(ACTS,{
       }
     }
     html+='</div>';
-    dlg(html,{title:'学生成绩明细',wide:true});
+    dlg(html,{title:'学生成绩明细 · '+esc(r.no)+' '+esc(r.name||''),wide:true,
+      foot:'<button class="btn" data-act="dlg-close">关闭</button>'
+        +'<button class="btn btn-p" data-act="stu-report" data-no="'+esc(r.no)+'">导出 Word 成绩报告</button>'});
+  },
+  'stu-report':async function(el){
+    exportStudentReport(ui.scoreExam,el.dataset.no);
   }
 });
 
