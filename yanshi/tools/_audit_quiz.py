@@ -93,12 +93,24 @@ def audit(fn):
             segs = [x for x in re.split(r'[，。、；：！？…—]+', qc) if len(x) >= 2]
             hit = bool(segs) and all(bare(x) in bare_body for x in segs)
         if not hit:
-            # 软规则：若 q 与原文存在较长连续公共片段（≥60%字符连续匹配），视为合理节选/意引，不报
+            # 多例句（含 /）：逐片核对，每片须是原文
+            if '/' in qc:
+                parts = [p.strip() for p in qc.split('/') if p.strip()]
+                if parts and all((p in body or bare(p) in bare_body) for p in parts):
+                    continue
+            # 软规则1：与原文存在较长连续公共片段（≥60%字符连续匹配），视为合理节选
             qb = bare(qc)
             sm = difflib.SequenceMatcher(None, qb, bare_body, autojunk=False)
             longest = max((b.size for b in sm.get_matching_blocks()), default=0)
             if longest >= max(4, int(len(qb) * 0.6)):
                 continue
+            # 软规则2：合理意引豁免——绝大多数字都在正文出现（仅语序/同义替换，错字极少）
+            #   字频占比：缺失字出现次数 / q 总字数 < 25% 视为意引
+            if qb:
+                qc_multiset = collections.Counter(qb)
+                miss = sum(c for ch, c in qc_multiset.items() if ch not in bare_body)
+                if miss / len(qb) < 0.25:
+                    continue
             iss['注释题句非原文'].append('%s|%s' % (w, q[:26]))
         else:
             # 注释题 w 是"要默写的词"，不要求出现在例句 q 中；
@@ -107,8 +119,17 @@ def audit(fn):
             if '/' in w or '……' in w or '...' in w:
                 continue
             wb = bare(w2)
-            if wb and wb not in bare_body:
-                iss['注释词不在课文'].append('%s|%s' % (w, q[:26]))
+            if not wb:
+                continue
+            # 多字组合（如"拢、捻、抹、挑"）：逐字/逐段核对，每字须在原文
+            if '、' in w2 or '，' in w2:
+                parts = [p for p in re.split(r'[、，]', w2) if p]
+                if parts and all((bare(p) in body or bare(p) in bare_body) for p in parts):
+                    continue
+            # 括注/舞台提示内的词（如"直挺秀颀""土坡"）也算在课文，按原始正文（保留括注）核对
+            if wb in body or wb in bare_body:
+                continue
+            iss['注释词不在课文'].append('%s|%s' % (w, q[:26]))
 
     return iss
 
