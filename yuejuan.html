@@ -109,8 +109,8 @@ table.tbl tr:hover td{background:#FBF8F3}
 .gimg{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px;text-align:center}
 .gimg img{max-width:100%;max-height:70vh;border-radius:6px;cursor:zoom-in}
 .gside{width:250px;flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
-.gscore{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
-.gscore .gs{padding:8px 0;text-align:center;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;background:#fff}
+.gscore{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;margin:8px 0;padding-bottom:4px}
+.gscore .gs{flex:0 0 auto;min-width:56px;padding:8px 10px;text-align:center;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;background:#fff}
 .gscore .gs:hover{border-color:var(--zhu)}
 .gscore .gs.on{background:var(--zhu);color:#fff;border-color:var(--zhu)}
 .gscore .gs.dim{opacity:.4}
@@ -2366,7 +2366,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     if(j.ok)no2+=j.digit;
     else no2+=(j.reason==='空白'?'_':'?');
   });
-  if(reg)studentNo=no2;
+  if(reg&&!opts.regOverride)studentNo=no2;   /* 人工改判优先：不被空涂点的自动判定覆盖 */
   if(reg&&(!studentNo||studentNo.indexOf('_')>=0||studentNo.indexOf('?')>=0))regFlags.push('考号异常（'+studentNo+'）');
   /* 主观题切割 */
   const crops=[];
@@ -4124,15 +4124,22 @@ Object.assign(ACTS,{
   /* 考号改判 */
   'scan-fix-reg':async function(el){
     const p=await dbGet('pages',el.dataset.id);
-    dlg('<div class="kv" style="margin-bottom:8px">当前识别考号：<b>'+esc(p.studentNo||'—')+'</b>。请确认/修正每位数：</div>'
+    /* 位数取模板设置：续页无涂卡区时 studentNo 可能为空/长度不符，统一规范为 regDigits 位（? 归为待填 _） */
+    const ex=await dbGet('exams',p.examId);
+    const tpl=ex?await dbGet('templates',ex.templateId):null;
+    const rd=Math.max(2,Math.min(12,(tpl&&tpl.regDigits)||5));
+    let cur=String(p.studentNo||'').replace(/\?/g,'_');
+    while(cur.length<rd)cur+='_';
+    cur=cur.slice(0,rd);
+    dlg('<div class="kv" style="margin-bottom:8px">当前识别考号：<b>'+esc(p.studentNo||'—')+'</b>。请确认/修正每位数（共 '+rd+' 位）：</div>'
       +'<div class="f-row" id="regFixRow">'
-      +String(p.studentNo||'------').split('').map(function(ch,i){
+      +cur.split('').map(function(ch,i){
         return '<div><label class="f-lb">第 '+(i+1)+' 位</label><select class="inp regFixSel" data-i="'+i+'" style="width:72px">'
           +['_','0','1','2','3','4','5','6','7','8','9'].map(function(d){
-            return '<option value="'+d+'"'+((ch===d)||(ch==='?'&&d==='_')?' selected':'')+'>'+d+'</option>'}).join('')
+            return '<option value="'+d+'"'+(ch===d?' selected':'')+'>'+d+'</option>'}).join('')
           +'</select></div>';
       }).join('')+'</div>'
-      +'<div class="tip" style="margin-top:8px">保存后将重新识别该页并重建主观题裁剪（考号用于分组与成绩匹配）。</div>',
+      +'<div class="tip" style="margin-top:8px">保存后将重新识别该页并重建主观题裁剪（考号用于分组与成绩匹配）。未填涂考号的续页也可在此直接指定。</div>',
       {title:'考号改判 · 第 '+p.pageNo+' 页',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="scan-reg-save" data-id="'+p.id+'">保存重识别</button>'});
   },
   'scan-reg-save':async function(el){
@@ -4323,9 +4330,13 @@ async function redoPage(p,cv,layout,opts){
       if(res.status==='ok')break;
     }
   }else{
-    pageIdx=(pageIdx==null)?(p.meta.pageIdx||0):pageIdx;
+    /* 页号钳制在版式范围内：历史记录/模板改版后 pageIdx 可能越界，越界会取到 undefined 版式而抛错 */
+    const maxIdx=Math.max(0,layout.pages.length-1);
+    pageIdx=(pageIdx==null)?(Math.min(maxIdx,p.meta.pageIdx||0)):Math.min(maxIdx,pageIdx);
     res=await recognizeCanvas(cv,layout,pageIdx,opts);
   }
+  /* 人工改判优先：识别失败（定位失败/解析异常）时也要保留用户显式指定的考号 */
+  if(opts.regOverride)res.studentNo=String(opts.regOverride).trim();
   /* 本次自动识别考号异常（或为空）时沿用原考号，避免批量重识别冲掉人工改判 */
   const badRead=!res.studentNo||res.studentNo.indexOf('_')>=0||res.studentNo.indexOf('?')>=0;
   const oldClean=p.studentNo&&p.studentNo.indexOf('_')<0&&p.studentNo.indexOf('?')<0;
@@ -4872,7 +4883,7 @@ async function renderGradeView(ex){
   }
   /* 快捷分按钮：0 起按步长递增至满分（0 与满分必含，最多 40 个，超限退化为常用分档）+ 按步长加减 */
   let scoreBtns='';
-  const dstep=Number(gradePref.step)||0.5;
+  const dstep=Math.max(0.5,Number(gradePref.step)||0.5);   /* 步长下限 0.5 */
   const eff=Number(gradePref.enhance)||0;
   const rstep=function(v){return Math.round(v*100)/100};
   const uniqs=[];
@@ -4921,12 +4932,12 @@ async function renderGradeView(ex){
     +'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-s btn-p" data-act="grade-manual" style="flex:1">写入</button>'
     +'<button class="btn btn-s" data-act="grade-clear-score" style="flex:1">清零</button></div>'
     +'<div class="f-row" style="margin-top:8px;align-items:center;gap:6px">'
-    +'<span class="kv" style="white-space:nowrap">给分步长</span>'
+    +'<span class="kv" style="white-space:nowrap" title="步长决定快捷分按钮：0 起按步长递增至满分（0 与满分必含）；最少 0.5">给分步长</span>'
     +'<select class="inp" style="width:76px" data-on="grade-step">'
-    +[0.1,0.5,1,2,5].map(function(x){return '<option value="'+x+'"'+(dstep===x?' selected':'')+'>'+x+'</option>'}).join('')
-    +'<option value="custom"'+(dstep!==0.1&&dstep!==0.5&&dstep!==1&&dstep!==2&&dstep!==5?' selected':'')+'>自定义</option>'
+    +[0.5,1,2,5].map(function(x){return '<option value="'+x+'"'+(dstep===x?' selected':'')+'>'+x+'</option>'}).join('')
+    +'<option value="custom"'+([0.5,1,2,5].indexOf(dstep)<0?' selected':'')+'>自定义</option>'
     +'</select>'
-    +'<input class="inp" id="gradeStepCustom" data-on="grade-step-custom" type="number" step="0.1" min="0.1" style="width:74px" placeholder="步长" value="'+dstep+'">'
+    +'<input class="inp" id="gradeStepCustom" data-on="grade-step-custom" type="number" step="0.5" min="0.5" style="width:74px" placeholder="≥0.5" value="'+dstep+'">'
     +'</div>'
     +'<div class="f-row" style="margin-top:6px;align-items:center;gap:6px">'
     +'<span class="kv" style="white-space:nowrap" title="对显示图做对比度拉伸与锐化，便于看清模糊字迹；只影响显示，不改动原图">图像增强</span>'
@@ -4996,10 +5007,11 @@ Object.assign(ACTS,{
   },
   'grade-step-custom':function(el){
     const v=parseFloat(el.value);
-    if(Number.isFinite(v)&&v>0){
-      gradePref.step=Math.round(v*100)/100;
+    if(Number.isFinite(v)&&v>=0.5){
+      gradePref.step=Math.min(10,Math.round(v*2)/2);   /* 步长最少 0.5，按 0.5 取整 */
       saveJSON(LS_GRADE,gradePref);
-    }
+      renderGrade();   /* 重新生成快捷分按钮（按钮集合随步长变化） */
+    }else if(el.value!==''){toast('步长最少 0.5','err')}
   },
   /* 图像增强档位：仅影响阅卷台显示，便于看清模糊字迹 */
   'grade-enhance':function(el){

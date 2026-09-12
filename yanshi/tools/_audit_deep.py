@@ -8,23 +8,32 @@
   · 重复 id / 段号连续性
 用法：python _audit_deep.py [--json out.json]
 """
-import os, re, sys, json, collections
+import os, re, sys, json, collections, html
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP = {'zixinli.html'}
 TAG = re.compile(r'<[^>]+>')
 WS = re.compile(r'\s+')
+NO = re.compile(r'<span class="no">.*?</span>', re.S)
 SEC_IDS = ['bg', 'jielu', 'app', 'acc', 'practice']
 
 
 def txt(s):
-    return WS.sub('', TAG.sub('', s))
+    return WS.sub('', html.unescape(TAG.sub('', NO.sub('', s))))
+
+
+def norm(s):
+    """去掉注音括号与标点差异，用于 pl/v-line 内容比对"""
+    s = txt(s)
+    s = re.sub(r'[（(][a-zA-Zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü0-9\s]*[)）]', '', s)
+    s = re.sub(r'[，。、；：！？“”‘’＇\'…—·＜＞《》\s]', '', s)
+    return s
 
 
 def blocks(src, cls):
-    """抓取 <div class="cls" ...>...</div> 的 innerHTML（按 div 深度配对）"""
+    """抓取 class 属性中包含 cls 的 <div>...</div> 的 innerHTML（按 div 深度配对）"""
     out = []
-    for m in re.finditer(r'<div class="%s"(?:\s[^>]*)?>' % cls, src):
+    for m in re.finditer(r'<div class="[^"]*\b%s\b[^"]*"[^>]*>' % cls, src):
         p = m.end()
         depth = 1
         while depth > 0:
@@ -97,12 +106,21 @@ def audit(fn):
     vls = [txt(x) for x in blocks(src, 'v-line')]
     vls = [x for x in vls if x]
     if pls and vls:
-        if len(pls) != len(vls):
-            iss['pl/v-line条数不符'].append('pl=%d v-line=%d' % (len(pls), len(vls)))
+        # pl 为全文句、v-line 为解读卡片句，允许粒度不同：拼接后内容须完全一致
+        a, b = ''.join(norm(x) for x in pls), ''.join(norm(x) for x in vls)
+        # 署名/日期落款（如信件末尾"维克多·雨果 1861年…"）不进解读卡片，允许 pl 尾部多出
+        if a == b:
+            pass
+        elif a.startswith(b) and len(a) - len(b) <= 30:
+            pass  # pl 尾部多出落款，属正常
+        elif b.startswith(a) and len(b) - len(a) <= 30:
+            pass  # v-line 尾部多出，属正常
+        elif len(pls) != len(vls):
+            iss['pl/v-line内容不符'].append('pl=%d v-line=%d' % (len(pls), len(vls)))
         else:
-            for i, (a, b) in enumerate(zip(pls, vls)):
-                if a != b:
-                    iss['pl/v-line文本不符'].append('第%d条 pl=%s vline=%s' % (i + 1, a[:18], b[:18]))
+            for i, (x, y) in enumerate(zip(pls, vls)):
+                if norm(x) != norm(y):
+                    iss['pl/v-line内容不符'].append('第%d条 pl=%s vline=%s' % (i + 1, txt(x)[:18], txt(y)[:18]))
                     break
     elif vls and not pls:
         iss['无fulltext'].append('v-line=%d' % len(vls))
@@ -182,7 +200,7 @@ def audit(fn):
     # ---- 9. 积累区空释义 ----
     for m in re.finditer(r'<div class="acc-item">(.*?)</div>\s*(?=<div class="acc-item"|</div>)', src, re.S):
         seg = m.group(1)
-        d = re.search(r'class="acc-d(?:esc)?">(.*?)</span>', seg, re.S)
+        d = re.search(r'class="acc-(?:d|desc|exp)">(.*?)</span>', seg, re.S)
         if d is None or not txt(d.group(1)):
             iss['积累区空释义'].append(txt(seg)[:12])
     for m in re.finditer(r'<div class="g-item">(.*?)</div>', src, re.S):
