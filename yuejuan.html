@@ -5926,42 +5926,74 @@ Object.assign(ACTS,{
     const book=await computeScorebook(el.dataset.id);
     if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
     const meta=book.meta;
+    const ex=book.exam||{};
     const rows=book.rows;
     const stu=function(r){return r.no+(r.name&&r.name.indexOf('（未匹配')<0?(' '+r.name):'')};
     const rateLv=function(pct){return pct>=80?'易':(pct>=60?'中':'难')};
     const T=examThresholdsOf(book.exam,book.objFull+book.subjFull);
     const handLv=function(pct){return pct>=T.exPct?'掌握良好':(pct>=T.passPct?'一般，需巩固':'薄弱，重点讲评')};
     const wb=XLSX.utils.book_new();
-    /* ---- ① 成绩册（按人） ---- */
-    const h1=['排名','考号','姓名','备注','客观题得分','客观题满分'];
-    meta.subjList.forEach(function(sq){h1.push('题'+sq.qno+'得分');h1.push('题'+sq.qno+'满分')});
-    h1.push('主观题得分','主观题满分','总分','全卷满分','得分率','状态');
-    const secList=(book.sections&&book.sections.length>1)?book.sections:[];
-    secList.forEach(function(sec,i2){h1.push('大题'+(i2+1)+'得分');h1.push('大题'+(i2+1)+'满分')});
-    const a1=[h1];
+    /* ---- ① 成绩册（按人）：常量（满分）全部提到表头/首部统计块，行内只放真实数据 ---- */
+    const fullQ={};
+    meta.choiceQnos.forEach(function(qn){fullQ[qn]=book.scoreOf(qn)});
+    meta.subjList.forEach(function(sq){fullQ[sq.qno]=sq.score});
+    const qnosAll=(book.itemStats||[]).map(function(it){return it.qno});
+    const isObjQ=function(qn){return meta.choiceQnos.indexOf(qn)>=0};
+    const gotOf=function(r,qn){
+      if(isObjQ(qn))return (r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;
+      const v=r.subj[qn];return (v&&v.score!=null)?Number(v.score):'';
+    };
+    const secList=book.sections||[];
+    const live=rows.filter(function(r){return !r.absent});
+    const absentN=rows.length-live.length;
+    const avgT=live.length?(live.reduce(function(a,r){return a+r.total},0)/live.length):0;
+    const maxT=live.length?Math.max.apply(null,live.map(function(r){return r.total})):0;
+    const minT=live.length?Math.min.apply(null,live.map(function(r){return r.total})):0;
+    const rateOf=function(lim){return live.length?Math.round(live.filter(function(r){return r.total>=lim}).length/live.length*100):0};
     const fullAll=book.objFull+book.subjFull;
+    const a1=[];
+    /* 首部统计块：考试/班级/人数/满分构成/分数线/总览 —— 取代原先每行重复的“满分”列 */
+    a1.push(['成绩册（按人）','',(ex.paperTitle||ex.name),'',(ex.className||'')]);
+    a1.push(['参考 '+live.length+' 人'+(absentN?('（缺考 '+absentN+'）'):''),'',
+      '全卷满分 '+fullAll+' 分（客观 '+book.objFull+' + 主观 '+book.subjFull+'）','',
+      '分数线：优秀≥'+th().ex+'　良好≥'+th().good+'　合格≥'+th().pass+' 分']);
+    a1.push(['平均总分 '+avgT.toFixed(1),'','最高 '+maxT,'最低 '+minT,'优秀率 '+rateOf(th().ex)+'%　及格率 '+rateOf(th().pass)+'%']);
+    a1.push([]);
+    /* 表头：各题/各段满分直接写在列名里 */
+    const h1=['排名','考号','姓名','备注'];
+    qnosAll.forEach(function(qn){h1.push('题'+qn+'('+fullQ[qn]+')')});
+    h1.push('客观('+book.objFull+')');
+    h1.push('主观('+book.subjFull+')');
+    secList.forEach(function(sec){h1.push(sec.title.replace(/^[一二三四五六七八九十]+、/,'')+'('+sec.full+')')});
+    h1.push('总分('+fullAll+')','得分率','等级/状态');
+    a1.push(h1);
     rows.forEach(function(r){
-      const line=[r.rank,r.no,r.name,r.note,r.absent?'':r.objScore,book.objFull];
-      meta.subjList.forEach(function(sq){
-        const sub=r.subj[sq.qno]||{};
-        line.push(sub.score!=null?sub.score:'',sub.full!=null?sub.full:sq.score);
-      });
-      line.push(r.absent?'':r.subjScore,book.subjFull,r.absent?'缺考':r.total,fullAll,
-        r.absent?'':((r.total/fullAll*100).toFixed(1)+'%'),
-        r.absent?'缺考':(r.subjGraded<meta.subjList.length?'阅卷中':'完成'));
+      const line=[r.rank,r.no,r.name,r.note];
+      qnosAll.forEach(function(qn){line.push(r.absent?'':gotOf(r,qn))});
+      line.push(r.absent?'':r.objScore);
+      line.push(r.absent?'':r.subjScore);
       secList.forEach(function(sec){
-        if(r.absent){line.push('',sec.full);return}
+        if(r.absent){line.push('');return}
         let sum=0;
         sec.qnos.forEach(function(qn){
-          if(meta.choiceQnos.indexOf(qn)>=0){sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;}
+          if(isObjQ(qn))sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;
           else{const v=r.subj[qn];sum+=((v&&v.score!=null)?Number(v.score):0);}
         });
-        line.push(sum,sec.full);
+        line.push(sum);
       });
+      if(r.absent){line.push('','','缺考');a1.push(line);return}   /* 总分/得分率留空，等级/状态=缺考 */
+      const lv=gradeLevelOf(r.total,th())[0];
+      const pending=(r.subjGraded<meta.subjList.length);
+      line.push(r.total,fullAll?((r.total/fullAll*100).toFixed(1)+'%'):'',pending?('阅卷中（'+lv+'）'):lv);
       a1.push(line);
     });
     const ws1=XLSX.utils.aoa_to_sheet(a1);
-    ws1['!cols']=h1.map(function(h2,i2){return {wch:(i2<4?12:10)}});
+    ws1['!cols']=h1.map(function(h2,i2){
+      if(i2<2)return {wch:6};
+      if(i2===2)return {wch:12};
+      if(i2===3)return {wch:14};
+      return {wch:Math.max(8,String(h2).length+2)};
+    });
     XLSX.utils.book_append_sheet(wb,ws1,'成绩册(按人)');
     /* ---- ② 讲评清单 ---- */
     const a2=[['讲评清单（按得分率升序：越靠前越需要重点讲评）'],[],['顺序','题号','题型','满分','班级平均','得分率','难度','掌握情况','讲评建议']];
