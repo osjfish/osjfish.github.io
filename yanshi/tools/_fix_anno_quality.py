@@ -33,7 +33,7 @@ REMOVE = {
     'yugongyishan-liezi.html': {'在', '有'},
     'zhouyafujunxiliu-simaqian.html': {'人'},
     # --- 现代文过度注释（常见词） ---
-    'beiying-zhuziqing.html': {'努力', '肥胖'},
+    'beiying-zhuziqing.html': {'努力', '肥胖', '渐渐'},
     'bianselong-qikefu.html': {'喜欢'},
     'daishangtadeyanjing-liucixin.html': {'花', '结束', '工作', '世界'},
     'dongwuxiaotan-kanglaodelunzi.html': {'工作'},
@@ -41,13 +41,22 @@ REMOVE = {
     'huanghelou-cuihao.html': {'树'},
     'huanghesong-guangweiran.html': {'学习'},
     'jinsehua-taigeer.html': {'突然'},
-    'laowang-yangjiang.html': {'悄悄', '明白'},
+    'laowang-yangjiang.html': {'悄悄', '明白', '渐渐'},
     'maitanweng-baijuyi.html': {'中'},
     'mao-zhengzhenduo.html': {'肥胖', '立刻'},
     'meilideyanse-aifujuli.html': {'完全'},
     'woaizhetudi-aiqing.html': {'然后'},
     'wokan-mudan.html': {'悄悄', '慢慢'},
     'xiangchou-yuguangzhong.html': {'母亲'},
+    # --- 本轮新增：现代文/说明文常见叠词与常用词过度注释（含被误判为文言的现代文篇章） ---
+    'shijiandejiaoyin-taoshilong.html': {'缓缓'},
+    'taiyangchuan-wuwangyao.html': {'缓缓'},
+    'yidishuijingguolijiang-alai.html': {'缓缓'},
+    'liefutuoersitai-ciweige.html': {'统统'},
+    'tengyexiansheng-luxun.html': {'时时'},
+    'zuihouyike-dude.html': {'觉得', '个个', '他们', '忽然', '但是', '然后'},
+    'wuyanzhimei-zhuguangqian.html': {'全部'},
+    'quqianwomendexiangxiang-yetaotao.html': {'自然', '肥胖'},
 }
 
 

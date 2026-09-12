@@ -327,6 +327,7 @@ body>*{position:relative;z-index:1}
   · <b style="color:#ffd857">计分（五轮累计零和）</b>：大和30分 · 杠上开花20分 · 屁胡10分<br>
   · 每局每人最多吃1次、碰1次；杠不限次数；赢方坐庄下局先出<br>
   · 赖子不能被别人吃碰杠；普通胡时手中最多1张赖子，杠上开不限<br>
+  · <b style="color:#ffd857">打法提示</b>：红中/发财杠属暗杠、<b>不算开口</b>；杠开不受「最多1张赖子」限制，能救活多赖子的手牌（但杠开算平胡、仍需开口；清一色/碰碰胡/七对不受此限）。所以手里有赖子时，不妨把红中/发财留作「弹药」——等牌型接近听牌再杠，补牌成和即 +20<br>
   · 牌墙摸完无人胡牌则流局，双方不得分；庄家不变
   </p>
   <button class="btn go" onclick="hideOv('ovRules')">返回</button>
@@ -1072,7 +1073,10 @@ function humanTurnUI(winRes,gangs){
         var shape258=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,opensNow),false);
         setHint(shape258?'已成牌型，但屁和需要先吃/碰/明杠一次':'已成牌型，但屁和的将必须是二、五、八');
       }else if(hasDead){
-        setHint('手里有红中/发财：它们不能参与组牌，必须先杠掉才能和牌（杠后补牌成和＝杠上开花 +20）');
+        var jcNow=0;
+        for(var q2=0;q2<G.hands[G.turn].length;q2++)if(G.hands[G.turn][q2]===G.joker)jcNow++;
+        if(jcNow>=2)setHint('手里有 '+jcNow+' 张赖子 + 红中/发财：普通和牌最多只能留 1 张赖子，所以只能靠杠开——把红中/发财留到牌成型后再杠，补牌成和＝杠上开花 +20（不受赖子数限制）');
+        else setHint('手里有红中/发财：不能参与组牌，杠掉才能和牌；牌快成型时不妨留到临门再杠——补牌成和就是杠上开花 +20');
       }
     }
     if(G.selected>=0){
@@ -1353,25 +1357,101 @@ function afterMeldClaim(){
   });
 }
 /* ---- AI 行为 ---- */
-function aiAct(winRes,gangs){
-  if(winRes){doWin(1,null,winRes);return;}
-  if(gangs.length){
-    _hsCache={};_bdCache={};
-    var hand=G.hands[1],sNow=handShanten(hand,G.joker,G.melds[1]);
-    var jc=0;hand.forEach(function(c){if(c===G.joker)jc++;});
-    for(var gi=0;gi<gangs.length;gi++){
-      var g=gangs[gi];
-      if(g.tile===G.joker&&jc<3)continue;        /* 杠赖子=用万能牌换盲牌，几乎必亏 */
-      /* 红中/发财是死牌：留在手里既不能组牌也不能打，杠掉等于白换一次摸牌（还可能杠上开花） */
-      if(g.tile==='hz'||g.tile==='fc'){doGang(g);return;}
-      var h2=hand.slice(),m2=G.melds[1].slice();
-      g.tiles.forEach(function(cc){var ix=h2.indexOf(cc);if(ix>=0)h2.splice(ix,1);});
-      m2.push({type:'杠',tiles:g.tiles.slice(),tile:g.tile,concealed:g.type==='暗杠'||g.type==='红中发财杠'});
-      /* 暗杠的第4张本是死牌，容忍向听+1；其余杠要求向听不变差 */
-      var tol=(g.type==='暗杠')?1:0;
-      if(handShanten(h2,G.joker,m2)<=sNow+tol){doGang(g);return;}
+/* 剩余未见牌统计（双方手牌以外的可见信息） */
+function remainCounts(myHand,myMelds,oppMelds,river,flip){
+  var remain={};
+  ALL_CODES.forEach(function(t){remain[t]=4;});
+  function use(t){if(remain[t]>0)remain[t]--;}
+  function useMeld(m){
+    var ts=(m.tiles&&m.tiles.length)?m.tiles
+      :(m.type==='吃'?[m.with[0],m.tile,m.with[1]]
+      :(m.type==='碰'?[m.tile,m.tile,m.tile]:[m.tile,m.tile,m.tile,m.tile]));
+    ts.forEach(use);
+  }
+  myHand.forEach(use);
+  (myMelds||[]).forEach(useMeld);
+  (oppMelds||[]).forEach(useMeld);
+  (river||[]).forEach(function(r){use(r.t);});
+  if(flip)use(flip);
+  return remain;
+}
+/* 杠掉 opt 之后，补牌能立即成和的牌种数（= 这次杠开尝试的成功面）
+   注：补杠要去掉原来的碰再换成杠，否则面子数会重复计算 */
+function kongWinDraws(hand,melds,opt,jokerId,openCount,remain){
+  var h2=hand.slice(),i;
+  opt.tiles.forEach(function(c){var ix=h2.indexOf(c);if(ix>=0)h2.splice(ix,1);});
+  var m2=melds.slice();
+  if(opt.type==='补杠'){
+    for(i=0;i<m2.length;i++)if(m2[i].type==='碰'&&m2[i].tile===opt.tile){m2.splice(i,1);break;}
+  }
+  m2.push({type:'杠',tiles:opt.tiles.slice(),tile:opt.tile,concealed:opt.type==='暗杠'||opt.type==='红中发财杠'});
+  var n=0;
+  for(var j=0;j<ALL_CODES.length;j++){
+    var w=ALL_CODES[j];
+    if(remain&&remain[w]===0)continue;
+    if(checkWin(h2.concat([w]),m2,jokerId,true,openCount))n++;
+  }
+  return n;
+}
+/* 杠决策（座位参数化，双方共用）：返回要杠的选项，或 null 表示不杠
+   策略：①能立刻补牌成和（杠开尝试）就杠 ②手握≥2张赖子时普通和牌被封死，红中/发财留着当杠开弹药，
+        只留一个触发器、多余的杠掉 ③赖子≥2且没别的触发器时，杠掉一张赖子降回1张换取和牌资格 */
+function chooseGang(pl,gangs){
+  if(!gangs||!gangs.length)return null;
+  var hand=G.hands[pl],melds=G.melds[pl],joker=G.joker;
+  _hsCache={};_bdCache={};
+  var openCount=countOpens(melds);
+  var jc=0;hand.forEach(function(c){if(c===joker)jc++;});
+  var remain=remainCounts(hand,melds,G.melds[1-pl],G.river,G.flip);
+  var k,i;
+  /* ①有杠能立刻补牌成和 → 现在就杠（「等牌成型再杠」的时机就是这里） */
+  var bestG=null,bestN=0,jokerGang=null,triggers=[];
+  for(k=0;k<gangs.length;k++){
+    var g=gangs[k];
+    if(g.tile===joker){jokerGang=g;continue;}
+    triggers.push(g);
+    var n=kongWinDraws(hand,melds,g,joker,openCount,remain);
+    if(n>bestN){bestN=n;bestG=g;}
+  }
+  if(bestG)return bestG;
+  /* ②是否「必须靠杠开才能和牌」：赖子≥2被判死；吃碰额度用完又没开口、大胡也不近，则平胡走不通 */
+  var mustKong=(jc>=2);
+  if(!mustKong&&openCount===0&&G.chiUsed[pl]&&G.pongUsed[pl]){
+    mustKong=(handInfo(hand,joker,melds).sBig>1);
+  }
+  if(mustKong&&triggers.length){
+    var keep=-1;
+    for(k=0;k<triggers.length;k++)if(triggers[k].tile==='hz'||triggers[k].tile==='fc'){keep=k;break;}
+    if(keep<0)keep=0;
+    for(k=0;k<triggers.length;k++)if(k!==keep)return triggers[k];   /* 留一个当弹药，其余杠掉 */
+    /* 只剩一个触发器 → 留着不杠（弹药） */
+  }else{
+    var sNow=handShanten(hand,joker,melds);
+    for(k=0;k<triggers.length;k++){
+      var g2=triggers[k];
+      if(g2.tile==='hz'||g2.tile==='fc')return g2;   /* 死牌，杠掉等于白换一次摸牌 */
+      var h2=hand.slice(),m2=melds.slice();
+      g2.tiles.forEach(function(cc){var ix=h2.indexOf(cc);if(ix>=0)h2.splice(ix,1);});
+      if(g2.type==='补杠'){
+        for(var mi=0;mi<m2.length;mi++)if(m2[mi].type==='碰'&&m2[mi].tile===g2.tile){m2.splice(mi,1);break;}
+      }
+      m2.push({type:'杠',tiles:g2.tiles.slice(),tile:g2.tile,concealed:g2.type==='暗杠'||g2.type==='红中发财杠'});
+      var tol=(g2.type==='暗杠')?1:0;
+      if(handShanten(h2,joker,m2)<=sNow+tol)return g2;
     }
   }
+  /* ③赖子≥2 且没有红中/发财/暗杠触发器 → 杠掉一张赖子解套 */
+  if(jc>=2&&jokerGang){
+    var h3=hand.slice(),jx=h3.indexOf(joker);if(jx>=0)h3.splice(jx,1);
+    var m3=melds.concat([{type:'杠',tiles:[joker],tile:joker,concealed:true}]);
+    if(handShanten(h3,joker,m3)<=1)return jokerGang;
+  }
+  return null;
+}
+function aiAct(winRes,gangs){
+  if(winRes){doWin(1,null,winRes);return;}
+  var chosen=chooseGang(1,gangs);
+  if(chosen){doGang(chosen);return;}
   var c=aiPickDiscard(G.hands[1],G.joker,G.melds[1],G.melds[0],
     G.river.filter(function(r){return r.by===0;}).map(function(r){return r.t;}),
     G.wall.length,G.flip);
@@ -1863,6 +1943,7 @@ function rvGlossaryHTML(){
     +'<b>进张</b>：能让手牌往听牌方向前进的牌。「5 种约 14 张」＝有 5 种牌、场上还没出现的大约 14 张。<br>'
     +'<b>危险度</b>：打出去后被电脑拿去和牌（点炮）的风险，分 低／中／高——档位是和你这一手里最安全的那张牌比出来的（危险 3 倍以上算「高」）。<br>'
     +'<b>红中/发财</b>：不能参与组牌（不能凑顺子、刻子或当将），手里留着就不能和牌，必须先杠掉——杠后补牌若成和，就是杠上开花（+20 分）。<br>'
+    +'<b>留「杠开弹药」</b>：杠开不受「最多 1 张赖子」限制，也没有被要求开口（大胡）——所以手里赖子多、或没开口时，把红中/发财留到牌型接近听牌再杠，比早早杠掉更值。<br>'
     +'<b>● 一致</b> 与引擎选择相同；<b>△ 小损</b> 有点亏但不严重；<b>✗ 失着</b> 明显失误，最该改的。'
     +'</div>';
 }
