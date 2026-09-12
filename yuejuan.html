@@ -731,7 +731,7 @@ function layoutTemplate(tpl,opts){
   function layoutChoiceAll(title,items){
     const pref=choiceLayoutOf(tpl);
     const optV=(pref.o==='v');
-    const fixedRows=(pref.q==='h')?(pref.rows>0?pref.rows:0):0;   /* 每列行数（仅题目横向排列生效，0=自动） */
+    const fixedRows=(pref.rows>0?pref.rows:0);   /* 每列行数（0=自动）：纵/横排列均生效，题号自上而下排满一列再右移 */
     const bw=4.2,bh=2.8,numW=11;
     const chOf=function(qn){
       const it=items.find(function(x){return String(x.qno)===String(qn)});
@@ -764,12 +764,7 @@ function layoutTemplate(tpl,opts){
       const headH=(part===0&&first)?SEC_H:0;
       const avail=availH()-headH-11;
       let nq=1,R=0,geom=null;
-      if(pref.q!=='h'){
-        /* 纵向：每题一行，按当前列高度放尽量多题 */
-        nq=1;
-        for(R=remaining;R>=1;R--){geom=rowGeom(R,1,idx);if(geom.accH<=avail)break}
-        if(R<1){if(!retried){retried=true;nextColOrPage();continue}retried=false;R=1;geom=rowGeom(1,1,idx)}
-      }else if(fixedRows>0){
+      if(fixedRows>0){
         /* 每列行数固定为 K：列数=ceil(remaining/K)（不超过宽度上限），末列允许不满；
            当前列放不下整块先换列/换页一次，仍放不下（行数超过页高）则收敛行数 */
         R=fixedRows;
@@ -781,8 +776,13 @@ function layoutTemplate(tpl,opts){
           geom=rowGeom(R,nq,idx);
         }
         retried=false;
+      }else if(pref.q!=='h'){
+        /* 纵向自动：每题一行（单列），按当前列高度放尽量多题 */
+        nq=1;
+        for(R=remaining;R>=1;R--){geom=rowGeom(R,1,idx);if(geom.accH<=avail)break}
+        if(R<1){if(!retried){retried=true;nextColOrPage();continue}retried=false;R=1;geom=rowGeom(1,1,idx)}
       }else{
-        /* 自动：R 从整列行数（最紧凑）向下试到当前列能容纳的最大值 */
+        /* 横向自动：R 从整列行数（最紧凑）向下试到当前列能容纳的最大值 */
         nq=widthNq;
         const Rmin=Math.ceil(remaining/nq);
         for(R=Rmin;R>=1;R--){geom=rowGeom(R,nq,idx);if(geom.accH<=avail)break}
@@ -2829,7 +2829,7 @@ async function tplEditorHTML(tplId){
     +'<option value="h"'+((t.choiceLayout&&t.choiceLayout.o==='v')?'':' selected')+'>横向（A B C D 并排）</option>'
     +'<option value="v"'+((t.choiceLayout&&t.choiceLayout.o==='v')?' selected':'')+'>纵向（A/B/C/D 逐行）</option>'
     +'</select>'
-    +'<span class="kv" title="题目横向排列时每一列放多少行题号（题号自上而下再右移一列），0=按高度自动排满">每列行数</span><input class="inp" style="width:64px" data-on="tpl-field" data-id="'+t.id+'" data-f="clrows" type="number" min="0" max="50" value="'+esc((t.choiceLayout&&t.choiceLayout.rows)||0)+'">'
+    +'<span class="kv" title="每一列放多少行题号（题号自上而下排满一列再右移一列）；0=自动——纵向单列排满、横向按高度排满">每列行数</span><input class="inp" style="width:64px" data-on="tpl-field" data-id="'+t.id+'" data-f="clrows" type="number" min="0" max="50" value="'+esc((t.choiceLayout&&t.choiceLayout.rows)||0)+'">'
     +'<span class="kv">（全部选择题默认集中排在答题卡最开头的一个大框内）</span>'
     +'</div></div>'
     +'<div class="card"><h3>题目清单（先设大题，再加大题下的小题）</h3>'
