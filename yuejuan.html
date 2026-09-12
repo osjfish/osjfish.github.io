@@ -3421,8 +3421,8 @@ async function examWizardOpen(examId){
   if(!classes.length){toast('请先创建班级','err');go('class');return}
   if(!tpls.length){toast('请先创建答题卡模板','err');go('tpl');return}
   const ex=examId?await dbGet('exams',examId):null;
-  /* 编辑已有考试时直接进入第 2 步（答案与分值）——这是最常改的内容；可点“上一步”改基本信息 */
-  wiz={examId:examId,step:(examId?2:1),
+  /* 编辑已有考试时直接打开「答案与分值」页签——这是最常改的内容；基本信息在第一个页签 */
+  wiz={examId:examId,tab:(examId?'ans':'base'),
     name:ex?ex.name:('期中考试 '+today()),
     paperTitle:ex?(ex.paperTitle||''):'',
     classId:ex?ex.classId:classes[0].id,
@@ -3448,8 +3448,12 @@ async function wizRender(){
   const tpl=tpls.find(function(t){return t.id===wiz.templateId})||tpls[0];
   const meta=await examMeta({templateId:tpl.id,id:wiz.examId||'wiz'});
   let body='';
-  if(wiz.step===1){
-    body='<div class="f-grid">'
+  const tabBtn=function(id,label){
+    return '<button class="btn btn-sm'+(wiz.tab===id?' btn-p':'')+'" data-act="wiz-tab" data-t="'+id+'" style="min-width:128px">'+label+'</button>';
+  };
+  body+='<div style="display:flex;gap:8px;margin-bottom:14px">'+tabBtn('base','① 基本信息')+tabBtn('ans','② 答案与分值')+'</div>';
+  if(wiz.tab==='base'){
+    body+='<div class="f-grid">'
       +'<div><label class="f-lb">考试名称</label><input class="inp" id="wizName" value="'+esc(wiz.name)+'"></div>'
       +'<div><label class="f-lb">班级</label><select class="inp" id="wizClass">'
       +classes.map(function(c){return '<option value="'+c.id+'"'+(c.id===wiz.classId?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')+'</select></div>'
@@ -3457,9 +3461,11 @@ async function wizRender(){
       +'<div><label class="f-lb">答题卡模板</label><select class="inp" id="wizTpl">'
       +tpls.map(function(t){return '<option value="'+t.id+'"'+(t.id===wiz.templateId?' selected':'')+'>'+esc(t.name)+'</option>'}).join('')+'</select></div>'
       +'</div>'
-      +'<div class="tip" style="margin-top:10px">模板：'+esc(tpl.name)+'（'+meta.choiceQnos.length+' 道客观题，'+meta.subjList.map(function(s){return esc(s.qno)}).join('、')+' 等主观题区）<br>客观题各题分值在下一步逐题设置（默认取模板中每题的分值）。</div>';
-  }else if(wiz.step===2){
+      +'<div class="tip" style="margin-top:10px">模板：'+esc(tpl.name)+'（'+meta.choiceQnos.length+' 道客观题，'+meta.subjList.map(function(s){return esc(s.qno)}).join('、')+' 等主观题区）<br>客观题各题分值在「答案与分值」页签逐题设置：已按模板中每题的分值预填，可直接修改，此处修改只影响本次考试（不回写模板）。</div>';
+  }else{
     const answers=wiz.answers;
+    const ansN=Object.keys(answers).length;
+    const objFull=meta.choiceQnos.reduce(function(a,qn){return a+wizScoreOf(qn,meta)},0);
     let cells='';
     meta.choiceQnos.forEach(function(qn,i){
       const a=answers[qn]||'';
@@ -3479,7 +3485,7 @@ async function wizRender(){
     let subjHtml='';
     meta.subjList.forEach(function(sq){
       const sc=wiz.subjective[sq.qno]||{score:sq.score,points:'',answer:''};
-      subjHtml+='<div class="card" style="margin-top:10px"><h3>主观题 '+esc(String(sq.qno))+'（'+(sq.parts.length>1?sq.parts.length+' 部分，':'')+'满分 '+esc(sc.score)+' 分）</h3>'
+      subjHtml+='<div class="card" style="margin-top:10px"><h3>主观题 '+esc(String(sq.qno))+'（'+(sq.parts.length>1?sq.parts.length+' 部分，':'')+'满分 '+esc(sc.score)+' 分'+(sc.points?'':'　<span style="color:var(--danger)">缺评分要点</span>')+'）</h3>'
         +'<div class="f-grid">'
         +'<div><label class="f-lb">满分</label><input class="inp" data-on="wiz-sub" data-q="'+esc(sq.qno)+'" data-f="score" type="number" step="0.5" value="'+esc(sc.score)+'"></div>'
         +'<div style="grid-column:1/-1"><label class="f-lb">评分要点（AI 辅助阅卷必填，逐条写明扣分点）</label>'
@@ -3488,27 +3494,12 @@ async function wizRender(){
         +'<textarea class="inp" rows="2" data-on="wiz-sub" data-q="'+esc(sq.qno)+'" data-f="answer">'+esc(sc.answer)+'</textarea></div>'
         +'</div></div>';
     });
-    body='<div class="kv" style="margin-bottom:8px">点击选项循环切换：空 → A → B → C → D → 空；共 '+meta.choiceQnos.length+' 道客观题。每题右侧可<b>单独调整分值</b>，各题互不影响。</div>'
+    body='<div class="kv" style="margin-bottom:8px">点击选项循环切换：空 → A → B → C → D → 空；共 '+meta.choiceQnos.length+' 道客观题，已录 <b>'+ansN+'</b> 题，客观满分 <b>'+objFull+'</b> 分。每题右侧分值已按模板预填，可<b>单独调整</b>（只影响本次考试；未改动的题沿用模板分值）。</div>'
       +'<div class="qgrid">'+cells+'</div>'+subjHtml;
-  }else{
-    const cls=classes.find(function(c){return c.id===wiz.classId});
-    const ansN=Object.keys(wiz.answers).length;
-    body='<div class="kv" style="line-height:2">'
-      +'<b>考试：</b>'+esc(wiz.name)+'<br>'
-      +'<b>班级：</b>'+esc(cls?cls.name:'')+'　<b>模板：</b>'+esc(tpl.name)+'<br>'
-      +(wiz.multi&&Object.keys(wiz.multi).length?'<span class="kv">多选 '+Object.keys(wiz.multi).length+' 题</span>　':'')
-      +'<b>客观题：</b>'+meta.choiceQnos.length+' 题，已录 '+ansN+' 题，客观满分 <b>'+meta.choiceQnos.reduce(function(a,qn){return a+wizScoreOf(qn,meta)},0)+'</b> 分（'+meta.choiceQnos.map(function(qn){return qn+'题='+wizScoreOf(qn,meta)+'分'}).join('、')+'）<br>'
-      +'<b>主观题：</b>'+meta.subjList.map(function(s){
-        const sc=wiz.subjective[s.qno]||{};
-        return esc(String(s.qno))+'（'+esc(sc.score!=null?sc.score:s.score)+'分'+(sc.points?'·已写评分要点':'·<span style="color:var(--danger)">缺评分要点</span>')+'）';
-      }).join('　')+'<br>'
-      +'<b>流程：</b>保存后 → 「扫描识别」上传扫描件 → 复核 → 阅卷 → 成绩</div>';
   }
   const foot=''+'<button class="btn" data-act="wiz-cancel">取消</button>'
-    +(wiz.step>1?'<button class="btn" data-act="wiz-prev">← 上一步</button>':'')
-    +(wiz.step<3?'<button class="btn btn-p" data-act="wiz-next">下一步 →</button>':'')
-    +(wiz.step===3?'<button class="btn btn-p" data-act="wiz-save">保存考试</button>':'');
-  dlg(body,{title:(wiz.examId?'编辑考试':'新建考试')+' · 第 '+wiz.step+'/3 步',foot:foot,wide:true});
+    +'<button class="btn btn-p" data-act="wiz-save">保存考试</button>';
+  dlg(body,{title:(wiz.examId?'编辑考试':'新建考试'),foot:foot,wide:true});
   afterRender(function(){
     const n=$('wizName'),c=$('wizClass'),tp=$('wizTpl'),pt=$('wizPaperTitle');
     if(pt)pt.addEventListener('input',function(){wiz.paperTitle=pt.value});
@@ -3520,8 +3511,7 @@ async function wizRender(){
 }
 Object.assign(ACTS,{
   'wiz-cancel':function(){wiz=null;dlgClose();renderExam()},
-  'wiz-next':function(){wiz.step++;wizRender()},
-  'wiz-prev':function(){wiz.step--;wizRender()},
+  'wiz-tab':function(el){wiz.tab=el.dataset.t;wizRender()},
   'wiz-ans':async function(el){
     const qn=el.dataset.q;
     const v=el.dataset.v;
