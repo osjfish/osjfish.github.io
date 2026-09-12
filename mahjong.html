@@ -801,10 +801,7 @@ function shantenSeven(cnt,J){
   return Math.max(-1,6-pairs-u-Math.floor(jl/2));
 }
 /* 综合向听数：取屁胡(二五八将)/清一色/碰碰胡/七对各路线的最优值；-1=已和牌形 */
-/* 牌型分值（与 checkWin 的计分一致）：屁胡10 · 杠上开花20 · 大胡30 */
-var PTS_FLAT=10,PTS_KONG=20,PTS_BIG=30;
-/* 向听数明细：sh=综合向听；sFlat=屁胡路线(二五八将)向听；sBig=大胡路线(清一色/碰碰胡/七对)向听 */
-function handInfo(hand,jokerId,meldInfo){
+function handShanten(hand,jokerId,meldInfo){
   var melds=Array.isArray(meldInfo)?meldInfo:null;
   var st=melds?structuralMeldTiles(melds):{tiles:[],hasSeq:false};
   var meldCount=melds?winMeldCount(melds):(meldInfo||0);
@@ -813,60 +810,24 @@ function handInfo(hand,jokerId,meldInfo){
   if(_hsCache[key]!==undefined)return _hsCache[key];
   var needSets=4-meldCount;
   var cm=countMap(hand,jokerId),cnt=cm.cnt,J=cm.jokers;
-  var out;
-  if(checkWin(hand,meldInfo,jokerId,true,1))out={sh:-1,sFlat:-1,sBig:-1};
+  var v;
+  if(checkWin(hand,meldInfo,jokerId,true,1))v=-1;
   else{
-    var sFlat=shantenCore(cnt,J,needSets,true,JIANG258);
-    var sBig=99;
+    v=shantenCore(cnt,J,needSets,true,JIANG258);
     if(melds&&st.tiles.length){                            /* 清一色路线：副露同花色才可行 */
       var s0=st.tiles[0][0],ok=true;
       for(var i=0;i<st.tiles.length;i++)if(st.tiles[i][0]!==s0){ok=false;break;}
-      if(ok)sBig=Math.min(sBig,shantenCore(suitCnt(cnt,s0),J,needSets,true,null));
+      if(ok)v=Math.min(v,shantenCore(suitCnt(cnt,s0),J,needSets,true,null));
     }else if(meldCount===0){                               /* 无副露：三个花色的清一色都试 */
       ['m','t','d'].forEach(function(s){
-        sBig=Math.min(sBig,shantenCore(suitCnt(cnt,s),J,needSets,true,null));
+        v=Math.min(v,shantenCore(suitCnt(cnt,s),J,needSets,true,null));
       });
     }
-    if(!st.hasSeq)sBig=Math.min(sBig,shantenCore(cnt,J,needSets,false,null)); /* 碰碰胡路线 */
-    if(meldCount===0)sBig=Math.min(sBig,shantenSeven(cnt,J));    /* 七对路线 */
-    out={sh:Math.min(sFlat,sBig),sFlat:sFlat,sBig:sBig};
+    if(!st.hasSeq)v=Math.min(v,shantenCore(cnt,J,needSets,false,null)); /* 碰碰胡路线 */
+    if(meldCount===0)v=Math.min(v,shantenSeven(cnt,J));    /* 七对路线 */
   }
-  _hsCache[key]=out;
-  return out;
-}
-function handShanten(hand,jokerId,meldInfo){
-  return handInfo(hand,jokerId,meldInfo).sh;
-}
-/* 手里是否有「杠了不亏、还能博杠上开花」的杠牌机会（杠后牌型结构不变，补牌自摸即20分）：
-   ①暗杠：手里4张同牌（第4张本是闲张，杠掉换来一次补牌）
-   ②补杠：已碰过的牌又摸到第4张
-   注：单张红中/发财杠不在此列——听牌时它必是牌型的一部分，杠掉反而拆牌 */
-function kongChance(hand,jokerId,melds){
-  var i,j;
-  if(melds)for(i=0;i<melds.length;i++){
-    if(melds[i].type==='碰')
-      for(j=0;j<hand.length;j++)if(hand[j]===melds[i].tile&&hand[j]!==jokerId)return true;
-  }
-  for(i=0;i<hand.length;i++){
-    var c=hand[i];
-    if(c===jokerId)continue;
-    var n=0;
-    for(j=0;j<hand.length;j++)if(hand[j]===c)n++;
-    if(n>=4)return true;
-  }
-  return false;
-}
-/* 分值加权价值：同样接近听牌时，大胡(30分)比屁胡(10分)更值钱；
-   听牌且手握可杠牌时，胡牌可能是杠上开花(20分)，价值上浮 */
-var BIG_VALUE_W=2.0;      /* 大胡路线价值权重（30/10=3，取2作保守折扣） */
-var KONG_TENPAI_W=1.8;    /* 听牌+可杠（杠上开花20分）的价值上浮 */
-function handValue(hand,jokerId,meldInfo){
-  var info=handInfo(hand,jokerId,meldInfo);
-  if(info.sh<=-1)return 1e6;
-  var flatW=(info.sFlat===0&&kongChance(hand,jokerId,meldInfo))?KONG_TENPAI_W:1;
-  var vFlat=shantenScore(info.sFlat)*flatW;
-  var vBig=info.sBig<99?shantenScore(info.sBig)*BIG_VALUE_W:0;
-  return Math.max(vFlat,vBig);
+  _hsCache[key]=v;
+  return v;
 }
 /* 向听数 → 期望模拟用的效用分 */
 function shantenScore(s){
@@ -908,20 +869,6 @@ function oppThreatLevel(oppMelds,oppRiverTiles,wallLen){
   }
   return Math.min(t,0.9);
 }
-/* 对手可能的胡牌分值（公开信息估计）：副露≥2组且单花色→清一色苗头，全刻子无顺子→碰碰胡苗头，都是30分 */
-function oppPtsEstimate(oppMelds,oppRiverTiles){
-  var st=structuralMeldTiles(oppMelds);
-  if(!st.tiles.length||oppMelds.length<2)return PTS_FLAT;  /* 证据不足：按屁胡估（七对无法从公开信息判断） */
-  var suit0=null,sameSuit=true;
-  for(var i=0;i<st.tiles.length;i++){
-    var t=st.tiles[i];
-    if(isHonor(t)){sameSuit=false;break;}
-    if(suit0===null)suit0=t[0];else if(t[0]!==suit0){sameSuit=false;break;}
-  }
-  if(sameSuit)return PTS_BIG;                            /* 清一色苗头 */
-  if(!st.hasSeq)return PTS_BIG;                          /* 碰碰胡苗头 */
-  return PTS_FLAT;
-}
 /* 弃牌选择：对每个候选打出牌，枚举全部可摸牌按剩余张数加权平均效用（期望模拟一层），
    再叠加防炮惩罚；危险时进入弃和模式只求安全 */
 /* 弃牌评估：对每个合法候选算「进张期望 - 危险惩罚」，返回按综合分降序的列表。
@@ -959,15 +906,13 @@ function rankDiscards(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip){
   if(!total)total=1;
   var myS=handShanten(hand,jokerId,myMelds);
   var threat=oppThreatLevel(oppMelds,oppRiverTiles,wallLen);
-  var oppPts=oppPtsEstimate(oppMelds,oppRiverTiles);
-  var ptRisk=oppPts/PTS_FLAT;   /* 点炮失分权重：对手越像大胡，放炮越贵（30分=3倍） */
   var lambda=threat*(myS>=3?5:(myS===2?2.2:0.8));
   var pureFold=(myS>=3&&threat>=0.5)||(myS>=2&&threat>=0.72);
   var scored=uniq.map(function(c){
     var rest=hand.slice(),ix=rest.indexOf(c);rest.splice(ix,1);
     var shV=handShanten(rest,jokerId,myMelds);
     var ev=0,impT=0,impN=0,winT=0,winN=0;
-    /* 遍历全部可摸牌：既算「按分值加权的期望收益」，也统计有几种几张能进步/直接成和 */
+    /* 遍历全部可摸牌：既算期望值，也统计「有几种几张能让手牌进步/直接成和」 */
     for(var j=0;j<ALL_CODES.length;j++){
       var t=ALL_CODES[j],r=remain[t];
       if(!r)continue;
@@ -975,12 +920,11 @@ function rankDiscards(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip){
       var s2=handShanten(h2,jokerId,myMelds);
       if(s2<shV){impT++;impN+=r;}
       if(shV===0&&s2===-1){winT++;winN+=r;}
-      if(!pureFold)ev+=r*(handValue(h2,jokerId,myMelds)+structureScore(h2,jokerId)/60);
+      if(!pureFold)ev+=r*(shantenScore(s2)+structureScore(h2,jokerId)/60);
     }
     if(!pureFold)ev/=total;
     else ev=structureScore(rest,jokerId)/40;   /* 弃和：留相对成型的牌，安全第一 */
-    /* 危险惩罚按对手可能的胡牌分值折算（放炮送 30 分比送 10 分贵 3 倍） */
-    var penV=lambda*tileDanger(c,oppMelds,oppRiverTiles,jokerId)*45*ptRisk;
+    var penV=lambda*tileDanger(c,oppMelds,oppRiverTiles,jokerId)*45;
     return {c:c,ev:Math.round(ev),pen:Math.round(penV),v:ev-penV,sh:shV,
       impT:impT,impN:impN,winT:winT,winN:winN};
   });
