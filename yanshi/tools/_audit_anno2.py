@@ -75,6 +75,14 @@ def parse_dict(src, name):
     return out
 
 
+# 这些注释属于「必须保留」的合法注释，不算过度注释/空注：
+# 多音字注音、古今异义、语境义/修辞、方言口语、通假、文化常识
+VALID_MARK = re.compile(
+    r'读\s*[a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]|[（(][a-zāáǎà].{0,12}[)）]'
+    r'|文中|这里指|古今|方言|通[「“]|反语|拟人|比喻义|象征|借代|词类活用|意动|使动'
+    r'|呼应|全文|情感载体|炼字|修辞|双关|叠词')
+
+
 def covered(word, anno_words):
     """包含匹配：注释词常多/少一个虚字"""
     if word in anno_words:
@@ -101,33 +109,42 @@ def audit(path):
 
     for w, note in annos:
         n = (note or '').strip()
-        # 1) 注释词本身是标点
-        if w and not re.search(r'[\u4e00-\u9fff A-Za-z]', w):
+        # 1) 注释词本身是标点（纯数字是术语编号，如跳水动作「5136」，不算）
+        if w and not re.search(r'[\u4e00-\u9fff A-Za-z]', w) and not w.isdigit():
             issues['注释词是标点'].append('%s=%s' % (w, n))
             remove.append((w, n, '注释词是标点'))
         # 2) 注释等于词 / 空
         elif not n or n == w:
             issues['无效注释(空/等于词)'].append(w or '(空)')
             remove.append((w, n, '无效注释'))
-        # 3) 现代文注了人人都会的词
-        elif not classical and w in TRIVIAL:
+        # 3) 现代文注了人人都会的词（多音字/语境义/古今异义等合法注释豁免）
+        elif not classical and w in TRIVIAL and not VALID_MARK.search(n):
             issues['现代文过度注释'].append('%s=%s' % (w, n[:24]))
             remove.append((w, n, '常见词'))
-        # 4) 现代文注释过短（<3字）多半没信息量
-        elif not classical and len(n) < 3 and w not in ('曰',):
-            issues['现代文注释过短'].append('%s=%s' % (w, n))
+        # 4) 现代文注释过短（<3字）且非合法注释类型
+        elif not classical and len(n) < 3 and w not in ('曰',) and not VALID_MARK.search(n):
+            issues['现代文短注(待确认)'].append('%s=%s' % (w, n))
 
     # DICT_NOTES 覆盖（注释默写应考「课文注释过」或「积累区收过」的词）
     if dn:
         pool = anno_words + acc_words(src)
+        acc_text = ''
+        k = src.find('id="acc"')
+        if k >= 0:
+            t = src.find('id="practice"', k)
+            acc_text = strip_tags(src[k:t if t > 0 else k + 40000])
         miss = [d.get('w') for d in dn if isinstance(d, dict)
-                and d.get('w') and not covered(d['w'], pool)]
+                and d.get('w') and not covered(d['w'], pool)
+                and d['w'] not in acc_text]
         if miss:
             issues['注释默写词无出处'].append(','.join(miss[:6]) + ('(%d)' % len(miss)))
     # DICT_WORDS 字应出现在课文中
     if dw:
+        # 叠词/连绵词答案（鹤鹤、扭扭、蹑蹑…）在课文里不连续出现属正常，
+        # 逐字存在即视为有效；只报「字根本不在课文里」的真错误
         out = [d.get('w') for d in dw if isinstance(d, dict)
-               and d.get('w') and d['w'] not in text]
+               and d.get('w') and d['w'] not in text
+               and not all(c in text for c in d['w'])]
         if out:
             issues['字形题字不在课文'].append(','.join(out[:6]) + ('(%d)' % len(out)))
 
