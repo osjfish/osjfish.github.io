@@ -2509,8 +2509,22 @@ async function examData(examId){
   const pages=await dbByIdx('pages','byExam',examId);
   const crops=await dbByIdx('crops','byExam',examId);
   const revs=await dbByIdx('revs','byExam',examId);
-  const students=exam?await dbByIdx('students','byClass',exam.classId):[];
+  const students=exam?await examStudentsOf(exam):[];
   return {exam:exam,pages:pages,crops:crops,revs:revs,students:students};
+}
+/* 考试关联的班级列表：新数据 classIds 数组（可多选）；旧数据单个 classId 自动兼容 */
+function examClassIdsOf(ex){
+  if(ex&&Array.isArray(ex.classIds)&&ex.classIds.length)return ex.classIds.filter(function(x){return x});
+  return (ex&&ex.classId)?[ex.classId]:[];
+}
+/* 考试的全部学生 = 所选班级学生的并集（按学生记录去重） */
+async function examStudentsOf(ex){
+  const ids=examClassIdsOf(ex),out=[],seen={};
+  for(const id of ids){
+    const list=await dbByIdx('students','byClass',id);
+    list.forEach(function(s){if(!seen[s.id]){seen[s.id]=1;out.push(s)}});
+  }
+  return out;
 }
 async function examMeta(exam){
   if(!exam)return null;
@@ -2685,11 +2699,13 @@ async function renderHome(){
   if(exams.length){
     examCards='<div class="card"><h3>最近考试</h3><div class="exam-grid">';
     for(const ex of exams.slice(0,6)){
-      const cls=classes.find(function(c){return c.id===ex.classId});
+      const cids=examClassIdsOf(ex);
+      const missing=cids.filter(function(id){return !classes.some(function(c){return c.id===id})}).length;
+      const clsTxt=(ex.className||'（班级已删）')+(missing?'（班级有删减）':'');
       const st=statusMap[ex.id]||{badge:badge('gray','—'),label:'—'};
       examCards+='<div class="exam-card">'
         +'<div class="t"><span>'+esc(ex.name)+'</span>'+st.badge+'</div>'
-        +'<div class="meta">'+esc(cls?cls.name:'（班级已删）')+'　·　'+esc(ex.templateName||'')+'<br>'+esc(ex.createdAt||'')+'<br><b>'+esc(st.label)+'</b></div>'
+        +'<div class="meta">'+esc(clsTxt)+'　·　'+esc(ex.templateName||'')+'<br>'+esc(ex.createdAt||'')+'<br><b>'+esc(st.label)+'</b></div>'
         +'<div class="acts">'
         +'<button class="btn btn-s btn-p" data-act="exam-open" data-id="'+ex.id+'" data-to="scan">识别</button>'
         +'<button class="btn btn-s btn-b" data-act="exam-open" data-id="'+ex.id+'" data-to="grade">阅卷</button>'
@@ -3419,9 +3435,11 @@ async function renderExam(){
     try{statusMap=await examStatusMap(exams.map(function(e){return e.id}))}catch(e){}
     for(const ex of exams){
       const st=statusMap[ex.id]||{badge:badge('gray','—'),label:'—'};
+      const cids=examClassIdsOf(ex);
+      const clsMissing=cids.filter(function(id){return !classes.some(function(c){return c.id===id})}).length;
       cards.push('<div class="exam-card">'
         +'<div class="t"><span>'+esc(ex.name)+'</span>'+st.badge+'</div>'
-        +'<div class="meta"><b>'+esc(ex.className||'（班级已删）')+'</b>　·　'+esc(ex.templateName||'')+'　·　'+esc(ex.createdAt||'')+'<br>'
+        +'<div class="meta"><b>'+esc(ex.className||'（班级已删）')+'</b>'+(clsMissing?'<span style="color:var(--warn)">（班级有删减）</span>':'')+'　·　'+esc(ex.templateName||'')+'　·　'+esc(ex.createdAt||'')+'<br>'
         +esc(st.label)+'</div>'
         +'<div class="acts">'
         +'<button class="btn btn-s btn-p" data-act="exam-open" data-id="'+ex.id+'" data-to="scan">扫描</button>'
@@ -3480,7 +3498,10 @@ async function examWizardOpen(examId){
   wiz={examId:examId,tab:(examId?'ans':'base'),
     name:ex?ex.name:('期中考试 '+today()),
     paperTitle:ex?(ex.paperTitle||''):'',
-    classId:(ex&&classes.some(function(c){return c.id===ex.classId}))?ex.classId:classes[0].id,
+    classIds:(function(){
+      const ids=examClassIdsOf(ex).filter(function(id){return classes.some(function(c){return c.id===id})});
+      return ids.length?ids:[classes[0].id];
+    })(),
     templateId:(ex&&tpls.some(function(t){return t.id===ex.templateId}))?ex.templateId:tpls[0].id,
     perScore:ex?ex.perScore:null,
     answers:ex?JSON.parse(JSON.stringify(ex.answers||{})):{},
@@ -3510,8 +3531,8 @@ async function wizRender(){
   if(wiz.tab==='base'){
     body+='<div class="f-grid">'
       +'<div><label class="f-lb">考试名称</label><input class="inp" id="wizName" value="'+esc(wiz.name)+'"></div>'
-      +'<div><label class="f-lb">班级</label><select class="inp" id="wizClass">'
-      +classes.map(function(c){return '<option value="'+c.id+'"'+(c.id===wiz.classId?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')+'</select></div>'
+      +'<div><label class="f-lb">班级（可多选勾选）</label><div id="wizClasses" style="display:flex;flex-wrap:wrap;gap:6px 16px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:40px;max-height:132px;overflow:auto">'
+      +classes.map(function(c){return '<label class="kv" style="display:flex;align-items:center;gap:5px;margin:0;white-space:nowrap;cursor:pointer"><input type="checkbox" class="wizClsChk" value="'+c.id+'"'+(wiz.classIds.indexOf(c.id)>=0?' checked':'')+'> '+esc(c.name)+'</label>'}).join('')+'</div></div>'
       +'<div><label class="f-lb">答题卡标题（印在卡面顶部）</label><input class="inp" id="wizPaperTitle" value="'+esc(wiz.paperTitle||'')+'" placeholder="如：2026学年期中考试 语文答题卡"></div>'
       +'<div><label class="f-lb">答题卡模板</label><select class="inp" id="wizTpl">'
       +tpls.map(function(t){return '<option value="'+t.id+'"'+(t.id===wiz.templateId?' selected':'')+'>'+esc(t.name)+'</option>'}).join('')+'</select></div>'
@@ -3560,10 +3581,12 @@ async function wizRender(){
     +'<button class="btn btn-p" data-act="wiz-save">保存考试</button>';
   dlg(body,{title:(wiz.examId?'编辑考试':'新建考试'),foot:foot,wide:true});
   afterRender(function(){
-    const n=$('wizName'),c=$('wizClass'),tp=$('wizTpl'),pt=$('wizPaperTitle');
+    const n=$('wizName'),tp=$('wizTpl'),pt=$('wizPaperTitle'),clsBox=$('wizClasses');
     if(pt)pt.addEventListener('input',function(){wiz.paperTitle=pt.value});
     if(n)n.addEventListener('input',function(){wiz.name=n.value});
-    if(c)c.addEventListener('change',function(){wiz.classId=c.value});
+    if(clsBox)clsBox.addEventListener('change',function(){
+      wiz.classIds=[...clsBox.querySelectorAll('.wizClsChk:checked')].map(function(x){return x.value});
+    });
     /* 换模板后题号体系可能不同，逐题分值需按新模板重取 */
     if(tp)tp.addEventListener('change',function(){wiz.templateId=tp.value;wiz.perQScore={};wizRender()});
   });
@@ -3635,10 +3658,11 @@ Object.assign(ACTS,{
   },
   'wiz-save':async function(){
     if(!wiz.name.trim()){toast('请填写考试名称','err');return}
+    const classIds=(wiz.classIds||[]).filter(function(id){return id});
+    if(!classIds.length){toast('请至少勾选一个班级','err');return}
     const ex=wiz.examId?await dbGet('exams',wiz.examId):null;
     const classes=await dbAll('classes');
     const tpls=await dbAll('templates');
-    const cls=classes.find(function(c){return c.id===wiz.classId});
     const tpl=tpls.find(function(t){return t.id===wiz.templateId});
     const ansN=Object.keys(wiz.answers).length;
     const meta=await examMeta({templateId:wiz.templateId});
@@ -3646,11 +3670,25 @@ Object.assign(ACTS,{
       const ok=await dlgConfirm('答案未录完','客观题共 '+meta.choiceQnos.length+' 题，当前只录了 '+ansN+' 题。<br>未录答案的题目将判为「错/空白」，确定继续保存？','仍要保存');
       if(!ok)return;
     }
+    /* 多班合考：考号跨班重复时姓名归属有歧义，保存前明确提醒 */
+    const stuList=[];const seenStu={};
+    for(const cid of classIds){(await dbByIdx('students','byClass',cid)).forEach(function(s){if(!seenStu[s.id]){seenStu[s.id]=1;stuList.push(s)}})}
+    const byNo={};let dupN=0;const dupEg=[];
+    stuList.forEach(function(s){
+      if(!s.no)return;
+      if(byNo[s.no]){dupN++;if(dupEg.length<3)dupEg.push(s.no+'（'+byNo[s.no].name+' / '+s.name+'）')}
+      else byNo[s.no]=s;
+    });
+    if(dupN){
+      const okd=await dlgConfirm('考号跨班重复','所选班级间有 '+dupN+' 个考号重复（如 '+esc(dupEg.join('、'))+'）。<br>重复考号的学生在成绩册中难以区分，确定继续保存？','仍要保存');
+      if(!okd)return;
+    }
     const rec=ex||{id:uid('exm_')};
     rec.name=wiz.name.trim();
     rec.paperTitle=(wiz.paperTitle||'').trim();
-    rec.classId=wiz.classId;
-    rec.className=cls?cls.name:'';
+    rec.classIds=classIds;
+    rec.classId=classIds[0];   /* 兼容旧字段读取 */
+    rec.className=classIds.map(function(id){const c=classes.find(function(x){return x.id===id});return c?c.name:''}).filter(Boolean).join('、');
     rec.templateId=wiz.templateId;
     rec.templateName=tpl?tpl.name:'';
     rec.perScore=null; /* 已改为逐题分值（perQScore/模板），保留字段供旧版本读取 */
@@ -3686,8 +3724,7 @@ async function renderScan(){
   const ex=await dbGet('exams',ui.scanExam);
   const meta=await examMeta(ex);
   if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('!','考试「'+esc(ex.name)+'」使用的答题卡模板不存在或已删除。<br>请到「答题卡模板」恢复模板后重试。')+'</div>';return}
-  const cls=await dbGet('classes',ex.classId);
-  const students=await dbByIdx('students','byClass',ex.classId);
+  const students=await examStudentsOf(ex);
   const pages=await dbByIdx('pages','byExam',ex.id);
   const rev=await examReviewCount(ex.id);
   let html='<div class="card"><h3>当前考试</h3>'
@@ -4732,7 +4769,7 @@ async function renderGradeView(ex){
   if(gradeCtx.idx>=gradeCtx.order.length)gradeCtx.idx=gradeCtx.order.length-1;
   const no=gradeCtx.order[gradeCtx.idx];
   if(no==null){ui.gradeQno=null;renderGrade();return}
-  const students=await dbByIdx('students','byClass',ex.classId);
+  const students=await examStudentsOf(ex);
   const stu=students.find(function(s){return String(s.no)===String(no)});
   const cropsAll=await dbByIdx('crops','byExam',ex.id);
   const parts=cropsAll.filter(function(c){return c.studentNo===no&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
