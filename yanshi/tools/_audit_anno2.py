@@ -14,6 +14,21 @@ SKIP = {'zixinli.html'}
 ANNO_RE = re.compile(r'(<span class="anno-word"[^>]*data-note="([^"]*)"[^>]*>)(.*?)(</span>)', re.S)
 TAG_STRIP = re.compile(r'<[^>]+>')
 
+# 积累区词条有多种模板：acc-w 词条卡 / g-item 的 dt / 表格 td.kai / b.term 术语
+ACC_PATTERNS = [
+    re.compile(r'<span class="acc-w(?:ord)?">(.*?)</span>', re.S),
+    re.compile(r'<dt>(.*?)</dt>', re.S),
+    re.compile(r'<td class="kai">(.*?)</td>', re.S),
+    re.compile(r'<b class="term">(.*?)</b>', re.S),
+]
+
+
+def acc_words(src):
+    out = []
+    for p in ACC_PATTERNS:
+        out += [strip_tags(m.group(1)) for m in p.finditer(src)]
+    return out
+
 # 初中生显然已掌握、不该注的词（仅用于现代文）
 TRIVIAL = set("""
 的 了 是 在 有 我 你 他 她 它 们 这 那 上 下 里 中 个 得 着 过 和 与 把 被 对 从 到
@@ -102,12 +117,13 @@ def audit(path):
         elif not classical and len(n) < 3 and w not in ('曰',):
             issues['现代文注释过短'].append('%s=%s' % (w, n))
 
-    # DICT_NOTES 覆盖（注释默写应考已注释的词）
+    # DICT_NOTES 覆盖（注释默写应考「课文注释过」或「积累区收过」的词）
     if dn:
+        pool = anno_words + acc_words(src)
         miss = [d.get('w') for d in dn if isinstance(d, dict)
-                and d.get('w') and not covered(d['w'], anno_words)]
+                and d.get('w') and not covered(d['w'], pool)]
         if miss:
-            issues['注释默写词未在课文注释'].append(','.join(miss[:6]) + ('(%d)' % len(miss)))
+            issues['注释默写词无出处'].append(','.join(miss[:6]) + ('(%d)' % len(miss)))
     # DICT_WORDS 字应出现在课文中
     if dw:
         out = [d.get('w') for d in dw if isinstance(d, dict)

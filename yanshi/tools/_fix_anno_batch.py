@@ -34,7 +34,8 @@ def clean_notes(src, words):
         nonlocal n
         body = m.group(2)
         for w in words:
-            new, k = re.subn(r"\{[^{}]*['\"]w['\"]\s*:\s*['\"]%s['\"][^{}]*\}\s*,?\s*" % re.escape(w), '', body)
+            # 键名/值都可能是单引号、无引号（如 {w:'注', ...}）
+            new, k = re.subn(r"\{[^{}]*?['\"]?w['\"]?\s*:\s*['\"]%s['\"][^{}]*?\}\s*,?\s*" % re.escape(w), '', body)
             if k:
                 n += k
                 body = new

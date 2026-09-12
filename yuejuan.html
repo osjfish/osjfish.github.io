@@ -4420,7 +4420,7 @@ async function renderGrade(){
           +'</div>'
           +'<div style="width:160px"><div class="progress"><div style="width:'+(total?Math.round(done/total*100):0)+'%"></div></div></div>'
           +'<button class="btn btn-s btn-p" data-act="grade-open-q" data-q="'+esc(String(sq.qno))+'">开始阅卷</button>'
-          +'<button class="btn btn-s btn-o" data-act="grade-ai-batch-open" data-q="'+esc(String(sq.qno))+'">AI 预阅未评分</button>'
+          +'<button class="btn btn-s btn-o" data-act="grade-ai-batch-open" data-q="'+esc(String(sq.qno))+'">'+(list.some(function(c){return c.aiScore!=null})?'AI 已预阅（可重跑未评分）':'AI 预阅未评分')+'</button>'
           +'</div>';
       }
     }
@@ -5521,6 +5521,9 @@ async function renderSet(){
   $('page').innerHTML=html;
   afterRender(async function(){
     bindFileInput('backupFile',function(files){backupImport(files[0])});
+    /* API Key 输入即自动落盘（400ms 防抖）——忘记点保存也不再丢失 */
+    const kd=$('aiKey');
+    if(kd){let kt=null;kd.addEventListener('input',function(){clearTimeout(kt);kt=setTimeout(function(){ai.keys=ai.keys||{};ai.keys[ai.provider]=kd.value.trim();saveJSON(LS_AI,ai)},400)})}
     try{
       if(navigator.storage&&navigator.storage.estimate){
         const est=await navigator.storage.estimate();
@@ -5533,6 +5536,9 @@ async function renderSet(){
 }
 Object.assign(ACTS,{
   'ai-provider':function(el){
+    /* 切换服务商前，先把当前输入框里的 Key 落盘，避免未点保存就切换导致丢失 */
+    const k=$('aiKey');
+    if(k){ai.keys=ai.keys||{};ai.keys[ai.provider]=k.value.trim();saveJSON(LS_AI,ai)}
     ai.provider=el.value;
     renderSet();
   },
@@ -5552,6 +5558,7 @@ Object.assign(ACTS,{
   'ai-test':async function(){
     if(!ai.keys[ai.provider]&&!($('aiKey').value.trim())){toast('请先填写 API Key','err');return}
     ai.keys[ai.provider]=$('aiKey').value.trim();
+    saveJSON(LS_AI,ai);   /* 测试前落盘，避免测完不保存而丢 Key */
     const p=ai.provider,m=$('aiModelCustom').value.trim()||$('aiModel').value;
     const url=p==='custom'?$('aiCustomUrl').value.trim():PROVIDERS[p].url;
     if(!url){toast('请填写接口地址','err');return}
