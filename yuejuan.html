@@ -4157,7 +4157,9 @@ Object.assign(ACTS,{
       const layout=layoutTemplate(tpl);
       const {cv}=await blobCanvas(await getBlob(p.id),2200);
       await redoPage(p,cv,layout,{regOverride:no});
-      toast('已更新','ok');
+      /* 同一份答题卡的续页（第2张起）自动归属到改判后的考号 */
+      const nSub=await propagateRegOverride(p,no);
+      toast(nSub?('已更新，'+nSub+' 张续页已归属考号 '+no):'已更新','ok');
       renderScan();
     }catch(err){toast('重识别失败：'+err.message,'err')}
   },
@@ -4308,6 +4310,50 @@ Object.assign(ACTS,{
     }).join(''),{title:'定位失败（'+rev.locate.length+' 页）',wide:true});
   }
 });
+/* 把某页的裁剪图归属迁移到新考号（改判后保证阅卷/成绩能看到这些作答） */
+async function reassignPageCrops(examId,pageId,newNo){
+  const crops=await dbByIdx('crops','byExam',examId);
+  const list=crops.filter(function(c){return c.pageId===pageId&&c.studentNo!==newNo});
+  let n=0;
+  for(const c of list){
+    const nid=examId+'|'+newNo+'|'+c.qno+'|'+c.part;
+    if(nid===c.id)continue;
+    const img=await getBlob(c.id),mk=await getBlob(c.id+'|mk'),th=await getBlob(c.id+'|t');
+    const rec=Object.assign({},c,{id:nid,studentNo:newNo,exam_q:examId+'|'+c.qno});
+    await dbPut('crops',rec);
+    if(img)await putBlob(nid,img);
+    if(mk)await putBlob(nid+'|mk',mk);
+    if(th)await putBlob(nid+'|t',th);
+    await dbDel('crops',c.id);
+    await delBlob(c.id);await delBlob(c.id+'|mk');await delBlob(c.id+'|t');
+    n++;
+  }
+  return n;
+}
+/* 考号改判后：把同一份答题卡的续页（其后、页码递增、且无有效考号）一并归属该考号。
+   按创建顺序（id 含时间戳）向后走，页码回到第 1 页或遇到已归属考号的页即停（那是新的一份）。
+   同时把这些续页的裁剪图归属一并迁移，否则阅卷/成绩里看不到它们的作答。 */
+async function propagateRegOverride(p,no){
+  const okNo=function(v){return v&&v.indexOf('_')<0&&v.indexOf('?')<0};
+  const pages=await dbByIdx('pages','byExam',p.examId);
+  const sorted=pages.slice().sort(function(a,b){return String(a.id).localeCompare(String(b.id))});
+  const at=sorted.findIndex(function(x){return x.id===p.id});
+  if(at<0)return 0;
+  let cur=p.pageNo||1,n=0;
+  for(let i=at+1;i<sorted.length;i++){
+    const q=sorted[i];
+    if(okNo(q.studentNo))break;      /* 已归属别的考号 → 新的一份，停止 */
+    if(!((q.pageNo||1)>cur))break;   /* 页码未递增（回到第 1 页）→ 新的一份，停止 */
+    cur=q.pageNo||cur;
+    q.studentNo=no;
+    q.meta=q.meta||{};
+    q.meta.regFlags=['考号沿用首页改判（'+no+'）'];
+    await dbPut('pages',q);
+    await reassignPageCrops(q.examId,q.id,no);
+    n++;
+  }
+  return n;
+}
 /* 重识别单页：更新 page 记录 + 重建该页主观题裁剪 */
 async function redoPage(p,cv,layout,opts){
   opts=opts||{};
