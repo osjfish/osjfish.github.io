@@ -2492,6 +2492,7 @@ async function scanExamPages(exam,files,onProgress){
   let lastNo='';
   try{lastNo=localStorage.getItem(lsNoKey)||''}catch(e){}
   for(const it of items){
+    let dupNoWarned=false;   /* 同一批次内只提示一次考号冲突 */
     /* 页号候选顺序：识别内部会先按卡片左侧的页码方块直接定页（最可靠）；
        此处的顺序只在页码读不出时（旧卡/标记被裁）用于逐个试配，顺序页优先以减少重试。 */
     const seqIdx=Math.min(layout.pages.length-1,(it.pageNo||1)-1);
@@ -2548,6 +2549,11 @@ async function scanExamPages(exam,files,onProgress){
         const cid=exam.id+'|'+res.studentNo+'|'+cp.qno+'|'+cp.part;
         const blob2=await canvasToJpeg(cp.cv,0.85);
         const old=await dbGet('crops',cid);
+        /* 同考号同题已被“其它页”占用 → 两份作答互相覆盖（考号重复的典型症状），明确告警 */
+        if(old&&old.pageId&&old.pageId!==pageRec.id&&!dupNoWarned){
+          dupNoWarned=true;
+          pageRec.meta.flags=(pageRec.meta.flags||[]).concat(['考号 '+res.studentNo+' 的第'+cp.qno+'题作答已存在（来自另一页）——若两人考号相同将互相覆盖，请核对答题卡考号']);
+        }
         await dbPut('crops',{id:cid,examId:exam.id,exam_q:exam.id+'|'+cp.qno,pageId:pageRec.id,
           studentNo:res.studentNo,qno:cp.qno,part:cp.part,score:cp.score,
           hasThumb:1,
@@ -2826,7 +2832,8 @@ async function renderTpl(){
     }
   }
   $('page').innerHTML=html;
-  afterRender(function(){bindFileInput('tplImportFile',function(files){importTemplateJSON(files[0])})});
+  afterRender(function(){
+    bindFileInput('tplImportFile',function(files){importTemplateJSON(files[0])})});
 }
 async function tplThumb(tpl){
   try{
@@ -3736,18 +3743,31 @@ Object.assign(ACTS,{
       const ok=await dlgConfirm('答案未录完','客观题共 '+meta.choiceQnos.length+' 题，当前只录了 '+ansN+' 题。<br>未录答案的题目将判为「错/空白」，确定继续保存？','仍要保存');
       if(!ok)return;
     }
-    /* 多班合考：考号跨班重复时姓名归属有歧义，保存前明确提醒 */
+    /* 多班合考：考号是系统区分学生的唯一依据（答题卡上只有考号数字），
+       跨班重复会导致作答图与成绩互相覆盖——必须阻止保存并说明原因。 */
     const stuList=[];const seenStu={};
     for(const cid of classIds){(await dbByIdx('students','byClass',cid)).forEach(function(s){if(!seenStu[s.id]){seenStu[s.id]=1;stuList.push(s)}})}
-    const byNo={};let dupN=0;const dupEg=[];
+    const byNo={};
     stuList.forEach(function(s){
       if(!s.no)return;
-      if(byNo[s.no]){dupN++;if(dupEg.length<3)dupEg.push(s.no+'（'+byNo[s.no].name+' / '+s.name+'）')}
-      else byNo[s.no]=s;
+      const k=String(s.no);
+      if(!byNo[k])byNo[k]=[];
+      byNo[k].push(s);
     });
-    if(dupN){
-      const okd=await dlgConfirm('考号跨班重复','所选班级间有 '+dupN+' 个考号重复（如 '+esc(dupEg.join('、'))+'）。<br>重复考号的学生在成绩册中难以区分，确定继续保存？','仍要保存');
-      if(!okd)return;
+    const dupNos=Object.keys(byNo).filter(function(k){return byNo[k].length>1});
+    if(dupNos.length){
+      const cls=await dbAll('classes');
+      const clsName=function(id){const c=cls.find(function(x){return x.id===id});return c?c.name:'（已删班级）'};
+      const lines=dupNos.slice(0,8).map(function(k){
+        return '考号 '+esc(k)+'：'+byNo[k].map(function(s){return esc(s.name||'未命名')+'（'+esc(clsName(s.classId))+'）'}).join('、');
+      });
+      await dlgConfirm('考号重复，无法保存',
+        '所选班级中有 <b>'+dupNos.length+'</b> 个考号重复：<div style="margin:6px 0;line-height:1.9">'+lines.join('<br>')+'</div>'
+        +(dupNos.length>8?('<div class="kv">（仅显示前 8 组）</div>'):'')
+        +'<div class="tip" style="margin-top:8px">答题卡上只有考号数字，<b>考号相同的两张卡系统无法区分归属</b>，会互相覆盖作答图与成绩，因此不能保存。<br>'
+        +'解决办法：让这些学生的答题卡考号不同（例如不同班级使用不同号段，如一班 101~150、二班 201~250），或取消勾选冲突的班级。</div>',
+        '我知道了');
+      return;
     }
     const rec=ex||{id:uid('exm_')};
     rec.name=wiz.name.trim();
@@ -5436,6 +5456,32 @@ async function computeScorebook(examId){
     subjStat:subjStat,sections:sections,itemStats:itemStats,
     subjFull:meta.subjList.reduce(function(a,s){return a+s.score},0)};
 }
+/* 成绩册勾选（批量导出学生报告用） */
+function updateRepSelCount(){
+  const chks=[...document.querySelectorAll('.repChk')];
+  const n=chks.filter(function(c){return c.checked}).length;
+  const el=$('repSelCount');
+  if(el)el.textContent='已选 '+n+' 人';
+  /* 全选框与各项保持同步（部分选中时置为未全选） */
+  const all=$('repAll');
+  if(all){
+    all.checked = chks.length>0 && n===chks.length;
+    all.indeterminate = n>0 && n<chks.length;
+  }
+}
+function bindReportSelect(){
+  const all=$('repAll');
+  if(all){
+    all.addEventListener('change',function(){
+      document.querySelectorAll('.repChk').forEach(function(c){c.checked=all.checked});
+      updateRepSelCount();
+    });
+  }
+  document.querySelectorAll('.repChk').forEach(function(c){
+    c.addEventListener('change',updateRepSelCount);
+  });
+  updateRepSelCount();
+}
 async function renderScore(){
   const examsAll=await dbAll('exams');
   const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
@@ -5621,15 +5667,27 @@ async function renderScore(){
   html+='</div>';
   /* 成绩册 */
   const hasObjCol=meta.choiceQnos.length>0, hasSubjCol=meta.subjList.length>0;
-  html+='<div class="card"><h3>成绩册（'+book.rows.length+' 人 · 排序：总分）</h3><div class="tbl-wrap" style="max-height:520px;overflow:auto"><table class="tbl tbl-nowrap"><tr><th>排名</th><th>考号</th><th>姓名</th><th>备注</th>'
+  html+='<div class="card"><div class="f-row" style="margin-bottom:10px;align-items:center">'
+    +'<h3 style="margin:0">成绩册（'+book.rows.length+' 人 · 排序：总分）</h3>'
+    +'<span style="flex:1"></span>'
+    +'<span class="kv" id="repSelCount">已选 0 人</span>'
+    +'<button class="btn btn-s" data-act="rep-sel-none">清空选择</button>'
+    +'<button class="btn btn-s btn-b" data-act="rep-export-sel">导出选中学生报告</button>'
+    +'<button class="btn btn-s btn-p" data-act="rep-export-all">导出全班报告（ZIP）</button>'
+    +'</div><div class="tbl-wrap" style="max-height:520px;overflow:auto"><table class="tbl tbl-nowrap"><tr>'
+    +'<th style="width:34px"><input type="checkbox" id="repAll" title="全选/取消"></th>'
+    +'<th>排名</th><th>考号</th><th>姓名</th><th>备注</th>'
     +(hasObjCol?'<th>客观</th>':'');
   meta.subjList.forEach(function(sq){html+='<th>'+esc(String(sq.qno))+'</th>'});
   html+=(hasSubjCol?'<th>主观</th>':'')+'<th>总分</th>';
   if(book.sections&&book.sections.length>1)book.sections.forEach(function(sec,i){html+='<th title="'+esc(sec.title)+'">大题'+(i+1)+'</th>'});
   html+='<th>状态</th></tr>';
   book.rows.forEach(function(r){
-    html+='<tr style="cursor:pointer" data-act="score-stu" data-no="'+esc(r.no)+'">'
-      +'<td>'+(r.rank)+'</td><td>'+(r.absent?esc(r.no):'<b>'+esc(r.no)+'</b>')+'</td><td>'+esc(r.name)+'</td><td class="kv">'+esc(r.note)+'</td>'
+    html+='<tr>'
+      +'<td><input type="checkbox" class="repChk" value="'+esc(r.no)+'" title="选择此学生"></td>'
+      +'<td style="cursor:pointer" data-act="score-stu" data-no="'+esc(r.no)+'">'+(r.rank)+'</td>'
+      +'<td style="cursor:pointer" data-act="score-stu" data-no="'+esc(r.no)+'">'+(r.absent?esc(r.no):'<b>'+esc(r.no)+'</b>')+'</td>'
+      +'<td style="cursor:pointer" data-act="score-stu" data-no="'+esc(r.no)+'">'+esc(r.name)+'</td><td class="kv">'+esc(r.note)+'</td>'
       +(hasObjCol?('<td>'+(r.absent?'—':r.objScore+'/'+book.objFull)+'</td>'):'');
     meta.subjList.forEach(function(sq){
       const sub=r.subj[sq.qno]||{};
@@ -5650,6 +5708,7 @@ async function renderScore(){
   html+='</table></div></div>';
   $('page').innerHTML=html;
   afterRender(function(){
+    bindReportSelect();
   });
 }
 function max0(book){
@@ -5710,7 +5769,7 @@ function dxTable(rows,widths){
   });
   return xml+'</w:tbl>';
 }
-async function docxDownload(fileName,bodyXml){
+async function docxBlob(bodyXml){
   const CT='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
     +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
@@ -5743,16 +5802,14 @@ async function docxDownload(fileName,bodyXml){
   wd.file('document.xml',DOC);
   wd.file('styles.xml',STYLES);
   wd.folder('_rels').file('document.xml.rels',DRELS);
-  const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',compression:'DEFLATE'});
-  download(fileName,blob);
+  return await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',compression:'DEFLATE'});
 }
-/* 单个学生的考试报告：概览→大题→客观题→主观题→需重点加强→签字栏 */
-async function exportStudentReport(examId,studentNo){
-  const book=await computeScorebook(examId);
-  if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
+async function docxDownload(fileName,bodyXml){
+  download(fileName,await docxBlob(bodyXml));
+}
+/* 生成某个学生的报告 XML（供单个导出与批量导出共用） */
+function buildStudentReportXml(book,r){
   const meta=book.meta,ex=book.exam;
-  const r=book.rows.find(function(x){return String(x.no)===String(studentNo)});
-  if(!r){toast('未找到该学生成绩','err');return}
   const fullAll=book.objFull+book.subjFull;
   const sc=book.rows.filter(function(x){return !x.absent});
   const avgAll=sc.length?(sc.reduce(function(a,x){return a+x.total},0)/sc.length):0;
@@ -5914,9 +5971,62 @@ async function exportStudentReport(examId,studentNo){
     dxRun('　　日期：____________',{sz:16,color:'5A6472'})
   ],{align:'center',after:20}));
   parts.push(dxPara([dxRun('本报告由「智能阅卷」自动生成。',{sz:13,color:'9AA3AE'})],{align:'center',before:60}));
+  return parts.join('');
+}
+/* 单个学生的考试报告：概览→大题→客观题→主观题→需重点加强→签字栏 */
+async function exportStudentReport(examId,studentNo){
+  const book=await computeScorebook(examId);
+  if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
+  const ex=book.exam;
+  const r=book.rows.find(function(x){return String(x.no)===String(studentNo)});
+  if(!r){toast('未找到该学生成绩','err');return}
+  const xml=await buildStudentReportXml(book,r);
   const name=(r.name&&r.name.indexOf('（未匹配')<0)?r.name:('考号'+r.no);
-  await docxDownload('成绩报告_'+name+'_'+(r.no||'')+'_'+ex.name+'_'+tsName()+'.docx',parts.join(''));
+  await docxDownload(studentReportFileName(ex,r),xml);
   toast('学生成绩报告（Word）已导出','ok');
+}
+/* 报告文件名：考号_姓名_考试 便于批量导出后区分 */
+function studentReportFileName(ex,r){
+  const name=(r.name&&r.name.indexOf('（未匹配')<0)?r.name:'未知姓名';
+  return sanitizeFileName('成绩报告_'+(r.no||'无考号')+'_'+name+'_'+ex.name+'.docx');
+}
+/* 文件名安全化（去掉路径非法字符） */
+function sanitizeFileName(n){
+  return String(n).replace(/[\\/:*?"<>|\r\n]+/g,'_').replace(/\s+/g,' ').slice(0,120);
+}
+/* 批量导出：勾选的学生各生成一份 Word，打包为一个 ZIP（含说明文件） */
+async function exportStudentReportsZip(examId,nos){
+  const book=await computeScorebook(examId);
+  if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
+  const ex=book.exam;
+  const list=(nos&&nos.length)?book.rows.filter(function(r){return nos.indexOf(String(r.no))>=0}):book.rows.filter(function(r){return !r.absent});
+  if(!list.length){toast('没有可导出的学生','err');return}
+  if(typeof JSZip==='undefined'){toast('打包组件未加载：lib/jszip.min.js','err');return}
+  const zip=new JSZip();
+  dlg('<div class="prog-line"><span id="bulkTxt">准备中…</span></div><div class="progress"><div id="bulkBar" style="width:0%"></div></div>',{title:'批量导出学生报告'});
+  const seen={};
+  for(let i=0;i<list.length;i++){
+    const r=list[i];
+    const t1=$('bulkTxt'),b1=$('bulkBar');
+    if(t1)t1.textContent='生成报告 '+r.no+'（'+(i+1)+'/'+list.length+'）';
+    if(b1)b1.style.width=Math.round((i+1)/list.length*100)+'%';
+    try{
+      const xml=await buildStudentReportXml(book,r);
+      let fn=studentReportFileName(ex,r);
+      while(seen[fn]){seen[fn]++;fn=fn.replace(/\.docx$/,'_'+seen[fn]+'.docx')}
+      seen[fn]=1;
+      zip.file(fn,await docxBlob(xml));
+    }catch(e){}
+    await sleep(0);
+  }
+  const readme='班级：'+(ex.className||'')+'\r\n考试：'+(ex.paperTitle||ex.name)+'\r\n导出时间：'+timestamp()
+    +'\r\n学生数：'+list.length+'\r\n分数线：优秀≥'+th().ex+'、良好≥'+th().good+'、合格≥'+th().pass
+    +'\r\n\r\n每份报告包含：成绩概览、大题得分、客观题与主观题明细、需重点加强、教师寄语与签字栏。';
+  zip.file('说明.txt','\ufeff'+readme);
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+  dlgClose();
+  download(sanitizeFileName('学生成绩报告_'+ex.name+'_'+tsName()+'.zip'),blob);
+  toast('已导出 '+list.length+' 份学生报告（ZIP）','ok');
 }
 /* 考试级分数线：以「具体分数」设定优秀/良好/合格（老师按该次考试难度在「成绩分析」页设置）。
    未设置时按全卷满分的 80%/70%/60% 自动给出默认值。
@@ -5949,6 +6059,27 @@ function th(){return __th}
 /* 成绩导出 */
 Object.assign(ACTS,{
   'score-pick':async function(el){ui.scoreExam=el.value;renderScore()},
+  'rep-sel-none':function(){
+    document.querySelectorAll('.repChk').forEach(function(c){c.checked=false});
+    const all=$('repAll');if(all)all.checked=false;
+    updateRepSelCount();
+  },
+  'rep-export-sel':async function(){
+    const nos=[...document.querySelectorAll('.repChk:checked')].map(function(c){return c.value});
+    if(!nos.length){toast('请先勾选学生（点姓名前的方框）','err');return}
+    const ok=await dlgConfirm('导出选中学生报告','将为选中的 '+nos.length+' 名学生各生成一份 Word 成绩报告，打包为 ZIP 下载。','开始导出');
+    if(!ok)return;
+    exportStudentReportsZip(ui.scoreExam,nos);
+  },
+  'rep-export-all':async function(){
+    const book=await computeScorebook(ui.scoreExam);
+    if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
+    const live=book.rows.filter(function(r){return !r.absent});
+    if(!live.length){toast('本场没有可导出的学生','err');return}
+    const ok=await dlgConfirm('导出全班报告','将为全班 '+live.length+' 名学生各生成一份 Word 成绩报告，打包为 ZIP 下载（缺考学生不导出）。<br>人数较多时生成需要一些时间。','开始导出');
+    if(!ok)return;
+    exportStudentReportsZip(ui.scoreExam,null);
+  },
   /* 应用分数线（分）：校验后写入考试并立即重绘（统计/分布/报告/讲评同步生效） */
   'score-th-apply':async function(){
     const ex=await dbGet('exams',ui.scoreExam);

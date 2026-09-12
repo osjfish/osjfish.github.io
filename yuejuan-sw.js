@@ -1,10 +1,13 @@
 /* 智能阅卷 · Service Worker
    设计要点：
    1) 只接管本应用静态资源（yuejuan.html / lib/*），其余请求一律放行；
-   2) 导航请求只做「网络优先 + 离线回退预缓存」，不在导航流上写缓存——
-      在导航响应上做 Response.clone()/缓存写入，一旦 CacheStorage 写入变慢会拖住页面流（表现为刷新后卡在 loading）；
-   3) 预缓存清单在 install 阶段写入，因此**每次发布都要把 VER 加一**，否则用户拿到的仍是旧页面。 */
-const VER='yj-2026-09-11';
+   2) 页面（导航请求）采用「网络优先 + 离线回退」——每次打开都取最新版本，
+      网络不可用时回退到预缓存页面；缓存写入放在 waitUntil（后台）完成，
+      且先把响应体读入内存再分别构造「给页面的响应」与「缓存副本」，
+      不在导航流上做 Response.clone()/流分叉（历史上曾因此卡在 loading）；
+   3) 静态资源（lib/*）为缓存优先，未命中再联网；
+   4) 发布新版本时把 VER 加一，激活阶段会删掉旧缓存。 */
+const VER='yj-2026-09-13-2';
 const CACHE='yuejuan-'+VER;
 const SHELL=[
   './yuejuan.html',
@@ -47,15 +50,15 @@ self.addEventListener('fetch',function(e){
   if(url.origin!==self.location.origin)return;
   if(!inScope(url))return;
   if(req.mode==='navigate'||/\/yuejuan\.html$/.test(url.pathname)){
-    /* 页面：优先用预缓存秒开（导航不依赖网络），后台顺带刷新缓存；未命中再走网络 */
-    e.respondWith(caches.match('./yuejuan.html').then(function(hit){
-      if(hit){
-        e.waitUntil(fetch(req).then(function(r){
-          if(r&&r.ok)return caches.open(CACHE).then(function(c){return c.put('./yuejuan.html',r)});
-        }).catch(function(){}));
-        return hit;
-      }
-      return fetch(req);
+    /* 页面：网络优先（更新后立即生效），失败回退预缓存（离线可用） */
+    e.respondWith(fetch(req).then(function(r){
+      if(!r||!r.ok)throw new Error('bad response');
+      return splitResponse(r).then(function(pair){
+        e.waitUntil(caches.open(CACHE).then(function(c){return c.put('./yuejuan.html',pair.forCache)}).catch(function(){}));
+        return pair.forPage;
+      });
+    }).catch(function(){
+      return caches.match('./yuejuan.html').then(function(hit){return hit||Response.error()});
     }));
     return;
   }
