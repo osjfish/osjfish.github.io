@@ -65,17 +65,18 @@ def audit(fn):
         w, q = d.get('w', ''), d.get('q', '')
         if not w or not q:
             continue
-        # 1. 去 □ 后应为原文片段
-        skeleton = q.replace('□', '')
-        if skeleton not in body and bare(skeleton) not in bare_body:
-            iss['字形题句非原文'].append('%s|%s' % (w, skeleton[:24]))
-            continue
-        # 2. 挖空还原后应与原文一致
+        # 挖空还原后须与原文一致（□ 数已由 _audit_deep 保证等于字数）
         filled = q
         for ch in w:
             filled = filled.replace('□', ch, 1)
-        if filled not in body and bare(filled) not in bare_body:
-            iss['挖空还原后非原文'].append('%s|%s' % (w, filled[:24]))
+        filled = re.sub(r'[（(][^）)]*[)）]', '', filled)   # 去掉题干里的补充括号
+        if filled in body or bare(filled) in bare_body:
+            continue
+        # 允许题干是原文的非连续摘引：按标点切分后每片（≥2字）都须在原文中
+        segs = [x for x in re.split(r'[，。、；：！？…—]+', filled) if len(x) >= 2]
+        miss = [x for x in segs if bare(x) not in bare_body]
+        if miss:
+            iss['挖空还原后非原文'].append('%s|%s⟨%s⟩' % (w, filled[:22], '／'.join(miss)[:20]))
 
     for d in (dn or []):
         if not isinstance(d, dict):
@@ -84,9 +85,14 @@ def audit(fn):
         if not w or not q:
             continue
         if q not in body and bare(q) not in bare_body:
-            iss['注释题句非原文'].append('%s|%s' % (w, q[:24]))
-        elif w not in q:
-            iss['注释题词不在句中'].append('%s|%s' % (w, q[:24]))
+            iss['注释题句非原文'].append('%s|%s' % (w, q[:26]))
+        else:
+            # 词须出现在句中：去掉注音括号、省略号分段匹配、多例句以 / 分隔
+            w2 = re.sub(r'[（(][^）)]*[)）]', '', w)
+            parts = [x.strip() for x in re.split(r'……|\.\.\.|/', w2) if x.strip()]
+            qs = [x.strip() for x in q.split('/')]
+            if not all(any(p in s for s in qs) for p in parts):
+                iss['注释题词不在句中'].append('%s|%s' % (w, q[:26]))
 
     return iss
 

@@ -3933,18 +3933,31 @@ function shotDetectOnce(video,ov){
     o.clearRect(0,0,ov.width,ov.height);
     const ox=ov.width/fw,oy=ov.height/fh;
     if(det){
-      const n=det.tri?3:4;
       o.strokeStyle=det.tri?'#e6913c':'#25b968';
       o.lineWidth=3;
       det.pts.forEach(function(pt){
         o.strokeRect(pt.x*ox-8,pt.y*oy-8,16,16);
       });
-      shotStatus('已找到 '+n+' 个定位点'+(det.tri?'（缺一角，自动外推）':'')+'，保持稳定',det.tri?'warn':'ok');
       if(!det.tri&&shotAuto&&!shotBusy){
-        /* 连续 2 帧检测到才自动拍摄，避免移动中抢拍 */
+        /* 需连续稳定约 2.5s 才自动拍摄：手持对准后要留出稳住的时间，避免刚识别到四点就抢拍导致手抖糊片 */
         shotStable++;
-        if(shotStable>=2)shotCapture();
-      }else if(det.tri)shotStable=0;
+        const need=7;   /* 7 帧 × 350ms ≈ 2.45s */
+        if(shotStable>=need)shotCapture();
+        else{
+          const left=Math.ceil((need-shotStable)*0.35);
+          shotStatus('已对准，保持稳定 '+left+' 秒自动拍摄（或直接点「拍照识别」）','ok');
+          /* 稳定进度环：让用户看得见还差多久 */
+          const prog=shotStable/need;
+          o.strokeStyle='rgba(37,185,104,.85)';
+          o.lineWidth=5;
+          o.beginPath();
+          o.arc(ov.width/2,ov.height/2,Math.min(ov.width,ov.height)*0.14,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);
+          o.stroke();
+        }
+      }else if(det.tri){
+        shotStable=0;
+        shotStatus('已找到 3 个定位点（缺一角，自动外推），请把第 4 个角也拍进来','warn');
+      }
     }else{
       shotStable=0;
       o.strokeStyle='rgba(120,220,140,.6)';
@@ -4332,25 +4345,40 @@ async function reassignPageCrops(examId,pageId,newNo){
 }
 /* 考号改判后：把同一份答题卡的续页（其后、页码递增、且无有效考号）一并归属该考号。
    按创建顺序（id 含时间戳）向后走，页码回到第 1 页或遇到已归属考号的页即停（那是新的一份）。
-   同时把这些续页的裁剪图归属一并迁移，否则阅卷/成绩里看不到它们的作答。 */
+   同时把这些续页的裁剪图归属一并迁移，否则阅卷/成绩里看不到它们的作答。
+   另：单张/拍照逐张上传时若续页先于首页上传（乱序），也向前回溯认领——仅限「无有效考号且页码>1」的
+   相邻页，遇到页码为 1（另一份卡的开头）或已归属考号即停，避免跨学生误并。 */
 async function propagateRegOverride(p,no){
   const okNo=function(v){return v&&v.indexOf('_')<0&&v.indexOf('?')<0};
   const pages=await dbByIdx('pages','byExam',p.examId);
   const sorted=pages.slice().sort(function(a,b){return String(a.id).localeCompare(String(b.id))});
   const at=sorted.findIndex(function(x){return x.id===p.id});
   if(at<0)return 0;
-  let cur=p.pageNo||1,n=0;
-  for(let i=at+1;i<sorted.length;i++){
-    const q=sorted[i];
-    if(okNo(q.studentNo))break;      /* 已归属别的考号 → 新的一份，停止 */
-    if(!((q.pageNo||1)>cur))break;   /* 页码未递增（回到第 1 页）→ 新的一份，停止 */
-    cur=q.pageNo||cur;
+  let n=0;
+  const claim=async function(q){
     q.studentNo=no;
     q.meta=q.meta||{};
     q.meta.regFlags=['考号沿用首页改判（'+no+'）'];
     await dbPut('pages',q);
     await reassignPageCrops(q.examId,q.id,no);
     n++;
+  };
+  /* 向后：页码递增（2,3,4…） */
+  let cur=p.pageNo||1;
+  for(let i=at+1;i<sorted.length;i++){
+    const q=sorted[i];
+    if(okNo(q.studentNo))break;      /* 已归属别的考号 → 新的一份，停止 */
+    if(!((q.pageNo||1)>cur))break;   /* 页码未递增（回到第 1 页）→ 新的一份，停止 */
+    cur=q.pageNo||cur;
+    await claim(q);
+  }
+  /* 向前：逐张上传时续页可能先于首页入批（乱序/补传首页），回溯认领其前面无考号且页码>1 的相邻页；
+     遇到页码回到第 1 页（另一份卡的开头）或已归属考号的页即停 */
+  for(let i=at-1;i>=0;i--){
+    const q=sorted[i];
+    if(okNo(q.studentNo))break;
+    if((q.pageNo||1)<=1)break;
+    await claim(q);
   }
   return n;
 }
