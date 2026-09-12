@@ -4471,7 +4471,7 @@ Object.assign(ACTS,{
   'grade-ai-one':async function(){
     const now2=gradeCtx.order[gradeCtx.idx];
     if(!now2)return;
-    toast('AI 分析中…（视觉模型可能需要数十秒）');   /* 调用期间给即时反馈 */
+    toast('AI 分析中…（第 '+(gradeCtx.idx+1)+'/'+gradeCtx.order.length+' 份，视觉模型可能需要数十秒）');   /* 调用期间给即时反馈 */
     let el=null;
     try{el=await aiSuggestExam(ui.gradeExam,now2,gradeCtx.qno)}
     catch(err){toast('AI 建议失败：'+(err.message||String(err)),'err');return}
@@ -4603,7 +4603,7 @@ async function runAIPredBatch(ex,q,writeScore){
   if(!gradeCtx||gradeCtx.qno!==q){ui.gradeQno=q;gradeCtx={examId:ex.id,qno:q,shuffle:false,order:todo.map(function(t){return t.no}),idx:0,buf:'',abort:new AbortController()};}
   if(!gradeCtx.abort)gradeCtx.abort=new AbortController();
   const ctl=gradeCtx.abort;
-  dlg('<div class="prog-line"><span id="aiBatchTxt">准备中…</span></div><div class="progress"><div id="aiBatchBar" style="width:0%"></div></div><div class="tip" id="aiBatchLog"></div>',{
+  dlg('<div class="prog-line"><span id="aiBatchTxt">AI 分析中 0/'+todo.length+'</span></div><div class="progress"><div id="aiBatchBar" style="width:0%"></div></div><div class="tip" id="aiBatchLog"></div>',{
     title:(writeScore?'AI 给分':'AI 批量预阅')+' · 题 '+esc(String(q)),
     foot:'<button class="btn btn-d" data-act="ai-batch-stop">停止</button>'
   });
@@ -4634,7 +4634,7 @@ async function runAIPredBatch(ex,q,writeScore){
         }
         doneN++;
         const t1=$('aiBatchTxt');
-        if(t1)t1.textContent=(writeScore?'已给分 ':'已完成 ')+(i+1)+'/'+todo.length+'（'+esc(it.no)+' → '+(score!=null?score+' 分':'无建议')+'）';
+        if(t1)t1.textContent='AI 分析中 '+(i+1)+'/'+todo.length+'（'+esc(it.no)+' → '+(score!=null?score+' 分':'无建议')+'）';
         const b1=$('aiBatchBar');
         if(b1)b1.style.width=Math.round((i+1)/todo.length*100)+'%';
       }catch(err){
