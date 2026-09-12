@@ -84,6 +84,10 @@ body>*{position:relative;z-index:1}
   border:1px solid rgba(176,152,88,.18);
   border-radius:12px;padding:8px;
 }
+.river-sec+.river-sec{margin-top:8px;padding-top:7px;border-top:1px dashed rgba(176,152,88,.28)}
+.riv-title{font-size:11px;color:#9fd8b5;letter-spacing:2px;margin-bottom:4px}
+.river-sec.mine .riv-title{color:#ffd857}
+.river-sec.mine{background:rgba(255,216,87,.05);border-radius:8px;padding:5px 6px;margin:0 -6px -5px}
 #river{
   display:flex;flex-wrap:wrap;gap:3px;align-content:flex-start;
 }
@@ -264,7 +268,16 @@ body>*{position:relative;z-index:1}
     <span style="flex:1"></span>
     <span id="turnTag" style="color:#ffd857;font-weight:700"></span>
   </div>
-  <div id="riverWrap"><div id="river"></div></div>
+  <div id="riverWrap">
+    <div class="river-sec">
+      <div class="riv-title" id="rivOppTitle">对手</div>
+      <div id="riverOpp" class="river"></div>
+    </div>
+    <div class="river-sec">
+      <div class="riv-title" id="rivMyTitle">我方</div>
+      <div id="riverMe" class="river"></div>
+    </div>
+  </div>
 </div>
 
 <div id="myZone">
@@ -309,6 +322,7 @@ body>*{position:relative;z-index:1}
   · <b style="color:#ffd857">将牌</b>：屁胡的将必须是二、五、八（万条筒均可）；清一色、碰碰胡、七对等大胡任意对子作将<br>
   · <b style="color:#ffd857">赖子</b>：开局翻一张明牌，它的下一张是赖子（翻九万则一万，翻红中/发财则白板）。赖子可代替任何牌参与组牌和胡牌<br>
   · <b style="color:#ffd857">杠</b>：暗杠（手中4张相同）、明杠（对方打出的第4张）、补杠（碰后再摸到同牌）；<b style="color:#ffd857">红中和发财随时可杠</b>（手中有一张即可），杠后从牌尾摸一张补牌<br>
+  · <b style="color:#ffd857">红中/发财不能参与组牌</b>：不能凑顺子、刻子或当将，手里留着它们就<b>不能和牌</b>，必须先杠掉——所以它们也是「杠上开花（+20分）」最常见的来源<br>
   · <b style="color:#ffd857">开口</b>：屁胡必须先有吃、碰或明杠至少一次才能胡牌；清一色、碰碰胡、七对等大和不需要开口<br>
   · <b style="color:#ffd857">计分（五轮累计零和）</b>：大和30分 · 杠上开花20分 · 屁胡10分<br>
   · 每局每人最多吃1次、碰1次；杠不限次数；赢方坐庄下局先出<br>
@@ -390,12 +404,13 @@ function shuffleArr(a){
   return a;
 }
 function countMap(tiles,jokerId){
-  var cnt={},jk=0;
+  var cnt={},jk=0,dead=0;
   tiles.forEach(function(c){
     if(jokerId&&c===jokerId){jk++;return;}
+    if(c==='hz'||c==='fc'){dead++;return;}   /* 红中/发财只能杠、不能参与组牌 */
     cnt[c]=(cnt[c]||0)+1;
   });
-  return {cnt:cnt,jokers:jk};
+  return {cnt:cnt,jokers:jk,dead:dead};
 }
 /* 将剩余牌全部拆成刻子/顺子（赖子可补缺，也可替换已有真实牌以腾挪） */
 function canFormBody(cnt,jokers){
@@ -549,6 +564,8 @@ function checkWin(hand,meldInfo,jokerId,fromKong,openCount,noJiangGate){
   var st=melds?structuralMeldTiles(melds):{tiles:[],hasSeq:false};
   var meldCount=melds?winMeldCount(melds):(meldInfo||0);
   var needSets=4-meldCount;
+  /* 红中/发财不能参与组牌：手里留着就不能和牌，必须先杠掉 */
+  for(var di=0;di<hand.length;di++)if(hand[di]==='hz'||hand[di]==='fc')return null;
   /* 赖子数量限制：非杠上开时最多1张赖子 */
   var jokerCount=0;
   if(jokerId){for(var ji=0;ji<hand.length;ji++)if(hand[ji]===jokerId)jokerCount++;}
@@ -1048,10 +1065,14 @@ function humanTurnUI(winRes,gangs){
       setHint('你可以自摸和牌，也可以继续打');
     }else{
       var opensNow=countOpens(G.melds[G.turn]);
+      var hasDead=false;
+      for(var dh=0;dh<G.hands[G.turn].length;dh++){var dc=G.hands[G.turn][dh];if(dc==='hz'||dc==='fc'){hasDead=true;break;}}
       var shapeAny=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,opensNow),true);
       if(shapeAny && shapeAny.pattern==='平胡'){
         var shape258=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,opensNow),false);
         setHint(shape258?'已成牌型，但屁和需要先吃/碰/明杠一次':'已成牌型，但屁和的将必须是二、五、八');
+      }else if(hasDead){
+        setHint('手里有红中/发财：它们不能参与组牌，必须先杠掉才能和牌（杠后补牌成和＝杠上开花 +20）');
       }
     }
     if(G.selected>=0){
@@ -1341,6 +1362,8 @@ function aiAct(winRes,gangs){
     for(var gi=0;gi<gangs.length;gi++){
       var g=gangs[gi];
       if(g.tile===G.joker&&jc<3)continue;        /* 杠赖子=用万能牌换盲牌，几乎必亏 */
+      /* 红中/发财是死牌：留在手里既不能组牌也不能打，杠掉等于白换一次摸牌（还可能杠上开花） */
+      if(g.tile==='hz'||g.tile==='fc'){doGang(g);return;}
       var h2=hand.slice(),m2=G.melds[1].slice();
       g.tiles.forEach(function(cc){var ix=h2.indexOf(cc);if(ix>=0)h2.splice(ix,1);});
       m2.push({type:'杠',tiles:g.tiles.slice(),tile:g.tile,concealed:g.type==='暗杠'||g.type==='红中发财杠'});
@@ -1939,16 +1962,22 @@ function renderAll(redacted){
   /* 明牌组 */
   renderMelds($('myMelds'),G.melds[me]);
   renderMelds($('oppMelds'),G.melds[op]);
-  /* 牌河（时间顺序，不分类） */
-  var rv=$('river');rv.innerHTML='';
+  /* 牌河：对方与我方分开两个区域显示（各自按出牌先后排列） */
+  var rvO=$('riverOpp'),rvM=$('riverMe');
+  $('rivOppTitle').textContent=G.names[op]+' 打出的牌';
+  $('rivMyTitle').textContent=G.names[me]+' 打出的牌';
+  var secO=$('riverOpp').parentElement,secM=$('riverMe').parentElement;
+  if(secO&&secO.classList)secO.className='river-sec';
+  if(secM&&secM.classList)secM.className='river-sec mine';
+  rvO.innerHTML='';rvM.innerHTML='';
+  var lastIdx=G.river.length-1;
   G.river.forEach(function(r,idx){
     var d=document.createElement('div');
-    d.className='riv-item'+(idx===G.river.length-1?' last':'');
-    var who=r.by===0?G.names[0]:G.names[1];
-    d.innerHTML=tileHTML(r.t)+'<span class="riv-by" title="'+who+'">'+who.slice(-1)+'</span>';
-    rv.appendChild(d);
+    d.className='riv-item'+(idx===lastIdx?' last':'');
+    d.innerHTML=tileHTML(r.t)+'<span class="riv-by">'+(r.by===0?'我':'对')+'</span>';
+    (r.by===me?rvM:rvO).appendChild(d);
   });
-  rv.parentElement.scrollTop=rv.parentElement.scrollHeight;
+  $('riverWrap').scrollTop=$('riverWrap').scrollHeight;
   /* 我的手牌 */
   var hr=$('handRow');hr.innerHTML='';
   if(redacted){
