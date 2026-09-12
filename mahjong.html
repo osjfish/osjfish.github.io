@@ -793,20 +793,6 @@ function shantenScore(s){
   var T=[4200,1300,380,95,24,6,2];
   return T[Math.min(s,6)];
 }
-/* 听牌等待数：能直接成和的牌种数（用于区分好听牌与差听牌） */
-function handWaits(hand,jokerId,meldInfo){
-  var n=0;
-  for(var j=0;j<ALL_CODES.length;j++)
-    if(handShanten(hand.concat([ALL_CODES[j]]),jokerId,meldInfo)===-1)n++;
-  return n;
-}
-/* 进张数：能让向听前进一步的牌种数（用于区分好搭子与坏搭子） */
-function handAccept(hand,jokerId,meldInfo){
-  var sh=handShanten(hand,jokerId,meldInfo),n=0;
-  for(var j=0;j<ALL_CODES.length;j++)
-    if(handShanten(hand.concat([ALL_CODES[j]]),jokerId,meldInfo)===sh-1)n++;
-  return n;
-}
 /* ---- 防炮读牌（公开信息） ---- */
 function dangerBase(c){
   if(isHonor(c))return 6;
@@ -878,47 +864,26 @@ function aiPickDiscard(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip)
   var threat=oppThreatLevel(oppMelds,oppRiverTiles,wallLen);
   var lambda=threat*(myS>=3?5:(myS===2?2.2:0.8));
   var pureFold=(myS>=3&&threat>=0.5)||(myS>=2&&threat>=0.72);
-  function drawEV(rest){
-    var v=0;
-    for(var j=0;j<ALL_CODES.length;j++){
-      var t=ALL_CODES[j],r=remain[t];
-      if(!r)continue;
-      var h2=rest.concat([t]);
-      v+=r*(shantenScore(handShanten(h2,jokerId,myMelds))+structureScore(h2,jokerId)/60);
-    }
-    return v/total;
-  }
-  function pen(c){return lambda*tileDanger(c,oppMelds,oppRiverTiles,jokerId)*45;}
-  var scored=uniq.map(function(c){
+  var best=null,bestV=-1e18;
+  uniq.forEach(function(c){
     var rest=hand.slice(),ix=rest.indexOf(c);rest.splice(ix,1);
-    var ev=pureFold?structureScore(rest,jokerId)/40:drawEV(rest); /* 弃和：留相对成型的牌，安全第一 */
-    return {c:c,ev:ev,v:ev-pen(c)};
-  });
-  scored.sort(function(a,b){return b.v-a.v;});
-  /* 深化：对最有希望的前几个候选，听牌加等待数、一向听加进张数（计算预算内，保持流畅） */
-  if(!pureFold&&myS<=2){
-    var budget=40;
-    scored.slice(0,4).forEach(function(s){
-      var rest=hand.slice(),ix=rest.indexOf(s.c);rest.splice(ix,1);
-      var v=0;
+    var v;
+    if(pureFold){
+      v=structureScore(rest,jokerId)/40;      /* 弃和：留相对成型的牌，安全第一 */
+    }else{
+      v=0;
       for(var j=0;j<ALL_CODES.length;j++){
         var t=ALL_CODES[j],r=remain[t];
         if(!r)continue;
         var h2=rest.concat([t]);
-        var sh=handShanten(h2,jokerId,myMelds);
-        var sv=shantenScore(sh)+structureScore(h2,jokerId)/60;
-        if(budget>0){
-          if(sh===0){sv+=180*handWaits(h2,jokerId,myMelds);budget--;}
-          else if(sh===1){sv+=40*handAccept(h2,jokerId,myMelds);budget--;}
-        }
-        v+=r*sv;
+        v+=r*(shantenScore(handShanten(h2,jokerId,myMelds))+structureScore(h2,jokerId)/60);
       }
-      s.ev=v/total;
-      s.v=s.ev-pen(s.c);
-    });
-    scored.sort(function(a,b){return b.v-a.v;});
-  }
-  return scored[0].c;
+      v/=total;
+    }
+    v-=lambda*tileDanger(c,oppMelds,oppRiverTiles,jokerId)*45;
+    if(v>bestV){bestV=v;best=c;}
+  });
+  return best;
 }
 </script>
 
