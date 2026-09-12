@@ -4983,10 +4983,8 @@ async function renderGradeView(ex){
   uniqs.forEach(function(v){
     scoreBtns+='<button class="gs'+(cur===v?' on':'')+'" data-act="grade-score-set" data-v="'+v+'">'+v+'</button>';
   });
-  scoreBtns+='<button class="gs dim" data-act="grade-step-adjust" data-dir="-1" title="当前分减一个步长">−'+dstep+'</button>';
-  scoreBtns+='<button class="gs dim" data-act="grade-step-adjust" data-dir="1" title="当前分加一个步长">+'+dstep+'</button>';
   if(gradeCtx.buf)scoreBtns+='<button class="gs dim" data-act="grade-score-set" data-v="'+esc(gradeCtx.buf)+'">'+esc(gradeCtx.buf)+'</button>';
-  scoreBtns+='<button class="gs dim" data-act="grade-clear-score">清零</button>';
+  /* 按钮区只放分数按钮（+步长/清零在下方输入行与键盘 Del 已有，不再重复占位） */
   /* 缩略图（先按需取图，避免把大图带进内存） */
   const thumbUrls={};
   for(const c of cropsAll){if(String(c.qno)===String(gradeCtx.qno)&&!thumbUrls[c.studentNo])thumbUrls[c.studentNo]=blobURL(c.id,await getBlob(c.id));}
@@ -5104,6 +5102,7 @@ Object.assign(ACTS,{
   },
   /* 按步长加减当前分（未评分时从 0 起步，结果夹在 0~满分之间） */
   'grade-step-adjust':async function(el){
+    /* 保留处理器：按钮区不再放置 ±步长按钮，但历史快捷入口/扩展仍可调用 */
     const dir=parseFloat(el.dataset.dir)||1;
     const d=Number(gradePref.step)||0.5;
     const no=gradeCtx.order[gradeCtx.idx];

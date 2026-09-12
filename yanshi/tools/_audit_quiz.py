@@ -14,7 +14,8 @@ SKIP = {'zixinli.html'}
 TAG = re.compile(r'<[^>]+>')
 WS = re.compile(r'\s+')
 NO = re.compile(r'<span class="no">.*?</span>', re.S)
-PUNC = re.compile(r'[，。、；：！？“”‘’…—·＜＞《》\s（）()0-9]')
+PUNC = re.compile(r'[，。、；：！？“”‘’＇\'…—·＜＞《》「」『』\s（）()0-9]')
+PAREN = re.compile(r'[（(][^（()）]{0,24}[)）]')
 
 
 def plain(src):
@@ -25,7 +26,8 @@ def plain(src):
 
 
 def bare(s):
-    """去标点，用于宽松匹配"""
+    """去掉括注（原文的"叫天子（云雀）"、题干的"（海市蜃楼）"）与标点，用于宽松匹配"""
+    return PUNC.sub('', PAREN.sub('', s))
     return PUNC.sub('', s)
 
 
