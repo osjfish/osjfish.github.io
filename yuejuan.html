@@ -109,8 +109,8 @@ table.tbl tr:hover td{background:#FBF8F3}
 .gimg{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px;text-align:center}
 .gimg img{max-width:100%;max-height:70vh;border-radius:6px;cursor:zoom-in}
 .gside{width:250px;flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
-.gscore{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;margin:8px 0;padding-bottom:4px}
-.gscore .gs{flex:0 0 auto;min-width:56px;padding:8px 10px;text-align:center;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;background:#fff}
+.gscore{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0;max-height:210px;overflow-y:auto;padding-right:2px}
+.gscore .gs{padding:8px 4px;text-align:center;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;background:#fff}
 .gscore .gs:hover{border-color:var(--zhu)}
 .gscore .gs.on{background:var(--zhu);color:#fff;border-color:var(--zhu)}
 .gscore .gs.dim{opacity:.4}
@@ -4881,14 +4881,14 @@ async function renderGradeView(ex){
   }else{
     imgs='<div class="empty">该生此题的裁剪图不存在</div>';
   }
-  /* 快捷分按钮：0 起按步长递增至满分（0 与满分必含，最多 40 个，超限退化为常用分档）+ 按步长加减 */
+  /* 快捷分按钮：0 起按步长递增至满分（0 与满分必含）；按钮区纵向滚动，数量多不压缩 */
   let scoreBtns='';
   const dstep=Math.max(0.5,Number(gradePref.step)||0.5);   /* 步长下限 0.5 */
   const eff=Number(gradePref.enhance)||0;
   const rstep=function(v){return Math.round(v*100)/100};
   const uniqs=[];
-  if(dstep>0&&full/dstep<=40){
-    for(let i=0;i<=40;i++){
+  if(dstep>0&&full/dstep<=300){
+    for(let i=0;i<=300;i++){
       const v=rstep(i*dstep);
       if(v>=full)break;
       if(uniqs.indexOf(v)<0)uniqs.push(v);
