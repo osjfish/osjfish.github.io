@@ -5503,10 +5503,62 @@ async function renderScore(){
       +(cs.length)+'，平均 '+avg.toFixed(1)+'　'+(list.length&&((list.reduce(function(a,c){return a+(c.ai!=null?1:0)},0))))+' 份有 AI 分</div>'+hist;
   }
   html+='</div>';
-  /* 总分分布 + 优良率 */
-  html+='<div class="card" style="flex:1;min-width:300px"><h3>总分分布与优良合格率</h3><canvas id="totalHist" style="width:100%;height:150px"></canvas>'
-    +'<canvas id="passDonut" style="width:100%;height:150px;max-width:260px;display:block;margin:6px auto"></canvas>'
-    +'<div class="kv" style="text-align:center">绿 优秀(≥'+th().ex+'分)　蓝 良好(≥'+th().good+'分)　金 合格(≥'+th().pass+'分)　灰 待合格(&lt;'+th().pass+'分)</div></div>';
+  /* 总分分布（纯 HTML 柱状：任意缩放下清晰，标签不会重叠） */
+  (function(){
+    const bins=10,data=[];
+    for(let i=0;i<bins;i++)data.push(0);
+    book.rows.forEach(function(r){
+      if(r.absent)return;
+      const b=Math.min(bins-1,Math.floor(r.total/Math.max(1,full)*bins));
+      data[b]++;
+    });
+    const mx=Math.max(1,Math.max.apply(null,data));
+    html+='<div class="card" style="flex:1;min-width:300px"><h3>总分分布</h3>'
+      +'<div class="kv" style="margin-bottom:4px">横轴为分数段，柱顶数字为人数</div>'
+      +'<div style="display:flex;align-items:flex-end;gap:3px;height:168px;padding-top:12px">';
+    data.forEach(function(c,i){
+      const h=Math.round(c/mx*92);
+      const lo=Math.round(full*i/bins),hi=Math.round(full*(i+1)/bins);
+      html+='<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%" title="'+lo+'~'+hi+' 分：'+c+' 人">'
+        +'<div style="font-size:10px;line-height:1.1;color:var(--txt2)">'+(c||'')+'</div>'
+        +'<div style="width:100%;background:var(--blue);border-radius:3px 3px 0 0;height:'+h+'%"></div></div>';
+    });
+    html+='</div><div style="display:flex;gap:3px;margin-top:2px;border-top:1px solid var(--line);padding-top:2px">';
+    data.forEach(function(c,i){
+      html+='<div style="flex:1;text-align:center;font-size:9px;color:var(--txt2)">'+Math.round(full*i/bins)+'</div>';
+    });
+    html+='</div></div>';
+  })();
+  /* 等级分布（纯 HTML：人数/占比/进度条，不重叠） */
+  (function(){
+    const T=th();
+    const live=book.rows.filter(function(r){return !r.absent});
+    const N=live.length||1;
+    const cnt=function(lo,hi){
+      return live.filter(function(r){
+        if(lo!=null&&r.total<lo)return false;
+        if(hi!=null&&r.total>=hi)return false;
+        return true;
+      }).length;
+    };
+    const bands=[
+      ['优秀','≥'+T.ex+' 分',cnt(T.ex,null),'var(--green)','1F8A70'],
+      ['良好','≥'+T.good+' 分',cnt(T.good,T.ex),'var(--blue)','33507A'],
+      ['合格','≥'+T.pass+' 分',cnt(T.pass,T.good),'var(--gold)','B8860B'],
+      ['待合格','<'+T.pass+' 分',cnt(null,T.pass),'#B8B2A6','8A8A8A']
+    ];
+    html+='<div class="card" style="flex:1;min-width:300px"><h3>等级分布（按分数线）</h3>';
+    bands.forEach(function(b){
+      const p=Math.round(b[2]/N*100);
+      html+='<div style="display:flex;align-items:center;gap:8px;margin:7px 0">'
+        +'<span style="width:44px;font-weight:700;font-size:13px;color:#'+b[4]+'">'+b[0]+'</span>'
+        +'<span class="kv" style="width:74px;white-space:nowrap;font-size:11px">'+b[1]+'</span>'
+        +'<div class="progress" style="flex:1"><div style="width:'+p+'%;background:'+b[3]+'"></div></div>'
+        +'<b style="width:34px;text-align:right">'+b[2]+'</b>'
+        +'<span class="kv" style="width:40px;text-align:right">'+p+'%</span></div>';
+    });
+    html+='<div class="kv" style="margin-top:8px">共 '+live.length+' 人参评（缺考 '+book.rows.filter(function(r){return r.absent}).length+' 人未计入）</div></div>';
+  })();
   html+='</div>';
   /* 成绩册 */
   html+='<div class="card"><h3>成绩册（'+book.rows.length+' 人 · 排序：总分）</h3><div class="tbl-wrap" style="max-height:520px;overflow:auto"><table class="tbl"><tr><th>排名</th><th>考号</th><th>姓名</th><th>备注</th><th>客观</th>';
@@ -5537,73 +5589,12 @@ async function renderScore(){
   html+='</table></div></div>';
   $('page').innerHTML=html;
   afterRender(function(){
-    drawTotalHist(full,book.rows);
-    drawPassDonut(full,book.rows);
   });
 }
 function max0(book){
   let t=0;
   book.meta.subjList.forEach(function(s){t+=s.score});
   return t+book.objFull;
-}
-function drawTotalHist(full,rows){
-  const cv=$('totalHist');
-  if(!cv)return;
-  const w=cv.width=cv.clientWidth||560,h=cv.height=150;
-  const ctx=cv.getContext('2d');
-  ctx.clearRect(0,0,w,h);
-  const bins=12,data=new Array(bins).fill(0);
-  rows.forEach(function(r){
-    if(r.absent)return;
-    const b=Math.min(bins-1,Math.floor(r.total/Math.max(1,full)*bins));
-    data[b]++;
-  });
-  const maxC=Math.max(1,Math.max.apply(null,data));
-  const bw=w/bins*0.7;
-  ctx.fillStyle='#33507A';
-  data.forEach(function(c,i){
-    const x=i*(w/bins)+(w/bins-bw)/2;
-    const bh=c/maxC*(h-36);
-    ctx.fillRect(x,h-26-bh,bw,bh);
-    ctx.fillStyle='#5A4E3C';ctx.font='10px sans-serif';ctx.textAlign='center';
-    ctx.fillText(Math.round((i+0.5)/bins*full),x+bw/2,h-12);
-  });
-  ctx.fillStyle='#999';ctx.font='11px sans-serif';ctx.textAlign='left';
-  ctx.fillText('总分分布（横轴=分数段）',6,14);
-}
-function drawPassDonut(full,rows){
-  const cv=$('passDonut');
-  if(!cv)return;
-  const w=cv.width=cv.clientWidth<260?260:cv.clientWidth,h=cv.height=150;
-  const ctx=cv.getContext('2d');
-  ctx.clearRect(0,0,w,h);
-  const T=th();
-  const exL=T.ex, goodL=T.good, passL=T.pass;
-  const good=rows.filter(function(r){return !r.absent&&r.total>=exL}).length;
-  const well=rows.filter(function(r){return !r.absent&&r.total>=goodL&&r.total<exL}).length;
-  const pass=rows.filter(function(r){return !r.absent&&r.total>=passL&&r.total<goodL}).length;
-  const fail=rows.filter(function(r){return !r.absent&&r.total<passL}).length;
-  const total=good+well+pass+fail;
-  if(!total){ctx.fillStyle='#999';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('暂无成绩',w/2,h/2);return}
-  const cx=w/2,cy=h/2,R=Math.min(w,h)/2-12;
-  const segs=[[good,'#1F8A70'],[well,'#33507A'],[pass,'#B8860B'],[fail,'#B8B2A6']];
-  let a=-Math.PI/2;
-  segs.forEach(function(sg){
-    const frac=sg[0]/total;
-    ctx.beginPath();
-    ctx.moveTo(cx,cy);
-    ctx.arc(cx,cy,R,a,a+frac*Math.PI*2);
-    ctx.fillStyle=sg[1];
-    ctx.fill();
-    a+=frac*Math.PI*2;
-  });
-  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,R*0.58,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#2C3E50';ctx.font='bold 14px sans-serif';ctx.textAlign='center';
-  ctx.fillText(total+' 人',cx,cy-2);
-  ctx.fillStyle='#999';ctx.font='10px sans-serif';
-  ctx.fillText('参评',cx,cy+13);
-  ctx.fillStyle='#666';ctx.font='11px sans-serif';ctx.textAlign='center';
-  ctx.fillText('优秀'+good+'　良好'+well+'　合格'+pass+'　待合格'+fail,cx,h-4);
 }
 /* ============ Word（.docx）学生成绩报告 ============ */
 /* 用 JSZip 直接拼最小 OOXML 包（无需额外库）：A4、窄边距、表格紧凑、标题行带底色 */
