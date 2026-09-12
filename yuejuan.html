@@ -761,8 +761,8 @@ function layoutTemplate(tpl,opts){
     };
     let qFirst=items[0].qno,remaining=items.length,part=0,idx=0,first=true,retried=false;
     while(remaining>0){
-      const headH=(part===0&&first)?SEC_H:0;
-      const avail=availH()-headH-11;
+      const headH=0;   /* 大题标题不再印在卡面，不再为其预留高度 */
+      const avail=availH()-headH-7-3-4;   /* 7=组上结构 3=填涂区顶部内边距 4=底部 */
       let nq=1,R=0,geom=null;
       if(fixedRows>0){
         /* 每列行数固定为 K：列数=ceil(remaining/K)（不超过宽度上限），末列允许不满；
@@ -789,7 +789,7 @@ function layoutTemplate(tpl,opts){
         if(R<1){if(!retried){retried=true;nextColOrPage();continue}retried=false;R=1;geom=rowGeom(1,nq,idx)}
       }
       const subCount=Math.min(remaining,nq*R);
-      const hNeed=headH+7+geom.accH+4;
+      const hNeed=headH+7+geom.accH+3+4;
       const cq={};
       const scores=[];
       for(let c=0;c<nq;c++)for(let r=0;r<R;r++){
@@ -800,10 +800,10 @@ function layoutTemplate(tpl,opts){
         scores.push((it2.score!=null&&Number.isFinite(Number(it2.score)))?Number(it2.score):null);
       }
       pg.groups.push({first:qFirst,count:subCount,choices:nMax,choicesQ:cq,cols:nq,rows:R,
-        x0:colX(curCol)+2,y0:curY+headH+2,dxq:(colW-6)/nq,dy:(optV?(optStep+1.8):5),dy0:(optV?optStep/2:2.5),
-        rowY:geom.rowY,optDir:(optV?'v':'h'),optStep:(optV?optStep:0),size:[bw,bh],timing:{dx:-2,w:1,h:2},
+        x0:colX(curCol)+2,y0:curY+headH+2+3,dxq:(colW-6)/nq,dy:(optV?(optStep+1.8):5),dy0:(optV?optStep/2:2.5),
+        rowY:geom.rowY,optDir:(optV?'v':'h'),optStep:(optV?optStep:0),size:[bw,bh],timing:{dx:-3.6,w:1,h:2},
         scores:scores,scoreLabel:scoreLabelOf(scores),kind:'single',
-        box:{x:colX(curCol),y:curY+(headH?headH+2:2),w:colW,h:geom.accH+4},
+        box:{x:colX(curCol),y:curY+(headH?headH+2:2),w:colW,h:geom.accH+3+4},
         label:(part===0&&first)?title:(title+'（续）'),
         sec:(part===0&&first)?title:(title+'（续）'),topY:curY,col:curCol,blockW:blockW});
       curY+=hNeed;
@@ -992,28 +992,7 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
   });
   }
   ctx.textAlign='center';
-  /* 大题标题：每页每列只画一次（该列首个块的大题名） */
-  (function(){
-    const all=page.groups.map(function(g){return g}).concat(page.subjective.map(function(s){return s}));
-    all.sort(function(a,b){return (a.col||0)-(b.col||0)||((a.topY||0)-(b.topY||0))});
-    const shown={};
-    all.forEach(function(b){
-      if(!b.sec)return;
-      const key=page.footer.n+'|'+(b.col||0);
-      if(shown[key])return;
-      shown[key]=1;
-      const x=(page.margin||14)+((b.col||0))*((page.colW||page.w)+((page.colGap!==undefined)?page.colGap:0));
-      const isCont=/（续）$/.test(String(b.sec));
-      const showSec=showScoreOf(tpl).sec;
-      const sc=(showSec&&b.scoreLabel)?('（'+b.scoreLabel+'）'):'';
-      const txt=isCont?sc:(b.sec+sc);
-      if(!txt)return;
-      ctx.fillStyle='#000';ctx.textAlign='left';
-      ctx.font='bold '+Math.max(8,Math.round(px(3.7)))+'px "Microsoft YaHei",sans-serif';
-      ctx.fillText(txt,px(x),px((b.topY||0)+4.3));
-    });
-    ctx.textAlign='center';
-  })();
+  /* 大题标题不印在卡面（仅保留在识别告警文案中）；题号标签即足够定位 */
   /* 选择题组 */
   page.groups.forEach(function(g){
     /* 选择题区外框（全卷选择题集中在这一个框内） */
@@ -1022,6 +1001,13 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
       ctx.strokeRect(px(g.box.x),px(g.box.y),px(g.box.w),px(g.box.h));
     }
     ctx.textAlign='center';
+    /* 行同步条（识别端逐行校正定位用）：整组每行一条（空行也有——识别按组行数找全部同步条），
+       整体在框线外侧、与框线留 0.6mm 间隙——与 0.3mm 框线粘连后黑块超宽会被同步条检测的宽度过滤拒判 */
+    ctx.fillStyle='#000';
+    for(let r=0;r<g.rows;r++){
+      const rowY=g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy);
+      ctx.fillRect(px(g.x0-3.6),px(rowY-1),px(1),px(2));
+    }
     for(let c=0;c<g.cols;c++){
       const xc=g.x0+c*g.dxq;
       for(let r=0;r<g.rows;r++){
@@ -1042,9 +1028,6 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
           ctx.fillStyle='#444';
           ctx.fillText(String.fromCharCode(65+ch),px(bx+qg.bw/2),px(by+0.1));
         }
-        /* 行同步条 */
-        ctx.fillStyle='#000';
-        ctx.fillRect(px(g.x0-2.2),px(rowY-1),px(1),px(2));
       }
     }
   });
@@ -2302,7 +2285,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   const syncMiss=[];
   pg2.groups.forEach(function(g){
     const gx0=g.x0,gid=g.label;
-    const expTiming=gx0-2.2;
+    const expTiming=gx0-3.6;
     const expMarks=[];
     for(let r=0;r<g.rows;r++)expMarks.push(H(expTiming,g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy)));
     const marks=detectRowMarks(bin,cv.width,cv.height,expMarks,smm);
@@ -2834,7 +2817,6 @@ async function tplEditorHTML(tplId){
     +'</div></div>'
     +'<div class="card"><h3>题目清单（先设大题，再加大题下的小题）</h3>'
     +'<div class="f-row" style="margin-bottom:8px;align-items:center">'
-    +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0" title="大题标题后是否显示（共X分）"><input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="scoreSec"'+(showScoreOf(t).sec?' checked':'')+'> 大题显示分值</label>'
     +'<label class="kv" style="display:flex;align-items:center;gap:4px;margin:0" title="小题标签后是否显示（X分）"><input type="checkbox" data-on="tpl-field" data-id="'+t.id+'" data-f="scoreItem"'+(showScoreOf(t).item?' checked':'')+'> 小题显示分值</label>'
     +'<span style="flex:1"></span>'
     +'<span class="kv" id="tplFullScore">本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分</span>'

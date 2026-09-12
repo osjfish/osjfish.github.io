@@ -656,54 +656,233 @@ function structureScore(hand,jokerId){
 function evalHandScore(hand,jokerId){
   return structureScore(hand,jokerId);
 }
-/* 精确听牌检测：打出 drop 后是否听牌。
-   返回 {legal:合法等待数, shape:纯形状等待数(可能需开口)} */
-function tenpaiWaitsAfter(hand,dropIdx,meldCount,jokerId,opens){
-  var rest=hand.slice();rest.splice(dropIdx,1);
-  var legal=0,shape=0;
-  for(var j=0;j<ALL_CODES.length;j++){
-    var w=ALL_CODES[j];
-    var effOpen=Math.max(opens||0,1);/* 形状模式：绕过开口门槛 */
-    if(checkWin(rest.concat([w]),meldCount,jokerId,false,opens))legal++;
-    else if(checkWin(rest.concat([w]),meldCount,jokerId,false,effOpen))shape++;
+/* ================= 高级 AI：向听数 / 期望模拟 / 防炮读牌 =================
+   只用公开信息：自己手牌、双方副露、牌河、翻牌、牌墙余量；不读对手暗牌与牌墙内容 */
+var _hsCache={};   /* handShanten 缓存（每次 AI 决策前清空） */
+var _bdCache={};   /* blockDeltas 缓存 */
+/* 枚举一段牌所有拆块方案的增量集合（键:面子数,搭子数,二五八对子数,散落二五八张数），带记忆化 */
+function blockDeltas(counts,maxIdx,allowChows,jiangPairs){
+  var memo={};
+  function dfs(i){
+    while(i<=maxIdx&&!counts[i])i++;
+    if(i>maxIdx){var e0={};e0['0,0,0,0']=1;return e0;}
+    var k=i+':'+counts.slice(i).join(',');
+    if(memo[k])return memo[k];
+    var res={},c=counts;
+    function collect(ds,dp,dp2,dh){
+      var sub=dfs(i);
+      for(var kk in sub){
+        var q=kk.split(',');
+        res[(+q[0]+ds)+','+(+q[1]+dp)+','+(+q[2]+dp2)+','+(+q[3]+dh)]=1;
+      }
+    }
+    if(c[i]>=3){c[i]-=3;collect(1,0,0,0);c[i]+=3;}
+    if(c[i]>=2){c[i]-=2;collect(0,1,(jiangPairs&&(i===2||i===5||i===8))?1:0,0);c[i]+=2;}
+    if(allowChows){
+      if(i+2<=maxIdx&&c[i+1]>0&&c[i+2]>0){c[i]--;c[i+1]--;c[i+2]--;collect(1,0,0,0);c[i]++;c[i+1]++;c[i+2]++;}
+      if(i+1<=maxIdx&&c[i+1]>0){c[i]--;c[i+1]--;collect(0,1,0,0);c[i]++;c[i+1]++;}
+      if(i+2<=maxIdx&&c[i+2]>0){c[i]--;c[i+2]--;collect(0,1,0,0);c[i]++;c[i+2]++;}
+    }
+    c[i]--;collect(0,0,0,(jiangPairs&&(i===2||i===5||i===8))?1:0);c[i]++;
+    memo[k]=res;
+    return res;
   }
-  return {legal:legal,shape:shape,total:legal+shape};
+  return dfs(1);
 }
-function aiPickDiscard(hand,jokerId,oppRiver,meldCount,opens){
-  meldCount=meldCount||0;opens=opens||0;
-  var best=null,bestV=-1e9;
-  var tried={};
+function paretoOfList(list){
+  var out=[];
+  list.forEach(function(e){
+    for(var i=0;i<out.length;i++){var o=out[i];
+      if(o.s>=e.s&&o.p>=e.p&&o.p2>=e.p2&&o.h>=e.h)return;}
+    out=out.filter(function(o){return !(e.s>=o.s&&e.p>=o.p&&e.p2>=o.p2&&e.h>=o.h);});
+    out.push({s:e.s,p:e.p,p2:e.p2,h:e.h});
+  });
+  return out;
+}
+function paretoOfMap(m){
+  var list=[];
+  for(var kk in m){var q=kk.split(',');list.push({s:+q[0],p:+q[1],p2:+q[2],h:+q[3]});}
+  return paretoOfList(list);
+}
+function suitCnt(cnt,s){
+  var o={};
+  for(var n=1;n<=9;n++){var c=cnt[s+n];if(c)o[s+n]=c;}
+  return o;
+}
+/* 向听数核心：cnt=非赖子计数，J=赖子数；pairSet=null 任意对（大胡）/ JIANG258 限二五八（屁胡）。
+   返回值=还需换几张牌才能和（-1=已够和牌形），可与手牌张数无关地比较 */
+function shantenCore(cnt,J,needSets,allowChows,pairSet){
+  var groups=[];
+  ['m','t','d'].forEach(function(s){
+    var arr=[0,0,0,0,0,0,0,0,0,0],any=false;
+    for(var n=1;n<=9;n++){arr[n]=cnt[s+n]||0;if(arr[n])any=true;}
+    if(any){
+      var bdKey=s+(allowChows?'c':'t')+JSON.stringify(arr);
+      if(!_bdCache[bdKey])_bdCache[bdKey]=blockDeltas(arr,9,allowChows,true);
+      groups.push(paretoOfMap(_bdCache[bdKey]));
+    }
+  });
+  var hArr=[0,0,0,0,0,0,0,0],hAny=false;
+  ['hz','fc','bb','df','nf','xf','bf'].forEach(function(h,i){hArr[i+1]=cnt[h]||0;if(hArr[i+1])hAny=true;});
+  if(hAny){
+    var hk='h'+JSON.stringify(hArr);
+    if(!_bdCache[hk])_bdCache[hk]=blockDeltas(hArr,7,false,false);
+    groups.push(paretoOfMap(_bdCache[hk]));
+  }
+  if(!groups.length)return Math.max(-1,needSets*3+1-J);
+  var comb=[{s:0,p:0,p2:0,h:0}];
+  groups.forEach(function(g){
+    var next=[];
+    comb.forEach(function(a){g.forEach(function(b){
+      next.push({s:a.s+b.s,p:a.p+b.p,p2:a.p2+b.p2,h:a.h+b.h});
+    });});
+    comb=paretoOfList(next);
+  });
+  var best=99;
+  comb.forEach(function(e){
+    var R=needSets-e.s;if(R<0)R=0;
+    function base(p){return Math.min(p,R)+2*Math.max(0,R-p);}
+    var Ppair=pairSet?e.p2:e.p;
+    var dA=Ppair>=1?base(e.p-1):99;   /* 拿一个对子块当将 */
+    /* 现凑将：手里有散张二五八或赖子则差1张，否则差2张（已被面子占用的不算） */
+    var dB=base(e.p)+((pairSet&&e.p2<1&&e.h<1&&J<1)?2:1);
+    var D=Math.min(dA,dB);
+    var sh=Math.max(-1,D-J-1);
+    if(sh<best)best=sh;
+  });
+  return best;
+}
+function shantenSeven(cnt,J){
+  var pairs=0,singles=0;
+  for(var k in cnt){pairs+=Math.floor(cnt[k]/2);singles+=cnt[k]%2;}
+  var u=Math.min(singles,J),jl=J-u;
+  return Math.max(-1,6-pairs-u-Math.floor(jl/2));
+}
+/* 综合向听数：取屁胡(二五八将)/清一色/碰碰胡/七对各路线的最优值；-1=已和牌形 */
+function handShanten(hand,jokerId,meldInfo){
+  var melds=Array.isArray(meldInfo)?meldInfo:null;
+  var st=melds?structuralMeldTiles(melds):{tiles:[],hasSeq:false};
+  var meldCount=melds?winMeldCount(melds):(meldInfo||0);
+  var sig=melds?(meldCount+(st.hasSeq?'S':'T')):String(meldInfo||0);
+  var key=sortTiles(hand).join(',')+'#'+sig;
+  if(_hsCache[key]!==undefined)return _hsCache[key];
+  var needSets=4-meldCount;
+  var cm=countMap(hand,jokerId),cnt=cm.cnt,J=cm.jokers;
+  var v;
+  if(checkWin(hand,meldInfo,jokerId,true,1))v=-1;
+  else{
+    v=shantenCore(cnt,J,needSets,true,JIANG258);
+    if(melds&&st.tiles.length){                            /* 清一色路线：副露同花色才可行 */
+      var s0=st.tiles[0][0],ok=true;
+      for(var i=0;i<st.tiles.length;i++)if(st.tiles[i][0]!==s0){ok=false;break;}
+      if(ok)v=Math.min(v,shantenCore(suitCnt(cnt,s0),J,needSets,true,null));
+    }else if(meldCount===0){                               /* 无副露：三个花色的清一色都试 */
+      ['m','t','d'].forEach(function(s){
+        v=Math.min(v,shantenCore(suitCnt(cnt,s),J,needSets,true,null));
+      });
+    }
+    if(!st.hasSeq)v=Math.min(v,shantenCore(cnt,J,needSets,false,null)); /* 碰碰胡路线 */
+    if(meldCount===0)v=Math.min(v,shantenSeven(cnt,J));    /* 七对路线 */
+  }
+  _hsCache[key]=v;
+  return v;
+}
+/* 向听数 → 期望模拟用的效用分 */
+function shantenScore(s){
+  if(s<=-1)return 1e6;
+  var T=[4200,1300,380,95,24,6,2];
+  return T[Math.min(s,6)];
+}
+/* ---- 防炮读牌（公开信息） ---- */
+function dangerBase(c){
+  if(isHonor(c))return 6;
+  var n=+c[1];
+  return (n===1||n===9)?8:(n===2||n===8)?11:14;
+}
+function tileDanger(c,oppMelds,oppRiverTiles,jokerId){
+  if(c===jokerId)return 40;                 /* 赖子可当任意牌成和，点炮风险最大 */
+  var d=dangerBase(c);
+  if(!isHonor(c)){
+    var suit=c[0],share=0,tot=0;
+    structuralMeldTiles(oppMelds).tiles.forEach(function(t){
+      if(!isHonor(t)){tot++;if(t[0]===suit)share++;}
+    });
+    if(tot)d*=1+0.9*(share/tot);            /* 对手副露集中某花色，该花牌更危险 */
+  }
+  var n=oppRiverTiles.length;
+  for(var k=Math.max(0,n-5);k<n;k++){
+    if(oppRiverTiles[k]===c){d*=(k>=n-2?0.3:0.55);break;}  /* 对手近5张内打过的偏安全 */
+  }
+  return d;
+}
+function oppThreatLevel(oppMelds,oppRiverTiles,wallLen){
+  var t=0.10+winMeldCount(oppMelds)*0.22;
+  if(wallLen<28)t+=0.15;
+  if(wallLen<14)t+=0.20;
+  var last3=oppRiverTiles.slice(-3);
+  if(last3.length===3){
+    var calm=true;
+    for(var i=0;i<3;i++)if(dangerBase(last3[i])>8){calm=false;break;}
+    if(calm)t*=0.7;                         /* 对手近3张都打字牌边张，多半没听 */
+  }
+  return Math.min(t,0.9);
+}
+/* 弃牌选择：对每个候选打出牌，枚举全部可摸牌按剩余张数加权平均效用（期望模拟一层），
+   再叠加防炮惩罚；危险时进入弃和模式只求安全 */
+function aiPickDiscard(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip){
+  _hsCache={};_bdCache={};
+  var uniq=[],seenC={};
   for(var i=0;i<hand.length;i++){
     var c=hand[i];
-    if(tried[c])continue;tried[c]=1;
-    if(c===jokerId&&hand.length>2)continue;/* 赖子不打出 */
-    var sameN=0;for(var q=0;q<hand.length;q++)if(hand[q]===c)sameN++;
-    if((c==='hz'||c==='fc')&&sameN<2&&hand.length>2){
-      /* 单张红中发财有杠价值，除非手里很多 */
-      continue;
-    }
-    var rest=hand.slice();
-    var ix=rest.indexOf(c);if(ix>=0)rest.splice(ix,1);
-    var wt=tenpaiWaitsAfter(hand,i,meldCount,jokerId,opens);
-    var v;
-    if(wt.legal>0){
-      /* 打出即合法听牌：最强优先，等多面张 */
-      v=100000+wt.legal*50+structureScore(rest,jokerId);
-    }else if(wt.shape>0&&opens<1){
-      /* 打出后是“需开口”的听牌：中等偏上价值，促使 AI 后续积极开口 */
-      v=50000+wt.shape*30+structureScore(rest,jokerId);
-    }else{
-      v=structureScore(rest,jokerId);
-    }
-    /* 防守：中后期优先打对手打过的牌 */
-    if(oppRiver&&oppRiver.length>14){
-      var seenN=0;oppRiver.forEach(function(r){if(r.t===c)seenN++;});
-      v+=seenN*2;
-    }
-    v+=Math.random()*0.5;
-    if(v>bestV){bestV=v;best=c;}
+    if(c===jokerId)continue;
+    if(seenC[c])continue;seenC[c]=1;uniq.push(c);
   }
-  if(best===null&&hand.length)return hand[0];
+  /* 规则同人类：手里还有普通牌时，红中/发财/赖子不能直接打（只能杠） */
+  var hasNormal=false;
+  for(i=0;i<hand.length;i++)if(hand[i]!==jokerId&&hand[i]!=='hz'&&hand[i]!=='fc'){hasNormal=true;break;}
+  if(hasNormal)uniq=uniq.filter(function(c){return c!=='hz'&&c!=='fc';});
+  if(!uniq.length)return hand[0];
+  /* 公开信息统计剩余牌 */
+  var remain={};
+  ALL_CODES.forEach(function(t){remain[t]=4;});
+  function useT(t){if(remain[t]>0)remain[t]--;}
+  function useMeld(m){
+    var ts=(m.tiles&&m.tiles.length)?m.tiles
+      :(m.type==='吃'?[m.with[0],m.tile,m.with[1]]
+      :(m.type==='碰'?[m.tile,m.tile,m.tile]:[m.tile,m.tile,m.tile,m.tile]));
+    ts.forEach(useT);
+  }
+  hand.forEach(useT);
+  (myMelds||[]).forEach(useMeld);
+  (oppMelds||[]).forEach(useMeld);
+  oppRiverTiles.forEach(useT);
+  if(flip)useT(flip);
+  var total=0;
+  ALL_CODES.forEach(function(t){total+=remain[t];});
+  if(!total)total=1;
+  var myS=handShanten(hand,jokerId,myMelds);
+  var threat=oppThreatLevel(oppMelds,oppRiverTiles,wallLen);
+  var lambda=threat*(myS>=3?5:(myS===2?2.2:0.8));
+  var pureFold=(myS>=3&&threat>=0.5)||(myS>=2&&threat>=0.72);
+  var best=null,bestV=-1e18;
+  uniq.forEach(function(c){
+    var rest=hand.slice(),ix=rest.indexOf(c);rest.splice(ix,1);
+    var v;
+    if(pureFold){
+      v=structureScore(rest,jokerId)/40;      /* 弃和：留相对成型的牌，安全第一 */
+    }else{
+      v=0;
+      for(var j=0;j<ALL_CODES.length;j++){
+        var t=ALL_CODES[j],r=remain[t];
+        if(!r)continue;
+        var h2=rest.concat([t]);
+        v+=r*(shantenScore(handShanten(h2,jokerId,myMelds))+structureScore(h2,jokerId)/60);
+      }
+      v/=total;
+    }
+    v-=lambda*tileDanger(c,oppMelds,oppRiverTiles,jokerId)*45;
+    if(v>bestV){bestV=v;best=c;}
+  });
   return best;
 }
 </script>
@@ -1000,7 +1179,9 @@ function afterMeldClaim(){
   if(G.mode==='ai'&&t===1){
     renderAll();
     setTimeout(function(){
-      var c=aiPickDiscard(G.hands[1],G.joker,G.river.filter(function(r){return r.by===0;}),winMeldCount(G.melds[1]),countOpens(G.melds[1]));
+      var c=aiPickDiscard(G.hands[1],G.joker,G.melds[1],G.melds[0],
+        G.river.filter(function(r){return r.by===0;}).map(function(r){return r.t;}),
+        G.wall.length,G.flip);
       discardTile(1,c);
     },600);
     return;
@@ -1016,32 +1197,66 @@ function afterMeldClaim(){
 /* ---- AI 行为 ---- */
 function aiAct(winRes,gangs){
   if(winRes){doWin(1,null,winRes);return;}
-  if(gangs.length){doGang(gangs[0]);return;}
-  var c=aiPickDiscard(G.hands[1],G.joker,G.river.filter(function(r){return r.by===0;}),winMeldCount(G.melds[1]),countOpens(G.melds[1]));
+  if(gangs.length){
+    _hsCache={};_bdCache={};
+    var hand=G.hands[1],sNow=handShanten(hand,G.joker,G.melds[1]);
+    var jc=0;hand.forEach(function(c){if(c===G.joker)jc++;});
+    for(var gi=0;gi<gangs.length;gi++){
+      var g=gangs[gi];
+      if(g.tile===G.joker&&jc<3)continue;        /* 杠赖子=用万能牌换盲牌，几乎必亏 */
+      var h2=hand.slice(),m2=G.melds[1].slice();
+      g.tiles.forEach(function(cc){var ix=h2.indexOf(cc);if(ix>=0)h2.splice(ix,1);});
+      m2.push({type:'杠',tiles:g.tiles.slice(),tile:g.tile,concealed:g.type==='暗杠'||g.type==='红中发财杠'});
+      /* 暗杠的第4张本是死牌，容忍向听+1；其余杠要求向听不变差 */
+      var tol=(g.type==='暗杠')?1:0;
+      if(handShanten(h2,G.joker,m2)<=sNow+tol){doGang(g);return;}
+    }
+  }
+  var c=aiPickDiscard(G.hands[1],G.joker,G.melds[1],G.melds[0],
+    G.river.filter(function(r){return r.by===0;}).map(function(r){return r.t;}),
+    G.wall.length,G.flip);
   discardTile(1,c);
 }
 function aiClaim(claims){
   var d=G.lastDiscard;
   if(claims.win){doWin(1,d.tile,claims.win);return;}
-  if(claims.gangs.length){doClaimGang(claims.gangs[0]);return;}
-  var hand=G.hands[1];
-  var opensNow=countOpens(G.melds[1]);
-  if(claims.pong){
-    /* 碰后手牌少2张但多一组明刻，结构分必然下降，改用"对子是否值得碰"判定 */
-    doPong();return;
+  var hand=G.hands[1],melds=G.melds[1],joker=G.joker;
+  _hsCache={};_bdCache={};
+  var sNow=handShanten(hand,joker,melds);
+  var opens=countOpens(melds);
+  var cands=[];
+  (claims.gangs||[]).forEach(function(tc){
+    if(tc===joker){
+      var jc=0;hand.forEach(function(c){if(c===joker)jc++;});
+      if(jc<3)return;
+    }
+    var h2=hand.slice(),m2=melds.slice();
+    for(var i=0;i<3;i++){var ix=h2.indexOf(tc);if(ix>=0)h2.splice(ix,1);}
+    m2.push({type:'杠',tiles:[tc,tc,tc,tc],tile:tc});
+    var s2=handShanten(h2,joker,m2);
+    if(s2<=sNow)cands.push({v:s2-0.3,k:2,tc:tc});   /* 明杠附赠摸牌，容忍平向听 */
+  });
+  if(claims.pong&&!G.pongUsed[1]){
+    var tc=d.tile,h3=hand.slice();
+    for(var i2=0;i2<2;i2++){var ix2=h3.indexOf(tc);if(ix2>=0)h3.splice(ix2,1);}
+    var s3=handShanten(h3,joker,melds.concat([{type:'碰',tile:tc}]));
+    if(s3<sNow||(s3===sNow&&opens===0&&G.wall.length>20))cands.push({v:s3,k:1,pong:true});
   }
-  if(claims.chis.length){
-    /* 吃：比较吃后结构分与当前结构分的差值，差值损失小于30就吃（未开口时更积极） */
-    var curBase=structureScore(hand,G.joker);
-    var threshold=opensNow<1?-30:+10;
-    var best=null,bestV=-1e9;
+  if(claims.chis.length&&!G.chiUsed[1]){
     claims.chis.forEach(function(combo){
-      var sim2=hand.slice();
-      combo.forEach(function(cc){var ix=sim2.indexOf(cc);if(ix>=0)sim2.splice(ix,1);});
-      var v2=structureScore(sim2,G.joker);
-      if(v2>bestV){bestV=v2;best=combo;}
+      var h4=hand.slice();
+      combo.forEach(function(cc){var ix=h4.indexOf(cc);if(ix>=0)h4.splice(ix,1);});
+      var s4=handShanten(h4,joker,melds.concat([{type:'吃',tile:d.tile,with:combo}]));
+      if(s4<sNow||(s4===sNow&&opens===0&&G.wall.length>26&&sNow>=2))cands.push({v:s4,k:0,combo:combo});
     });
-    if(best&&bestV>=curBase+threshold){doChi(best);return;}
+  }
+  if(cands.length){
+    cands.sort(function(a,b){return a.v-b.v||b.k-a.k;});
+    var pick=cands[0];
+    if(pick.k===2)doClaimGang(pick.tc);
+    else if(pick.k===1)doPong();
+    else doChi(pick.combo);
+    return;
   }
   passTurn();
 }
