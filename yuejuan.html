@@ -1121,7 +1121,7 @@ function regBottom(reg){return reg.rowsY[9]+3.4}
 /* 模板列表的客观题分值标注：逐题分值一致时显示“每题X分”，不同则显示“共X分” */
 function objTotalLabel(t){
   const scs=allItems(t).filter(function(q){return isChoiceKind(kindOf(q))})
-    .map(function(q){return (q.score!=null&&Number.isFinite(Number(q.score)))?Number(q.score):((t.perScore!=null)?Number(t.perScore):2)});
+    .map(function(q){return (q.score!=null&&Number.isFinite(Number(q.score)))?Number(q.score):((t.perScore!=null)?Number(t.perScore):3)});
   if(!scs.length)return '';
   const uniq=scs.filter(function(v,i){return scs.indexOf(v)===i});
   if(uniq.length===1)return '（每题'+uniq[0]+'分）';
@@ -2527,7 +2527,7 @@ async function examMeta(exam){
   allItems(tpl).forEach(function(q){if(isChoiceKind(kindOf(q)))qmap[q.qno]=q;});
   choiceQnos.forEach(function(qn){
     const q=qmap[qn];
-    const s=(q&&q.score!=null)?Number(q.score):((tpl.perScore!=null)?Number(tpl.perScore):2);
+    const s=(q&&q.score!=null)?Number(q.score):((tpl.perScore!=null)?Number(tpl.perScore):3);
     choiceScores[qn]=(Number.isFinite(s)&&s>=0)?s:2;
   });
   /* 每题题型（供向导默认单选/多选） */
@@ -2740,7 +2740,7 @@ async function tplEditorHTML(tplId){
       +'<button class="btn btn-sm" data-act="tpl-it-down" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" title="下移"'+(ii===nItems-1?' disabled':'')+'>↓</button>'
       +'<button class="btn btn-sm btn-d" data-act="tpl-it-del" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" title="删除小题">✕</button>';
     const base='<span class="kv">题号</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="qno" value="'+esc(it.qno==null?'':it.qno)+'" title="建议全卷连续（1、2、3…）">'
-      +'<span class="kv">分值</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="score" type="number" step="0.5" min="0" value="'+esc(it.score!=null?it.score:2)+'">'
+      +'<span class="kv">分值</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="score" type="number" step="0.5" min="0" value="'+esc(it.score!=null?it.score:3)+'">'
       +'<span class="kv">题型</span><select class="inp" style="width:88px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="kind">'
       +Object.keys(KINDS).map(function(k){return '<option value="'+k+'"'+(kind===k?' selected':'')+'>'+KINDS[k]+'</option>'}).join('')+'</select>';
     let extra='';
@@ -2819,6 +2819,11 @@ async function tplEditorHTML(tplId){
     +'<span class="kv" id="tplFullScore">本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分</span>'
     +'</div>'
     +'<div class="tip" style="margin-bottom:8px">按试卷结构组织：一个大题（如「一、选择题」）下可放多个小题，小题题型可选 单选 / 多选 / 填空 / 问答 / 作文。全部选择题（含多选）自动集中在答题卡开头的一个框内，其余题型按清单顺序排版。题号建议全卷连续（1、2、3…）。</div>'
+    +'<div class="f-row" style="margin-bottom:8px;align-items:center">'
+    +'<span class="kv" style="white-space:nowrap">批量设分：第</span><input class="inp" id="tplBatchFrom" type="number" style="width:60px"><span class="kv">题 至 第</span><input class="inp" id="tplBatchTo" type="number" style="width:60px"><span class="kv">题，每题</span><input class="inp" id="tplBatchScore" type="number" step="0.5" min="0.5" style="width:60px" value="3"><span class="kv">分</span>'
+    +'<button class="btn btn-sm" data-act="tpl-batch-score" data-id="'+t.id+'">应用</button>'
+    +'<span class="kv">（按题号匹配，客观题与主观题均可）</span>'
+    +'</div>'
     +(qRows||'<div class="kv" style="margin-bottom:8px">还没有大题。点击下方「添加大题」开始，例如先建「一、选择题」。</div>')
     +'<div class="f-row">'
     +'<button class="btn btn-sm btn-p" data-act="tpl-sec-add" data-id="'+t.id+'">＋ 添加大题</button>'
@@ -2907,6 +2912,26 @@ Object.assign(ACTS,{
     renderTpl();
   },
   'tpl-import':function(){const f=$('tplImportFile');if(f)f.click()},
+  /* 批量设分：把题号区间内的所有小题（含主观题）统一设为同一分值 */
+  'tpl-batch-score':async function(el){
+    const t=await dbGet('templates',el.dataset.id);
+    if(!t)return;
+    const g=function(id){const e=$(id);return e?parseFloat(e.value):NaN};
+    const f=g('tplBatchFrom'),t2=g('tplBatchTo'),sc=g('tplBatchScore');
+    if(!Number.isFinite(f)||!Number.isFinite(t2)||!Number.isFinite(sc)||sc<=0){toast('请填写有效的题号范围与分值','err');return}
+    const lo=Math.min(f,t2),hi=Math.max(f,t2);
+    const secs=normalizeSections(t);
+    let n=0;
+    secs.forEach(function(s){(s.items||[]).forEach(function(it){
+      const n2=Number(it.qno);
+      if(Number.isFinite(n2)&&n2>=lo&&n2<=hi){it.score=Math.round(sc*2)/2;n++;}
+    })});
+    if(!n){toast('题号 '+lo+' ~ '+hi+' 范围内没有题目','err');return}
+    t.sections=secs;delete t.questions;
+    await dbPut('templates',t);
+    toast('已将 '+n+' 道题设为每题 '+sc+' 分','ok');
+    renderTpl();
+  },
   /* —— 逐题清单操作 —— */
   /* ===== 题目清单（大题 → 小题） ===== */
   'tpl-sec-add':async function(el){
@@ -2968,7 +2993,7 @@ Object.assign(ACTS,{
     const kind=el.dataset.kind||'single';
     let mx=0;
     secs.forEach(function(s){(s.items||[]).forEach(function(it){const n=Number(it.qno);if(Number.isFinite(n)&&n>mx)mx=n})});
-    const it={kind:kind,qno:mx+1,score:2};
+    const it={kind:kind,qno:mx+1,score:3};
     if(isChoiceKind(kind))it.choices=4;
     else if(kind==='blank')it.rows=2;
     else if(kind==='qa'){it.style='lines';it.rows=3;}
@@ -3440,7 +3465,7 @@ async function examWizardOpen(examId){
 function wizScoreOf(qn,meta){
   if(wiz&&wiz.perQScore&&wiz.perQScore[qn]!=null)return wiz.perQScore[qn];
   if(meta&&meta.choiceScores&&meta.choiceScores[qn]!=null)return meta.choiceScores[qn];
-  return 2;
+  return 3;
 }
 async function wizRender(){
   if(!wiz)return;
@@ -3496,6 +3521,10 @@ async function wizRender(){
         +'</div></div>';
     });
     body+='<div class="kv" style="margin-bottom:8px">点击选项循环切换：空 → A → B → C → D → 空；共 '+meta.choiceQnos.length+' 道客观题，已录 <b>'+ansN+'</b> 题，客观满分 <b>'+objFull+'</b> 分。每题右侧分值已按模板预填，可<b>单独调整</b>（只影响本次考试；未改动的题沿用模板分值）。</div>'
+      +'<div class="f-row" style="margin:0 0 10px;align-items:center">'
+      +'<span class="kv" style="white-space:nowrap">批量设分：第</span><input class="inp" id="wizBatchFrom" type="number" style="width:64px" value="'+esc(meta.choiceQnos.length?meta.choiceQnos[0]:'')+'"><span class="kv">题 至 第</span><input class="inp" id="wizBatchTo" type="number" style="width:64px" value="'+esc(meta.choiceQnos.length?meta.choiceQnos[meta.choiceQnos.length-1]:'')+'"><span class="kv">题，每题</span><input class="inp" id="wizBatchScore" type="number" step="0.5" min="0.5" style="width:64px" value="3"><span class="kv">分</span>'
+      +'<button class="btn btn-sm btn-p" data-act="wiz-batch">应用</button>'
+      +'</div>'
       +'<div class="qgrid">'+cells+'</div>'+subjHtml;
   }
   const foot=''+'<button class="btn" data-act="wiz-cancel">取消</button>'
@@ -3550,6 +3579,24 @@ Object.assign(ACTS,{
     const v=parseFloat(el.value);
     if(Number.isFinite(v)&&v>0)wiz.perQScore[q]=Math.round(v*2)/2;
     else delete wiz.perQScore[q];
+  },
+  /* 批量设分：把题号区间内的客观题统一设为同一分值（写入考试覆盖，不影响模板） */
+  'wiz-batch':function(){
+    const g=function(id){const e=$(id);return e?parseFloat(e.value):NaN};
+    const f=g('wizBatchFrom'),t2=g('wizBatchTo'),sc=g('wizBatchScore');
+    if(!Number.isFinite(f)||!Number.isFinite(t2)||!Number.isFinite(sc)||sc<=0){toast('请填写有效的题号范围与分值','err');return}
+    const lo=Math.min(f,t2),hi=Math.max(f,t2);
+    if(!wiz.perQScore)wiz.perQScore={};
+    let n=0;
+    document.querySelectorAll('[data-on=wiz-qscore]').forEach(function(inp){
+      const qn=Number(inp.dataset.q);
+      if(Number.isFinite(qn)&&qn>=lo&&qn<=hi){
+        wiz.perQScore[String(qn)]=Math.round(sc*2)/2;n++;
+      }
+    });
+    if(!n){toast('第 '+lo+' ~ '+hi+' 题范围内没有客观题','err');return}
+    toast('已将 '+n+' 道题设为每题 '+sc+' 分','ok');
+    wizRender();
   },
   'wiz-sub':function(el){
     const q=el.dataset.q;
@@ -4862,9 +4909,9 @@ async function computeScorebook(examId){
   const scoreOf=function(qn){
     if(exam.perQScore&&exam.perQScore[qn]!=null){const v=Number(exam.perQScore[qn]);if(Number.isFinite(v)&&v>=0)return v}
     if(meta.choiceScores&&meta.choiceScores[qn]!=null)return meta.choiceScores[qn];
-    return 2;
+    return 3;
   };
-  const perScore=(meta.choiceQnos.length?scoreOf(meta.choiceQnos[0]):2);
+  const perScore=(meta.choiceQnos.length?scoreOf(meta.choiceQnos[0]):3);
   const byNo={};
   pages.forEach(function(p){
     const no=p.studentNo||'(未识别)';
