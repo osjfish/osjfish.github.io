@@ -4391,6 +4391,92 @@ async function propagateRegOverride(p,no){
   }
   return n;
 }
+/* 全卷 AI：把所有主观题的未评分作答一次跑完（writeScore=false 仅预评；true 直接写入成绩）。
+   二次确认 + 整体进度 + 可中途停止。 */
+async function runAIWholeExam(ex,writeScore){
+  const meta=await examMeta(ex);
+  if(!meta)  {toast('该考试的答题卡模板不存在或已删除','err');return}
+  if(!meta.subjList.length){toast('该模板没有主观题，无需 AI 评阅','ok');return}
+  let cropsAll=await dbByIdx('crops','byExam',ex.id);
+  /* 收集所有主观题未评分项 */
+  const jobs=[];
+  meta.subjList.forEach(function(sq){
+    const list=cropsAll.filter(function(c){return String(c.qno)===String(sq.qno)});
+    const seen={};
+    list.forEach(function(c){
+      if(c.scoreVal==null&&!seen[c.studentNo]){
+        seen[c.studentNo]=1;
+        jobs.push({qno:sq.qno,full:sq.score,no:c.studentNo,
+          parts:list.filter(function(x){return x.studentNo===c.studentNo}).sort(function(a,b){return a.part-b.part})});
+      }
+    });
+  });
+  if(!jobs.length){toast('全卷主观题没有未评分项','ok');return}
+  const withAI=jobs.filter(function(j){return j.parts[0].aiScore!=null}).length;
+  const needCall=jobs.length-withAI;
+  if(needCall>0&&!ensureAI())return;
+  const title=writeScore?'全卷 AI 给分':'全卷 AI 预评';
+  const det=writeScore
+    ?('将按 AI 建议分直接写入成绩：已有建议的 '+withAI+' 份直接采用，未预评的 '+needCall+' 份先调用 AI 再写入。')
+    :('将为 '+jobs.length+' 份未评分作答生成 AI 建议分（'+meta.subjList.length+' 道主观题，不写入成绩）。');
+  /* 第一次确认 */
+  const ok1=await dlgConfirm(title,'题量：'+meta.subjList.length+' 道主观题、'+jobs.length+' 份未评分作答（已有 AI 建议 '+withAI+' 份）。<br>'+det+'<br>调用量较大、耗时较长，可中途停止。','继续');
+  if(!ok1)return;
+  /* 第二次确认（不可撤销/大量调用） */
+  const ok2=await dlgConfirm('最后确认',writeScore
+      ?('确定把 '+withAI+' 份已有建议直接写入成绩'+(needCall?('，并调用 AI 评阅剩余 '+needCall+' 份'):'（不再调用 AI）')+'？<br>写入后可在阅卷台逐份手改。')
+      :('确定开始全卷 AI 预评？将调用 AI '+jobs.length+' 次（2 路并发）。'),'确定执行');
+  if(!ok2)return;
+  dlg('<div class="prog-line"><span id="aiAllTxt">AI 分析中 0/'+jobs.length+'</span></div>'
+    +'<div class="progress"><div id="aiAllBar" style="width:0%"></div></div>'
+    +'<div class="tip" id="aiAllLog"></div>',
+    {title:title+' · '+esc(ex.name),foot:'<button class="btn btn-d" data-act="ai-batch-stop">停止</button>'});
+  const ctl={signal:{aborted:false}};
+  const ac=new AbortController();
+  ctl.signal=ac.signal;
+  window.__yjAiAllAbort=function(){try{ac.abort()}catch(e){}};
+  let next=0,doneN=0,byQ={};
+  async function worker(){
+    while(!ac.signal.aborted){
+      const i=next;next++;
+      if(i>=jobs.length)break;
+      const j=jobs[i];
+      try{
+        let score=null;
+        if(writeScore&&j.parts[0].aiScore!=null){
+          score=Math.min(j.full,Math.max(0,Number(j.parts[0].aiScore)||0));
+        }else{
+          const r=await aiSuggestItem(ex,j.parts,j.qno,{signal:ac.signal});
+          score=r.score!=null?(Math.min(j.full,Math.max(0,Number(r.score)||0))):null;
+          if(!writeScore&&score!=null){
+            const reason=(r.reason||'')+'\n【问题】'+(r.problems||'');
+            for(const c of j.parts){c.aiScore=score;c.aiReason=reason;await dbPut('crops',c);}
+          }
+        }
+        if(writeScore&&score!=null)await gradeSetScoreLocal(j.no,score,'ai',j.qno);
+        doneN++;byQ[j.qno]=(byQ[j.qno]||0)+1;
+        const t1=$('aiAllTxt');
+        if(t1)t1.textContent='AI 分析中 '+(i+1)+'/'+jobs.length+'（题'+j.qno+' '+esc(j.no)+' → '+(score!=null?score+' 分':'无建议')+'）';
+        const b1=$('aiAllBar');
+        if(b1)b1.style.width=Math.round((i+1)/jobs.length*100)+'%';
+      }catch(err){
+        if(err.name!=='AbortError'){
+          const lg=$('aiAllLog');
+          if(lg)lg.textContent='题'+j.qno+' '+j.no+' 出错：'+(err.message||String(err));
+        }
+        const b1=$('aiAllBar');
+        if(b1)b1.style.width=Math.round((i+1)/jobs.length*100)+'%';
+      }
+    }
+  }
+  await Promise.all([worker(),worker()]);
+  const stopped=ac.signal.aborted;
+  const lg=$('aiAllLog');
+  if(lg)lg.textContent=(stopped?'已停止':'完成')+'：本次处理 '+doneN+' 份';
+  toast((stopped?'已停止，':'')+'全卷 AI '+(writeScore?'给分':'预评')+'完成：'+doneN+' 份'+(writeScore?'已写入成绩':''),stopped?'':'ok');
+  if(!stopped)setTimeout(dlgClose,1200); else dlgClose();
+  renderGrade();
+}
 /* 重识别单页：更新 page 记录 + 重建该页主观题裁剪 */
 async function redoPage(p,cv,layout,opts){
   opts=opts||{};
@@ -4498,7 +4584,11 @@ async function renderGrade(){
     let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
       +'<select class="inp" style="width:220px" data-on="grade-pick">'
       +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>'
-      +'<span class="tip">按主观题逐题阅卷；每小题对应一份裁剪图，打分即存。</span></div></div>';
+      +'<span class="tip">按主观题逐题阅卷；每小题对应一份裁剪图，打分即存。</span>'
+      +'<span style="flex:1"></span>'
+      +'<button class="btn btn-o" data-act="grade-ai-all" data-id="'+ex.id+'" data-ws="0">全卷 AI 预评</button>'
+      +'<button class="btn btn-p" data-act="grade-ai-all" data-id="'+ex.id+'" data-ws="1">全卷 AI 给分</button>'
+      +'</div><div class="kv" style="margin-top:6px">全卷 AI 预评 = 为所有主观题的未评分作答生成 AI 建议分（不写成绩，供人工采纳）；全卷 AI 给分 = 按建议分直接写入成绩。两项都会二次确认。</div></div>';
     html+='<div class="card"><h3>主观题进度</h3>';
     if(!meta.subjList.length){html+=emptyBox('','该模板没有主观题区，无需人工阅卷，直接到「成绩分析」查看。');}
     else{
@@ -4620,8 +4710,16 @@ Object.assign(ACTS,{
   },
   'ai-batch-stop':function(){
     if(gradeCtx&&gradeCtx.abort)gradeCtx.abort.abort();
+    if(window.__yjAiAllAbort)window.__yjAiAllAbort();
     dlgClose();
     renderGrade();
+  },
+  /* 全卷 AI：预评（data-ws=0）/ 给分（data-ws=1） */
+  'grade-ai-all':async function(el){
+    const ex=await dbGet('exams',el.dataset.id);
+    if(!ex)return;
+    ui.gradeExam=ex.id;
+    runAIWholeExam(ex,el.dataset.ws==='1');
   },
   'grade-zoom':function(el){
     const url=el.dataset.url;
@@ -4747,10 +4845,11 @@ async function runAIPredBatch(ex,q,writeScore){
     renderGrade();
   }
 }
-async function gradeSetScoreLocal(studentNo,v,by){
+async function gradeSetScoreLocal(studentNo,v,by,qnoOverride){
   const ex=await dbGet('exams',ui.gradeExam);
   const cropsAll=await dbByIdx('crops','byExam',ex.id);
-  const list=cropsAll.filter(function(c){return c.studentNo===studentNo&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
+  const qn=(qnoOverride!=null)?qnoOverride:(gradeCtx&&gradeCtx.qno);
+  const list=cropsAll.filter(function(c){return c.studentNo===studentNo&&String(c.qno)===String(qn)}).sort(function(a,b){return a.part-b.part});
   for(const c of list){
     c.scoreVal=v;
     c.markedBy=by||'manual';
@@ -5233,7 +5332,63 @@ async function computeScorebook(examId){
     perQStat[qn]=s;
   });
     const objFull=meta.choiceQnos.reduce(function(a,qn){return a+scoreOf(qn)},0);
-  return {exam:exam,meta:meta,rows:rows,perQStat:perQStat,perScore:perScore,objFull:objFull,scoreOf:scoreOf};
+  /* 每题满分（客观题：考试覆盖→模板→默认；主观题：examMeta 已含考试级覆盖） */
+  const fullOf={};
+  meta.choiceQnos.forEach(function(qn){fullOf[qn]=scoreOf(qn)});
+  meta.subjList.forEach(function(sq){fullOf[sq.qno]=sq.score});
+  const isObj=function(qn){return meta.choiceQnos.indexOf(qn)>=0};
+  /* 某生某题实得分（供大题汇总；未阅按 0 计入） */
+  const scoreOfStu=function(r,qn){
+    if(isObj(qn))return (r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?fullOf[qn]:0;
+    const v=r.subj[qn];return (v&&v.score!=null)?Number(v.score):0;
+  };
+  /* 主观题逐题统计（供排序、讲评与按题导出） */
+  const subjStat={};
+  meta.subjList.forEach(function(sq){
+    const s={graded:0,sum:0,full:sq.score,avg:0,rate:0,perfect:0,zero:0,ai:0,n:0};
+    rows.forEach(function(r){
+      if(r.absent)return;
+      const v=r.subj[sq.qno];if(!v)return;
+      s.n++;
+      if(v.ai!=null)s.ai++;
+      if(v.score!=null){const sv=Number(v.score);s.graded++;s.sum+=sv;if(sv>=sq.score)s.perfect++;if(sv<=0)s.zero++;}
+    });
+    s.avg=s.graded?s.sum/s.graded:0;
+    s.rate=s.full>0?(s.avg/s.full):0;
+    subjStat[sq.qno]=s;
+  });
+  /* 大题维度：按模板的大题结构汇总其小题（讲评时先看大题整体掌握情况） */
+  const tpl=await dbGet('templates',exam.templateId);
+  const sections=[];
+  if(tpl){
+    normalizeSections(tpl).forEach(function(sec){
+      const qnos=(sec.items||[]).map(function(it){return it.qno}).filter(function(qn){return fullOf[qn]!=null});
+      if(!qnos.length)return;
+      const full=qnos.reduce(function(a,qn){return a+(fullOf[qn]||0)},0);
+      let sum=0,stN=0;
+      rows.forEach(function(r){
+        if(r.absent)return;
+        stN++;qnos.forEach(function(qn){sum+=scoreOfStu(r,qn)});
+      });
+      const avg=stN?sum/stN:0;
+      sections.push({title:sec.title||'（未命名大题）',qnos:qnos,count:qnos.length,full:full,avg:avg,
+        rate:full>0?(avg/full):0,n:stN});
+    });
+  }
+  /* 逐题分析统一表（客观+主观），供「按得分率排序」与按题导出 */
+  const itemStats=meta.choiceQnos.map(function(qn){
+    const s=perQStat[qn];
+    return {qno:qn,subj:false,kind:(meta.choiceKinds&&meta.choiceKinds[qn])||'single',full:scoreOf(qn),
+      avg:s.rate*scoreOf(qn),rate:s.rate,n:s.n,ok:s.ok,wrong:s.wrong,blank:s.blank,multi:s.multi,review:s.review,dist:s.dist};
+  }).concat(meta.subjList.map(function(sq){
+    const s=subjStat[sq.qno];
+    return {qno:sq.qno,subj:true,kind:sq.type||'subj',full:sq.score,avg:s.avg,rate:s.rate,n:s.graded,
+      graded:s.graded,total:s.n,perfect:s.perfect,zero:s.zero,ai:s.ai};
+  }));
+  itemStats.sort(function(a,b){return (Number(a.qno)||0)-(Number(b.qno)||0)});
+  return {exam:exam,meta:meta,rows:rows,perQStat:perQStat,perScore:perScore,objFull:objFull,scoreOf:scoreOf,
+    subjStat:subjStat,sections:sections,itemStats:itemStats,
+    subjFull:meta.subjList.reduce(function(a,s){return a+s.score},0)};
 }
 async function renderScore(){
   const examsAll=await dbAll('exams');
@@ -5258,30 +5413,66 @@ async function renderScore(){
   let html='<div class="card"><h3>当前考试</h3><div class="f-row">'
     +'<select class="inp" style="width:220px" data-on="score-pick">'
     +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')+'</select>'
-    +'<span class="kv">'+esc(ex.className||'')+'　·　'+esc(ex.templateName||'')+'　·　客观题 '+meta.choiceQnos.length+' 题（满分 '+book.objFull+' 分）</span>'
+    +'<span class="kv">'+esc(ex.className||'')+'　·　'+esc(ex.templateName||'')+'　·　客观题 '+meta.choiceQnos.length+' 题（'+book.objFull+' 分）+ 主观题 '+meta.subjList.length+' 题（'+book.subjFull+' 分）　·　全卷满分 '+(book.objFull+book.subjFull)+' 分</span>'
     +'<span style="flex:1"></span>'
-    +'<button class="btn btn-p" data-act="score-csv" data-id="'+ex.id+'">导出成绩册 CSV</button>'
-    +'<button class="btn btn-b" data-act="score-xlsx" data-id="'+ex.id+'">导出 Excel</button>'
-    +'<button class="btn" data-act="score-json" data-id="'+ex.id+'">导出 JSON</button>'
+    +'<button class="btn btn-p" data-act="score-xlsx" data-id="'+ex.id+'">导出成绩册（按人）</button>'
+    +'<button class="btn btn-b" data-act="score-byq" data-id="'+ex.id+'">按题导出（讲评用）</button>'
+    +'<button class="btn" data-act="score-json" data-id="'+ex.id+'">导出原始数据 JSON</button>'
     +'</div></div>';
   html+=statCards([
     {n:n,l:'参评人数'},{n:sf.toFixed(1),l:'平均总分'},{n:max,l:'最高分'},{n:min,l:'最低分'},
-    {n:(n?Math.round(sc.filter(function(r){return r.total>=full*0.8}).length/n*100):0)+'%',l:'优秀率(≥80%)'}
+    {n:(n?Math.round(sc.filter(function(r){return r.total>=full*0.8}).length/n*100):0)+'%',l:'优秀率(≥80%)'},
+    {n:(n?Math.round(sc.filter(function(r){return r.total>=full*0.6}).length/n*100):0)+'%',l:'及格率(≥60%)'}
   ]);
-  /* 客观题得分率 */
-  html+='<div class="card"><h3>客观题逐题得分率</h3><div class="kv" style="margin-bottom:8px">绿=对 红=错 灰=空白/多涂 橙=待复核（待复核应先处理）</div><div class="tbl-wrap"><table class="tbl"><tr><th>题</th><th style="min-width:180px">得分率</th><th>对</th><th>错</th><th>空/多涂</th><th>待复核</th><th>错题选项分布</th></tr>';
-  book.meta.choiceQnos.forEach(function(qn){
-    const s=book.perQStat[qn];
-    const pct=Math.round(s.rate*100);
-    const dist=Object.keys(s.dist).map(function(k){return k+':'+s.dist[k]}).join(' ');
-    html+='<tr><td>'+(qn)+'</td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress" style="flex:1"><div style="width:'+pct+'%;background:'+(pct>=90?'var(--green)':pct>=60?'var(--gold)':'var(--zhu2)')+'"></div></div><b>'+pct+'%</b></div></td>'
-      +'<td>'+s.ok+'</td><td style="color:var(--danger)">'+s.wrong+'</td><td>'+(s.blank+s.multi)+'</td><td style="color:var(--warn)">'+s.review+'</td>'
-      +'<td class="kv">'+esc(dist||'—')+'</td></tr>';
+  /* 大题得分情况（讲评先看大题掌握；点击可看该大题小题得分率） */
+  if(book.sections&&book.sections.length){
+    html+='<div class="card"><h3>大题得分情况</h3><div class="kv" style="margin-bottom:8px">大题得分率 = 该大题所有小题的班级平均得分 ÷ 大题满分。低于 60% 的题建议重点讲评。</div>'
+      +'<div class="tbl-wrap"><table class="tbl"><tr><th>大题</th><th>小题</th><th>满分</th><th>班级平均</th><th style="min-width:200px">得分率</th><th>掌握</th></tr>';
+    book.sections.forEach(function(sec){
+      const pct=Math.round(sec.rate*100);
+      const lv=pct>=80?['ok','良好']:pct>=60?['warn','一般']:['err','薄弱'];
+      html+='<tr><td><b>'+esc(sec.title)+'</b></td>'
+        +'<td class="kv">'+sec.count+' 题（'+sec.qnos.map(function(q){return esc(String(q))}).join('、')+'）</td>'
+        +'<td>'+sec.full+'</td><td><b>'+sec.avg.toFixed(1)+'</b></td>'
+        +'<td><div style="display:flex;align-items:center;gap:8px"><div class="progress" style="flex:1"><div style="width:'+pct+'%;background:'+(pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--zhu2)')+'"></div></div><b>'+pct+'%</b></div></td>'
+        +'<td>'+badge(lv[0],lv[1])+'</td></tr>';
+    });
+    html+='</table></div></div>';
+  }
+  /* 逐题得分分析（客观+主观合并，可按得分率排序 → 快速定位要重点讲的题） */
+  const sortMode=ui.scoreSort||'no';
+  const items=(book.itemStats||[]).slice();
+  if(sortMode==='rateAsc')items.sort(function(a,b){return a.rate-b.rate||(Number(a.qno)-Number(b.qno))});
+  else if(sortMode==='rateDesc')items.sort(function(a,b){return b.rate-a.rate||(Number(a.qno)-Number(b.qno))});
+  const KIND_LABEL={single:'单选',multi:'多选'};
+  html+='<div class="card"><h3>逐题得分分析（'+items.length+' 题）</h3>'
+    +'<div class="f-row" style="margin-bottom:8px">'
+    +'<span class="kv">排序</span><select class="inp" style="width:184px" data-on="score-sort">'
+    +[['no','按题号'],['rateAsc','按得分率（低→高，先看薄弱题）'],['rateDesc','按得分率（高→低）']].map(function(o){
+      return '<option value="'+o[0]+'"'+(sortMode===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')
+    +'</select>'
+    +'<span class="kv">难度：易 ≥80%　中 60~79%　难 &lt;60%；得分率低且分值大的题优先讲评</span></div>'
+    +'<div class="tbl-wrap"><table class="tbl"><tr><th>题</th><th>题型</th><th>满分</th><th>班级平均</th><th style="min-width:170px">得分率</th><th>难度</th><th>明细</th></tr>';
+  items.forEach(function(it){
+    const pct=Math.round(it.rate*100);
+    const lv=pct>=80?['ok','易']:pct>=60?['warn','中']:['err','难'];
+    let detail='';
+    if(it.subj){
+      detail='已阅 '+it.graded+'/'+(it.total||0)+'　满分 '+it.perfect+' 人　0 分 '+it.zero+' 人'+(it.ai?'　AI 建议 '+it.ai+' 份':'');
+    }else{
+      const dist=Object.keys(it.dist||{}).map(function(k){return k+':'+it.dist[k]}).join(' ');
+      detail='对 '+it.ok+'　错 '+it.wrong+'　空/多涂 '+(it.blank+it.multi)+(it.review?'　待复核 '+it.review:'')+(dist?('　错选 '+dist):'');
+    }
+    html+='<tr><td><b>'+esc(String(it.qno))+'</b></td>'
+      +'<td class="kv">'+(it.subj?'主观':(KIND_LABEL[it.kind]||'客观'))+'</td>'
+      +'<td>'+it.full+'</td><td>'+it.avg.toFixed(1)+'</td>'
+      +'<td><div style="display:flex;align-items:center;gap:8px"><div class="progress" style="flex:1"><div style="width:'+pct+'%;background:'+(pct>=80?'var(--green)':pct>=60?'var(--gold)':'var(--zhu2)')+'"></div></div><b>'+pct+'%</b></div></td>'
+      +'<td>'+badge(lv[0],lv[1])+'</td><td class="kv">'+detail+'</td></tr>';
   });
   html+='</table></div></div>';
-  /* 主观题统计 */
+  /* 主观题分数分布 */
   html+='<div class="f-row" style="align-items:stretch">';
-  html+='<div class="card" style="flex:1;min-width:300px"><h3>主观题统计</h3>';
+  html+='<div class="card" style="flex:1;min-width:300px"><h3>主观题分数分布</h3>';
   for(const sq of meta.subjList){
     const cs=book.rows.map(function(r){return r.subj[sq.qno]});
     const list=cs.filter(function(c){return c&&c.score!=null});
@@ -5309,7 +5500,9 @@ async function renderScore(){
   /* 成绩册 */
   html+='<div class="card"><h3>成绩册（'+book.rows.length+' 人 · 排序：总分）</h3><div class="tbl-wrap" style="max-height:520px;overflow:auto"><table class="tbl"><tr><th>排名</th><th>考号</th><th>姓名</th><th>备注</th><th>客观</th>';
   meta.subjList.forEach(function(sq){html+='<th>'+esc(String(sq.qno))+'</th>'});
-  html+='<th>主观</th><th>总分</th><th>状态</th></tr>';
+  html+='<th>主观</th><th>总分</th>';
+  if(book.sections&&book.sections.length>1)book.sections.forEach(function(sec,i){html+='<th title="'+esc(sec.title)+'">大题'+(i+1)+'</th>'});
+  html+='<th>状态</th></tr>';
   book.rows.forEach(function(r){
     html+='<tr style="cursor:pointer" data-act="score-stu" data-no="'+esc(r.no)+'">'
       +'<td>'+(r.rank)+'</td><td>'+(r.absent?esc(r.no):'<b>'+esc(r.no)+'</b>')+'</td><td>'+esc(r.name)+'</td><td class="kv">'+esc(r.note)+'</td>'
@@ -5318,8 +5511,17 @@ async function renderScore(){
       const sub=r.subj[sq.qno]||{};
       html+='<td>'+((sub.score!=null)?('<b>'+sub.score+'</b>/'+sub.full):'<span class="kv">未阅</span>')+'</td>';
     });
-    html+='<td>'+(r.absent?'—':r.subjScore)+'</td><td><b>'+(r.absent?'缺考':r.total)+'</b></td>'
-      +'<td>'+(r.absent?badge('gray','缺考'):(r.subjGraded<meta.subjList.length?badge('warn','阅卷中'):badge('ok','完成')))+'</td></tr>';
+    html+='<td>'+(r.absent?'—':r.subjScore)+'</td><td><b>'+(r.absent?'缺考':r.total)+'</b></td>';
+    if(book.sections&&book.sections.length>1)book.sections.forEach(function(sec){
+      if(r.absent){html+='<td>—</td>';return}
+      let sum=0;
+      sec.qnos.forEach(function(qn){
+        if(meta.choiceQnos.indexOf(qn)>=0){sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;}
+        else{const v=r.subj[qn];sum+=((v&&v.score!=null)?Number(v.score):0);}
+      });
+      html+='<td>'+sum+'/'+sec.full+'</td>';
+    });
+    html+='<td>'+(r.absent?badge('gray','缺考'):(r.subjGraded<meta.subjList.length?badge('warn','阅卷中'):badge('ok','完成')))+'</td></tr>';
   });
   html+='</table></div></div>';
   $('page').innerHTML=html;
@@ -5393,25 +5595,61 @@ function drawPassDonut(full,rows){
 /* 成绩导出 */
 Object.assign(ACTS,{
   'score-pick':async function(el){ui.scoreExam=el.value;renderScore()},
-  'score-csv':async function(el){
+  'score-sort':function(el){ui.scoreSort=el.value;renderScore()},
+  /* 按题导出（讲评用）：Sheet1 题目分析（逐题得分率/难度/明细，含大题汇总）、Sheet2 逐题得分明细（行=学生，列=各题） */
+  'score-byq':async function(el){
     const book=await computeScorebook(el.dataset.id);
-    const q=function(s){return '"'+String(s==null?'':s).replace(/"/g,'""').replace(/\r?\n/g,' ')+'"'};
-    const head=['排名','考号','姓名','备注','客观题得分','客观题满分'];
-    book.meta.subjList.forEach(function(sq){head.push('题'+sq.qno+'得分');head.push('题'+sq.qno+'满分')});
-    head.push('主观题得分','主观题满分','总分','状态');
-    const lines=[head.join(',')];
-    const full=max0(book);
-    book.rows.forEach(function(r){
-      const rowv=[r.rank,r.no,r.name,r.note,r.objScore,book.objFull];
-      book.meta.subjList.forEach(function(sq){
-        const sub=r.subj[sq.qno]||{};
-        rowv.push(sub.score!=null?sub.score:'未阅',sub.full!=null?sub.full:sq.score);
-      });
-      rowv.push(r.subjScore,book.meta.subjList.reduce(function(a,s2){return a+s2.score},0),r.absent?'缺考':r.total,r.absent?'缺考':(r.subjGraded<book.meta.subjList.length?'阅卷中':'完成'));
-      lines.push(rowv.map(q).join(','));
+    if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
+    const meta=book.meta;
+    const rateLv=function(pct){return pct>=80?'易':(pct>=60?'中':'难')};
+    /* Sheet1：题目分析（大题汇总在前，逐题在后，按得分率升序便于找薄弱题） */
+    const a1=[['题目分析（按得分率升序，便于定位需重点讲评的题）'],[]];
+    a1.push(['大题','小题数','满分','班级平均','得分率','掌握情况']);
+    (book.sections||[]).forEach(function(sec){
+      const pct=Math.round(sec.rate*100);
+      a1.push([sec.title+'（'+sec.qnos.join('、')+'）',sec.count,sec.full,Math.round(sec.avg*10)/10,pct+'%',pct>=80?'良好':(pct>=60?'一般':'薄弱')]);
     });
-    download('成绩册_'+book.exam.name+'_'+tsName()+'.csv','\ufeff'+lines.join('\r\n'),'text/csv;charset=utf-8');
-    toast('成绩册 CSV 已导出（Excel 可直接打开）','ok');
+    a1.push([]);
+    a1.push(['题号','题型','满分','班级平均','得分率','难度','明细']);
+    (book.itemStats||[]).slice().sort(function(a,b){return a.rate-b.rate}).forEach(function(it){
+      const pct=Math.round(it.rate*100);
+      let detail='';
+      if(it.subj)detail='已阅 '+it.graded+'/'+(it.total||0)+'，满分 '+it.perfect+' 人，0 分 '+it.zero+' 人'+(it.ai?('，AI 建议 '+it.ai+' 份'):'');
+      else{
+        const dist=Object.keys(it.dist||{}).map(function(k){return k+':'+it.dist[k]}).join(' ');
+        detail='对 '+it.ok+'，错 '+it.wrong+'，空/多涂 '+(it.blank+it.multi)+(it.review?('，待复核 '+it.review):'')+(dist?('，错选 '+dist):'');
+      }
+      a1.push([it.qno,it.subj?'主观':(it.kind==='multi'?'多选':'单选'),it.full,Math.round(it.avg*10)/10,pct+'%',rateLv(pct),detail]);
+    });
+    /* Sheet2：逐题得分明细（行=学生） */
+    const qnos=(book.itemStats||[]).map(function(it){return it.qno});
+    const a2=[['排名','考号','姓名','备注'].concat(qnos.map(function(q){return '题'+q})).concat(['客观','主观','总分','状态'])];
+    book.rows.forEach(function(r){
+      const line=[r.rank,r.no,r.name,r.note];
+      qnos.forEach(function(qn){
+        if(meta.choiceQnos.indexOf(qn)>=0){
+          const v=r.obj[qn];
+          const got=(v&&v.verdict==='RIGHT')?(book.scoreOf(qn)||0):0;
+          const mark=v?(VERDICT_NAMES[v.verdict]||v.verdict):'未识别';
+          line.push(got+'（'+(v&&v.choice?v.choice:mark)+'）');
+        }else{
+          const v=r.subj[qn];
+          line.push((v&&v.score!=null)?v.score:'未阅');
+        }
+      });
+      line.push(r.absent?'缺考':r.objScore,r.absent?'缺考':r.subjScore,r.absent?'缺考':r.total,
+        r.absent?'缺考':(r.subjGraded<meta.subjList.length?'阅卷中':'完成'));
+      a2.push(line);
+    });
+    const wb=XLSX.utils.book_new();
+    const ws1=XLSX.utils.aoa_to_sheet(a1);
+    ws1['!cols']=[{wch:26},{wch:8},{wch:7},{wch:10},{wch:9},{wch:10},{wch:46}];
+    XLSX.utils.book_append_sheet(wb,ws1,'题目分析');
+    const ws2=XLSX.utils.aoa_to_sheet(a2);
+    ws2['!cols']=a2[0].map(function(h2,i2){return {wch:(i2<4?12:9)}});
+    XLSX.utils.book_append_sheet(wb,ws2,'逐题得分明细');
+    XLSX.writeFile(wb,'题目分析_'+book.exam.name+'_'+tsName()+'.xlsx');
+    toast('题目分析 Excel 已导出（含大题汇总/逐题得分率/逐题明细）','ok');
   },
     'score-xlsx':async function(el){
     const book=await computeScorebook(el.dataset.id);
@@ -5419,6 +5657,8 @@ Object.assign(ACTS,{
     const head=['排名','考号','姓名','备注','客观题得分','客观题满分'];
     book.meta.subjList.forEach(function(sq){head.push('题'+sq.qno+'得分');head.push('题'+sq.qno+'满分')});
     head.push('主观题得分','主观题满分','总分','状态');
+    const secList=(book.sections&&book.sections.length>1)?book.sections:[];
+    secList.forEach(function(sec,i2){head.push('大题'+(i2+1)+'得分');head.push('大题'+(i2+1)+'满分')});
     const aoa=[head];
     const full=max0(book);
     book.rows.forEach(function(r){
@@ -5429,6 +5669,15 @@ Object.assign(ACTS,{
       });
       rowv.push(r.subjScore,book.meta.subjList.reduce(function(a,s2){return a+s2.score},0),
         r.absent?'缺考':r.total,r.absent?'缺考':(r.subjGraded<book.meta.subjList.length?'阅卷中':'完成'));
+      secList.forEach(function(sec){
+        if(r.absent){rowv.push('缺考',sec.full);return}
+        let sum=0;
+        sec.qnos.forEach(function(qn){
+          if(book.meta.choiceQnos.indexOf(qn)>=0){sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;}
+          else{const v=r.subj[qn];sum+=((v&&v.score!=null)?Number(v.score):0);}
+        });
+        rowv.push(sum,sec.full);
+      });
       aoa.push(rowv);
     });
     const wb=XLSX.utils.book_new();
