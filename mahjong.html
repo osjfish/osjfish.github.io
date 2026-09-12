@@ -1112,11 +1112,13 @@ function discardTile(byWhom,tile){
           if(r.c===tile)mineEntry={c:r.c,ev:r.ev,pen:r.pen,v:Math.round(r.v),sh:r.sh,
             impT:r.impT,impN:r.impN,winT:r.winT,winN:r.winN};
         });
+        var pens=rankedAll.map(function(r){return r.pen;}).sort(function(a,b){return a-b;});
+        var penMin=pens.length?pens[0]:0;
       }catch(e){rankTop=null;}
       G.trainLog.push({k:'discard',tile:tile,hand:sortTiles(G.hands[0]).slice(),
         melds:JSON.parse(JSON.stringify(G.melds[0])),oppMelds:JSON.parse(JSON.stringify(G.melds[1])),
         oppRiver:G.river.filter(function(r){return r.by===1;}).map(function(r){return r.t;}),
-        wall:G.wall.length,flip:G.flip,joker:G.joker,rank:rankTop,mine:mineEntry});
+        wall:G.wall.length,flip:G.flip,joker:G.joker,rank:rankTop,mine:mineEntry,penMin:penMin});
     }else{
       G.trainLog.push({k:'oppDiscard',tile:tile});
     }
@@ -1531,10 +1533,82 @@ function tileRangeText(o){
   if(o.impT)return o.impT+' 种约 '+o.impN+' 张牌能让你离听牌更近';
   return '暂时没有能直接让手牌进步的牌';
 }
-function dangerLabel(pen){
-  if(pen>=120)return '高';
-  if(pen>=60)return '中';
+/* 危险度档位：以「这一手最安全的那张牌」为基准自我校准——危险 3 倍以上算高、1.5 倍以上算中
+   （不显示原始分值：绝对分值随局面幅度变化极大，对玩家没有意义） */
+function riskLabel(pen,penMin){
+  if(penMin===undefined||penMin===null||penMin<=0)return pen>=120?'高':(pen>=60?'中':'低');
+  var r=pen/penMin;
+  if(r>=3)return '高';
+  if(r>=1.5)return '中';
   return '低';
+}
+var RISK_ORD={'低':0,'中':1,'高':2};
+/* 副露的白话描述：吃 六万七万八万 / 碰 九万 / 杠 发财 */
+function meldText(m){
+  if(m.type==='吃')return '吃 '+sortTiles([m.with[0],m.tile,m.with[1]]).map(tileName).join('');
+  if(m.type==='碰')return '碰 '+tileName(m.tile);
+  var ts=(m.tiles&&m.tiles.length)?m.tiles:[m.tile];
+  return m.type+' '+tileName(ts[0]);
+}
+/* 点炮风险的来源（只用公开信息）：指出是对手的哪些牌、哪些举动造成这份风险 */
+function dangerReason(c,oppMelds,oppRiverTiles,jokerId,e){
+  var out=[];
+  if(c===jokerId)return ['这张是赖子，电脑摸到就能当任意牌用，是全场最危险的牌'];
+  var k;
+  /* 1) 现物：电脑自己打过这张 */
+  var seenRiver=false;
+  for(k=0;k<oppRiverTiles.length;k++)if(oppRiverTiles[k]===c)seenRiver=true;
+  /* 2) 对手副露里同花色的具体牌（字牌/其他门单独列出，不能说成“都在做这一门”） */
+  var sameMelds=[],otherMelds=[],allTriplets=true;
+  (oppMelds||[]).forEach(function(m){
+    var ts=(m.type==='吃')?[m.with[0],m.tile,m.with[1]]
+      :((m.tiles&&m.tiles.length)?m.tiles:[m.tile]);
+    var inSuit=false;
+    for(var q=0;q<ts.length;q++)if(!isHonor(ts[q])&&ts[q][0]===c[0])inSuit=true;
+    if(m.type==='吃')allTriplets=false;
+    (inSuit?sameMelds:otherMelds).push(meldText(m));
+  });
+  /* 3) 场上已见张数（我的手牌+我方副露+对手副露+对手牌河+翻牌） */
+  var seen=0;
+  function count(tiles){for(var q=0;q<tiles.length;q++)if(tiles[q]===c)seen++;}
+  function countMelds(ms){(ms||[]).forEach(function(m){
+    count((m.type==='吃')?[m.with[0],m.tile,m.with[1]]
+      :((m.tiles&&m.tiles.length)?m.tiles:[m.tile,m.tile,m.tile,m.tile]));
+  });}
+  if(e){
+    if(e.hand)count(e.hand);
+    countMelds(e.melds);
+    countMelds(e.oppMelds);
+    if(e.oppRiver)count(e.oppRiver);
+    if(e.flip&&e.flip===c)seen++;
+  }
+  if(seenRiver)out.push('电脑自己打过'+tileName(c)+'（现物），这张相对安全，风险最低');
+  if(sameMelds.length){
+    out.push((sameMelds.length>=2?('电脑亮出的 '+sameMelds.join('、')+' 都在做'+SUIT_NAME[c[0]]+'这一门')
+      :('电脑亮出的 '+sameMelds.join('、')+' 是'+SUIT_NAME[c[0]]+'子'))
+      +'，你打的'+tileName(c)+'正好同门，最容易被它接上');
+    if(otherMelds.length)out.push('它另外还亮着 '+otherMelds.join('、')+'（不同门），不会用上'+tileName(c)+'，所以同门牌要特别小心');
+  }else if(otherMelds.length){
+    out.push('电脑亮出的是 '+otherMelds.join('、')+'，与你打的'+tileName(c)+'不同门，本来不必怕这一张');
+  }else{
+    /* 对手没有副露：从它牌河打出的牌反推它在留什么 */
+    var recent=oppRiverTiles.slice(-4),boring=recent.length>=3;
+    for(var ri=0;ri<recent.length;ri++)if(dangerBase(recent[ri])>8){boring=false;break;}
+    if(boring)out.push('它最近打出的 '+recent.map(tileName).join('、')+' 全是字牌或边张，说明它在留住中张牌——你打的'+tileName(c)+'正是它想留的那一类');
+    else if(recent.length>=3)out.push('它最近的出牌（'+recent.map(tileName).join('、')+'）没有明显规律，看不出它在做哪一门，只能按牌张本身的性质判断');
+  }
+  if((oppMelds||[]).length>=2&&allTriplets)out.push('它全是碰/杠没有吃，可能在凑碰碰胡，字牌和成对的牌都危险');
+  /* 4) 牌张本身的性质 */
+  if(isHonor(c))out.push('字牌只能凑对子/刻子、不能进顺子，风险本来就低');
+  else{
+    var n=+c[1];
+    if(n>=3&&n<=7)out.push(tileName(c)+'是中张，能凑的顺子组合最多，被用上的可能最大');
+    else out.push(tileName(c)+'是边张，能凑的顺子组合最少，比中张安全');
+  }
+  /* 5) 已见张数 */
+  if(seen>=3)out.push('它场上已见 '+seen+' 张，剩下不多，风险进一步下降');
+  else if(seen<=1)out.push('它场上几乎没见过（已见 '+seen+' 张），还有最多 '+(4-seen)+' 张可能被用上');
+  return out;
 }
 /* 单条弃牌决策分析：对比引擎排序与实际选择，归类错误原因，并生成白话讲解
    cat: break=破坏牌型 / def=防守失误 / eff=牌效偏低 */
@@ -1559,8 +1633,9 @@ function analyzeDiscardEntry(e,st){
     return base;
   }
   var evGap=best.ev-mine.ev,penGap=mine.pen-best.pen,cat;
+  var labMine0=riskLabel(mine.pen,e.penMin),labBest0=riskLabel(best.pen,e.penMin);
   if(typeof mine.sh==='number'&&typeof best.sh==='number'&&best.sh<mine.sh)cat='break';
-  else if(penGap>60&&penGap>=evGap)cat='def';
+  else if(penGap>60&&penGap>=evGap&&RISK_ORD[labMine0]>RISK_ORD[labBest0])cat='def';
   else cat='eff';
   st.reasons[cat]=(st.reasons[cat]||0)+1;
   base.cat=cat;base.bestC=best.c;
@@ -1573,16 +1648,29 @@ function analyzeDiscardEntry(e,st){
     bl.push('以后判断口诀：打牌前先看「打掉之后离听牌几步」，步数变多就是拆错了。');
   }else if(cat==='def'){
     base.title='忽略了点炮风险';
-    bl.push('你打了 '+tileName(e.tile)+'：这张牌的危险度是'+dangerLabel(mine.pen)+'（'+mine.pen+'）。');
-    bl.push('引擎推荐打 '+tileName(best.c)+'：危险度只有'+dangerLabel(best.pen)+'（'+best.pen+'），安全得多。');
-    bl.push('危险度＝你打出去之后被电脑拿去和牌（点炮）的风险。电脑已经亮出 '+((e.oppMelds||[]).length)+' 组牌'+(e.wall<=30?'、牌墙只剩 '+e.wall+' 张':'')+'，正是它可能已经听牌、最该防的阶段。');
-    bl.push('以后判断口诀：听牌期「进攻收益差不多时，先打安全牌」，点炮等于白送分。');
+    var whyMine=dangerReason(e.tile,e.oppMelds,e.oppRiver,e.joker,e);
+    var whyBest=dangerReason(best.c,e.oppMelds,e.oppRiver,e.joker,e);
+    var labMine=riskLabel(mine.pen,e.penMin),labBest=riskLabel(best.pen,e.penMin);
+    bl.push('你打了 '+tileName(e.tile)+'：相对这一手的其他打法，它的点炮风险是「'+labMine+'」档。');
+    bl.push('风险来源：'+whyMine[0]+'。');
+    if(whyMine.length>1)bl.push('另外：'+whyMine.slice(1).join('；')+'。');
+    bl.push('引擎推荐打 '+tileName(best.c)+'：风险是「'+labBest+'」档——'+whyBest[0]+'。');
+    var meldN=(e.oppMelds||[]).length;
+    bl.push('背景：危险度＝打出去后被电脑拿去和牌（点炮）的风险，档位是和你这一手里最安全的打法比出来的；'
+      +(meldN>0
+        ? ('此刻电脑已亮出 '+meldN+' 组牌'+(e.wall<=30?'、牌墙只剩 '+e.wall+' 张':'')+'，正是它可能已经听牌的阶段。')
+        : ('此刻电脑还没亮出任何副露（它在闷头做牌）'+(e.wall<=40?'、牌墙只剩 '+e.wall+' 张，对局已到中后段':'')+'，最要防它突然听牌。')));
+    bl.push('以后判断口诀：听牌期「进攻收益差不多时，先打安全牌」，点炮等于白送分；看风险时盯住对手亮出的那几门牌。');
   }else{
     base.title='牌效偏低（进步更慢）';
     bl.push('你打了 '+tileName(e.tile)+'：之后 '+shPhrase(mine.sh)+'，'+tileRangeText(mine)+'。');
     bl.push('引擎推荐打 '+tileName(best.c)+'：同样'+shPhrase(best.sh)+'，但'+tileRangeText(best)+'。');
     bl.push('原因：两者离听牌的步数一样，但留下的牌「更容易摸到」。牌效就是比谁的进张面更宽。');
     bl.push('以后判断口诀：步数相同时，选进张更宽的那张（张数多＝更容易摸到）。');
+  }
+  /* 非防守类的失误，若打出的牌本身风险偏高，也把来源说清楚 */
+  if(cat!=='def'&&riskLabel(mine.pen,e.penMin)==='高'){
+    bl.push('另外要看风险：'+tileName(e.tile)+' 在这一次的可选打牌里风险最高——'+dangerReason(e.tile,e.oppMelds,e.oppRiver,e.joker,e)[0]+'。');
   }
   base.bullets=bl;
   if(dv<=400){st.minor++;base.cls='minor';base.dv=dv;}
@@ -1750,7 +1838,7 @@ function rvGlossaryHTML(){
     +'<b>听牌</b>：再摸到 1 张需要的牌就能和牌的状态。<br>'
     +'<b>离听牌还差 N 步</b>：还要再摸到 N 张有用的牌，才能进入听牌。<br>'
     +'<b>进张</b>：能让手牌往听牌方向前进的牌。「5 种约 14 张」＝有 5 种牌、场上还没出现的大约 14 张。<br>'
-    +'<b>危险度</b>：你打出去后被电脑拿去和牌（点炮）的风险，分 低／中／高。<br>'
+    +'<b>危险度</b>：打出去后被电脑拿去和牌（点炮）的风险，分 低／中／高——档位是和你这一手里最安全的那张牌比出来的（危险 3 倍以上算「高」）。<br>'
     +'<b>● 一致</b> 与引擎选择相同；<b>△ 小损</b> 有点亏但不严重；<b>✗ 失着</b> 明显失误，最该改的。'
     +'</div>';
 }
