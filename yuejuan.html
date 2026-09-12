@@ -4498,47 +4498,30 @@ Object.assign(ACTS,{
     const ex=await dbGet('exams',ui.gradeExam);
     const cropsAll=await dbByIdx('crops','byExam',ex.id);
     const list=cropsAll.filter(function(c){return String(c.qno)===String(q)});
-    const todo=[];
-    list.forEach(function(c){if(c.scoreVal==null){const parts=list.filter(function(x){return x.studentNo===c.studentNo}).sort(function(a,b){return a.part-b.part});let found=false;todo.forEach(function(t){if(t.no===c.studentNo)found=true});if(!found)todo.push({no:c.studentNo,parts:parts});}});
-    if(!todo.length){toast('该题没有未评分项','ok');return}
-    if(!ensureAI())return;
-    const ok=await dlgConfirm('AI 批量预阅','将对「题 '+esc(String(q))+'」的 '+todo.length+' 份未评分裁剪图调用 AI 建议分（2 路并发，可中途停止）。'
-      +'<br>建议先确认「设置」中的 AI 服务与评分要点。','开始');
-    if(!ok)return;
-    dlgClose();
-    const metas=await gradeMeta(ex);
-    if(!gradeCtx||gradeCtx.qno!==q){ui.gradeQno=q;gradeCtx={examId:ex.id,qno:q,shuffle:false,order:todo.map(function(t){return t.no}),idx:0,buf:'',abort:new AbortController()};}
-    if(!gradeCtx.abort)gradeCtx.abort=new AbortController();
-    const ctl=gradeCtx.abort;
-    dlg('<div class="prog-line"><span id="aiBatchTxt">准备中…</span></div><div class="progress"><div id="aiBatchBar" style="width:0%"></div></div><div class="tip" id="aiBatchLog"></div>',{
-      title:'AI 批量预阅 · 题 '+esc(String(q)),
-      foot:'<button class="btn btn-d" data-act="ai-batch-stop">停止</button>'
-    });
-    let next=0;
-    async function worker(){
-      while(!ctl.signal.aborted){
-        /* 同步段先认领下标再 await，避免两个 worker 重复处理/漏处理 */
-        const i=next;next++;
-        if(i>=todo.length)break;
-        const it=todo[i];
-        try{
-          const r=await aiSuggestItem(ex,it.parts,q,ctl);
-          const full=it.parts[0].score;
-          const score=r.score!=null?(Math.min(full,Math.max(0,Number(r.score)||0))):null;
-          for(const c of it.parts){
-            c.aiScore=score;c.aiReason=(r.reason||'')+'\n【问题】'+(r.problems||'');
-            await dbPut('crops',c);
-          }
-          $('aiBatchTxt').textContent='已完成 '+(i+1)+'/'+todo.length+'（'+esc(it.no)+' → '+score+'）';
-        }catch(err){
-          if(err.name!=='AbortError')$('aiBatchLog').textContent='出错：'+err.message;
-        }
-        $('aiBatchBar').style.width=Math.round((i+1)/todo.length*100)+'%';
+    const hasAI=list.some(function(c){return c.aiScore!=null});
+    if(!hasAI){runAIPredBatch(ex,q,false);return}
+    /* 已预阅：二选一——重新预阅（仅生成建议分）/ AI 给分（建议分直接写入成绩） */
+    const todo=[];const seen={};
+    list.forEach(function(c){
+      if(c.scoreVal==null&&!seen[c.studentNo]){
+        seen[c.studentNo]=1;
+        todo.push({no:c.studentNo,parts:list.filter(function(x){return x.studentNo===c.studentNo}).sort(function(a,b){return a.part-b.part})});
       }
-      if(!ctl.signal.aborted){$('aiBatchLog').textContent='完成';toast('AI 预阅完成','ok');setTimeout(dlgClose,900);}
-    }
-    await Promise.all([worker(),worker()]);
-    renderGrade();
+    });
+    if(!todo.length){toast('该题没有未评分项','ok');return}
+    const withAI=todo.filter(function(t){return t.parts[0].aiScore!=null}).length;
+    const needCall=todo.length-withAI;
+    dlg('<div class="kv" style="margin-bottom:10px">题 '+esc(String(q))+' 已预阅：未评分 <b>'+todo.length+'</b> 份，其中已有 AI 建议 <b>'+withAI+'</b> 份。</div>'
+      +'<div class="f-row" style="gap:10px">'
+      +'<button class="btn" data-act="ai-batch-run" data-q="'+esc(String(q))+'" data-ws="0" style="flex:1">重新预阅</button>'
+      +'<button class="btn btn-p" data-act="ai-batch-run" data-q="'+esc(String(q))+'" data-ws="1" style="flex:1">AI 给分</button>'
+      +'</div>'
+      +'<div class="tip" style="margin-top:10px">重新预阅：重新调用 AI 生成建议分（'+todo.length+' 份，不写入成绩，供人工采纳）。<br>AI 给分：已有建议的 '+withAI+' 份直接按建议写入成绩'+(needCall?('，未预阅的 '+needCall+' 份先调用 AI 再写入'):'（不再调用 AI）')+'。</div>',
+      {title:'AI 已阅 · 题 '+esc(String(q))});
+  },
+  'ai-batch-run':async function(el){
+    const ex=await dbGet('exams',ui.gradeExam);
+    runAIPredBatch(ex,el.dataset.q,el.dataset.ws==='1');
   },
   'ai-batch-stop':function(){
     if(gradeCtx&&gradeCtx.abort)gradeCtx.abort.abort();
@@ -4595,13 +4578,87 @@ async function gradeCheckComplete(pre){
   }catch(e){}
   return false;
 }
-async function gradeSetScoreLocal(studentNo,v){
+/* AI 批量执行器：writeScore=false 仅生成建议分（预阅）；true 则把建议分直接写入成绩
+   （已有建议的份直接采用不再调 AI，未预阅的份先调用 AI 再写入），评分来源记为 'ai' */
+async function runAIPredBatch(ex,q,writeScore){
+  const cropsAll=await dbByIdx('crops','byExam',ex.id);
+  const list=cropsAll.filter(function(c){return String(c.qno)===String(q)});
+  const todo=[];
+  const seen={};
+  list.forEach(function(c){
+    if(c.scoreVal==null&&!seen[c.studentNo]){
+      seen[c.studentNo]=1;
+      todo.push({no:c.studentNo,parts:list.filter(function(x){return x.studentNo===c.studentNo}).sort(function(a,b){return a.part-b.part})});
+    }
+  });
+  if(!todo.length){toast('该题没有未评分项','ok');return}
+  const needCall=writeScore?todo.filter(function(t){return t.parts[0].aiScore==null}).length:todo.length;
+  if(needCall>0&&!ensureAI())return;
+  if(!writeScore){
+    const ok=await dlgConfirm('AI 批量预阅','将对「题 '+esc(String(q))+'」的 '+todo.length+' 份未评分裁剪图调用 AI 建议分（2 路并发，可中途停止）。<br>建议先确认「设置」中的 AI 服务与评分要点。','开始');
+    if(!ok)return;
+  }
+  dlgClose();
+  if(!gradeCtx||gradeCtx.qno!==q){ui.gradeQno=q;gradeCtx={examId:ex.id,qno:q,shuffle:false,order:todo.map(function(t){return t.no}),idx:0,buf:'',abort:new AbortController()};}
+  if(!gradeCtx.abort)gradeCtx.abort=new AbortController();
+  const ctl=gradeCtx.abort;
+  dlg('<div class="prog-line"><span id="aiBatchTxt">准备中…</span></div><div class="progress"><div id="aiBatchBar" style="width:0%"></div></div><div class="tip" id="aiBatchLog"></div>',{
+    title:(writeScore?'AI 给分':'AI 批量预阅')+' · 题 '+esc(String(q)),
+    foot:'<button class="btn btn-d" data-act="ai-batch-stop">停止</button>'
+  });
+  let next=0;
+  async function worker(){
+    while(!ctl.signal.aborted){
+      /* 同步段先认领下标再 await，避免两个 worker 重复处理/漏处理 */
+      const i=next;next++;
+      if(i>=todo.length)break;
+      const it=todo[i];
+      try{
+        const full=it.parts[0].score;
+        let score=null,reason='',probs='';
+        if(writeScore&&it.parts[0].aiScore!=null){
+          score=Math.min(full,Math.max(0,Number(it.parts[0].aiScore)||0));   /* 已预阅：直接采用建议分 */
+        }else{
+          const r=await aiSuggestItem(ex,it.parts,q,ctl);
+          score=r.score!=null?(Math.min(full,Math.max(0,Number(r.score)||0))):null;
+          reason=(r.reason||'')+'\n【问题】'+(r.problems||'');
+        }
+        if(score!=null){
+          for(const c of it.parts){
+            if(reason)c.aiReason=reason;
+            if(writeScore||it.parts[0].aiScore!=null)c.aiScore=score;
+            if(!writeScore)await dbPut('crops',c);
+          }
+          if(writeScore)await gradeSetScoreLocal(it.no,score,'ai');
+        }
+        doneN++;
+        const t1=$('aiBatchTxt');
+        if(t1)t1.textContent=(writeScore?'已给分 ':'已完成 ')+(i+1)+'/'+todo.length+'（'+esc(it.no)+' → '+(score!=null?score+' 分':'无建议')+'）';
+        const b1=$('aiBatchBar');
+        if(b1)b1.style.width=Math.round((i+1)/todo.length*100)+'%';
+      }catch(err){
+        if(err.name!=='AbortError'){const lg=$('aiBatchLog');if(lg)lg.textContent='出错：'+err.message;}
+        const b1=$('aiBatchBar');if(b1)b1.style.width=Math.round((i+1)/todo.length*100)+'%';
+      }
+    }
+  }
+  let doneN=0;
+  await Promise.all([worker(),worker()]);
+  if(!ctl.signal.aborted){
+    const lg=$('aiBatchLog');if(lg)lg.textContent='完成';
+    toast(writeScore?('AI 给分完成（'+doneN+' 份已写入成绩）'):('AI 预阅完成（'+doneN+' 份建议）'),'ok');
+    setTimeout(dlgClose,900);
+    if(writeScore){if(await gradeCheckComplete({q:1,all:1}))return;}
+    renderGrade();
+  }
+}
+async function gradeSetScoreLocal(studentNo,v,by){
   const ex=await dbGet('exams',ui.gradeExam);
   const cropsAll=await dbByIdx('crops','byExam',ex.id);
   const list=cropsAll.filter(function(c){return c.studentNo===studentNo&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
   for(const c of list){
     c.scoreVal=v;
-    c.markedBy='manual';
+    c.markedBy=by||'manual';
     c.flag=(v==null)?'':c.flag;
     if(v!=null){
       const mk=await cropMarkedImage(c,v);
