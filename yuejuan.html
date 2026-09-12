@@ -4471,6 +4471,7 @@ Object.assign(ACTS,{
   'grade-ai-one':async function(){
     const now2=gradeCtx.order[gradeCtx.idx];
     if(!now2)return;
+    toast('AI 分析中…（视觉模型可能需要数十秒）');   /* 调用期间给即时反馈 */
     let el=null;
     try{el=await aiSuggestExam(ui.gradeExam,now2,gradeCtx.qno)}
     catch(err){toast('AI 建议失败：'+(err.message||String(err)),'err');return}
@@ -4626,7 +4627,7 @@ async function runAIPredBatch(ex,q,writeScore){
         if(score!=null){
           for(const c of it.parts){
             if(reason)c.aiReason=reason;
-            if(writeScore||it.parts[0].aiScore!=null)c.aiScore=score;
+            c.aiScore=score;
             if(!writeScore)await dbPut('crops',c);
           }
           if(writeScore)await gradeSetScoreLocal(it.no,score,'ai');
@@ -5427,7 +5428,7 @@ async function callVision(prompt,images,signal){
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
     body:JSON.stringify({model:model,messages:messages,temperature:ai.temp||0.35,max_tokens:ai.maxTokens||4096,stream:false}),
-    signal:signal||undefined
+    signal:signal||AbortSignal.timeout(120000)   /* 无外部中止时 120s 超时：接口不通/网络挂起不再无限等待 */
   });
   if(!res.ok){
     let msg='HTTP '+res.status;
