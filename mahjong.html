@@ -793,20 +793,18 @@ function shantenScore(s){
   var T=[4200,1300,380,95,24,6,2];
   return T[Math.min(s,6)];
 }
-/* 听牌等待数：能直接成和的牌（remain 传入时按剩余张数加权——死听不值钱） */
-function handWaits(hand,jokerId,meldInfo,remain){
+/* 听牌等待数：能直接成和的牌种数（用于区分好听牌与差听牌） */
+function handWaits(hand,jokerId,meldInfo){
   var n=0;
   for(var j=0;j<ALL_CODES.length;j++)
-    if(handShanten(hand.concat([ALL_CODES[j]]),jokerId,meldInfo)===-1)
-      n+=remain?(remain[ALL_CODES[j]]||0):1;
+    if(handShanten(hand.concat([ALL_CODES[j]]),jokerId,meldInfo)===-1)n++;
   return n;
 }
-/* 进张数：能让向听前进一步的牌（同样支持按剩余张数加权） */
-function handAccept(hand,jokerId,meldInfo,remain){
+/* 进张数：能让向听前进一步的牌种数（用于区分好搭子与坏搭子） */
+function handAccept(hand,jokerId,meldInfo){
   var sh=handShanten(hand,jokerId,meldInfo),n=0;
   for(var j=0;j<ALL_CODES.length;j++)
-    if(handShanten(hand.concat([ALL_CODES[j]]),jokerId,meldInfo)===sh-1)
-      n+=remain?(remain[ALL_CODES[j]]||0):1;
+    if(handShanten(hand.concat([ALL_CODES[j]]),jokerId,meldInfo)===sh-1)n++;
   return n;
 }
 /* ---- 防炮读牌（公开信息） ---- */
@@ -910,8 +908,8 @@ function aiPickDiscard(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip)
         var sh=handShanten(h2,jokerId,myMelds);
         var sv=shantenScore(sh)+structureScore(h2,jokerId)/60;
         if(budget>0){
-          if(sh===0){sv+=260*handWaits(h2,jokerId,myMelds,remain);budget--;}
-          else if(sh===1){sv+=70*handAccept(h2,jokerId,myMelds,remain);budget--;}
+          if(sh===0){sv+=180*handWaits(h2,jokerId,myMelds);budget--;}
+          else if(sh===1){sv+=40*handAccept(h2,jokerId,myMelds);budget--;}
         }
         v+=r*sv;
       }
