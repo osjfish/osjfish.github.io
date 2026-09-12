@@ -3,7 +3,7 @@
 import io, json, re
 
 SRC = r"D:\App\Apps\yanshi\beiying-zhuziqing.html"
-OUT = r"D:\App\Apps\yanshi\taikongyiri-yangliwei.html"
+OUT = r"D:\App\Apps\yanshi\tools\_tk_test.html"
 LS_KEY = "taikongyiri_fs"
 
 def A(word, note):

@@ -3421,12 +3421,13 @@ async function examWizardOpen(examId){
   if(!classes.length){toast('请先创建班级','err');go('class');return}
   if(!tpls.length){toast('请先创建答题卡模板','err');go('tpl');return}
   const ex=examId?await dbGet('exams',examId):null;
-  /* 编辑已有考试时直接打开「答案与分值」页签——这是最常改的内容；基本信息在第一个页签 */
+  /* 编辑已有考试时直接打开「答案与分值」页签——这是最常改的内容；基本信息在第一个页签。
+     班级/模板已被删除时回退到第一项，避免悬空 ID（下拉显示与保存值不一致） */
   wiz={examId:examId,tab:(examId?'ans':'base'),
     name:ex?ex.name:('期中考试 '+today()),
     paperTitle:ex?(ex.paperTitle||''):'',
-    classId:ex?ex.classId:classes[0].id,
-    templateId:ex?ex.templateId:tpls[0].id,
+    classId:(ex&&classes.some(function(c){return c.id===ex.classId}))?ex.classId:classes[0].id,
+    templateId:(ex&&tpls.some(function(t){return t.id===ex.templateId}))?ex.templateId:tpls[0].id,
     perScore:ex?ex.perScore:null,
     answers:ex?JSON.parse(JSON.stringify(ex.answers||{})):{},
     perQScore:ex&&ex.perQScore?JSON.parse(JSON.stringify(ex.perQScore)):{},
