@@ -4253,13 +4253,24 @@ Object.assign(ACTS,{
         +'<button class="btn btn-sm btn-d" data-act="rev-q-pick" data-key="'+key+'" data-v="MULTI">多涂</button>'
         +'</div>';
       }
-      return '<div class="scan-item" style="margin-bottom:6px"><div style="flex:1;min-width:220px">'
+      return '<div class="scan-item" data-qkey="'+key+'" style="margin-bottom:6px"><div style="flex:1;min-width:220px">'
         +'<div style="font-weight:700">考号 <b>'+esc(it.studentNo||'(未识别)')+'</b>　第 <b>'+(it.qno)+'</b> 题'+(isMulti?'（多选）':'')+'</div>'
         +'<div class="kv">涂点密度：'+(it.inks||[]).map(function(x,k){return String.fromCharCode(65+k)+'='+Number(x).toFixed(2)}).join('　')+'</div></div>'
         +pickHtml+'</div>';
     }).join('');
-    dlg(text,{title:'涂点待复核（'+rev.q.length+' 项，显示前 '+items.length+' 项）',
-      foot:'<button class="btn" data-act="scan-rev-managed">管理人工改判（撤销）</button>',wide:true});
+    dlg('<div class="kv" style="margin-bottom:8px">待处理 <b id="revQLeft">'+items.length+'</b> 项'+(rev.q.length>items.length?('（共 '+rev.q.length+' 项，本次显示前 '+items.length+' 项）'):'')+'。处理一项后自动移除，可连续处理，不必反复打开。</div>'+text,
+      {title:'涂点待复核（'+rev.q.length+' 项）',
+      foot:'<button class="btn" data-act="scan-rev-managed">管理人工改判（撤销）</button><button class="btn btn-o" data-act="dlg-close">关闭</button>',wide:true});
+  },
+  /* 待复核弹窗内：处理完一项即时移除该项并刷新剩余数，处理完自动关闭 */
+  __revQRemove:function(key){
+    const box=[].slice.call(document.querySelectorAll('[data-qkey]')).filter(function(x){return x.dataset.qkey===key})[0];
+    if(box)box.remove();
+    const left=document.querySelectorAll('[data-qkey]').length;
+    const lbl=$('revQLeft');
+    if(lbl)lbl.textContent=left;
+    renderScan();   /* 刷新背景页的待复核徽标 */
+    if(!left){dlgClose();toast('待复核涂点已全部处理完','ok')}
   },
   'rev-q-tog':function(el){el.classList.toggle('on')},
   'rev-q-pick':async function(el){
@@ -4269,8 +4280,7 @@ Object.assign(ACTS,{
     await dbPut('revs',{id:exId+'|'+no+'|q'+qno,examId:exId,studentNo:no,qno:qno,type:'q',
       verdict:(v==='BLANK'||v==='MULTI')?v:'OK',choice:/^[A-F]$/.test(v)?v:null,at:timestamp(),by:'manual'});
     toast('已判：'+esc(no)+' 第 '+qno+' 题 = '+esc(v)+(v.length===1?'（'+VERDICT_NAMES.OK+'）':''),'ok');
-    dlgClose();
-    renderScan();
+    ACTS.__revQRemove(el.dataset.key);
   },
   'rev-q-multi-save':async function(el){
     const key=el.dataset.key;
@@ -4282,8 +4292,7 @@ Object.assign(ACTS,{
     await dbPut('revs',{id:parts[0]+'|'+parts[1]+'|q'+parts[2],examId:parts[0],studentNo:parts[1],qno:parseInt(parts[2],10),type:'q',
       verdict:'OK',choice:sel.join(''),at:timestamp(),by:'manual'});
     toast('已判：'+esc(parts[1])+' 第 '+parts[2]+' 题 = '+sel.join(''),'ok');
-    dlgClose();
-    renderScan();
+    ACTS.__revQRemove(key);
   },
   'scan-rev-managed':async function(){
     const ex=await dbGet('exams',ui.scanExam);

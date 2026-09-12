@@ -84,12 +84,18 @@ def audit(fn):
         w, q = d.get('w', ''), d.get('q', '')
         if not w or not q:
             continue
-        if q not in body and bare(q) not in bare_body:
+        qc = re.sub(r'[（(][^）)]*[)）]', '', q)
+        if q in body or qc in body or bare(qc) in bare_body:
+            hit = True
+        else:
+            segs = [x for x in re.split(r'[，。、；：！？…—]+', qc) if len(x) >= 2]
+            hit = bool(segs) and all(bare(x) in bare_body for x in segs)
+        if not hit:
             iss['注释题句非原文'].append('%s|%s' % (w, q[:26]))
         else:
             # 词须出现在句中：去掉注音括号、省略号分段匹配、多例句以 / 分隔
             w2 = re.sub(r'[（(][^）)]*[)）]', '', w)
-            parts = [x.strip() for x in re.split(r'……|\.\.\.|/', w2) if x.strip()]
+            parts = [x.strip() for x in re.split(r'……|\.\.\.|/|、', w2) if x.strip()]
             qs = [x.strip() for x in q.split('/')]
             if not all(any(p in s for s in qs) for p in parts):
                 iss['注释题词不在句中'].append('%s|%s' % (w, q[:26]))
