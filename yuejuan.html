@@ -108,7 +108,8 @@ table.tbl tr:hover td{background:#FBF8F3}
 .gwrap{display:flex;gap:14px;align-items:flex-start}
 .gimg{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px;text-align:center}
 .gimg img{max-width:100%;max-height:70vh;border-radius:6px;cursor:zoom-in}
-.gside{width:250px;flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
+.gside{width:250px;flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;
+  position:sticky;top:70px;max-height:calc(100vh - 86px);overflow-y:auto;overscroll-behavior:contain}
 .gscore{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0;max-height:210px;overflow-y:auto;padding-right:2px}
 .gscore .gs{padding:8px 4px;text-align:center;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;background:#fff}
 .gscore .gs:hover{border-color:var(--zhu)}
@@ -161,7 +162,7 @@ table.tbl tr:hover td{background:#FBF8F3}
   .sj-nav-item{justify-content:center;padding:12px 4px}
   .sj-main{margin-left:60px;padding:0 12px 28px}
   .gwrap{flex-direction:column}
-  .gside{width:100%}
+  .gside{width:100%;position:static;max-height:none;overflow:visible}
   .gimg img{max-height:56vh}
   .sj-page{max-width:100%}
 }
@@ -5267,6 +5268,26 @@ function estimateBackground(gray,w,h,targetW){
   }
   return bg;
 }
+/* 3×3 中值滤波（去椒盐噪点/扫描灰尘）：必须在增强之前做，否则噪点会被锐化与对比增强放大 */
+function median3Gray(src,w,h){
+  const out=new Uint8Array(w*h);
+  const v=new Uint8Array(9);
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      if(x===0||y===0||x===w-1||y===h-1){out[y*w+x]=src[y*w+x];continue}
+      let k=0;
+      for(let dy=-1;dy<=1;dy++){const row=(y+dy)*w;for(let dx=-1;dx<=1;dx++)v[k++]=src[row+x+dx]}
+      /* 9 个数的中值：部分排序（比全排序快） */
+      for(let i=0;i<5;i++){
+        let m=i;
+        for(let j=i+1;j<9;j++)if(v[j]<v[m])m=j;
+        const t=v[i];v[i]=v[m];v[m]=t;
+      }
+      out[y*w+x]=v[4];
+    }
+  }
+  return out;
+}
 /* 阅卷显示用图像增强（文档增强标准做法）：
    ① 背景归一化：用大尺度背景估计算光照/阴影，逐像素与原图相除 —— 纸张变白、字迹变黑，
       **阴影与明暗不均被消除而不是被放大**（这是此前“阴影被强化”的根因：全局分位拉伸会把阴影一起拉大）；
@@ -5275,35 +5296,39 @@ function estimateBackground(gray,w,h,targetW){
 function enhanceImageData(ctx,w,h,level){
   const img=ctx.getImageData(0,0,w,h),d=img.data;
   const n=w*h;
-  const gray=new Uint8Array(n);
+  let gray=new Uint8Array(n);
   for(let i=0,j=0;i<d.length;i+=4,j++){
     gray[j]=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000|0;
   }
-  /* ① 背景归一化 */
-  const bg=estimateBackground(gray,w,h,Math.max(48,Math.round(w/12)));
-  const out=new Uint8ClampedArray(n);
+  /* ① 去噪（3×3 中值）：去除扫描灰尘/椒盐噪点。
+     这一步是背景估计准确的前提——白噪点会把局部最大值抬高，导致背景估计偏亮、阴影除不净 */
+  gray=median3Gray(gray,w,h);
+  /* ② 背景归一化（去阴影/光照不均）：估背景 → 逐像素相除。
+     背景窗口取图像宽度的 1/6（窗口过小会跟着阴影走、过大则失去平滑作用），实测此取法纸底最均匀 */
+  const bg=estimateBackground(gray,w,h,Math.max(64,Math.round(w/6)));
+  const flat=new Uint8ClampedArray(n);
   for(let i=0;i<n;i++){
     const b=bg[i]>8?bg[i]:8;            /* 防止除零 */
     const v=gray[i]*255/b;
-    out[i]=v>255?255:v;
+    flat[i]=v>255?255:v;
   }
-  /* ② 温和分位拉伸（把端点拉满） */
+  /* ③ 温和端点拉伸：把纸底统一拉白、字迹压黑（力度克制，避免放大噪声） */
   const hist=new Uint32Array(256);
-  for(let i=0;i<n;i++)hist[out[i]]++;
-  const cut=n*(level>=2?0.004:0.012);
+  for(let i=0;i<n;i++)hist[flat[i]]++;
+  const cut=n*(level>=2?0.004:0.008);
   let acc=0,lo=0,hi=255;
   for(let v=0;v<256;v++){acc+=hist[v];if(acc>cut){lo=v;break}}
   acc=0;
   for(let v=255;v>=0;v--){acc+=hist[v];if(acc>cut){hi=v;break}}
   if(hi-lo<40){lo=Math.max(0,lo-10);hi=Math.min(255,hi+10)}
   const range=Math.max(1,hi-lo);
-  /* ③ 写回 + 锐化 */
+  /* ④ 写回 + 适度锐化（已先去噪，锐化不会放大噪点；档位越高略强） */
   for(let i=0,j=0;i<d.length;i+=4,j++){
-    let v=(out[j]-lo)*255/range;
+    let v=(flat[j]-lo)*255/range;
     v=v<0?0:(v>255?255:v);
     d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;
   }
-  sharpenImageData(d,w,h,level>=2?0.8:0.42);
+  sharpenImageData(d,w,h,level>=2?0.7:0.4);
   ctx.putImageData(img,0,0);
 }
 const __enhCache=new Map();
@@ -5433,7 +5458,7 @@ async function renderGradeView(ex){
     +'<input class="inp" id="gradeStepCustom" data-on="grade-step-custom" type="number" step="0.5" min="0.5" style="width:74px" placeholder="≥0.5" value="'+dstep+'">'
     +'</div>'
     +'<div class="f-row" style="margin-top:6px;align-items:center;gap:6px">'
-    +'<span class="kv" style="white-space:nowrap" title="背景归一化（去阴影/光照不均）+ 轻度拉伸 + 锐化，便于看清模糊字迹；只影响显示，不改动原图">图像增强</span>'
+    +'<span class="kv" style="white-space:nowrap" title="去噪 → 背景归一化（去阴影/光照不均）→ 端点拉伸 → 适度锐化，便于看清模糊字迹；只影响显示，不改动原图">图像增强</span>'
     +'<select class="inp" style="width:118px" data-on="grade-enhance">'
     +'<option value="0"'+(eff===0?' selected':'')+'>关闭（原图）</option>'
     +'<option value="1"'+(eff===1?' selected':'')+'>轻度（提对比）</option>'
@@ -7472,7 +7497,7 @@ window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,
   realignGrid:realignGrid,gridAbnormal:gridAbnormal,gridPitchRatio:gridPitchRatio,
   renderPageCanvas:renderPageCanvas,renderPagesAsync:renderPagesAsync,canvasDataURL:canvasDataURL,
   canvasToThumb:canvasToThumb,
-  imageViewer:imageViewer,enhanceImageData:enhanceImageData,enhanceCropURL:enhanceCropURL,gradePref:function(){return gradePref},
+  imageViewer:imageViewer,enhanceImageData:enhanceImageData,median3Gray:median3Gray,estimateBackground:estimateBackground,enhanceCropURL:enhanceCropURL,gradePref:function(){return gradePref},
   getAll:function(s){return dbAll(s)},get:dbGet,examMeta:examMeta,computeScorebook:computeScorebook,pageRegDigits:pageRegDigits};
 })();
 </script>
