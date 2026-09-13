@@ -2739,7 +2739,7 @@ async function examReviewCount(examId){
         const ov=revs.find(function(r){return r.studentNo===p.studentNo&&r.qno===q.qno&&r.type==='q'});
         const isMultiQ=examDataX&&examDataX.qMulti&&examDataX.qMulti[q.qno];
         const needRev=(q.verdict==='REVIEW')||(!isMultiQ&&q.verdict==='MULTI');
-        if(!ov&&needRev)items.q.push({studentNo:p.studentNo,qno:q.qno,inks:q.inks,verdict:q.verdict,choice:q.choice});
+        if(!ov&&needRev)items.q.push({studentNo:p.studentNo,qno:q.qno,inks:q.inks,verdict:q.verdict,choice:q.choice,pageId:p.id,pageNo:p.pageNo,pageIdx:p.meta.pageIdx||0});
       });
     }
   });
@@ -3969,6 +3969,65 @@ async function renderScan(){
     fillThumbs();
   });
 }
+/* 涂点复核的「系统建议」：依据墨量与阈值给出倾向性判断，供复核时一键采纳 */
+function suggestVerdictFor(inks,inkHigh,inkLow){
+  const arr=(inks||[]).map(function(v,i){return {i:i,v:Number(v)||0}});
+  if(!arr.length)return {verdict:'BLANK',choice:'',text:'空白',note:'无涂点数据'};
+  const above=arr.filter(function(x){return x.v>=inkLow});
+  if(!above.length){
+    const mx=arr.slice().sort(function(a,b){return b.v-a.v})[0];
+    return {verdict:'BLANK',choice:'',text:'空白',
+      note:'各项墨量均低于空白阈值（最高 '+String.fromCharCode(65+mx.i)+'='+mx.v.toFixed(2)+'，阈值 '+inkLow+'）'};
+  }
+  above.sort(function(a,b){return b.v-a.v});
+  const strong=above.filter(function(x){return x.v>=inkHigh});
+  if(strong.length===1){
+    const t=strong[0];
+    return {verdict:'OK',choice:String.fromCharCode(65+t.i),text:String.fromCharCode(65+t.i),
+      note:'墨量 '+t.v.toFixed(2)+' 已达标（≥'+inkHigh+'）'
+        +(above.length>1?('；另有 '+(above.length-1)+' 项低于达标线，疑似擦除不净或误触'):'')};
+  }
+  if(strong.length===0){
+    const t=above[0];
+    return {verdict:'OK',choice:String.fromCharCode(65+t.i),text:String.fromCharCode(65+t.i),
+      note:'最高项墨量 '+t.v.toFixed(2)+' 未达标（<'+inkHigh+'）但明显高于其它项，像是涂得偏轻'};
+  }
+  return {verdict:'MULTI',choice:above.map(function(x){return String.fromCharCode(65+x.i)}).join(''),text:'多涂('+above.map(function(x){return String.fromCharCode(65+x.i)}).join('')+')',
+    note:strong.length+' 项均达到达标线（'+strong.map(function(x){return String.fromCharCode(65+x.i)+'='+x.v.toFixed(2)}).join('、')+'）'};
+}
+/* 裁出某题在原始扫描图上的作答区域（按识别时的单应矩阵取原始像素，非渲染图），
+   复核时看的是学生真实答题图像，而不是只看墨量数字 */
+async function reviewCropURL(pageId,qno,pageIdx){
+  try{
+    const p=await dbGet('pages',pageId);
+    if(!p||!p.meta||!p.meta.H)return null;
+    const ex=await dbGet('exams',p.examId);
+    const tpl=ex?await dbGet('templates',ex.templateId):null;
+    if(!tpl)return null;
+    const layout=layoutTemplate(tpl);
+    const page=layout.pages[p.meta.pageIdx!=null?p.meta.pageIdx:(pageIdx||0)];
+    if(!page)return null;
+    let g=null,pos=-1;
+    page.groups.forEach(function(gg){
+      const k=Number(qno)-gg.first;
+      if(k>=0&&k<gg.count){g=gg;pos=k}
+    });
+    if(!g)return null;
+    const c=Math.floor(pos/g.rows),r=pos%g.rows;
+    const rowY=g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy);
+    /* 含题号与全部选项的一行区域（上下各留 3.4mm） */
+    const x0=g.x0-2.0,w=g.dxq+1.4,y0=rowY-3.4,h=6.8;
+    const hh=p.meta.H;
+    const H=function(x,y){const den=hh[6]*x+hh[7]*y+1;return {x:(hh[0]*x+hh[1]*y+hh[2])/den,y:(hh[3]*x+hh[4]*y+hh[5])/den}};
+    const blob=await getBlob(p.id);
+    if(!blob)return null;
+    const {cv}=await blobCanvas(blob,2200);
+    const smm=(cv.width/page.w+cv.height/page.h)/2;
+    const outW=Math.round(Math.min(1200,Math.max(360,(w+2)*Math.min(14,smm*1.2))));
+    const cc=cropViaH(cv,H,x0,y0,w,h,outW, outW>((w+2)*smm*1.15)?0.7:0.35);
+    return canvasDataURL(cc,0.86);
+  }catch(e){return null}
+}
 Object.assign(ACTS,{
   'go-exam':function(){go('exam')},
   'scan-pick':async function(el){ui.scanExam=el.value;renderScan()},
@@ -4439,33 +4498,80 @@ Object.assign(ACTS,{
     const ex=await dbGet('exams',ui.scanExam);
     const rev=await examReviewCount(ex.id);
     if(!rev.q.length){toast('没有待复核的涂点','ok');return}
-    const items=rev.q.slice(0,80);
+    const PER=30;                       /* 一次最多展示 30 项（原图逐项生成，控制在可接受范围内） */
+    const items=rev.q.slice(0,PER);
     const letters=['A','B','C','D','E','F'];
     const text=items.map(function(it,i){
       const key=esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno);
       const isMulti=!!(ex.qMulti&&ex.qMulti[it.qno]);
+      const sg=suggestVerdictFor(it.inks,omr.inkHigh,omr.inkLow);
+      const nOpts=(it.inks||[]).length||4;
       let pickHtml;
       if(isMulti){
-        pickHtml='<div data-multi="'+key+'" class="f-row">'+letters.map(function(L){
+        pickHtml='<div data-multi="'+key+'" class="f-row">'+letters.slice(0,nOpts).map(function(L){
           return '<button class="btn btn-sm rev-tog" data-act="rev-q-tog" data-v="'+L+'">'+L+'</button>';
         }).join('')+'<button class="btn btn-sm btn-p" data-act="rev-q-multi-save" data-key="'+key+'">保存判定</button>'
-        +'<span class="kv">多选题：先勾选选项再保存</span></div>';
+        +'<span class="kv">多选：先勾选选项再保存</span></div>';
       }else{
-        pickHtml='<div class="f-row">'+letters.map(function(L){
+        pickHtml='<div class="f-row">'+letters.slice(0,nOpts).map(function(L){
           return '<button class="btn btn-sm" data-act="rev-q-pick" data-key="'+key+'" data-v="'+L+'">'+L+'</button>';
         }).join('')
         +'<button class="btn btn-sm" data-act="rev-q-pick" data-key="'+key+'" data-v="BLANK">空白</button>'
         +'<button class="btn btn-sm btn-d" data-act="rev-q-pick" data-key="'+key+'" data-v="MULTI">多涂</button>'
         +'</div>';
       }
-      return '<div class="scan-item" data-qkey="'+key+'" style="margin-bottom:6px"><div style="flex:1;min-width:220px">'
-        +'<div style="font-weight:700">考号 <b>'+esc(it.studentNo||'(未识别)')+'</b>　第 <b>'+(it.qno)+'</b> 题'+(isMulti?'（多选）':'')+'</div>'
-        +'<div class="kv">涂点密度：'+(it.inks||[]).map(function(x,k){return String.fromCharCode(65+k)+'='+Number(x).toFixed(2)}).join('　')+'</div></div>'
-        +pickHtml+'</div>';
+      const sgBtn=(sg.verdict==='BLANK')
+        ? '<button class="btn btn-sm btn-g" data-act="rev-q-pick" data-key="'+key+'" data-v="BLANK">采纳建议：空白</button>'
+        : (sg.verdict==='MULTI'
+            ? '<button class="btn btn-sm btn-g" data-act="rev-q-multi-accept" data-key="'+key+'" data-v="'+esc(sg.choice)+'">采纳建议：多涂 '+esc(sg.choice)+'</button>'
+            : '<button class="btn btn-sm btn-g" data-act="rev-q-pick" data-key="'+key+'" data-v="'+esc(sg.choice)+'">采纳建议：'+esc(sg.choice)+'</button>');
+      return '<div class="scan-item" data-qkey="'+key+'" style="margin-bottom:8px;align-items:flex-start">'
+        +'<div style="flex:1;min-width:260px">'
+        +'<div style="font-weight:700">考号 <b>'+esc(it.studentNo||'(未识别)')+'</b>　第 <b>'+(it.qno)+'</b> 题'
+        +(isMulti?'（多选）':'')+'　<span class="kv">第 '+(it.pageNo||'?')+' 页</span></div>'
+        +'<div class="kv" style="margin:2px 0">系统建议：<b style="color:var(--zhu)">'+esc(sg.text)+'</b>　'+esc(sg.note)+'</div>'
+        +'<div class="kv">涂点密度：'+(it.inks||[]).map(function(x,k){return String.fromCharCode(65+k)+'='+Number(x).toFixed(2)}).join('　')
+        +'　<span style="color:var(--txt2)">（达标 ≥'+omr.inkHigh+'，空白 <'+omr.inkLow+'）</span></div>'
+        +'<div style="margin-top:6px">'+sgBtn+'</div>'
+        +'<div style="margin-top:6px">'+pickHtml+'</div>'
+        +'</div>'
+        +'<div style="width:300px;flex-shrink:0;text-align:center">'
+        +'<img data-revcrop="'+esc(it.pageId||'')+'|'+esc(String(it.qno))+'|'+esc(String(it.pageIdx||0))+'" src="'+PH_IMG+'" style="width:300px;max-height:120px;object-fit:contain;background:#EEE;border:1px solid var(--line);border-radius:8px;cursor:zoom-in">'
+        +'<div class="kv" style="font-size:11px">学生作答原图（点击放大）</div>'
+        +'</div></div>';
     }).join('');
-    dlg('<div class="kv" style="margin-bottom:8px">待处理 <b id="revQLeft">'+items.length+'</b> 项'+(rev.q.length>items.length?('（共 '+rev.q.length+' 项，本次显示前 '+items.length+' 项）'):'')+'。处理一项后自动移除，可连续处理，不必反复打开。</div>'+text,
+    dlg('<div class="kv" style="margin-bottom:8px">待处理 <b id="revQLeft">'+items.length+'</b> 项'
+      +(rev.q.length>items.length?('（共 '+rev.q.length+' 项，本次显示前 '+items.length+' 项）'):'')
+      +'。每项都给出<b>系统建议</b>（可一键采纳）并显示<b>学生作答原图</b>，建议逐项核对后再判定。</div>'+text,
       {title:'涂点待复核（'+rev.q.length+' 项）',
       foot:'<button class="btn" data-act="scan-rev-managed">管理人工改判（撤销）</button><button class="btn btn-o" data-act="dlg-close">关闭</button>',wide:true});
+    /* 逐项生成原图：按单应矩阵从原始扫描图裁出该题作答行 */
+    (async function(){
+      const nodes=[...document.querySelectorAll('img[data-revcrop]')];
+      for(const img of nodes){
+        if(!document.body.contains(img))break;      /* 弹窗已处理完/关闭则停止 */
+        const parts=img.getAttribute('data-revcrop').split('|');
+        const url=await reviewCropURL(parts[0],parts[1],parseInt(parts[2],10)||0);
+        if(url&&document.body.contains(img)){
+          img.src=url;
+          img.setAttribute('data-url',url);
+          img.setAttribute('data-act','grade-zoom');
+          img.setAttribute('data-title','第 '+parts[1]+' 题作答原图');
+        }
+        await sleep(0);
+      }
+    })();
+  },
+  /* 多选：采纳系统建议（一次写入多个选项） */
+  'rev-q-multi-accept':async function(el){
+    const key=el.dataset.key;
+    const sel=String(el.dataset.v||'').split('').filter(Boolean).sort();
+    if(!sel.length){toast('建议为空，请手动勾选','err');return}
+    const parts=key.split('|');
+    await dbPut('revs',{id:parts[0]+'|'+parts[1]+'|q'+parts[2],examId:parts[0],studentNo:parts[1],qno:parseInt(parts[2],10),type:'q',
+      verdict:'OK',choice:sel.join(''),at:timestamp(),by:'manual'});
+    toast('已采纳建议：'+esc(parts[1])+' 第 '+parts[2]+' 题 = '+sel.join(''),'ok');
+    ACTS.__revQRemove(key);
   },
   /* 待复核弹窗内：处理完一项即时移除该项并刷新剩余数，处理完自动关闭 */
   __revQRemove:function(key){
@@ -4477,7 +4583,7 @@ Object.assign(ACTS,{
     renderScan();   /* 刷新背景页的待复核徽标 */
     if(!left){dlgClose();toast('待复核涂点已全部处理完','ok')}
   },
-  'rev-q-tog':function(el){el.classList.toggle('on')},
+  'rev-q-tog':function(el){el.classList.toggle('on')},  'rev-q-tog':function(el){el.classList.toggle('on')},
   'rev-q-pick':async function(el){
     const key=el.dataset.key.split('|');
     const exId=key[0],no=key[1],qno=parseInt(key[2],10);
