@@ -119,6 +119,8 @@ table.tbl tr:hover td{background:#FBF8F3}
 .gthumbs .gt.on{border-color:var(--zhu)}
 .gthumbs img{width:64px;height:64px;object-fit:cover;border-radius:6px;display:block}
 .prog-line{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12.5px;color:var(--txt2)}
+.ai-spin{display:inline-block;width:13px;height:13px;border:2px solid var(--line);border-top-color:var(--zhu);border-radius:50%;animation:aispin .8s linear infinite;flex-shrink:0}
+@keyframes aispin{to{transform:rotate(360deg)}}
 /* ===== 模式框 ===== */
 .m-overlay{position:fixed;inset:0;background:rgba(20,25,32,.55);z-index:200;align-items:center;justify-content:center;padding:20px;display:none}
 .m-overlay:not([hidden]){display:flex}
@@ -4626,15 +4628,15 @@ async function runAIWholeExam(ex,writeScore){
       ?('确定把 '+withAI+' 份已有建议直接写入成绩'+(needCall?('，并调用 AI 评阅剩余 '+needCall+' 份'):'（不再调用 AI）')+'？<br>写入后可在阅卷台逐份手改。')
       :('确定开始全卷 AI 预评？将调用 AI '+jobs.length+' 次（2 路并发）。'),'确定执行');
   if(!ok2)return;
-  dlg('<div class="prog-line"><span id="aiAllTxt">AI 分析中 0/'+jobs.length+'</span></div>'
-    +'<div class="progress"><div id="aiAllBar" style="width:0%"></div></div>'
-    +'<div class="tip" id="aiAllLog"></div>',
-    {title:title+' · '+esc(ex.name),foot:'<button class="btn btn-d" data-act="ai-batch-stop">停止</button>'});
+  aiProgOpen((writeScore?'全卷 AI 给分':'全卷 AI 预评')+' · '+ex.name,
+    '准备中，共 '+jobs.length+' 份待分析',
+    function(){try{ac.abort()}catch(e){}});
+  aiProgSet(null,4,writeScore?('已有建议的 '+withAI+' 份直接写入成绩'+(needCall?('，其余 '+needCall+' 份调用 AI'):'（不再调用 AI）')+'。'):'逐份调用视觉模型生成建议分，可随时停止。');
   const ctl={signal:{aborted:false}};
   const ac=new AbortController();
   ctl.signal=ac.signal;
   window.__yjAiAllAbort=function(){try{ac.abort()}catch(e){}};
-  let next=0,doneN=0,byQ={};
+  let next=0,doneN=0,failN=0,byQ={};const failMsg=[];
   async function worker(){
     while(!ac.signal.aborted){
       const i=next;next++;
@@ -4654,26 +4656,28 @@ async function runAIWholeExam(ex,writeScore){
         }
         if(writeScore&&score!=null)await gradeSetScoreLocal(j.no,score,'ai',j.qno);
         doneN++;byQ[j.qno]=(byQ[j.qno]||0)+1;
-        const t1=$('aiAllTxt');
-        if(t1)t1.textContent='AI 分析中 '+(i+1)+'/'+jobs.length+'（题'+j.qno+' '+esc(j.no)+' → '+(score!=null?score+' 分':'无建议')+'）';
-        const b1=$('aiAllBar');
-        if(b1)b1.style.width=Math.round((i+1)/jobs.length*100)+'%';
+        aiProgSet('正在分析 '+(i+1)+'/'+jobs.length+'（题'+j.qno+' '+j.no+' → '+(score!=null?score+' 分':'无建议')+'）',
+          Math.round((i+1)/jobs.length*100),
+          '已完成 '+doneN+' 份'+(failN?('，失败 '+failN+' 份'):''));
       }catch(err){
-        if(err.name!=='AbortError'){
-          const lg=$('aiAllLog');
-          if(lg)lg.textContent='题'+j.qno+' '+j.no+' 出错：'+(err.message||String(err));
-        }
-        const b1=$('aiAllBar');
-        if(b1)b1.style.width=Math.round((i+1)/jobs.length*100)+'%';
+        if(err.name==='AbortError')return;
+        failN++;failMsg.push('题'+j.qno+' '+j.no+'：'+(err.message||String(err)));
+        aiProgSet('正在分析 '+(i+1)+'/'+jobs.length+'（题'+j.qno+' '+j.no+' 失败，继续下一份）',
+          Math.round((i+1)/jobs.length*100),'已完成 '+doneN+' 份，失败 '+failN+' 份');
       }
     }
   }
   await Promise.all([worker(),worker()]);
   const stopped=ac.signal.aborted;
-  const lg=$('aiAllLog');
-  if(lg)lg.textContent=(stopped?'已停止':'完成')+'：本次处理 '+doneN+' 份';
-  toast((stopped?'已停止，':'')+'全卷 AI '+(writeScore?'给分':'预评')+'完成：'+doneN+' 份'+(writeScore?'已写入成绩':''),stopped?'':'ok');
-  if(!stopped)setTimeout(dlgClose,1200); else dlgClose();
+  if(stopped){aiProgClose();toast('已停止：已完成 '+doneN+' 份','ok');renderGrade();return}
+  if(failN){
+    const more=failMsg.length>10?('\n…另有 '+(failMsg.length-10)+' 份'):'';
+    aiProgFail('全卷共 '+jobs.length+' 份，成功 '+doneN+' 份、失败 '+failN+' 份。\n\n失败明细：\n'+failMsg.slice(0,10).join('\n')+more);
+    renderGrade();
+    return;
+  }
+  aiProgClose();
+  toast('全卷 AI '+(writeScore?'给分':'预评')+'完成：'+doneN+' 份'+(writeScore?'已写入成绩':''),'ok');
   renderGrade();
 }
 /* 重识别单页：更新 page 记录 + 重建该页主观题裁剪 */
@@ -4854,10 +4858,23 @@ Object.assign(ACTS,{
   'grade-ai-one':async function(){
     const now2=gradeCtx.order[gradeCtx.idx];
     if(!now2)return;
-    toast('AI 分析中…（第 '+(gradeCtx.idx+1)+'/'+gradeCtx.order.length+' 份，视觉模型可能需要数十秒）');   /* 调用期间给即时反馈 */
+    if(!ensureAI())return;
+    const ac=new AbortController();
+    aiProgOpen('AI 建议 · 考号 '+now2,
+      '正在分析第 '+(gradeCtx.idx+1)+'/'+gradeCtx.order.length+' 份（'+now2+'）',
+      function(){try{ac.abort()}catch(e){}});
+    aiProgSet(null,25,'正在调用视觉模型识别作答内容并对照评分要点，通常需要 10~60 秒。');
     let el=null;
-    try{el=await aiSuggestExam(ui.gradeExam,now2,gradeCtx.qno)}
-    catch(err){toast('AI 建议失败：'+(err.message||String(err)),'err');return}
+    try{
+      el=await aiSuggestExam(ui.gradeExam,now2,gradeCtx.qno,{signal:ac.signal});
+      aiProgSet('分析完成，正在整理结果…',95);
+    }
+    catch(err){
+      if(err&&err.name==='AbortError'){aiProgClose();return}
+      aiProgFail('考号 '+now2+' 第 '+gradeCtx.qno+' 题：'+(err.message||String(err)));
+      return;
+    }
+    aiProgClose();
     if(!el){toast('AI 未返回结果','err');return}
     dlg('<div class="kv"><b>AI 建议分：'+esc(el.score)+'</b>（满分 '+el.full+'）</div>'
       +(el.problems?'<div class="card" style="margin-top:8px"><h3>问题清单</h3><div style="white-space:pre-wrap;font-size:13px;line-height:1.7">'+esc(el.problems)+'</div></div>':'')
@@ -4907,6 +4924,20 @@ Object.assign(ACTS,{
     const ex=await dbGet('exams',ui.gradeExam);
     runAIPredBatch(ex,el.dataset.q,el.dataset.ws==='1');
   },
+  'ai-stop':function(){
+    const p=__aiProg;
+    if(p&&p.onStop){try{p.onStop()}catch(e){}}
+    aiProgClose();
+    toast('已停止 AI 分析','ok');
+  },
+  'ai-prog-hide':function(){   /* 后台运行：关掉弹窗但不中断任务 */
+    if(__aiProg){clearInterval(__aiProg.timer);__aiProg.timer=null;}
+    const p=__aiProg;__aiProg=null;
+    dlgClose();
+    toast('AI 仍在后台分析，完成后会提示结果','ok');
+    if(p&&p._keep){} 
+  },
+  'go-set-ai':function(){dlgClose();go('set')},
   'ai-batch-stop':function(){
     if(gradeCtx&&gradeCtx.abort)gradeCtx.abort.abort();
     if(window.__yjAiAllAbort)window.__yjAiAllAbort();
@@ -4994,11 +5025,11 @@ async function runAIPredBatch(ex,q,writeScore){
   if(!gradeCtx||gradeCtx.qno!==q){ui.gradeQno=q;gradeCtx={examId:ex.id,qno:q,shuffle:false,order:todo.map(function(t){return t.no}),idx:0,buf:'',abort:new AbortController()};}
   if(!gradeCtx.abort)gradeCtx.abort=new AbortController();
   const ctl=gradeCtx.abort;
-  dlg('<div class="prog-line"><span id="aiBatchTxt">AI 分析中 0/'+todo.length+'</span></div><div class="progress"><div id="aiBatchBar" style="width:0%"></div></div><div class="tip" id="aiBatchLog"></div>',{
-    title:(writeScore?'AI 给分':'AI 批量预阅')+' · 题 '+esc(String(q)),
-    foot:'<button class="btn btn-d" data-act="ai-batch-stop">停止</button>'
-  });
-  let next=0;
+  aiProgOpen((writeScore?'AI 给分':'AI 批量预阅')+' · 题 '+q,
+    '准备中，共 '+todo.length+' 份待分析',
+    function(){if(gradeCtx&&gradeCtx.abort)gradeCtx.abort.abort()});
+  aiProgSet(null,4,writeScore?('已有建议的 '+withAI+' 份将直接写入成绩，其余 '+(todo.length-withAI)+' 份调用 AI。'):'逐份调用视觉模型生成建议分，可随时停止。');
+  let next=0,failN=0;const failMsg=[];
   async function worker(){
     while(!ctl.signal.aborted){
       /* 同步段先认领下标再 await，避免两个 worker 重复处理/漏处理 */
@@ -5024,25 +5055,33 @@ async function runAIPredBatch(ex,q,writeScore){
           if(writeScore)await gradeSetScoreLocal(it.no,score,'ai');
         }
         doneN++;
-        const t1=$('aiBatchTxt');
-        if(t1)t1.textContent='AI 分析中 '+(i+1)+'/'+todo.length+'（'+esc(it.no)+' → '+(score!=null?score+' 分':'无建议')+'）';
-        const b1=$('aiBatchBar');
-        if(b1)b1.style.width=Math.round((i+1)/todo.length*100)+'%';
+        failN=failN||0;
+        aiProgSet('正在分析 '+(i+1)+'/'+todo.length+'（'+it.no+' → '+(score!=null?score+' 分':'无建议')+'）',
+          Math.round((i+1)/todo.length*100),
+          '已完成 '+doneN+' 份'+(failN?('，失败 '+failN+' 份'):'')+'（失败项会在结束后列出）');
       }catch(err){
-        if(err.name!=='AbortError'){const lg=$('aiBatchLog');if(lg)lg.textContent='出错：'+err.message;}
-        const b1=$('aiBatchBar');if(b1)b1.style.width=Math.round((i+1)/todo.length*100)+'%';
+        if(err.name==='AbortError')return;
+        failN=(failN||0)+1;
+        failMsg.push(it.no+'：'+(err.message||String(err)));
+        aiProgSet('正在分析 '+(i+1)+'/'+todo.length+'（'+it.no+' 失败，继续下一份）',Math.round((i+1)/todo.length*100),
+          '已完成 '+doneN+' 份，失败 '+failN+' 份');
       }
     }
   }
   let doneN=0;
   await Promise.all([worker(),worker()]);
-  if(!ctl.signal.aborted){
-    const lg=$('aiBatchLog');if(lg)lg.textContent='完成';
-    toast(writeScore?('AI 给分完成（'+doneN+' 份已写入成绩）'):('AI 预阅完成（'+doneN+' 份建议）'),'ok');
-    setTimeout(dlgClose,900);
-    if(writeScore){if(await gradeCheckComplete({q:1,all:1}))return;}
+  const stopped=ctl.signal.aborted;
+  if(stopped){aiProgClose();toast('已停止：已完成 '+doneN+' 份','ok');renderGrade();return}
+  if(failN){
+    const more=failMsg.length>10?('\n…另有 '+(failMsg.length-10)+' 份'):'';
+    aiProgFail('共 '+todo.length+' 份，成功 '+doneN+' 份、失败 '+failN+' 份。\n\n失败明细：\n'+failMsg.slice(0,10).join('\n')+more);
     renderGrade();
+    return;
   }
+  aiProgClose();
+  toast(writeScore?('AI 给分完成（'+doneN+' 份已写入成绩）'):('AI 预阅完成（'+doneN+' 份建议）'),'ok');
+  if(writeScore){if(await gradeCheckComplete({q:1,all:1}))return;}
+  renderGrade();
 }
 async function gradeSetScoreLocal(studentNo,v,by,qnoOverride){
   const ex=await dbGet('exams',ui.gradeExam);
@@ -6479,7 +6518,8 @@ Object.assign(ACTS,{
       const ok=await dlgConfirm('未提供试卷内容','未上传也未粘贴试卷，AI 将仅依据得分数据进行分析，题目层面的归因会比较笼统。确定继续？','继续分析');
       if(!ok)return;
     }
-    dlg('<div class="prog-line"><span id="aiAnTxt">正在读取试卷与成绩数据…</span></div><div class="progress"><div id="aiAnBar" style="width:8%"></div></div><div class="tip">整卷分析通常需要 30~120 秒，请勿关闭页面。</div>',{title:'AI 试卷质量分析 · '+esc(ex.name)});
+    aiProgOpen('AI 试卷质量分析 · '+ex.name,'正在读取试卷与成绩数据…');
+    aiProgSet(null,8,'读取本场成绩、逐题得分率、错选分布与分数线（随后调用视觉模型分析整卷，通常 30~120 秒）。');
     try{
       const book=await computeScorebook(ex.id);
       const meta=book.meta;
@@ -6533,9 +6573,8 @@ Object.assign(ACTS,{
         const items=await filesToCanvases(files,1600);
         for(const it of items.slice(0,8))images.push(canvasDataURL(canvasToThumb(it.cv,level.w),level.q));
       }
-      const t1=$('aiAnTxt'),b1=$('aiAnBar');
-      if(t1)t1.textContent='AI 分析中…'+(images.length?('（已读入试卷 '+images.length+' 页）'):'');
-      if(b1)b1.style.width='45%';
+      aiProgSet('AI 分析中'+(images.length?('（已读入试卷 '+images.length+' 页）'):'（未提供试卷原文）'),
+        45,'数据已整理完毕，正在等待模型返回整卷质量分析，请耐心等待。');
       let prompt='你是资深教研员，请依据下面的资料写一份**试卷质量分析报告**。\n\n'
         +'===== 考试数据 =====\n'+data+'\n'
         +(text?('===== 试卷内容（文本） =====\n'+text.slice(0,6000)+'\n'):'')
@@ -6553,15 +6592,14 @@ Object.assign(ACTS,{
       const content=await withRetry(function(){return callVision(prompt,images,undefined)});
       const outTxt=String(content||'').trim();
       if(!outTxt)throw new Error('AI 未返回内容');
+      aiProgSet('正在保存分析结果…',95);
       ex.aiAnalysis={at:timestamp(),text:outTxt,hasPaper:!!(files.length||text)};
       await dbPut('exams',ex);
-      if(b1)b1.style.width='100%';
-      dlgClose();
+      aiProgClose();
       toast('AI 试卷质量分析已生成','ok');
       renderScore();
     }catch(err){
-      dlgClose();
-      toast('AI 分析失败：'+(err.message||String(err)),'err');
+      aiProgFail('试卷质量分析：'+(err.message||String(err)));
     }
   },
   'score-ai-copy':async function(){
@@ -6860,6 +6898,62 @@ Object.assign(ACTS,{
    第六段(3)：AI 辅助阅卷 / 设置 / 数据备份
    ============================================================ */
 const sleep2=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+/* ===== AI 进度弹窗（统一）：转圈 + 阶段文字 + 已用秒数 + 进度条 + 可停止
+   失败时弹窗不关闭，转为明确的错误面板（含常见原因与排查指引），避免「不知道是在跑还是挂了」 ===== */
+let __aiProg=null;
+function aiProgOpen(title,phase,onStop){
+  clearInterval((__aiProg||{}).timer);
+  __aiProg={t0:Date.now(),timer:null,phase:phase||'准备中…',pct:6,detail:'',onStop:onStop||null};
+  dlg('<div class="prog-line"><span class="ai-spin"></span><span id="aiPhase"></span><span style="flex:1"></span><span class="kv" id="aiElapsed"></span></div>'
+    +'<div class="progress"><div id="aiBar" style="width:6%"></div></div>'
+    +'<div class="kv" id="aiDetail" style="margin-top:8px;line-height:1.9"></div>',
+    {title:title,locked:true,wide:true,
+     foot:(onStop?'<button class="btn btn-d" data-act="ai-stop">停止</button>':'')
+       +'<button class="btn" data-act="ai-prog-hide">后台运行</button>'});
+  aiProgRefresh();
+  __aiProg.timer=setInterval(aiProgRefresh,1000);
+}
+function aiProgRefresh(){
+  const p=__aiProg;
+  if(!p)return;
+  const sec=Math.floor((Date.now()-p.t0)/1000);
+  const e1=$('aiPhase');if(e1)e1.textContent=p.phase;
+  const e2=$('aiElapsed');if(e2)e2.textContent='已用 '+sec+' 秒'+(sec>=30?'（视觉模型较慢，请耐心等待）':'');
+  const b=$('aiBar');if(b)b.style.width=p.pct+'%';
+  const d=$('aiDetail');if(d)d.innerHTML=p.detail||'';
+}
+function aiProgSet(phase,pct,detail){
+  const p=__aiProg;
+  if(!p)return;
+  if(phase!=null)p.phase=phase;
+  if(pct!=null)p.pct=pct;
+  if(detail!=null)p.detail=detail;
+  aiProgRefresh();
+}
+function aiProgClose(){
+  const had=!!__aiProg;
+  if(__aiProg){clearInterval(__aiProg.timer);__aiProg.timer=null}
+  __aiProg=null;
+  if(had)dlgClose();   /* 选过「后台运行」时弹窗已关，避免误关其它弹窗 */
+}
+/* 失败：保留弹窗并把原因写清楚（不再只弹一个会消失的 toast） */
+function aiProgFail(msg){
+  const p=__aiProg;
+  const used=p?Math.floor((Date.now()-p.t0)/1000):0;
+  if(p){clearInterval(p.timer);p.timer=null}
+  __aiProg=null;
+  dlg('<div style="font-size:15px;font-weight:700;color:var(--danger)">AI 分析失败</div>'
+    +'<div style="margin-top:8px;line-height:1.8;white-space:pre-wrap">'+esc(String(msg||'未知错误'))+'</div>'
+    +'<div class="tip" style="margin-top:10px;line-height:1.9">常见原因：<br>'
+    +'· API Key 无效 / 额度不足 / 余额不足<br>'
+    +'· 所用模型不支持图片输入（需视觉模型）<br>'
+    +'· 网络不通，或浏览器拦截了跨域请求（自定义接口需允许 CORS）<br>'
+    +'· 请求超时（已在 120 秒后自动中断）<br>'
+    +'可在「设置 → AI 服务」用「测试连接」快速自查。</div>'
+    +'<div class="kv" style="margin-top:8px">本次已用 '+used+' 秒</div>',
+    {title:'AI 分析失败',wide:true,
+     foot:'<button class="btn" data-act="dlg-close">关闭</button><button class="btn btn-p" data-act="go-set-ai">去设置 AI</button>'});
+}
 async function withRetry(fn){
   let last=null;
   for(let attempt=1;attempt<=2;attempt++){
@@ -6982,11 +7076,11 @@ async function aiSuggestItem(ex,parts,qno,ctl){
   return {score:Number.isFinite(Number(score))?Number(score):null,reason:d.reason||'',
     problems:d.problems||'',dimScores:d.dimScores||null,full:full};
 }
-async function aiSuggestExam(examId,studentNo,qno){
+async function aiSuggestExam(examId,studentNo,qno,ctl){
   const ex=await dbGet('exams',examId);
   const cropsAll=await dbByIdx('crops','byExam',examId);
   const parts=cropsAll.filter(function(c){return c.studentNo===studentNo&&String(c.qno)===String(qno)}).sort(function(a,b){return a.part-b.part});
-  return aiSuggestItem(ex,parts,qno,null);
+  return aiSuggestItem(ex,parts,qno,ctl||null);
 }
 
 /* ---------- 设置 ---------- */
@@ -7085,18 +7179,26 @@ Object.assign(ACTS,{
     const p=ai.provider,m=$('aiModelCustom').value.trim()||$('aiModel').value;
     const url=p==='custom'?$('aiCustomUrl').value.trim():PROVIDERS[p].url;
     if(!url){toast('请填写接口地址','err');return}
-    toast('测试中…');
+    aiProgOpen('测试 AI 连接','正在向 '+p+' 发送测试请求…');
+    aiProgSet(null,40,'仅发送一条短文本（不发送图片），用于验证 Key、模型名与网络是否可用。');
     try{
       const res=await fetch(url,{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+ai.keys[p]},
-        body:JSON.stringify({model:m,messages:[{role:'user',content:'回复"连接成功"四个字'}],max_tokens:16,stream:false})
+        body:JSON.stringify({model:m,messages:[{role:'user',content:'回复"连接成功"四个字'}],max_tokens:16,stream:false}),
+        signal:AbortSignal.timeout(60000)
       });
       if(!res.ok){const j=await res.json().catch(function(){return null});throw new Error((j&&(j.error&&j.error.message||j.msg))||('HTTP '+res.status));}
       const d=await res.json();
       const c=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
-      toast('连接成功：'+(c||'ok').slice(0,30),'ok');
-    }catch(err){toast('连接失败：'+err.message,'err')}
+      aiProgClose();
+      dlg('<div style="font-size:15px;font-weight:700;color:var(--green)">连接成功</div>'
+        +'<div class="kv" style="margin-top:8px;line-height:1.9">服务商：'+esc(p)+'　模型：'+esc(m)+'<br>返回内容：'+esc((c||'ok').slice(0,80))+'</div>'
+        +'<div class="tip" style="margin-top:8px">文字通道正常。视觉（图片）能力需在实际阅卷中验证——若失败会提示模型不支持图片输入。</div>',
+        {title:'AI 连接测试',wide:true,foot:'<button class="btn btn-p" data-act="dlg-close">好</button>'});
+    }catch(err){
+      aiProgFail('连接 '+p+' 失败：'+(err.message||String(err)));
+    }
   },
   'omr-sens':function(el){
     const map={loose:{k:0.8,win:15,inkHigh:0.5,inkLow:0.3},std:{k:0.75,win:15,inkHigh:0.45,inkLow:0.25},strict:{k:0.7,win:15,inkHigh:0.4,inkLow:0.2}};
