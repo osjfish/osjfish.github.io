@@ -629,12 +629,18 @@ function subjTypeOf(it){
   return 'lines';
 }
 /* 填空题参数：空数 / 每空横线长度(mm) / 序号符样式 */
+/* 字母序号：按进位递进（…z、aa、ab…，Excel 列名规则），不循环回 a */
+function seqLetters(i,base){
+  let n=(i|0)+1,out='';
+  while(n>0){const r=(n-1)%26;out=String.fromCharCode(base+r)+out;n=Math.floor((n-1)/26)}
+  return out;
+}
 const BLANK_MARKERS={
   none:{label:'无',fmt:function(i){return ''}},
   cn:{label:'（1）（2）',fmt:function(i){return '（'+(i+1)+'）'}},
   num:{label:'1. 2.',fmt:function(i){return (i+1)+'.'}},
-  alpha:{label:'a. b.',fmt:function(i){return String.fromCharCode(97+i%26)+'.'}},
-  upper:{label:'A. B.',fmt:function(i){return String.fromCharCode(65+i%26)+'.'}}
+  alpha:{label:'a. b. … aa. ab.',fmt:function(i){return seqLetters(i,97)+'.'}},
+  upper:{label:'A. B. … AA. AB.',fmt:function(i){return seqLetters(i,65)+'.'}}
 };
 function blanksCfgOf(it){
   const marker=(it&&BLANK_MARKERS[it.marker])?it.marker:'cn';
@@ -1022,13 +1028,19 @@ function layoutTemplate(tpl,opts){
 }
 /* ---------- 内置预设 ---------- */
 
-/* 模板已用过的知识点（供输入时提示，减少手打与写法不一致） */
-function kpSuggestions(tpl,extra){
+/* 已用过的知识点（汇总各场考试 + 旧模板），供考试向导输入时提示，减少手打与写法不一致 */
+async function kpSuggestions(){
   const set={};
-  (extra||[]).forEach(function(k){if(k)set[k]=1});
   try{
-    normalizeSections(tpl||{}).forEach(function(sec){
-      (sec.items||[]).forEach(function(it){if(it.kp)set[it.kp]=1});
+    (await dbAll('exams')).forEach(function(ex){
+      if(ex&&ex.kp)Object.keys(ex.kp).forEach(function(qn){const k=String(ex.kp[qn]||'').trim();if(k)set[k]=1});
+    });
+  }catch(e){}
+  try{
+    (await dbAll('templates')).forEach(function(t){
+      normalizeSections(t||{}).forEach(function(sec){
+        (sec.items||[]).forEach(function(it){if(it.kp)set[it.kp]=1});
+      });
     });
   }catch(e){}
   return Object.keys(set);
@@ -2990,7 +3002,6 @@ async function tplEditorHTML(tplId){
       +'<button class="btn btn-sm btn-d" data-act="tpl-it-del" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" title="删除小题">✕</button>';
     const base='<span class="kv">题号</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="qno" value="'+esc(it.qno==null?'':it.qno)+'" title="建议全卷连续（1、2、3…）">'
       +'<span class="kv">分值</span><input class="inp" style="width:58px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="score" type="number" step="0.5" min="0" value="'+esc(it.score!=null?it.score:3)+'">'
-      +'<span class="kv" title="可选。填写后成绩分析会按知识点汇总掌握情况（如：文言实词、二次函数）">知识点</span><input class="inp" style="width:118px" list="kpList" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="kp" value="'+esc(it.kp||'')+'" placeholder="可选">'
       +'<span class="kv">题型</span><select class="inp" style="width:88px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="kind">'
       +Object.keys(KINDS).map(function(k){return '<option value="'+k+'"'+(kind===k?' selected':'')+'>'+KINDS[k]+'</option>'}).join('')+'</select>';
     let extra='';
@@ -3074,8 +3085,7 @@ async function tplEditorHTML(tplId){
     +'<span style="flex:1"></span>'
     +'<span class="kv" id="tplFullScore">本卷总分 <b style="font-size:15px;color:var(--zhu)">'+totalFullOf(t)+'</b> 分</span>'
     +'</div>'
-    +'<div class="tip" style="margin-bottom:8px">先建大题，再在大题下加小题。全部选择题自动集中在答题卡最前的一个框内，其余题型按清单顺序排版（题号建议全卷连续）。<br>小题可填「知识点」（可选）——填了之后，成绩分析会按知识点汇总掌握情况。</div>'
-    +'<datalist id="kpList">'+kpSuggestions(t).map(function(k){return '<option value="'+esc(k)+'"></option>'}).join('')+'</datalist>'
+    +'<div class="tip" style="margin-bottom:8px">先建大题，再在大题下加小题。全部选择题自动集中在答题卡最前的一个框内，其余题型按清单顺序排版（题号建议全卷连续）。</div>'
     +'<div class="f-row" style="margin-bottom:8px;align-items:center">'
     +'<span class="kv" style="white-space:nowrap">批量设分：第</span><input class="inp" id="tplBatchFrom" type="number" style="width:60px"><span class="kv">题 至 第</span><input class="inp" id="tplBatchTo" type="number" style="width:60px"><span class="kv">题，每题</span><input class="inp" id="tplBatchScore" type="number" step="0.5" min="0.5" style="width:60px" value="3"><span class="kv">分</span>'
     +'<button class="btn btn-sm" data-act="tpl-batch-score" data-id="'+t.id+'">应用</button>'
@@ -3739,6 +3749,7 @@ async function examWizardOpen(examId){
     perScore:ex?ex.perScore:null,
     answers:ex?JSON.parse(JSON.stringify(ex.answers||{})):{},
     perQScore:ex&&ex.perQScore?JSON.parse(JSON.stringify(ex.perQScore)):{},
+    kp:ex&&ex.kp?JSON.parse(JSON.stringify(ex.kp)):{},
     multi:ex&&ex.qMulti?JSON.parse(JSON.stringify(ex.qMulti)):{},
     subjective:ex?JSON.parse(JSON.stringify(ex.subjective||{})):{}
   };
@@ -3789,7 +3800,9 @@ async function wizRender(){
       /* 逐题分值：考试已设的覆盖值优先，否则用模板中该题的分值 */
       const qs=wizScoreOf(qn,meta);
       
-      cells+='<div class="qcell"><div class="qn">第 '+qn+' 题<input class="inp" style="width:52px;padding:2px 4px;margin-left:6px" data-on="wiz-qscore" data-q="'+qn+'" type="number" step="0.5" min="0" value="'+esc(qs)+'" title="本题分值（可单独调整）"><button class="btn btn-sm'+(isMulti?' btn-p':'')+'" data-act="wiz-multi" data-q="'+qn+'" style="margin-left:4px;padding:2px 6px">'+(isMulti?'多选':'单选')+'</button></div><div class="opts">'+opts+'</div></div>';
+      cells+='<div class="qcell"><div class="qn">第 '+qn+' 题<input class="inp" style="width:52px;padding:2px 4px;margin-left:6px" data-on="wiz-qscore" data-q="'+qn+'" type="number" step="0.5" min="0" value="'+esc(qs)+'" title="本题分值（可单独调整）"><button class="btn btn-sm'+(isMulti?' btn-p':'')+'" data-act="wiz-multi" data-q="'+qn+'" style="margin-left:4px;padding:2px 6px">'+(isMulti?'多选':'单选')+'</button></div><div class="opts">'+opts+'</div>'
+        +'<input class="inp" list="wizKpList" style="width:100%;margin-top:4px;padding:2px 4px;font-size:11.5px" data-on="wiz-kp" data-q="'+qn+'" placeholder="知识点（可选）" value="'+esc((wiz.kp&&wiz.kp[qn])||'')+'" title="填写后成绩分析会按知识点汇总掌握情况，如：文言实词、二次函数">'
+        +'</div>';
     });
     let subjHtml='';
     meta.subjList.forEach(function(sq){
@@ -3797,13 +3810,14 @@ async function wizRender(){
       subjHtml+='<div class="card" style="margin-top:10px"><h3>主观题 '+esc(String(sq.qno))+'（'+(sq.parts.length>1?sq.parts.length+' 部分，':'')+'满分 '+esc(sc.score)+' 分'+(sc.points?'':'　<span style="color:var(--danger)">缺评分要点</span>')+'）</h3>'
         +'<div class="f-grid">'
         +'<div><label class="f-lb">满分</label><input class="inp" data-on="wiz-sub" data-q="'+esc(sq.qno)+'" data-f="score" type="number" step="0.5" value="'+esc(sc.score)+'"></div>'
+        +'<div><label class="f-lb" title="填写后成绩分析会按知识点汇总掌握情况">知识点（可选）</label><input class="inp" list="wizKpList" data-on="wiz-kp" data-q="'+esc(sq.qno)+'" value="'+esc((wiz.kp&&wiz.kp[sq.qno])||'')+'" placeholder="如：文言实词"></div>'
         +'<div style="grid-column:1/-1"><label class="f-lb">评分要点（AI 辅助阅卷必填，逐条写明扣分点）</label>'
         +'<textarea class="inp" rows="2" data-on="wiz-sub" data-q="'+esc(sq.qno)+'" data-f="points">'+esc(sc.points)+'</textarea></div>'
         +'<div style="grid-column:1/-1"><label class="f-lb">参考答案（可选）</label>'
         +'<textarea class="inp" rows="2" data-on="wiz-sub" data-q="'+esc(sq.qno)+'" data-f="answer">'+esc(sc.answer)+'</textarea></div>'
         +'</div></div>';
     });
-    body+='<div class="kv" style="margin-bottom:8px">点击选项循环切换：空 → A → B → C → D → 空；共 '+meta.choiceQnos.length+' 道客观题，已录 <b>'+ansN+'</b> 题，客观满分 <b>'+objFull+'</b> 分。每题右侧分值已按模板预填，可<b>单独调整</b>（只影响本次考试；未改动的题沿用模板分值）。</div>'
+    body+='<div class="kv" style="margin-bottom:8px">点击选项循环切换：空 → A → B → C → D → 空；共 '+meta.choiceQnos.length+' 道客观题，已录 <b>'+ansN+'</b> 题，客观满分 <b>'+objFull+'</b> 分。每题右侧分值已按模板预填，可<b>单独调整</b>；每题的<b>知识点</b>为可选，填了之后成绩分析会按知识点汇总掌握情况。</div>'
       +'<div class="f-row" style="margin:0 0 10px;align-items:center">'
       +'<span class="kv" style="white-space:nowrap">批量设分：第</span><input class="inp" id="wizBatchFrom" type="number" style="width:64px" value="'+esc(meta.choiceQnos.length?meta.choiceQnos[0]:'')+'"><span class="kv">题 至 第</span><input class="inp" id="wizBatchTo" type="number" style="width:64px" value="'+esc(meta.choiceQnos.length?meta.choiceQnos[meta.choiceQnos.length-1]:'')+'"><span class="kv">题，每题</span><input class="inp" id="wizBatchScore" type="number" step="0.5" min="0.5" style="width:64px" value="3"><span class="kv">分</span>'
       +'<button class="btn btn-sm btn-p" data-act="wiz-batch">应用</button>'
@@ -3812,7 +3826,13 @@ async function wizRender(){
   }
   const foot=''+'<button class="btn" data-act="wiz-cancel">取消</button>'
     +'<button class="btn btn-p" data-act="wiz-save">保存考试</button>';
+  body+='<datalist id="wizKpList"></datalist>';
   dlg(body,{title:(wiz.examId?'编辑考试':'新建考试'),foot:foot,wide:true});
+  /* 知识点建议：汇总各场考试与旧模板已用过的名称 */
+  kpSuggestions().then(function(list){
+    const dl=$('wizKpList');
+    if(dl)dl.innerHTML=list.map(function(k){return '<option value="'+esc(k)+'"></option>'}).join('');
+  }).catch(function(){});
   afterRender(function(){
     const n=$('wizName'),tp=$('wizTpl'),pt=$('wizPaperTitle'),clsBox=$('wizClasses');
     if(pt)pt.addEventListener('input',function(){wiz.paperTitle=pt.value});
@@ -3857,6 +3877,12 @@ Object.assign(ACTS,{
     wiz.multi[qn]=!wiz.multi[qn];
     if(!wiz.multi[qn]){delete wiz.multi[qn];delete wiz.answers[qn];}
     wizRender();
+  },
+  'wiz-kp':function(el){
+    const q=el.dataset.q;
+    if(!wiz.kp)wiz.kp={};
+    const v=String(el.value||'').trim();
+    if(v)wiz.kp[q]=v;else delete wiz.kp[q];
   },
   'wiz-qscore':function(el){
     const q=el.dataset.q;
@@ -3940,6 +3966,7 @@ Object.assign(ACTS,{
     rec.perScore=null; /* 已改为逐题分值（perQScore/模板），保留字段供旧版本读取 */
     rec.answers=wiz.answers;
     rec.perQScore=(wiz.perQScore&&Object.keys(wiz.perQScore).length)?wiz.perQScore:null;
+    rec.kp=(wiz.kp&&Object.keys(wiz.kp).length)?wiz.kp:null;
     const multiAll=Object.assign({},wiz.multi||{});
     meta.choiceQnos.forEach(function(qn){if(meta.choiceKinds&&meta.choiceKinds[qn]==='multi'&&multiAll[qn]==null)multiAll[qn]=true;});
     rec.qMulti=Object.keys(multiAll).length?multiAll:null;
@@ -5874,13 +5901,23 @@ async function computeScorebook(examId){
   const kpStats=[];
   if(tpl){
     const kpMap={};
+    /* 知识点在「试卷（考试）」里设置；旧模板里填过的作为兜底，保证历史数据仍可统计 */
+    const kpOfQ={};
+    if(exam&&exam.kp)Object.keys(exam.kp).forEach(function(qn){
+      const k=String(exam.kp[qn]||'').trim();
+      if(k)kpOfQ[qn]=k;
+    });
     normalizeSections(tpl).forEach(function(sec){
       (sec.items||[]).forEach(function(it){
         const k=String(it.kp||'').trim();
-        if(!k||fullOf[it.qno]==null)return;
-        if(!kpMap[k])kpMap[k]=[];
-        if(kpMap[k].indexOf(it.qno)<0)kpMap[k].push(it.qno);
+        if(k&&!kpOfQ[it.qno])kpOfQ[it.qno]=k;
       });
+    });
+    Object.keys(kpOfQ).forEach(function(qn){
+      if(fullOf[qn]==null)return;
+      const k=kpOfQ[qn];
+      if(!kpMap[k])kpMap[k]=[];
+      if(kpMap[k].indexOf(qn)<0)kpMap[k].push(Number(qn)||qn);
     });
     Object.keys(kpMap).forEach(function(k){
       const qnos=kpMap[k];
