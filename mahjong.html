@@ -1065,18 +1065,12 @@ function humanTurnUI(winRes,gangs){
       addBtn(bar,'自摸和！'+winRes.pattern+' +'+winRes.pts,'win',function(){doWin(G.turn,null,winRes);});
       setHint('你可以自摸和牌，也可以继续打');
     }else{
+      /* 牌桌只提示「该点哪里」这类操作信息，不讲规则/打法——规则在「游戏规则」页、教学在训练复盘里 */
       var opensNow=countOpens(G.melds[G.turn]);
-      var hasDead=false;
-      for(var dh=0;dh<G.hands[G.turn].length;dh++){var dc=G.hands[G.turn][dh];if(dc==='hz'||dc==='fc'){hasDead=true;break;}}
       var shapeAny=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,opensNow),true);
       if(shapeAny && shapeAny.pattern==='平胡'){
         var shape258=checkWin(G.hands[G.turn],G.melds[G.turn],G.joker,G.justKang,Math.max(1,opensNow),false);
         setHint(shape258?'已成牌型，但屁和需要先吃/碰/明杠一次':'已成牌型，但屁和的将必须是二、五、八');
-      }else if(hasDead){
-        var jcNow=0;
-        for(var q2=0;q2<G.hands[G.turn].length;q2++)if(G.hands[G.turn][q2]===G.joker)jcNow++;
-        if(jcNow>=2)setHint('手里有 '+jcNow+' 张赖子 + 红中/发财：普通和牌最多只能留 1 张赖子，所以只能靠杠开——把红中/发财留到牌成型后再杠，补牌成和＝杠上开花 +20（不受赖子数限制）');
-        else setHint('手里有红中/发财：不能参与组牌，杠掉才能和牌；牌快成型时不妨留到临门再杠——补牌成和就是杠上开花 +20');
       }
     }
     if(G.selected>=0){
