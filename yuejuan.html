@@ -3684,7 +3684,7 @@ async function renderExam(){
     +'<button class="btn btn-p" data-act="exam-new">＋ 新建考试</button>'
     +'<span class="tip">考试 = 班级（可多选）+ 答题卡模板 + 客观题答案 + 主观题满分/评分要点</span></div>';
   if(!exams.length){
-    html+='<div class="card">'+emptyBox('·','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
+    html+='<div class="card">'+emptyBox('📋','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
   }else{
     const cards=[];
     let statusMap={};
@@ -4018,7 +4018,7 @@ async function renderScan(){
     +'<select class="inp" style="width:220px" data-on="scan-pick">'
     +exams.map(function(e){return '<option value="'+e.id+'"'+(e.id===ex.id?' selected':'')+'>'+esc(e.name)+'</option>'}).join('')
     +'</select>'
-    +'<span class="kv">'+esc(ex.className||'')+'　·　'+esc(ex.templateName||'')+'　·　学生 '+students.length+' 人　·　共 '+meta.choiceQnos.length+' 道客观题 / '+meta.subjList.map(function(s){return esc(String(s.qno))+'题'}).join('、')+'</span>'
+    +'<span class="kv">'+esc(ex.className||'')+'　·　'+esc(ex.templateName||'')+'　·　学生 '+students.length+' 人　·　客观题 '+meta.choiceQnos.length+' 题 / 主观题 '+meta.subjList.length+' 题（'+meta.subjList.map(function(s){return esc(String(s.qno))}).join('、')+'）</span>'
     +'</div>'
     +'<div class="f-row">'
     +'<button class="btn btn-p" data-act="scan-pick-files">选择扫描件（PDF/图片，可多选）</button>'
@@ -4989,7 +4989,7 @@ async function renderGrade(){
   const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
   if(!ui.gradeExam||!(exams.find(function(e){return e.id===ui.gradeExam})))ui.gradeExam=exams.length?exams[0].id:null;
   if(!ui.gradeExam){
-    $('page').innerHTML='<div class="card">'+emptyBox('·','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
+    $('page').innerHTML='<div class="card">'+emptyBox('📋','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
       +'<button class="btn btn-p" data-act="go-exam">去创建考试</button></div>';
     return;
   }
@@ -5796,31 +5796,34 @@ async function computeScorebook(examId){
     return 3;
   };
   const perScore=(meta.choiceQnos.length?scoreOf(meta.choiceQnos[0]):3);
+  /* 考号归一化键：空/未涂统一为 ''（此前用占位符 '(未识别)' 与 crop/revs 的空串比较永不相等，未涂考号的答卷打了分成绩册也看不到） */
+  const noKey=function(v){return v==null?'':String(v)};
   const byNo={};
   pages.forEach(function(p){
-    const no=p.studentNo||'(未识别)';
-    if(!byNo[no])byNo[no]={pages:[],perQ:{}};
-    byNo[no].pages.push(p);
+    const key=noKey(p.studentNo);
+    if(!byNo[key])byNo[key]={pages:[],perQ:{}};
+    byNo[key].pages.push(p);
     (p.meta&&p.meta.perQ||[]).forEach(function(q){
-      const cur=byNo[no].perQ[q.qno];
-      if(!cur)byNo[no].perQ[q.qno]=q;
-      else if(cur.verdict==='REVIEW'&&q.verdict!=='REVIEW')byNo[no].perQ[q.qno]=q;
+      const cur=byNo[key].perQ[q.qno];
+      if(!cur)byNo[key].perQ[q.qno]=q;
+      else if(cur.verdict==='REVIEW'&&q.verdict!=='REVIEW')byNo[key].perQ[q.qno]=q;
     });
   });
   const studentByNo={};
-  students.forEach(function(s){studentByNo[String(s.no)]=s});
+  students.forEach(function(s){studentByNo[noKey(s.no)]=s});
   const noSet={};
-  students.forEach(function(s){noSet[String(s.no)]=true});
-  Object.keys(byNo).forEach(function(no){if(byNo[no]&&byNo[no].pages.length)noSet[no]=true});
+  students.forEach(function(s){noSet[noKey(s.no)]=true});
+  Object.keys(byNo).forEach(function(k){if(byNo[k]&&byNo[k].pages.length)noSet[k]=true});
   const rows=[];
-  Object.keys(noSet).forEach(function(no){
-    const st=studentByNo[no];
-    const src=byNo[no];
+  Object.keys(noSet).forEach(function(key){
+    const no=key||'(未识别)';
+    const st=studentByNo[key];
+    const src=byNo[key];
     const absent=!src||!src.pages.length;
     const obj={};let objScore=0;
     meta.choiceQnos.forEach(function(qn){
       const q=(src&&src.perQ[qn])||{verdict:'NOREC'};
-      const ov=revs.find(function(r){return r.studentNo===no&&r.qno===qn&&r.type==='q'});
+      const ov=revs.find(function(r){return noKey(r.studentNo)===key&&r.qno===qn&&r.type==='q'});
       const verdict=ov?ov.verdict:q.verdict;
       const choice=ov?ov.choice:q.choice;
       let tf;
@@ -5837,7 +5840,7 @@ async function computeScorebook(examId){
     });
     const subj={};let subjScore=0,subjGraded=0;
     meta.subjList.forEach(function(sq){
-      const cs=crops.filter(function(c){return c.studentNo===no&&String(c.qno)===String(sq.qno)}).sort(function(a,b){return a.part-b.part});
+      const cs=crops.filter(function(c){return noKey(c.studentNo)===key&&String(c.qno)===String(sq.qno)}).sort(function(a,b){return a.part-b.part});
       const score=cs.length?cs[0].scoreVal:null;
       subj[sq.qno]={score:score,full:sq.score,ai:cs.length?cs[0].aiScore:null,marked:cs.length?cs[0].marked:null,cropId:cs.length?cs[0].id:null};
       if(score!=null){subjScore+=score;subjGraded++;}
@@ -5900,12 +5903,18 @@ async function computeScorebook(examId){
       const qnos=(sec.items||[]).map(function(it){return it.qno}).filter(function(qn){return fullOf[qn]!=null});
       if(!qnos.length)return;
       const full=qnos.reduce(function(a,qn){return a+(fullOf[qn]||0)},0);
-      let sum=0,stN=0;
-      rows.forEach(function(r){
-        if(r.absent)return;
-        stN++;qnos.forEach(function(qn){sum+=scoreOfStu(r,qn)});
+      const stN=rows.filter(function(r){return !r.absent}).length;
+      /* 小题平均分：客观题按全部实考算；主观题只按已阅份算（未阅按 0 会把掌握度算低，与总分统计口径一致） */
+      let avg=0;
+      qnos.forEach(function(qn){
+        let s2=0,n2=0;
+        rows.forEach(function(r){
+          if(r.absent)return;
+          if(!isObj(qn)&&r.subj[qn]&&r.subj[qn].score==null)return;
+          s2+=scoreOfStu(r,qn);n2++;
+        });
+        avg+=n2?(s2/n2):0;
       });
-      const avg=stN?sum/stN:0;
       sections.push({title:sec.title||'（未命名大题）',qnos:qnos,count:qnos.length,full:full,avg:avg,
         rate:full>0?(avg/full):0,n:stN});
     });
@@ -6010,7 +6019,7 @@ function kpSummaryOf(hist){
 async function renderStuAna(){
   const classes=await dbAll('classes');
   if(!classes.length){
-    $('page').innerHTML='<div class="card">'+emptyBox('·','还没有班级。请先在「班级学生」创建班级并导入学生名单。')
+    $('page').innerHTML='<div class="card">'+emptyBox('📋','还没有班级。请先在「班级学生」创建班级并导入学生名单。')
       +'<button class="btn btn-p" data-act="go-class">去创建班级</button></div>';
     return;
   }
@@ -6028,12 +6037,12 @@ async function renderStuAna(){
     +'<span class="kv">统计该生在所有包含本班的考试中的表现（分数、排名、强项与弱项）</span>'
     +'</div></div>';
   if(!ui.stuAnaNo){
-    html+='<div class="card">'+emptyBox('·','请选择要分析的学生。')+'</div>';
+    html+='<div class="card">'+emptyBox('📋','请选择要分析的学生。')+'</div>';
   }else{
     const st=stus.find(function(x){return String(x.no)===String(ui.stuAnaNo)});
     const hist=await computeStudentHistory(st);
     if(!hist.length){
-      html+='<div class="card">'+emptyBox('·','该生还没有任何考试成绩数据（需先创建考试、扫描并阅卷）。')+'</div>';
+      html+='<div class="card">'+emptyBox('📋','该生还没有任何考试成绩数据（需先创建考试、扫描并阅卷）。')+'</div>';
     }else{
       const first=hist[0],last=hist[hist.length-1];
       const dScore=last.rate-first.rate;
@@ -6166,7 +6175,10 @@ async function renderScore(){
   __th=examThresholdsOf(book.exam||ex,fullAllT);   /* 本次考试的分数线（老师设定，分） */
   const meta=book.meta;
   if(!meta){$('page').innerHTML='<div class="card">'+emptyBox('!',''+(book.error||'模板缺失，无法计算成绩')+'<br>请到「答题卡模板」恢复或重建该模板。')+'</div>';return}
-  const sc=book.rows.filter(function(r){return !r.absent});
+  const scAll=book.rows.filter(function(r){return !r.absent});
+  /* 统计口径：只计「主观题全部阅完」的份——未阅完的份按 0 分参与会拉低平均分/优秀率/及格率；纯客观卷（subjList 为空）不受影响 */
+  const sc=scAll.filter(function(r){return r.subjGraded>=meta.subjList.length});
+  const nPending=scAll.length-sc.length;
   const n=sc.length;
   const sf=sc.length?sc.reduce(function(a,r){return a+r.total},0)/sc.length:0;
   const max=sc.length?Math.max.apply(null,sc.map(function(r){return r.total})):0;
@@ -6195,7 +6207,8 @@ async function renderScore(){
     {n:n,l:'参评人数'},{n:sf.toFixed(1),l:'平均总分'},{n:max,l:'最高分'},{n:min,l:'最低分'},
     {n:(n?Math.round(sc.filter(function(r){return r.total>=th().ex}).length/n*100):0)+'%',l:'优秀率(≥'+th().ex+'分)'},
     {n:(n?Math.round(sc.filter(function(r){return r.total>=th().pass}).length/n*100):0)+'%',l:'及格率(≥'+th().pass+'分)'}
-  ]);
+  ])
+  +(nPending?'<div class="kv" style="margin-top:6px">另有 '+nPending+' 份未阅完（有主观题未打分），以上统计暂未计入；阅卷完成后自动纳入。</div>':'');
   /* 大题得分情况（讲评先看大题掌握；点击可看该大题小题得分率） */
   if(book.sections&&book.sections.length){
     html+='<div class="card"><h3>大题得分情况</h3><div class="kv" style="margin-bottom:8px">大题得分率 = 该大题所有小题的班级平均得分 ÷ 大题满分。低于 60% 的题建议重点讲评。</div>'
@@ -6975,8 +6988,10 @@ Object.assign(ACTS,{
       const v=r.subj[qn];return (v&&v.score!=null)?Number(v.score):'';
     };
     const secList=book.sections||[];
-    const live=rows.filter(function(r){return !r.absent});
-    const absentN=rows.length-live.length;
+    const liveAll=rows.filter(function(r){return !r.absent});
+    const live=liveAll.filter(function(r){return r.subjGraded>=meta.subjList.length}); /* 与页面统计口径一致：未阅完的份不计入平均/优秀率 */
+    const pendingN=liveAll.length-live.length;
+    const absentN=rows.length-liveAll.length;
     const avgT=live.length?(live.reduce(function(a,r){return a+r.total},0)/live.length):0;
     const maxT=live.length?Math.max.apply(null,live.map(function(r){return r.total})):0;
     const minT=live.length?Math.min.apply(null,live.map(function(r){return r.total})):0;
@@ -6985,7 +7000,7 @@ Object.assign(ACTS,{
     const a1=[];
     /* 首部统计块：考试/班级/人数/满分构成/分数线/总览 —— 取代原先每行重复的“满分”列 */
     a1.push(['成绩册（按人）','',(ex.paperTitle||ex.name),'',(ex.className||'')]);
-    a1.push(['参考 '+live.length+' 人'+(absentN?('（缺考 '+absentN+'）'):''),'',
+    a1.push(['参考 '+live.length+' 人'+(absentN?('（缺考 '+absentN+'）'):'')+(pendingN?('（未阅完 '+pendingN+'，未计入统计）'):''),'',
       '全卷满分 '+fullAll+' 分（客观 '+book.objFull+' + 主观 '+book.subjFull+'）','',
       '分数线：优秀≥'+T.ex+'　良好≥'+T.good+'　合格≥'+T.pass+' 分']);
     a1.push(['平均总分 '+avgT.toFixed(1),'','最高 '+maxT,'最低 '+minT,'优秀率 '+rateOf(T.ex)+'%　及格率 '+rateOf(T.pass)+'%']);
