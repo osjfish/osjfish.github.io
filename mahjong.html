@@ -1039,9 +1039,9 @@ function humanTurnUI(winRes){
       var _found=null;
       for(var _gi=0;_gi<_opts.length;_gi++) if(_opts[_gi].tile===_c){_found=_opts[_gi];break;}
       if(_found && G.wall.length>0){
-        addBtn(bar,'杠 '+tileName(_c),'gang',function(){doGang(_found);});
+        addBtn(bar,'杠 '+tileName(_c),'gang',function(){doGang(_found);},'btnDiscard');
       }else{
-        addBtn(bar,'打出 '+tileName(_c),'go',doDiscardSelected);
+        addBtn(bar,'打出 '+tileName(_c),'go',doDiscardSelected,'btnDiscard');
       }
     }else{
       var sp=document.createElement('span');
@@ -1216,6 +1216,8 @@ function doWin(winner,discardTileCode,res){
 }
 function doGang(opt){
   var t=G.turn,hand=G.hands[t];
+  G.selected=-1;                 /* 杠会改变手牌，旧的选中索引已失效 */
+  $('actBar').innerHTML='';
   if(G.train&&t===0)G.trainLog.push({k:'myGang',tile:opt.tile,type:opt.type});
   opt.tiles.forEach(function(c){
     var idx=hand.indexOf(c);
@@ -1249,6 +1251,8 @@ function doGang(opt){
 }
 function doClaimGang(tileCode){
   var cl=opp(),hand=G.hands[cl];
+  G.selected=-1;
+  $('actBar').innerHTML='';
   if(G.train)G.trainLog.push({k:'claimLog',pl:cl,type:'明杠',tile:tileCode});
   for(var i=0;i<3;i++){var ix=hand.indexOf(tileCode);if(ix>=0)hand.splice(ix,1);}
   G.melds[cl].push({type:'杠',tiles:[tileCode,tileCode,tileCode,tileCode],tile:tileCode,from:G.turn});
