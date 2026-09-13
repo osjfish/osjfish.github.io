@@ -1,0 +1,13 @@
+fix(yanshi): DICT 数据规范化与尾逗号修复
+
+- 将 changhenge-baijuyi / hongmenyan-shiji / pipaxing-baijuyi 三篇的
+  DICT_WORDS / DICT_NOTES 单引号无引号 key 写法规范为合法 JSON
+  （双引号 key+值），字段值零漂移（逐对象字段级比对 PASS）
+- 修复上轮去重提交(c99e376)遗留的数组尾逗号：
+  chuangzaoxuanyan / congbaicaoyuandaosanweishuwu 删除块后残留的
+  尾逗号，使 DICT_WORDS 恢复合法 JSON（仅删逗号，值不变）
+- 新增 tools/_normalize_dict_json.py（单引号→合法 JSON 规范化，
+  从右向左替换 + 字段级零漂移断言）
+- 纳入既有只读审计工具 tools/_review_anno_practice.py
+- 验证：_verify_dict_json 全 188 篇合法 / _audit_dict【5】重复=0
+  / _audit_quiz 0 / _verify_js_syntax 0
