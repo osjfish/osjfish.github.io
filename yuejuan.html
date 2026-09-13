@@ -291,7 +291,7 @@ const IMG_LEVELS={lite:{w:800,q:0.72,label:'省流'},std:{w:900,q:0.82,label:'�
 const LS_AI='yj_ai',LS_OMR='yj_omr',LS_UI='yj_ui',LS_GRADE='yj_grade';
 
 function defaultAI(){
-  return {provider:'deepseek',keys:{},models:{},customUrl:'',temp:0.35,maxTokens:4096,imgLevel:'std'};
+  return {provider:'deepseek',keys:{},models:{},customUrl:'',temp:0.35,maxTokens:8192,imgLevel:'std'};
 }
 function migrateAIModel(a){
   if(!a)return a;
@@ -5205,28 +5205,105 @@ function imageViewer(url,title){
 
 /* ---------- 图像增强（阅卷时提升模糊件可读性）----------
    level 1 轻度：分位数拉伸 + 轻锐化；level 2 强力：更窄的拉伸区间 + 强锐化（针对拍照发灰/发虚） */
+/* 灰度图盒式模糊（可分离 + 前缀和），用于平滑背景估计 */
+function boxBlurGray(src,w,h,r){
+  if(r<1)return src;
+  const tmp=new Uint16Array(w*h),out=new Uint16Array(w*h);
+  for(let y=0;y<h;y++){
+    let sum=0,cnt=0;
+    const row=y*w;
+    for(let x=0;x<=r&&x<w;x++){sum+=src[row+x];cnt++}
+    for(let x=0;x<w;x++){
+      tmp[row+x]=sum/cnt;
+      const add=x+r+1,del=x-r;
+      if(add<w){sum+=src[row+add];cnt++}
+      if(del>=0){sum-=src[row+del];cnt--}
+    }
+  }
+  for(let x=0;x<w;x++){
+    let sum=0,cnt=0;
+    for(let y=0;y<=r&&y<h;y++){sum+=tmp[y*w+x];cnt++}
+    for(let y=0;y<h;y++){
+      out[y*w+x]=sum/cnt;
+      const add=y+r+1,del=y-r;
+      if(add<h){sum+=tmp[add*w+x];cnt++}
+      if(del>=0){sum-=tmp[del*w+x];cnt--}
+    }
+  }
+  const res=new Uint8Array(w*h);
+  for(let i=0;i<res.length;i++)res[i]=out[i];
+  return res;
+}
+/* 背景估计（文档去阴影的关键）：先在降采样图上取块内最大值（≈膨胀，把文字“吃掉”，
+   只保留纸张亮度），再多次盒式模糊得到平滑背景，最后双线性上采样回原尺寸。 */
+function estimateBackground(gray,w,h,targetW){
+  const k=Math.max(1,Math.round(w/Math.max(24,targetW)));
+  const sw=Math.max(8,Math.round(w/k)),sh=Math.max(8,Math.round(h/k));
+  const small=new Uint8Array(sw*sh);
+  for(let y=0;y<sh;y++){
+    const y0=y*k,y1=Math.min(h,y0+k);
+    for(let x=0;x<sw;x++){
+      const x0=x*k,x1=Math.min(w,x0+k);
+      let mx=0;
+      for(let yy=y0;yy<y1;yy++){
+        const row=yy*w;
+        for(let xx=x0;xx<x1;xx++){const v=gray[row+xx];if(v>mx)mx=v}
+      }
+      small[y*sw+x]=mx;
+    }
+  }
+  let cur=small;
+  const br=Math.max(1,Math.round(Math.min(sw,sh)/10));
+  cur=boxBlurGray(cur,sw,sh,br);
+  cur=boxBlurGray(cur,sw,sh,br);
+  const bg=new Uint8Array(w*h);
+  for(let y=0;y<h;y++){
+    const fy=Math.min(sh-1,y/k),y0=Math.floor(fy),y1=Math.min(sh-1,y0+1),wy=fy-y0;
+    for(let x=0;x<w;x++){
+      const fx=Math.min(sw-1,x/k),x0=Math.floor(fx),x1=Math.min(sw-1,x0+1),wx=fx-x0;
+      const a=cur[y0*sw+x0],b=cur[y0*sw+x1],c=cur[y1*sw+x0],d2=cur[y1*sw+x1];
+      bg[y*w+x]=((a*(1-wx)+b*wx)*(1-wy)+(c*(1-wx)+d2*wx)*wy);
+    }
+  }
+  return bg;
+}
+/* 阅卷显示用图像增强（文档增强标准做法）：
+   ① 背景归一化：用大尺度背景估计算光照/阴影，逐像素与原图相除 —— 纸张变白、字迹变黑，
+      **阴影与明暗不均被消除而不是被放大**（这是此前“阴影被强化”的根因：全局分位拉伸会把阴影一起拉大）；
+   ② 轻度分位拉伸：只把归一化后的黑白端点拉满，力度温和，避免放大噪声；
+   ③ USM 锐化：补偿放大后的边缘软化。仅影响显示，不改动存储原图。 */
 function enhanceImageData(ctx,w,h,level){
   const img=ctx.getImageData(0,0,w,h),d=img.data;
   const n=w*h;
-  const hist=new Uint32Array(256);
   const gray=new Uint8Array(n);
   for(let i=0,j=0;i<d.length;i+=4,j++){
-    const g=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000|0;
-    gray[j]=g;hist[g]++;
+    gray[j]=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000|0;
   }
+  /* ① 背景归一化 */
+  const bg=estimateBackground(gray,w,h,Math.max(48,Math.round(w/12)));
+  const out=new Uint8ClampedArray(n);
+  for(let i=0;i<n;i++){
+    const b=bg[i]>8?bg[i]:8;            /* 防止除零 */
+    const v=gray[i]*255/b;
+    out[i]=v>255?255:v;
+  }
+  /* ② 温和分位拉伸（把端点拉满） */
+  const hist=new Uint32Array(256);
+  for(let i=0;i<n;i++)hist[out[i]]++;
+  const cut=n*(level>=2?0.004:0.012);
   let acc=0,lo=0,hi=255;
-  const cut=n*(level>=2?0.05:0.02);
   for(let v=0;v<256;v++){acc+=hist[v];if(acc>cut){lo=v;break}}
   acc=0;
   for(let v=255;v>=0;v--){acc+=hist[v];if(acc>cut){hi=v;break}}
-  if(hi-lo<40){lo=Math.max(0,lo-12);hi=Math.min(255,hi+12)}
+  if(hi-lo<40){lo=Math.max(0,lo-10);hi=Math.min(255,hi+10)}
   const range=Math.max(1,hi-lo);
+  /* ③ 写回 + 锐化 */
   for(let i=0,j=0;i<d.length;i+=4,j++){
-    let v=(gray[j]-lo)*255/range;
+    let v=(out[j]-lo)*255/range;
     v=v<0?0:(v>255?255:v);
     d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;
   }
-  sharpenImageData(d,w,h,level>=2?0.75:0.35);
+  sharpenImageData(d,w,h,level>=2?0.8:0.42);
   ctx.putImageData(img,0,0);
 }
 const __enhCache=new Map();
@@ -5356,7 +5433,7 @@ async function renderGradeView(ex){
     +'<input class="inp" id="gradeStepCustom" data-on="grade-step-custom" type="number" step="0.5" min="0.5" style="width:74px" placeholder="≥0.5" value="'+dstep+'">'
     +'</div>'
     +'<div class="f-row" style="margin-top:6px;align-items:center;gap:6px">'
-    +'<span class="kv" style="white-space:nowrap" title="对显示图做对比度拉伸与锐化，便于看清模糊字迹；只影响显示，不改动原图">图像增强</span>'
+    +'<span class="kv" style="white-space:nowrap" title="背景归一化（去阴影/光照不均）+ 轻度拉伸 + 锐化，便于看清模糊字迹；只影响显示，不改动原图">图像增强</span>'
     +'<select class="inp" style="width:118px" data-on="grade-enhance">'
     +'<option value="0"'+(eff===0?' selected':'')+'>关闭（原图）</option>'
     +'<option value="1"'+(eff===1?' selected':'')+'>轻度（提对比）</option>'
@@ -6989,7 +7066,7 @@ async function callVision(prompt,images,signal){
   const res=await fetch(url,{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-    body:JSON.stringify({model:model,messages:messages,temperature:ai.temp||0.35,max_tokens:ai.maxTokens||4096,stream:false}),
+    body:JSON.stringify({model:model,messages:messages,temperature:ai.temp||0.35,max_tokens:ai.maxTokens||8192,stream:false}),
     signal:signal||AbortSignal.timeout(120000)   /* 无外部中止时 120s 超时：接口不通/网络挂起不再无限等待 */
   });
   if(!res.ok){
@@ -6998,8 +7075,24 @@ async function callVision(prompt,images,signal){
     throw new Error(msg);
   }
   const data=await res.json();
-  const c=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
-  if(!c)throw new Error('接口未返回内容');
+  const ch=data.choices&&data.choices[0];
+  const msg=ch&&ch.message;
+  /* 兼容不同返回结构：content 可能为 null（部分推理模型把内容放在 reasoning_content），或为数组分段 */
+  let c=null;
+  if(msg){
+    c=msg.content;
+    if(c==null&&msg.reasoning_content!=null)c=msg.reasoning_content;
+    if(Array.isArray(c))c=c.map(function(x){return (x&&(x.text||x.content))||''}).join('');
+  }
+  if(c==null&&ch&&ch.text!=null)c=ch.text;
+  if(c==null||String(c).trim()===''){
+    throw new Error('接口未返回内容（可能：模型不支持图片输入、被内容策略拦截、或额度不足）');
+  }
+  c=String(c);
+  /* 被 max_tokens 截断：JSON 必然不完整，直接给出可操作的提示 */
+  if(ch&&ch.finish_reason==='length'&&c.indexOf('}')<0){
+    throw new Error('模型输出被截断（finish_reason=length，输出上限 '+(ai.maxTokens||4096)+' tokens）：请在「设置 → AI 服务」调大「最大输出 tokens」后重试');
+  }
   return c;
 }
 function parseResult(text){
@@ -7035,7 +7128,9 @@ function parseResult(text){
   return obj;
 }
 async function cropToDataURL(crop,maxW,q,blob){
-  const img=await createImageBitmap(blob||await getBlob(crop.id));
+  const src=blob||await getBlob(crop.id);
+  if(!src||!(src instanceof Blob))throw new Error('第 '+crop.qno+' 题的作答图片缺失（裁剪图未找到或已损坏）——请在「扫描识别」中对该页重新识别后再试');
+  const img=await createImageBitmap(src);
   const sc=Math.min(1,maxW/(img.width||1));
   const cv=document.createElement('canvas');
   cv.width=Math.max(1,Math.round(img.width*sc));
@@ -7065,8 +7160,22 @@ async function aiSuggestItem(ex,parts,qno,ctl){
     +'3. 得分可以有小数，不得为凑整抬高分数；每一处扣分都要能在卷面上指出来；\n'
     +'4. 若要点中各维度标有分值，必须按维度给分（dimScores），总分为各维度之和。\n'
     +'【输出要求】只输出 JSON：{"problems":"问题清单","dimScores":{"维度":分}|null,"score":数字,"reason":"一句话总评"}，不要其他文字；字符串值内不要出现英文双引号，引用要点时请用「」。';
-  const content=await withRetry(function(){return callVision(prompt,images,ctl?ctl.signal:undefined)});
-  const d=parseResult(content);
+  let content=await withRetry(function(){return callVision(prompt,images,ctl?ctl.signal:undefined)});
+  let d=null;
+  try{
+    d=parseResult(content);
+  }catch(pe){
+    /* 解析失败多为“多说了话/被截断”：追加更强约束重试一次（视觉调用较贵，只重试一次） */
+    const strict=prompt+'\n\n【重要】上一次返回无法解析。请只输出一行 JSON，不要任何解释、前后缀或代码块标记；'
+      +'problems 不超过 80 字、reason 不超过 40 字，确保 JSON 闭合。';
+    const c2=await withRetry(function(){return callVision(strict,images,ctl?ctl.signal:undefined)});
+    try{
+      d=parseResult(c2);
+    }catch(pe2){
+      throw new Error('模型返回无法解析为 JSON（已重试 1 次）。模型原话：'+String(c2||content).replace(/\s+/g,' ').slice(0,120));
+    }
+    content=c2;
+  }
   let score=d.score;
   if(d.dimScores&&typeof d.dimScores==='object'){
     let s=0,has=false;
@@ -7100,6 +7209,8 @@ async function renderSet(){
     +'<div><label class="f-lb">图片清晰度</label><select class="inp" id="aiImgLevel">'
     +Object.keys(IMG_LEVELS).map(function(k){return '<option value="'+k+'"'+(ai.imgLevel===k?' selected':'')+'>'+IMG_LEVELS[k].label+'（'+IMG_LEVELS[k].w+'px）</option>'}).join('')+'</select></div>'
     +'<div><label class="f-lb">temperature</label><input class="inp" id="aiTemp" type="number" step="0.05" value="'+esc(ai.temp)+'"></div>'
+    +'<div><label class="f-lb" title="单次回答的最大长度。过小会导致 JSON 被截断而“分析失败”，一般 4096~8192 即可">最大输出 tokens</label>'
+    +'<input class="inp" id="aiMaxTokens" type="number" step="512" min="1024" max="32768" value="'+esc(ai.maxTokens||8192)+'"></div>'
     +'</div>'
     +'<div class="f-row" style="margin-top:10px">'
     +'<button class="btn btn-p" data-act="ai-save">保存 AI 设置</button>'
@@ -7169,6 +7280,8 @@ Object.assign(ACTS,{
     ai.customUrl=$('aiCustomUrl').value.trim();
     ai.imgLevel=$('aiImgLevel').value;
     ai.temp=parseFloat($('aiTemp').value)||0.35;
+    const mt=parseInt($('aiMaxTokens').value,10);
+    ai.maxTokens=(Number.isFinite(mt)&&mt>=1024)?Math.min(32768,mt):8192;
     saveJSON(LS_AI,ai);
     toast('AI 设置已保存','ok');
   },
@@ -7354,7 +7467,7 @@ async function backupImport(file){
 window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,delBlob:delBlob,dbDelMany:dbDelMany,thumbURL:thumbURL,fillThumbs:fillThumbs,dataURLToBlob:dataURLToBlob,layoutTemplate:layoutTemplate,binarize:binarize,toGray:toGray,cropQuad:cropQuad,dist:dist,groupQChoices:groupQChoices,qBubbleGeom:qBubbleGeom,cropViaH:cropViaH,layoutHash:layoutHash,qrPackBytes:qrPackBytes,qrUnpackBytes:qrUnpackBytes,
   globalSolids:globalSolids,pickQuad:pickQuad,pickTriSmart:pickTriSmart,detectAnchorsGlobal:detectAnchorsGlobal,detectAnchors:detectAnchors,findSolid:findSolid,
   qrPayloadFor:qrPayloadFor,qrFromCanvas:qrFromCanvas,qrFromCrop:qrFromCrop,makeQRCanvas:makeQRCanvas,qrParsePayload:qrParsePayload,
-  dbPut:function(s,o){return dbPut(s,o)},dbClearAll:function(){for(const s of ['classes','students','templates','exams','pages','crops','revs','blobs'])dbClear(s).catch(()=>{});return 'ok'},
+  dbPut:function(s,o){return dbPut(s,o)},dbClearAll:async function(){for(const s of ['classes','students','templates','exams','pages','crops','revs','blobs'])await dbClear(s);return 'ok'},
   detectRowMarks:detectRowMarks,rowDeltas:rowDeltas,inkRatio:inkRatio,solveHomo:solveHomo,omr:omr,
   realignGrid:realignGrid,gridAbnormal:gridAbnormal,gridPitchRatio:gridPitchRatio,
   renderPageCanvas:renderPageCanvas,renderPagesAsync:renderPagesAsync,canvasDataURL:canvasDataURL,
