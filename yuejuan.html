@@ -1557,6 +1557,7 @@ async function blobCanvas(blob,maxLong){
   return {cv:cv,scale:scale,srcW:img.width,srcH:img.height};
 }
 async function pdfToCanvases(file,maxLong){
+  if(typeof pdfjsLib==='undefined')throw new Error('PDF 组件未加载：lib/pdf.min.js（可直接改用图片上传，或补全 lib 目录）');
   const buf=await file.arrayBuffer();
   const doc=await pdfjsLib.getDocument({data:buf}).promise;
   const out=[];
@@ -3510,6 +3511,7 @@ Object.assign(ACTS,{
   },
   /* 导出与「下载模板 / 导入」统一为 xlsx，避免格式混用 */
   'stu-csv':async function(el){
+    if(typeof XLSX==='undefined'){toast('导出组件未加载：lib/xlsx.full.min.js','err');return}
     const st=await dbByIdx('students','byClass',ui.clsCur);
     if(!st.length){toast('暂无学生','err');return}
     try{
@@ -3523,6 +3525,7 @@ Object.assign(ACTS,{
     }catch(e){toast('导出失败：'+e.message,'err')}
   },
   'stu-excel-tpl':function(){
+    if(typeof XLSX==='undefined'){toast('导出组件未加载：lib/xlsx.full.min.js','err');return}
     try{
       const wb=XLSX.utils.book_new();
       const ws=XLSX.utils.aoa_to_sheet([['序号','姓名','性别','考号','备注'],
@@ -3535,6 +3538,7 @@ Object.assign(ACTS,{
   'stu-excel':function(){const f=$('stuExcelFile');if(f)f.click()}
 });
 async function importStudentsExcel(file,classId){
+  if(typeof XLSX==='undefined'){toast('导入组件未加载：lib/xlsx.full.min.js','err');return}
   try{
     const buf=await file.arrayBuffer();
     const wb=XLSX.read(buf,{type:'array'});
@@ -6728,6 +6732,7 @@ Object.assign(ACTS,{
      ①成绩册(按人) ②讲评清单(按得分率排序+建议) ③客观题选项分布(每个选项分别是谁)
      ④主观题得分名单(每个分数分别是谁) ⑤题目分析(大题汇总+逐题统计) */
   'score-report':async function(el){
+    if(typeof XLSX==='undefined'){toast('导出组件未加载：lib/xlsx.full.min.js（请确认 lib 目录完整）','err');return}
     const book=await computeScorebook(el.dataset.id);
     if(!book||!book.meta){toast('模板缺失，无法导出','err');return}
     const meta=book.meta;
