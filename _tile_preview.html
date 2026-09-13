@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>麻将牌面预览 - 通行标准样式</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0e2c1f;font-family:"Noto Serif SC","STSong","SimSun",serif;color:#ede3cd;padding:22px}
+h1{font-size:17px;color:#ffd857;letter-spacing:3px;margin-bottom:4px}
+.sub{font-size:12px;color:#9fd8b5;margin-bottom:18px}
+.sec{margin-bottom:22px}
+.sec h2{font-size:14px;color:#ffd857;letter-spacing:2px;margin-bottom:10px;border-left:3px solid #b08a4a;padding-left:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ===== 牌体（与 mahjong.html 一致） ===== */
+.tile{
+  width:66px;height:89px;border-radius:7px 7px 10px 10px;flex-shrink:0;
+  background:linear-gradient(168deg,#fffef8 0%,#faf4e2 45%,#eee5cc 100%);
+  box-shadow:0 2px 5px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -3px 0 rgba(180,160,110,.28),inset 1px 0 0 rgba(255,255,255,.4);
+  display:flex;align-items:center;justify-content:center;
+  color:#222;line-height:1;position:relative;
+  border:1px solid rgba(160,140,90,.3);
+  overflow:hidden;
+}
+.tile .face{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+
+/* ---- 万：上码数 下萬 ---- */
+.f-m .num{font-size:20px;font-weight:900;letter-spacing:-1px;line-height:1}
+.f-m .wan{font-size:30px;font-weight:900;line-height:1;margin-top:2px}
+.tile.m .num{color:#1a1a1a}
+.tile.m .wan{color:#b42318}
+
+/* ---- 筒：同心圆 ---- */
+.f-d{display:grid;gap:3px;place-items:center}
+.dot{width:22px;height:22px;border-radius:50%;display:block}
+.dot.g{border:3px solid #14683a;background:radial-gradient(circle at 35% 32%,#ffffff 0 26%,#14683a 28% 100%)}
+.dot.r{border:3px solid #8b1a1a;background:radial-gradient(circle at 35% 32%,#ffffff 0 24%,#c0392b 26% 100%)}
+
+/* ---- 条：竹节 ---- */
+.bam{width:9px;height:26px;border-radius:3px;display:block;position:relative}
+.bam::before{content:'';position:absolute;left:-2px;right:-2px;top:0;height:4px;border-radius:2px;background:inherit}
+.bam::after{content:'';position:absolute;left:-2px;right:2px;bottom:0;height:4px;border-radius:2px;background:inherit}
+.bam.g{background:linear-gradient(90deg,#0d4d28,#2e8b57 45%,#0d4d28)}
+.bam.r{background:linear-gradient(90deg,#7d1414,#c0392b 45%,#7d1414)}
+.bam.b{background:linear-gradient(90deg,#0f2f4d,#2471a3 45%,#0f2f4d)}
+.f-t{display:flex;gap:3px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;height:100%}
+.f-t .c3{display:grid;gap:3px;place-items:center}
+/* 一条：鸟 */
+.f-t .bird{width:40px;height:52px}
+
+/* ---- 字牌 ---- */
+.f-h{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.f-h .hz{font-size:36px;font-weight:900;line-height:1}
+.wind{font-size:36px;font-weight:900;color:#1a1a1a;line-height:1}
+.zhong{color:#c0392b;font-size:36px;font-weight:900;line-height:1}
+.fa{color:#14683a;font-size:36px;font-weight:900;line-height:1}
+.blankbox{width:42px;height:60px;border:3px solid #2471a3;border-radius:4px;display:block}
+</style>
+</head>
+<body>
+<h1>麻将牌面 · 通行标准样式预览</h1>
+<div class="sub">万＝上码数下红「萬」｜筒＝同心圆（1/5/9红中）｜条＝竹节（1条为鸟，5/7/9红）｜字牌＝黑字，中红发绿白为蓝框</div>
+
+<div class="sec"><h2>万子 · 一至九（上码数，下「萬」）</h2>
+<div class="row" id="wanRow"></div></div>
+
+<div class="sec"><h2>筒子 · 一至九（同心圆，1筒1红、5筒中心红、9筒3行）</h2>
+<div class="row" id="dotRow"></div></div>
+
+<div class="sec"><h2>条子 · 一至九（1条为鸟，5条中心红，7条上红，9条3行3绿6红）</h2>
+<div class="row" id="bamRow"></div></div>
+
+<div class="sec"><h2>字牌 · 东南西北 中发白</h2>
+<div class="row" id="honRow"></div></div>
+
+<script>
+var CN=['','一','二','三','四','五','六','七','八','九'];
+
+function wan(n){
+  return '<div class="tile m"><div class="face f-m" style="flex-direction:column">'+
+    '<span class="num">'+CN[n]+'</span><span class="wan">萬</span></div></div>';
+}
+
+/* 筒：标准同心圆排布 */
+var DOT_LAYOUT={
+  1:[[1]],2:[[1],[1]],3:[[1],[1],[1]],
+  4:[[1,1],[1,1]],5:[[1,1],[1,1,1]],
+  6:[[1,1],[1,1],[1,1]],
+  7:[[1,1,1],[1,1],[1,1]],
+  8:[[1,1],[1,1],[1,1,1]],
+  9:[[1,1,1],[1,1,1],[1,1,1]]
+};
+function dotColor(n,r,c){
+  if(n===1)return 'r';
+  if(n===5)return (r===1&&c===1)?'r':'g';   /* 5筒中心红 */
+  if(n===9)return (r===1)?'r':'g';          /* 9筒顶行红 */
+  return 'g';
+}
+function dotTile(n){
+  var L=DOT_LAYOUT[n],h='';
+  /* 按行拼接 */
+  var rowsHtml='';
+  for(var r=0;r<L.length;r++){
+    var inner='';
+    for(var c=0;c<L[r].length;c++){inner+='<span class="dot '+dotColor(n,r,c)+'"></span>';}
+    rowsHtml+='<div style="display:flex;gap:4px;justify-content:center">'+inner+'</div>';
+  }
+  /* 特殊：1筒单球居中，3筒斜排，7筒 */
+  if(n===1){rowsHtml='<div style="display:flex;justify-content:center"><span class="dot r" style="width:34px;height:34px;border-width:4px"></span></div>';}
+  if(n===3){rowsHtml='<div style="display:flex;flex-direction:column;gap:5px;align-items:center">'+
+    '<span class="dot r" style="margin-left:14px"></span>'+
+    '<span class="dot g" style="margin-right:14px"></span>'+
+    '<span class="dot g" style="margin-left:14px"></span></div>';}
+  return '<div class="tile d"><div class="face f-d" style="display:flex;flex-direction:column;gap:4px">'+rowsHtml+'</div></div>';
+}
+
+/* 条：竹节排布 */
+var BAM_LAYOUT={
+  1:'bird',2:[[1],[1]],
+  3:[[1],[1],[1]],
+  4:[[1,1],[1,1]],
+  5:[[1,1],[1,1,1]],
+  6:[[1,1],[1,1],[1,1]],
+  7:[[1],[1],[1,1,1]],
+  8:[[1,1],[1,1],[1,1,1]],
+  9:[[1,1,1],[1,1,1],[1,1,1]]
+};
+function bamColor(n,r,c){
+  if(n===5)return (r===1&&c===1)?'r':'g';
+  if(n===7)return (r===0)?'r':'g';
+  if(n===9)return (r===0)?'g':'r';
+  return 'g';
+}
+function bamTile(n){
+  if(n===1){
+    /* 一条：绿鸟 */
+    return '<div class="tile t"><div class="face f-t"><svg class="bird" viewBox="0 0 40 52">'+
+      '<path d="M20 4c3 0 5 3 4 6l-2 4 6 3c3 2 4 5 3 8l-2 5 5 2-6 3 1 6-5-2-3 5-2-5-6 2 1-6-6-3 5-2-2-6c-1-4 1-7 4-9l5-3-3-4c-1-3 1-6 4-6z" fill="#0d4d28"/>'+
+      '<circle cx="21" cy="9" r="1.8" fill="#f6f1dd"/>'+
+      '<path d="M16 30c3 2 7 2 10 0" stroke="#f6f1dd" stroke-width="1.6" fill="none"/>'+
+      '<path d="M13 40l-4 10M25 40l5 9" stroke="#14683a" stroke-width="2.4" stroke-linecap="round"/>'+
+      '</svg></div></div>';
+  }
+  var L=BAM_LAYOUT[n],rowsHtml='';
+  for(var r=0;r<L.length;r++){
+    var inner='';
+    for(var c=0;c<L[r].length;c++){inner+='<span class="bam '+bamColor(n,r,c)+'"></span>';}
+    rowsHtml+='<div style="display:flex;gap:4px;justify-content:center">'+inner+'</div>';
+  }
+  return '<div class="tile t"><div class="face f-t" style="display:flex;flex-direction:column;gap:3px">'+rowsHtml+'</div></div>';
+}
+
+var HZ=[
+  ['df','东','wind'],['nf','南','wind'],['xf','西','wind'],['bf','北','wind'],
+  ['hz','中','zhong'],['fc','发','fa']
+];
+function honTile(){
+  return '<div class="tile h"><div class="face"><span class="blankbox"></span></div></div>';
+}
+var out={};
+for(var i=1;i<=9;i++){
+  out.wan=(out.wan||'')+wan(i);
+  out.dot=(out.dot||'')+dotTile(i);
+  out.bam=(out.bam||'')+bamTile(i);
+}
+document.getElementById('wanRow').innerHTML=out.wan;
+document.getElementById('dotRow').innerHTML=out.dot;
+document.getElementById('bamRow').innerHTML=out.bam;
+var hh='';
+HZ.forEach(function(x){
+  hh+='<div class="tile hZi"><div class="face f-h"><span class="'+x[2]+'">'+x[1]+'</span></div></div>';
+});
+hh+='<div class="tile h"><div class="face f-h"><span class="blankbox"></span></div></div>';
+document.getElementById('honRow').innerHTML=hh;
+</script>
+</body>
+</html>

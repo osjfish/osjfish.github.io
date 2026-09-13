@@ -624,9 +624,26 @@ function isChoiceKind(k){return k==='single'||k==='multi'}
 function subjTypeOf(it){
   const k=kindOf(it);
   if(k==='essay')return 'grid-cn';
-  if(k==='blank')return 'lines';                       /* 填空：横线作答 */
+  if(k==='blank')return 'blanks';                      /* 填空：每个空一条短横线（可配空数/线长/序号符） */
   if(k==='qa')return (it.style==='blank')?'blank':'lines';  /* 问答：空白框 或 横线 */
   return 'lines';
+}
+/* 填空题参数：空数 / 每空横线长度(mm) / 序号符样式 */
+const BLANK_MARKERS={
+  none:{label:'无',fmt:function(i){return ''}},
+  cn:{label:'（1）（2）',fmt:function(i){return '（'+(i+1)+'）'}},
+  num:{label:'1. 2.',fmt:function(i){return (i+1)+'.'}},
+  alpha:{label:'a. b.',fmt:function(i){return String.fromCharCode(97+i%26)+'.'}},
+  upper:{label:'A. B.',fmt:function(i){return String.fromCharCode(65+i%26)+'.'}}
+};
+function blanksCfgOf(it){
+  const marker=(it&&BLANK_MARKERS[it.marker])?it.marker:'cn';
+  return {
+    count:Math.max(1,Math.min(60,Math.round((it&&it.count)||5))),
+    len:Math.max(12,Math.min(120,Math.round((it&&it.len)||30))),
+    marker:marker,
+    fmt:BLANK_MARKERS[marker].fmt
+  };
 }
 /* 选择题排列偏好：q=题目排列(v 纵向逐行 / h 横向并排)，o=选项排列(h 横向 A B C D / v 纵向逐行)；默认纵向题目+横向选项 */
 /* 分值显示开关：大题标题后 / 小题标签后是否带分值（默认都显示） */
@@ -925,7 +942,7 @@ function layoutTemplate(tpl,opts){
     const kind=kindOf(it);
     const type=subjTypeOf(it);
     const innerW=colWmm-8;
-    let rowH,gridCols=null,titleHead=0,totalRows;
+    let rowH,gridCols=null,titleHead=0,totalRows,blankPerRow=1,blankRows=1;
     if(type==='grid-cn'){
       /* 格子恒为 8mm 正方；块宽=列宽-2，两侧对称留边 ≥9mm（右边际放字数标注）→ 格子区在框内居中。
          用户设置的每行格数优先，放不下才收缩 */
@@ -936,12 +953,23 @@ function layoutTemplate(tpl,opts){
       rowH=cell+1.2;
       titleHead=it.titleLine?13:0;
       totalRows=(it.count?Math.max(1,Math.ceil(it.count/gridCols)):Math.max(1,it.rows||10));
+    }else if(type==='blanks'){
+      /* 填空：每个空 = 序号 + 一条短横线；同一行按列宽自动并排放多个空，放不下换行 */
+      const cfg=blanksCfgOf(it);
+      const mkW=cfg.marker==='none'?0:8;               /* 序号符预留宽度 */
+      const perW=cfg.len+mkW+6;                        /* 每空占宽（含间距） */
+      const perRow=Math.max(1,Math.floor(colWmm-6)/perW|0);
+      blankPerRow=Math.max(1,Math.min(cfg.count,perRow));
+      blankRows=Math.max(1,Math.ceil(cfg.count/blankPerRow));
+      rowH=8.4;
+      totalRows=blankRows;
     }else if(type==='blank'){
       rowH=8; totalRows=Math.max(1,it.rows||4);
     }else{
       rowH=8; totalRows=Math.max(1,it.rows||3);
     }
-    return {type:type,gridCols:gridCols,rowH:rowH,titleHead:titleHead,totalRows:totalRows};
+    return {type:type,gridCols:gridCols,rowH:rowH,titleHead:titleHead,totalRows:totalRows,
+      blankPerRow:blankPerRow,blanksCfg:(type==='blanks')?blanksCfgOf(it):null};
   }
   function layoutSubj(sec,it,withTitle){
     const kind=kindOf(it);
@@ -959,6 +987,8 @@ function layoutTemplate(tpl,opts){
       const boxH=take*m.rowH+6+tHead;
       pg.subjective.push({qno:it.qno,score:score,type:m.type,kind:kind,rows:take,rowH:m.rowH,
         cols:m.gridCols,rowStart:rowStart,headH:tHead,part:part,
+        blankPerRow:m.blankPerRow||1,blankCfg:m.blanksCfg||null,
+        blankStart:(m.blanksCfg&&m.blankPerRow)?(rowStart*m.blankPerRow):0,
         label:'题'+it.qno+(part>0?'（续）':''),
         x:colX(curCol)+1,y:curY+secH+5,w:colW-2,h:boxH,
         sec:(part===0&&first)?sec.title:(sec.title+'（续）'),topY:curY,col:curCol});
@@ -1161,7 +1191,36 @@ function renderPageCanvas(tpl,layout,page,dpi,qrCv){
     ctx.textAlign='left';
     ctx.fillText(sb.label+(showScoreOf(tpl).item?('（'+sb.score+'分）'):''),px(sb.x),px(sb.y-2.6));
     const innerW=sb.w-12;
-    if(sb.type==='lines'){
+    if(sb.type==='blanks'){
+      /* 填空：每空 = 序号符 + 一条短横线；同一行按列宽并排多个空，序号在整题内连续 */
+      const cfg=sb.blankCfg||{len:30,fmt:function(i){return '（'+(i+1)+'）'}};
+      const perRow=Math.max(1,sb.blankPerRow||1);
+      const nTotal=cfg.count||sb.rows||1;
+      const start=(sb.blankStart||0);
+      const lineLen=cfg.len||30;
+      const x0=sb.x+4, usable=sb.w-8;
+      const step=usable/perRow;
+      ctx.strokeStyle='#777';ctx.lineWidth=Math.max(0.6,px(0.22));
+      ctx.font=Math.max(8,Math.round(px(3.0)))+'px "Microsoft YaHei",sans-serif';
+      ctx.fillStyle='#333';
+      for(let r=0;r<sb.rows;r++){
+        const ly=sb.y+2+(r+1)*sb.rowH-sb.rowH*0.22;
+        for(let c=0;c<perRow;c++){
+          const idx=start+r*perRow+c;
+          if(idx>=nTotal)break;
+          const cx=x0+c*step;
+          const mk=cfg.fmt?cfg.fmt(idx):'';
+          const mkW=mk?Math.max(7,mk.length*2.6+1.5):0;
+          ctx.textAlign='left';
+          if(mk)ctx.fillText(mk,px(cx),px(ly-1.6));
+          const lx=cx+mkW, lw=Math.min(lineLen,step-mkW-4);
+          if(lw>4){
+            ctx.beginPath();ctx.moveTo(px(lx),px(ly));ctx.lineTo(px(lx+lw),px(ly));ctx.stroke();
+          }
+        }
+      }
+      ctx.textAlign='center';ctx.fillStyle='#000';
+    }else if(sb.type==='lines'){
       /* 首行预留整行书写空间（此前首线距框顶仅 6mm，写不下字） */
       ctx.strokeStyle='#999';ctx.lineWidth=Math.max(0.6,px(0.2));
       for(let i=0;i<sb.rows;i++){
@@ -2939,7 +2998,12 @@ async function tplEditorHTML(tplId){
       extra='<span class="kv">选项数</span><select class="inp" style="width:62px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="choices">'
         +[2,3,4,5,6].map(function(x){return '<option value="'+x+'"'+((it.choices||4)===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select>';
     }else if(kind==='blank'){
-      extra='<span class="kv">行数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rows" type="number" min="1" value="'+esc(it.rows||2)+'" title="提供给作答的横线行数">';
+      const cfgB=blanksCfgOf(it);
+      extra='<span class="kv" title="本题共有几个空">空数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="count" type="number" min="1" max="60" value="'+esc(cfgB.count)+'">'
+        +'<span class="kv" title="每空横线长度（毫米）">线长(mm)</span><input class="inp" style="width:64px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="len" type="number" min="12" max="120" value="'+esc(cfgB.len)+'">'
+        +'<span class="kv">序号符</span><select class="inp" style="width:92px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="marker">'
+        +Object.keys(BLANK_MARKERS).map(function(k){return '<option value="'+k+'"'+(cfgB.marker===k?' selected':'')+'>'+BLANK_MARKERS[k].label+'</option>'}).join('')
+        +'</select>';
     }else if(kind==='qa'){
       extra='<span class="kv">作答</span><select class="inp" style="width:84px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="style">'
         +[['lines','横线'],['blank','空白']].map(function(x){return '<option value="'+x[0]+'"'+((it.style||'lines')===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>'
@@ -3201,7 +3265,7 @@ Object.assign(ACTS,{
     secs.forEach(function(s){(s.items||[]).forEach(function(it){const n=Number(it.qno);if(Number.isFinite(n)&&n>mx)mx=n})});
     const it={kind:kind,qno:mx+1,score:3};
     if(isChoiceKind(kind))it.choices=4;
-    else if(kind==='blank')it.rows=2;
+    else if(kind==='blank'){if(it.count==null)it.count=5;if(it.len==null)it.len=30;if(!it.marker)it.marker='cn';}
     else if(kind==='qa'){it.style='lines';it.rows=3;}
     else if(kind==='essay'){it.style='grid-cn';it.cols=20;it.count=880;it.titleLine=true;}
     sec.items=sec.items||[];sec.items.push(it);
@@ -3291,7 +3355,8 @@ async function tplItApply(el){
     else if(f==='choices')it.choices=Math.max(2,Math.min(6,Math.round(v)||4));
     else if(f==='score')it.score=Math.max(0,Number.isFinite(v)?v:0);
     else if(f==='cols')it.cols=Math.max(10,Math.min(40,Math.round(v)||20));
-    else if(f==='count')it.count=(Number.isFinite(v)&&v>0)?Math.round(v):null;
+    else if(f==='count')it.count=(Number.isFinite(v)&&v>0)?Math.max(1,Math.min(60,Math.round(v))):null;
+    else if(f==='len')it.len=Math.max(12,Math.min(120,Math.round(v)||30));
     else if(f==='rows')it.rows=Math.max(1,Math.round(v)||1);
     else it[f]=Number.isFinite(v)?v:el.value;
   }
