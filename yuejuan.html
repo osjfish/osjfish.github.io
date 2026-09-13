@@ -3992,7 +3992,8 @@ function suggestVerdictFor(inks,inkHigh,inkLow){
     return {verdict:'OK',choice:String.fromCharCode(65+t.i),text:String.fromCharCode(65+t.i),
       note:'最高项墨量 '+t.v.toFixed(2)+' 未达标（<'+inkHigh+'）但明显高于其它项，像是涂得偏轻'};
   }
-  return {verdict:'MULTI',choice:above.map(function(x){return String.fromCharCode(65+x.i)}).join(''),text:'多涂('+above.map(function(x){return String.fromCharCode(65+x.i)}).join('')+')',
+  const letters=above.map(function(x){return String.fromCharCode(65+x.i)}).sort();
+  return {verdict:'MULTI',choice:letters.join(''),text:'多涂('+letters.join('')+')',
     note:strong.length+' 项均达到达标线（'+strong.map(function(x){return String.fromCharCode(65+x.i)+'='+x.v.toFixed(2)}).join('、')+'）'};
 }
 /* 裁出某题在原始扫描图上的作答区域（按识别时的单应矩阵取原始像素，非渲染图），

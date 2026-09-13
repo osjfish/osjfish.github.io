@@ -924,7 +924,7 @@ function rankDiscards(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip,a
 }
 function aiPickDiscard(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip,allRiverTiles){
   var scored=rankDiscards(hand,jokerId,myMelds,oppMelds,oppRiverTiles,wallLen,flip,allRiverTiles);
-  if(!scored.length)return hand[0];
+  if(!scored.length)return hand.length?hand[0]:null;
   return scored[0].c;
 }
 </script>
@@ -1076,6 +1076,7 @@ function doDiscardSelected(){
 }
 /* 统一出口：负责把手牌中的这张牌移除（防御式查找），再进牌河并开启响应窗口 */
 function discardTile(byWhom,tile){
+  if(!tile)return;                  /* 防御：没有可打的牌时不要破坏状态（正常流程不会发生） */
   $('actBar').innerHTML='';         /* 出牌后立即清掉本回合按钮，避免点到残留的「自摸和」「杠」 */
   if(G.train){
     if(byWhom===0){
@@ -1415,7 +1416,7 @@ function aiAct(winRes,gangs){
     G.river.filter(function(r){return r.by===0;}).map(function(r){return r.t;}),
     G.wall.length,G.flip,
     G.river.map(function(r){return r.t;}));
-  discardTile(1,c);
+  if(c)discardTile(1,c);
 }
 function aiClaim(claims){
   var d=G.lastDiscard;
