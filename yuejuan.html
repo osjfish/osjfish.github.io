@@ -306,7 +306,7 @@ let ai=migrateAIModel(Object.assign(defaultAI(),loadJSON(LS_AI)||{}));
 let gradePref=Object.assign({step:0.5,enhance:0,autoNext:1},loadJSON(LS_GRADE)||{});
 
 /* ---------- 状态 ---------- */
-let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:null,gradeExam:null,gradeQno:null,scoreExam:null};
+let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:null,gradeExam:null,gradeQno:null,scoreExam:null,stuHistNo:null};
 let scanCtx=null;   // 扫描会话 {examId, total, done, status, logs}
 
 /* ---------- IndexedDB ---------- */
@@ -421,6 +421,7 @@ function dbDelMany(store,keys){
 let mResolve=null;
 /* 叠加层（图片查看器等）关闭后要还原的上一层弹窗内容 */
 let __dlgPrev=null;
+let __dlgLocked=false;   /* 锁定中（如扫描识别过程）：不显示关闭按钮且 Esc 不生效 */
 function dlg(html,opts){
   opts=opts||{};
   const box=$('mBox');
@@ -428,7 +429,9 @@ function dlg(html,opts){
   if(opts.stacked&&!$('mOverlay').hidden){
     __dlgPrev={inner:box.innerHTML,width:box.style.width};
   }
-  box.innerHTML='<div class="m-head"><div class="m-title">'+esc(opts.title||'')+'</div><button class="m-x" data-act="dlg-close">✕</button></div>'
+  __dlgLocked=!!opts.locked;
+  box.innerHTML='<div class="m-head"><div class="m-title">'+esc(opts.title||'')+'</div>'
+    +(opts.locked?'':'<button class="m-x" data-act="dlg-close">✕</button>')+'</div>'
     +'<div class="m-body">'+html+'</div>'
     +(opts.foot?'<div class="m-foot">'+opts.foot+'</div>':'');
   $('mOverlay').hidden=false;
@@ -437,6 +440,7 @@ function dlg(html,opts){
 }
 function dlgClose(){
   const ov=$('mOverlay'),box=$('mBox');
+  __dlgLocked=false;
   if(__dlgPrev){                       /* 还原上一层弹窗，而不是整体关闭 */
     const p=__dlgPrev;__dlgPrev=null;
     box.innerHTML=p.inner;box.style.width=p.width;
@@ -448,6 +452,7 @@ function dlgClose(){
 }
 document.addEventListener('keydown',function(e){
   if(!$('mOverlay').hidden){
+    if(__dlgLocked)return;   /* 锁定期间屏蔽 Esc/Enter 等关闭 */
     if(e.key==='Escape'){dlgClose();return}
     if(e.key==='Enter'){
       const tag=document.activeElement&&document.activeElement.tagName;
@@ -464,6 +469,25 @@ function dlgConfirm(title,msg,okText){
       foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="dlg-ok" data-v="1">'+esc(okText||'确定')+'</button>'
     });
     mResolve=res;
+  });
+}
+/* 危险操作确认：必须手动输入约定文字（如模板名）才允许继续 */
+function dlgTypeConfirm(title,msg,needText,okText){
+  return new Promise(function(res){
+    dlg('<div style="font-size:14px;line-height:1.8">'+msg+'</div>'
+      +'<div style="margin-top:12px"><label class="f-lb">请输入 <b style="color:var(--danger)">'+esc(needText)+'</b> 以确认</label>'
+      +'<input class="inp" id="dlgTypeInp" placeholder="'+esc(needText)+'" autocomplete="off"></div>',
+      {title:title,
+       foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-d" data-act="dlg-type-ok" disabled id="dlgTypeBtn">'+esc(okText||'确认删除')+'</button>'});
+    mResolve=res;
+    setTimeout(function(){
+      const i=$('dlgTypeInp'),b=$('dlgTypeBtn');
+      if(!i)return;
+      i.focus();
+      i.addEventListener('input',function(){
+        if(b)b.disabled=(i.value.trim()!==needText);
+      });
+    },60);
   });
 }
 function dlgPrompt(title,label,val){
@@ -541,6 +565,14 @@ Object.assign(ACTS,{
   'nav':function(el){go(el.dataset.tab)},
   'dlg-close':function(){dlgClose()},
   'dlg-ok':function(){const ov=$('mOverlay');ov.hidden=true;const r=mResolve;mResolve=null;if(r)r(true)},
+  'dlg-type-ok':function(el){
+    const i=$('dlgTypeInp');
+    if(!i)return;
+    const need=i.getAttribute('placeholder')||'';
+    if(i.value.trim()!==need){toast('输入不一致，已取消','err');if(mResolve){const r=mResolve;mResolve=null;r(false)}dlgClose();return}
+    if(mResolve){const r=mResolve;mResolve=null;r(true)}
+    dlgClose();
+  },
   'dlg-okval':function(){const i=$('dlgInp');const r=mResolve;mResolve=null;dlgClose();if(r)r(i?i.value:'')}
 });
 
@@ -2174,6 +2206,31 @@ function fillThumbs(){
   const els=document.querySelectorAll('img[data-thumb]');
   for(let i=0;i<els.length;i++){const id=els[i].getAttribute('data-thumb');if(id)thumbURL(id)}
 }
+/* 懒加载缩略图：仅当图片进入视口时才读取裁剪图（阅卷台几十人以上时显著减少首屏开销） */
+let __lazyObs=null;
+function lazyThumbs(){
+  const imgs=document.querySelectorAll('img[data-lazyimg]');
+  if(!imgs.length)return;
+  const load=function(img){
+    const id=img.getAttribute('data-lazyimg');
+    if(!id||img._lazyDone)return;
+    img._lazyDone=1;
+    getBlob(id).then(function(b){
+      if(!b)return;
+      const url=blobURL(id,b);
+      if(url)img.src=url;
+    }).catch(function(){});
+  };
+  if('IntersectionObserver' in window){
+    if(__lazyObs)__lazyObs.disconnect();
+    __lazyObs=new IntersectionObserver(function(ents){
+      ents.forEach(function(e){ if(e.isIntersecting){ load(e.target); __lazyObs.unobserve(e.target); } });
+    },{root:null,rootMargin:'240px 200px'});
+    imgs.forEach(function(img){__lazyObs.observe(img)});
+  }else{
+    imgs.forEach(load);   /* 老浏览器直接全量加载 */
+  }
+}
 
 /* ---------- 单页识别 ---------- */
 async function recognizeCanvas(cv,layout,pageIdx,opts){
@@ -2491,7 +2548,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
 }
 
 /* ---------- 扫描主流程（上传文件或模拟） ---------- */
-async function scanExamPages(exam,files,onProgress){
+async function scanExamPages(exam,files,onProgress,onPage,isAborted){
   const tpl=await dbGet('templates',exam.templateId);
   if(!tpl)throw new Error('模板不存在');
   const layout=layoutTemplate(tpl);
@@ -2503,6 +2560,7 @@ async function scanExamPages(exam,files,onProgress){
   let lastNo='';
   try{lastNo=localStorage.getItem(lsNoKey)||''}catch(e){}
   for(const it of items){
+    if(isAborted&&isAborted())break;   /* 用户点了「停止识别」 */
     let dupNoWarned=false;   /* 同一批次内只提示一次考号冲突 */
     /* 页号候选顺序：识别内部会先按卡片左侧的页码方块直接定页（最可靠）；
        此处的顺序只在页码读不出时（旧卡/标记被裁）用于逐个试配，顺序页优先以减少重试。 */
@@ -2532,7 +2590,9 @@ async function scanExamPages(exam,files,onProgress){
       results.push({id:uid('pg_'),examId:exam.id,studentNo:'',pageNo:it.pageNo,
         meta:{status:'error',qrFound:false,flags:(res&&res.flags)||['图像解析异常'],perQ:[],regFlags:[],
           layoutW:layout.w,layoutH:layout.h,pageIdx:pageIdx,filePage:it.pageNo,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}});
-      if(onProgress)onProgress(++idx,items.length,it);
+      idx++;
+      if(onProgress)onProgress(idx,items.length,it);
+      if(onPage)onPage({filePage:it.pageNo,pageNo:it.pageNo,studentNo:'',status:'error',flag:'图像解析异常'});
       continue;
     }
     const blob=await canvasToJpeg(it.cv,0.88);
@@ -2578,6 +2638,8 @@ async function scanExamPages(exam,files,onProgress){
     results.push(pageRec);
     idx++;
     if(onProgress)onProgress(idx,items.length,it);
+    if(onPage)onPage({filePage:it.pageNo,pageNo:pageRec.pageNo,studentNo:pageRec.studentNo,
+      status:pageRec.meta.status,flag:(pageRec.meta.flags||[])[0]||''});
   }
   return results;
 }
@@ -3031,8 +3093,21 @@ Object.assign(ACTS,{
   },
   'tpl-del':async function(el){
     const t=await dbGet('templates',el.dataset.id);
-    const ok=await dlgConfirm('删除模板','确定删除「'+esc(t.name)+'」？<br>使用该模板的考试将无法再识别。','删除');
-    if(!ok)return;
+    if(!t)return;
+    /* 先查依赖：有考试在用则要求输入模板名才能删除（避免误删导致考试无法识别与计分） */
+    const exams=(await dbAll('exams')).filter(function(e){return e.templateId===t.id});
+    if(exams.length){
+      const list=exams.slice(0,8).map(function(e){return '· '+esc(e.name)+(e.className?('（'+esc(e.className)+'）'):'')}).join('<br>');
+      const ok=await dlgTypeConfirm('删除模板（有 '+exams.length+' 场考试在用）',
+        '模板「<b>'+esc(t.name)+'</b>」正被以下 <b>'+exams.length+'</b> 场考试使用：<div style="margin:6px 0;line-height:1.9">'+list+'</div>'
+        +(exams.length>8?('<div class="kv">（仅显示前 8 场）</div>'):'')
+        +'<div class="tip" style="margin-top:8px">删除后这些考试将<b>无法再扫描识别、无法计分与导出</b>，已扫描的页与判分结果会保留但无法使用。</div>',
+        t.name,'确认删除模板');
+      if(!ok)return;
+    }else{
+      const ok=await dlgConfirm('删除模板','确定删除「'+esc(t.name)+'」？该模板未被任何考试使用。','删除');
+      if(!ok)return;
+    }
     await dbDel('templates',el.dataset.id);
     if(ui.tplEdit===el.dataset.id)ui.tplEdit=null;
     toast('已删除','ok');
@@ -4096,25 +4171,50 @@ function shotCapture(){
 async function runScanUpload(files){
   if(scanCtx&&scanCtx.running){toast('正在扫描/识别中，请稍候','err');return}
   const ex=await dbGet('exams',ui.scanExam);
-  const ok=await dlgConfirm('开始识别','将扫描/识别 '+files.length+' 个文件（'+pagesEst(files)+' 页）。识别结果与现有页面共存，同页可删除重扫。','开始');
+  const ok=await dlgConfirm('开始识别','将扫描/识别 '+files.length+' 个文件（约 '+pagesEst(files)+' 页）。识别结果与现有页面共存，同页可删除重扫。','开始');
   if(!ok)return;
-  const box=$('scanProgBox');
-  box.style.display='block';
-  scanCtx={examId:ex.id,running:true,onProgress:function(done,total,it){
-    $('scanProgBar').style.width=Math.round(done/total*100)+'%';
-    $('scanProgTxt').textContent='识别中 '+done+'/'+total;
-  }};
+  scanCtx={examId:ex.id,running:true,abort:false};
+  /* 阻塞式进度弹窗：识别期间不允许其它操作（锁定关闭），可点「停止识别」中断 */
+  dlg('<div class="prog-line"><span id="scanProgTxt">正在识别第 1/'+files.length+' 张…</span></div>'
+    +'<div class="progress"><div id="scanProgBar" style="width:0%"></div></div>'
+    +'<div class="tip" id="scanLog" style="margin-top:8px;max-height:190px;overflow:auto;line-height:1.9"></div>',
+    {title:'扫描识别中（请勿操作）',locked:true,wide:true,
+     foot:'<button class="btn btn-d" data-act="scan-stop">停止识别</button>'});
+  const log=[];
+  const pushLog=function(txt){
+    log.push(txt);
+    const lg=$('scanLog');
+    if(lg){lg.innerHTML=log.slice(-40).map(function(x){return esc(x)}).join('<br>');lg.scrollTop=lg.scrollHeight}
+  };
+  /* 已扫描页数（用于“现在扫的是第几张”） */
+  const totalFiles=files.length;
   try{
-    const res=await scanExamPages(ex,files,function(done,total){
-      $('scanProgBar').style.width=Math.round(done/total*100)+'%';
-      $('scanProgTxt').textContent='识别中 '+done+'/'+total;
-    });
-    toast('识别完成：'+res.length+' 页','ok');
+    const res=await scanExamPages(ex,files,function(done,total,it){
+      const b1=$('scanProgBar');
+      if(b1)b1.style.width=Math.round(done/total*100)+'%';
+      const t1=$('scanProgTxt');
+      if(t1)t1.textContent='正在识别第 '+(it&&it.pageNo?it.pageNo:done)+'/'+(it&&it.totalPages?it.totalPages:total)+' 张'
+        +(it&&it.file?('　·　'+String(it.file).slice(0,26)):'');
+    },function(info){
+      /* 每页结果：显示第几张、第几页、识别出的考号 */
+      if(info&&info.pageNo!=null){
+        pushLog('第 '+info.filePage+'/'+totalFiles+' 张 → 第 '+info.pageNo+' 页　考号 '+(info.studentNo||'（无）')+(info.status==='ok'?'':'　⚠ '+(info.flag||'未识别')));
+      }
+      const t1=$('scanProgTxt');
+      if(t1&&info)t1.textContent='正在识别第 '+(info.filePage+1>totalFiles?totalFiles:info.filePage+1)+'/'+totalFiles+' 张…';
+    },function(){return scanCtx.abort});
+    if(scanCtx.abort)toast('已停止识别（已完成 '+res.length+' 页）','ok');
+    else toast('识别完成：'+res.length+' 页','ok');
   }catch(err){toast('识别失败：'+err.message,'err')}
-  box.style.display='none';
   scanCtx.running=false;
+  dlgClose();
   renderScan();
 }
+Object.assign(ACTS,{
+  'scan-stop':function(){
+    if(scanCtx&&scanCtx.running){scanCtx.abort=true;toast('正在停止…','ok')}
+  }
+});
 function pagesEst(files){
   let n=0;
   for(const f of Array.from(files)){
@@ -5182,16 +5282,14 @@ async function renderGradeView(ex){
   });
   if(gradeCtx.buf)scoreBtns+='<button class="gs dim" data-act="grade-score-set" data-v="'+esc(gradeCtx.buf)+'">'+esc(gradeCtx.buf)+'</button>';
   /* 按钮区只放分数按钮（+步长/清零在下方输入行与键盘 Del 已有，不再重复占位） */
-  /* 缩略图（先按需取图，避免把大图带进内存） */
-  const thumbUrls={};
-  for(const c of cropsAll){if(String(c.qno)===String(gradeCtx.qno)&&!thumbUrls[c.studentNo])thumbUrls[c.studentNo]=blobURL(c.id,await getBlob(c.id));}
+  /* 缩略图：懒加载（进入视口才读图，几十人以上不再一次性把全部裁剪图载入内存） */
   const thumbs=gradeCtx.order.map(function(o,i){
     const cc=cropsAll.filter(function(c){return c.studentNo===o&&String(c.qno)===String(gradeCtx.qno)}).sort(function(a,b){return a.part-b.part});
-    const url=cc.length?(thumbUrls[o]||''):'';
     const st=cc.length&&cc[0].scoreVal!=null?cc[0].scoreVal:null;
     const fl=cc.length?cc[0].flag:'';
+    const cid=cc.length?cc[0].id:'';
     return '<div class="gt'+(i===gradeCtx.idx?' on':'')+'" data-act="grade-jump" data-i="'+i+'" title="'+esc(o)+'">'
-      +'<img src="'+url+'" style="'+(st!=null?'outline:2px solid var(--green);':'')+(fl==='F'?'outline:2px solid var(--warn);':fl==='G'?'outline:2px solid var(--zhu);':'')+'">'
+      +'<img'+(cid?(' data-lazyimg="'+esc(cid)+'"'):'')+' src="'+PH_IMG+'" style="'+(st!=null?'outline:2px solid var(--green);':'')+(fl==='F'?'outline:2px solid var(--warn);':fl==='G'?'outline:2px solid var(--zhu);':'')+'">'
       +'<div class="kv" style="text-align:center;font-size:10px">'+(st!=null?(esc(o)+'·'+st+'分'):esc(o))+(fl?(fl==='F'?'·商榷':'·优秀'):'')+'</div></div>';
   }).join('');
   $('page').innerHTML='<div class="f-row" style="margin-bottom:10px">'
@@ -5250,6 +5348,7 @@ async function renderGradeView(ex){
       const an=$('gradeAutoNext');
       if(an)an.addEventListener('change',function(){gradePref.autoNext=an.checked?1:0;saveJSON(LS_GRADE,gradePref)});
     }
+    lazyThumbs();
   });
 }
 Object.assign(ACTS,{
@@ -5493,6 +5592,50 @@ async function computeScorebook(examId){
   return {exam:exam,meta:meta,rows:rows,perQStat:perQStat,perScore:perScore,objFull:objFull,scoreOf:scoreOf,
     subjStat:subjStat,sections:sections,itemStats:itemStats,kpStats:kpStats,fullOf:fullOf,
     subjFull:meta.subjList.reduce(function(a,s){return a+s.score},0)};
+}
+/* 学生历次考试聚合：总分/得分率、班级排名、与班级平均差、各知识点本人得分率
+   匹配规则：该生所在班级在所考班级内（多班合考也支持），再按考号在该场成绩中定位 */
+async function computeStudentHistory(st){
+  const exams=(await dbAll('exams')).slice().sort(function(a,b){return String(a.createdAt||'').localeCompare(String(b.createdAt||''))});
+  const out=[];
+  for(const ex of exams){
+    if(examClassIdsOf(ex).indexOf(st.classId)<0)continue;
+    const book=await computeScorebook(ex.id);
+    if(!book||!book.meta)continue;
+    const r=book.rows.find(function(x){return String(x.no)===String(st.no)});
+    if(!r||r.absent)continue;
+    const live=book.rows.filter(function(x){return !x.absent});
+    const full=book.objFull+book.subjFull;
+    const classAvg=live.length?(live.reduce(function(a,x){return a+x.total},0)/live.length):0;
+    /* 本人各知识点得分率 */
+    const kpRates={};
+    (book.kpStats||[]).forEach(function(k){
+      let sum=0;
+      k.qnos.forEach(function(qn){
+        if(book.meta.choiceQnos.indexOf(qn)>=0){sum+=(r.obj[qn]&&r.obj[qn].verdict==='RIGHT')?(book.scoreOf(qn)||0):0;}
+        else{const v=r.subj[qn];sum+=((v&&v.score!=null)?Number(v.score):0);}
+      });
+      kpRates[k.kp]={rate:k.full>0?(sum/k.full):0,classRate:k.rate};
+    });
+    out.push({examId:ex.id,name:ex.paperTitle||ex.name,date:ex.createdAt||'',total:r.total,full:full,
+      rate:full?r.total/full:0,rank:r.rank,live:live.length,classAvg:classAvg,subjScore:r.subjScore,objScore:r.objScore,kpRates:kpRates});
+  }
+  return out;
+}
+/* 学生报告用不到的辅助：把若干场考试的知识点表现合并（强项/弱项） */
+function kpSummaryOf(hist){
+  const agg={};
+  hist.forEach(function(h){
+    Object.keys(h.kpRates||{}).forEach(function(k){
+      const v=h.kpRates[k];
+      if(!agg[k])agg[k]={kp:k,sum:0,n:0,cSum:0};
+      agg[k].sum+=v.rate;agg[k].n++;agg[k].cSum+=(v.classRate||0);
+    });
+  });
+  return Object.keys(agg).map(function(k){
+    const a=agg[k];
+    return {kp:k,rate:a.n?a.sum/a.n:0,classRate:a.n?a.cSum/a.n:0,n:a.n};
+  }).sort(function(x,y){return y.rate-x.rate});
 }
 /* 成绩册勾选（批量导出学生报告用） */
 function updateRepSelCount(){
@@ -5763,11 +5906,118 @@ async function renderScore(){
     html+='<td>'+(r.absent?badge('gray','缺考'):(r.subjGraded<meta.subjList.length?badge('warn','阅卷中'):badge('ok','完成')))+'</td></tr>';
   });
   html+='</table></div></div>';
+  /* ===== 学生分析（历次考试） ===== */
+  html+='<div class="card" id="stuHistCard"><h3>学生分析（历次考试）</h3>';
+  const allStu=await examStudentsOf(ex);
+  if(!allStu.length){
+    html+=emptyBox('·','本场考试所选班级还没有学生名单。');
+  }else{
+    if(!ui.stuHistNo||!allStu.some(function(x){return String(x.no)===String(ui.stuHistNo)}))ui.stuHistNo=null;
+    html+='<div class="f-row" style="margin-bottom:10px;align-items:center">'
+      +'<span class="kv">选择学生</span><select class="inp" style="width:220px" data-on="stu-hist-pick">'
+      +'<option value="">（请选择）</option>'
+      +allStu.map(function(x){
+        const nm=(x.name||'未命名')+'　'+x.no;
+        return '<option value="'+esc(String(x.no))+'"'+(String(x.no)===String(ui.stuHistNo)?' selected':'')+'>'+esc(nm)+'</option>';
+      }).join('')+'</select>'
+      +'<span class="kv">统计该生在所有包含其班级的考试中的表现（分数、排名、强项与弱项）</span></div>';
+    if(ui.stuHistNo){
+      const st=allStu.find(function(x){return String(x.no)===String(ui.stuHistNo)});
+      const hist=await computeStudentHistory(st);
+      if(!hist.length){
+        html+=emptyBox('·','该生还没有任何考试成绩数据。');
+      }else{
+        const first=hist[0],last=hist[hist.length-1];
+        const dScore=last.rate-first.rate;
+        const dRank=(first.rank-last.rank);   /* 名次数字变小=进步 */
+        const avgRate=hist.reduce(function(a,h){return a+h.rate},0)/hist.length;
+        const kps=kpSummaryOf(hist);
+        /* 概览 */
+        html+='<div class="stats" style="margin-bottom:12px">'
+          +['<div class="stat"><div class="n">'+hist.length+'</div><div class="l">统计考试场次</div></div>',
+            '<div class="stat"><div class="n">'+Math.round(avgRate*100)+'%</div><div class="l">平均得分率</div></div>',
+            '<div class="stat"><div class="n">'+last.rank+'</div><div class="l">最近一场排名（共'+last.live+'人）</div></div>',
+            '<div class="stat"><div class="n" style="color:'+(dScore>=0?'var(--green)':'var(--danger)')+'">'+(dScore>=0?'+':'')+Math.round(dScore*100)+'%</div><div class="l">得分率变化（首→末）</div></div>',
+            '<div class="stat"><div class="n" style="color:'+(dRank>=0?'var(--green)':'var(--danger)')+'">'+(dRank>0?('↑'+dRank):(dRank<0?('↓'+(-dRank)):'—'))+'</div><div class="l">排名变化（首→末）</div></div>'
+          ].join('');
+        /* 趋势：得分率折线（HTML/SVG，缩放清晰） */
+        if(hist.length>1){
+          const W=100,H=100;
+          const pts=hist.map(function(h,i){
+            const x=hist.length>1?(i/(hist.length-1)*W):0;
+            const y=H-(h.rate*H);
+            return x.toFixed(1)+','+y.toFixed(1);
+          }).join(' ');
+          html+='<div style="margin:6px 0 4px"><div class="kv" style="margin-bottom:4px">得分率变化（每点一场考试）</div>'
+            +'<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:130px;background:#FBF8F2;border:1px solid var(--line);border-radius:8px">'
+            +'<polyline points="'+pts+'" fill="none" stroke="#33507A" stroke-width="0.8" vector-effect="non-scaling-stroke"/>'
+            +hist.map(function(h,i){
+              const x=hist.length>1?(i/(hist.length-1)*W):0;
+              const y=H-(h.rate*H);
+              return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="1.1" fill="'+(i===hist.length-1?'#A93226':'#33507A')+'" vector-effect="non-scaling-stroke"/>';
+            }).join('')
+            +'</svg></div>';
+        }
+        /* 历次考试明细 */
+        html+='<div class="tbl-wrap" style="margin-top:8px"><table class="tbl tbl-nowrap"><tr>'
+          +'<th>考试</th><th>日期</th><th>得分</th><th>得分率</th><th>班级排名</th><th>班级平均</th><th>与平均</th><th>客观</th><th>主观</th></tr>';
+        hist.forEach(function(h,idx){
+          const pre=idx>0?hist[idx-1]:null;
+          const dR=pre?(h.rank-pre.rank):0;
+          const arrow=dR<0?'<span style="color:var(--green)">↑'+(-dR)+'</span>':(dR>0?'<span style="color:var(--danger)">↓'+dR+'</span>':'—');
+          const diff=h.total-h.classAvg;
+          html+='<tr><td>'+esc(h.name)+'</td><td class="kv">'+esc(h.date)+'</td>'
+            +'<td><b>'+h.total+'</b>/'+h.full+'</td><td>'+Math.round(h.rate*100)+'%</td>'
+            +'<td>'+h.rank+' / '+h.live+' '+arrow+'</td><td>'+h.classAvg.toFixed(1)+'</td>'
+            +'<td style="color:'+(diff>=0?'var(--green)':'var(--danger)')+'">'+(diff>=0?'+':'')+diff.toFixed(1)+'</td>'
+            +'<td>'+h.objScore+'</td><td>'+h.subjScore+'</td></tr>';
+        });
+        html+='</table></div>';
+        /* 强项 / 弱项（按知识点，跨考试平均） */
+        if(kps.length){
+          /* 强项：达到优秀线（或取最好两三项）；需加强：低于合格线或低于班级平均，且不与强项重复 */
+          const exL=th().exPct/100, passL=th().passPct/100;
+          let strongLabel='强项（达标≥'+th().exPct+'%，跨考试平均）';
+          let strong=kps.filter(function(k){return k.rate>=exL}).slice(0,4);
+          if(!strong.length){strong=kps.slice(0,2);strongLabel='相对较好（均未达优秀线'+th().exPct+'%，跨考试平均）';}
+          const strongSet={};
+          strong.forEach(function(k){strongSet[k.kp]=1});
+          const weak=kps.filter(function(k){
+            return !strongSet[k.kp]&&(k.rate<passL||k.rate<k.classRate);
+          }).sort(function(a,b){return a.rate-b.rate}).slice(0,4);
+          const chipRow=function(list,color){
+            return list.map(function(k){
+              const pct=Math.round(k.rate*100);
+              const up=k.rate>=k.classRate;
+              return '<span class="chip" style="cursor:default;border-color:'+color+';color:'+color+'">'+esc(k.kp)+' '+pct+'%'
+                +'<span class="kv">（班均'+Math.round(k.classRate*100)+'%'+(up?' ↑':' ↓')+'）</span></span>';
+            }).join('');
+          };
+          html+='<div class="f-row" style="margin-top:12px;align-items:flex-start;gap:24px">'
+            +'<div><div class="kv" style="margin-bottom:4px"><b style="color:var(--green)">'+strongLabel+'</b></div>'
+            +(strong.length?chipRow(strong,'#1F8A70'):'<span class="kv">暂无达到优秀线的知识点</span>')+'</div>'
+            +'<div><div class="kv" style="margin-bottom:4px"><b style="color:var(--danger)">需加强</b>（低于合格线或班级平均）</div>'
+            +(weak.length?chipRow(weak,'#B8453C'):'<span class="kv">无明显薄弱项，各知识点均达到或超过班级水平</span>')+'</div>'
+            +'</div>';
+        }else{
+          html+='<div class="kv" style="margin-top:8px">（未统计知识点强弱：模板中给小题填写「知识点」后即可显示）</div>';
+        }
+      }
+    }
+  }
+  html+='</div>';
   $('page').innerHTML=html;
   afterRender(function(){
     bindReportSelect();
   });
 }
+/* 切换「学生分析」中的学生 */
+Object.assign(ACTS,{
+  'stu-hist-pick':function(el){
+    ui.stuHistNo=el.value||null;
+    renderScore();
+  }
+});
 function max0(book){
   let t=0;
   book.meta.subjList.forEach(function(s){t+=s.score});
