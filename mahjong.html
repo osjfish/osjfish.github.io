@@ -1971,7 +1971,7 @@ function trainRoundHTML(sum,cum){
 }
 /* ================= 渲染 ================= */
 /* ---- 牌面：通行标准样式（SVG 矢量绘制，随牌尺寸自动缩放） ---- */
-var MJ_G='#1a5c2e',MJ_R='#b8281e',MJ_K='#1a1a1a',MJ_B='#1e3a8a';
+var MJ_G='#1a5c2e',MJ_R='#b8281e',MJ_K='#1a1a1a',MJ_B='#1e3a8a',MJ_S='#2e3440';
 var MJ_NUM_GLYPH=['','一','二','三','四','伍','六','七','八','九'];
 function _txt(ch,x,y,size,col,w){
   return '<text x="'+x+'" y="'+y+'" text-anchor="middle" dominant-baseline="alphabetic" font-size="'+size+'" font-weight="'+(w||900)+'" fill="'+col+'">'+ch+'</text>';
@@ -1984,15 +1984,15 @@ function _dot(cx,cy,r,col){
 }
 /* 筒子排布（40x56 画布）：标准传统布局 */
 function _dotFace(n){
-  var G=MJ_G,R=MJ_R,h='';
+  var G=MJ_G,R=MJ_R,S=MJ_S,h='';
   var P={
     2:[[20,16,G],[20,40,R]],
     3:[[11,12,G],[20,28,R],[29,44,G]],
     4:[[12,16,G],[28,16,G],[12,40,G],[28,40,G]],
     5:[[11,14,G],[29,14,G],[20,28,R],[11,42,G],[29,42,G]],
-    6:[[12,14,G],[28,14,G],[12,28,G],[28,28,G],[12,42,G],[28,42,G]],
-    7:[[11,12,G],[20,10,G],[29,12,G],[11,30,G],[29,30,G],[11,44,G],[29,44,G]],
-    8:[[11,11,G],[29,11,G],[11,22,G],[29,22,G],[11,33,G],[29,33,G],[11,44,G],[29,44,G]],
+    6:[[12.5,14,R],[27.5,14,R],[12.5,24.5,R],[27.5,24.5,R],[12.5,41,G],[27.5,41,G]],
+    7:[[10,8.5,G,4.6],[20,14,G,4.6],[30,19.5,G,4.6],[12,33,R],[28,33,R],[12,45.5,R],[28,45.5,R]],
+    8:[[11,11,S],[29,11,S],[11,22,S],[29,22,S],[11,33,S],[29,33,S],[11,44,S],[29,44,S]],
     9:[[10,11,G],[20,11,G],[30,11,G],[10,28,R],[20,28,R],[30,28,R],[10,45,G],[20,45,G],[30,45,G]]
   };
   if(n===1){
@@ -2008,8 +2008,8 @@ function _dotFace(n){
       +'<circle cx="20" cy="28" r="1" fill="'+R+'"/>';
     return h;
   }
-  var r=n<=5?6.2:5.2;
-  P[n].forEach(function(p){h+=_dot(p[0],p[1],r,p[2]);});
+  var RS={2:7.6,3:6.8,4:7,5:6.4,6:5.6,7:5.6,8:5.1,9:5.3};
+  P[n].forEach(function(p){h+=_dot(p[0],p[1],p[3]||RS[n],p[2]);});
   return h;
 }
 /* 条子：竹节（双珠形） */
@@ -2021,44 +2021,64 @@ function _bam(cx,cy,col,h,w){
     +'<circle cx="'+cx+'" cy="'+(cy-h/4)+'" r="'+(w*0.22)+'" fill="'+col+'"/>'
     +'<circle cx="'+cx+'" cy="'+(cy+h/4)+'" r="'+(w*0.22)+'" fill="'+col+'"/>';
 }
+/* 旋转竹节（八条折线用）：cx,cy 中心，len 长度，deg 顺时针角度 */
+function _bamRot(cx,cy,len,deg,col){
+  var w=4.4;
+  return '<g transform="translate('+cx+','+cy+') rotate('+deg+')">'
+    +'<rect x="'+(-w/2)+'" y="'+(-len/2)+'" width="'+w+'" height="'+len+'" rx="'+(w/2)+'" fill="none" stroke="'+col+'" stroke-width="1.5"/>'
+    +'<line x1="'+(-w/2+0.7)+'" y1="0" x2="'+(w/2-0.7)+'" y2="0" stroke="'+col+'" stroke-width="1"/>'
+    +'<circle cx="0" cy="'+(-len/4)+'" r="1" fill="'+col+'"/>'
+    +'<circle cx="0" cy="'+(len/4)+'" r="1" fill="'+col+'"/>'
+    +'</g>';
+}
 /* 条子排布 */
 function _bamFace(n){
   var G=MJ_G,R=MJ_R,h='';
   if(n===1){
-    /* 一条：绿鸟（幺鸡） */
-    h='<g fill="none" stroke="'+G+'" stroke-width="1.7" stroke-linecap="round">'
-      /* 尾羽 */
-      +'<path d="M14 34 C10 42 12 48 18 50"/>'
-      +'<path d="M19 36 C17 44 19 49 24 50"/>'
-      +'<path d="M24 34 C24 41 27 45 31 46"/>'
-      /* 身体 */
-      +'<path d="M13 12 C9 16 8 24 11 30 C14 36 22 38 27 33 C31 29 30 21 25 16 C21 11 16 9 13 12 Z" fill="#1a5c2e" fill-opacity=".14"/>'
-      /* 头 */
-      +'<circle cx="15" cy="10" r="4.6"/>'
-      /* 冠羽 */
-      +'<path d="M12 6 C10 3 12 1 14 3"/>'
-      +'<path d="M16 5 C16 2 18 1 19 3"/>'
+    /* 一条：幺鸡——实形剪影 + 白色刻线，长尾拖地 */
+    h='<g stroke-linecap="round" stroke-linejoin="round">'
+      /* 长尾羽：三缕，拖至牌底左 */
+      +'<path d="M21.5 30 C26.5 35.5 27.5 44 23.5 50 C22.3 51.8 20 50.6 21.2 48.6" fill="none" stroke="'+G+'" stroke-width="2"/>'
+      +'<path d="M18 32.5 C20 40.5 16.5 48 10.5 51.5" fill="none" stroke="'+G+'" stroke-width="2"/>'
+      +'<path d="M14 32.5 C12.8 40.5 8.3 46.3 3.5 47.5" fill="none" stroke="'+G+'" stroke-width="2"/>'
+      /* 腿爪（短，贴在身下） */
+      +'<path d="M16 34.3 L14.6 41 M14.6 41 l-2.8 1.5 M14.6 41 l0.3 2.8 M14.6 41 l2.8 1.5" fill="none" stroke="'+G+'" stroke-width="1.3"/>'
+      +'<path d="M20 34 L19.5 41.5 M19.5 41.5 l-2.8 1.5 M19.5 41.5 l0.3 2.8 M19.5 41.5 l2.8 1.5" fill="none" stroke="'+G+'" stroke-width="1.3"/>'
+      /* 身体+头：实形剪影（朝左而立） */
+      +'<path d="M13 4.6 C16.6 4.6 18.4 7.2 18 10.4 C20.6 12.8 24.3 17.2 25.2 23 C26.1 29.6 22 35.2 15.8 35.2 C9.8 35.2 6.8 29.2 8.2 22.2 C9.2 16.6 10.9 13.4 10.3 10.8 C9.9 8.9 10.3 4.6 13 4.6 Z" fill="'+G+'"/>'
       /* 喙 */
-      +'<path d="M10.5 9 L6 8 L10.5 11"/>'
+      +'<path d="M10.4 7.4 L4.8 6 L10 10.2 Z" fill="'+G+'"/>'
+      /* 冠羽 */
+      +'<path d="M11.8 4.3 C10.4 1.6 12.1 0.6 13.6 2 M14.7 4.5 C14.8 1.9 16.8 1.1 17.9 2.7" fill="none" stroke="'+G+'" stroke-width="1.5"/>'
       /* 眼 */
-      +'<circle cx="16.2" cy="9.2" r="1" fill="#1a5c2e" stroke="none"/>'
-      /* 翅 */
-      +'<path d="M16 18 C13 22 14 28 19 31 C23 33 27 30 26 25 C25 20 20 16 16 18 Z"/>'
-      +'<path d="M19 22 C17 24 18 27 21 28" />'
-      /* 腿 */
-      +'<path d="M15 36 L13 44 M13 44 l-3 2 M13 44 l1 3"/>'
-      +'<path d="M21 37 L21 45 M21 45 l-3 2 M21 45 l1 3"/>'
+      +'<circle cx="12.6" cy="8" r="1.5" fill="#fffdf6"/><circle cx="12.9" cy="8.1" r="0.72" fill="#111"/>'
+      /* 翅：白色刻线 */
+      +'<path d="M11.6 17.5 C15.6 15 21.2 17.4 20.7 23 C20.3 27.6 14.4 28.2 12.2 24.5" fill="none" stroke="#fffdf6" stroke-width="1.3"/>'
+      +'<path d="M14 19.8 C17 18.4 20 20.3 19.5 23.6" fill="none" stroke="#fffdf6" stroke-width="1.1"/>'
+      /* 腹羽刻线 */
+      +'<path d="M10.6 27.5 C12 31 15 33 18.4 32.6" fill="none" stroke="#fffdf6" stroke-width="1.1"/>'
       +'</g>';
     return h;
   }
+  if(n===8){
+    /* 八条：上 M、下倒 M，各四节竹 */
+    var seg=function(x1,y1,x2,y2){
+      var dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+      var deg=Math.atan2(-dx,dy)*180/Math.PI;
+      return _bamRot(((x1+x2)/2).toFixed(1),((y1+y2)/2).toFixed(1),len.toFixed(1),deg.toFixed(1),G);
+    };
+    /* 上 M：左竖 → 斜下至谷底 → 斜上至峰 → 右竖 */
+    return seg(11,25,11,9)+seg(11,9,20,21)+seg(20,21,29,9)+seg(29,9,29,25)
+    /* 下 倒M：左竖 → 斜上至峰 → 斜下至谷底 → 右竖 */
+      +seg(11,31,11,47)+seg(11,47,20,35)+seg(20,35,29,47)+seg(29,47,29,31);
+  }
   var P={
     2:[[20,17,G],[20,39,G]],
-    3:[[20,12,G],[13,33,G],[27,45,G]],
+    3:[[20,14,G],[13.5,38,G],[26.5,38,G]],
     4:[[13,16,G],[27,16,G],[13,40,G],[27,40,G]],
     5:[[12,13,G],[28,13,G],[20,28,R],[12,43,G],[28,43,G]],
     6:[[11,14,G],[20,14,G],[29,14,G],[11,42,G],[20,42,G],[29,42,G]],
     7:[[20,10,R],[11,28,G],[20,28,G],[29,28,G],[11,45,G],[20,45,G],[29,45,G]],
-    8:[[11,12,G],[29,12,G],[11,24,G],[29,24,G],[11,36,G],[29,36,G],[11,48,G],[29,48,G]],
     9:[[10,12,G],[20,12,G],[30,12,G],[10,28,R],[20,28,R],[30,28,R],[10,44,G],[20,44,G],[30,44,G]]
   };
   P[n].forEach(function(p){h+=_bam(p[0],p[1],p[2]);});
@@ -2073,7 +2093,7 @@ function _honorFace(c){
   }
   if(c==='hz')return _txt('中',20,41,34,MJ_R);
   if(c==='fc')return _txt('發',20,41,32,MJ_G);
-  return _txt(WIND_CHAR[c],20,41,33,MJ_K);
+  return _txt({df:'東',nf:'南',xf:'西',bf:'北'}[c],20,41,33,MJ_K);
 }
 /* 万子 */
 function _manFace(n){
