@@ -683,7 +683,7 @@ function normalizeSections(tpl){
   qs.filter(function(q){return q.t==='subj'}).forEach(function(s){
     const st=s.type||'lines';
     const it={qno:s.qno,score:(s.score!=null?s.score:10)};
-    if(st==='grid-cn'){it.kind='essay';it.style='grid-cn';it.cols=s.cols||20;it.count=s.count;it.titleLine=!!s.titleLine;}
+    if(st==='grid-cn'){it.kind='essay';it.style='grid-cn';it.cols=s.cols||20;it.count=s.count;it.rows=s.rows;it.titleLine=!!s.titleLine;}
     else if(st==='grid-en'){it.kind='essay';it.style='grid-cn';it.cols=20;it.count=(s.rows||6)*20;it.titleLine=!!s.titleLine;}  /* 旧英语格作文 → 语文格 */
     else{it.kind='qa';it.style=(st==='blank')?'blank':'lines';it.rows=s.rows||3;}
     secs.push({title:'',items:[it]});
@@ -2110,8 +2110,10 @@ function gridPitchRatio(cv,expColPx,expRowPx){
 }
 function gridAbnormal(cc,sb){
   if(sb.type!=='grid-cn'||!sb.cols)return false;
-  /* 行/格过少（如续题末尾仅 1-2 行）时周期无法可靠测量，跳过判定避免误报 */
-  if(sb.rows<3)return false;
+  /* 行/格过少时周期无法可靠测量，跳过判定避免误报。
+     实测：3 行块仅 4 条横线，互相关信号弱，行距会被测成窗口下界（≈0.42×期望），
+     好图被误判“压扁”——rows<5 一律不测（小块即使真压扁，影响也小） */
+  if(sb.rows<5)return false;
   const cellW=Math.min(8,(sb.w-12)/sb.cols);
   const ppm=cc.width/(sb.w+2.4);
   const expRow=(sb.rowH||9.2)*ppm;
@@ -2594,6 +2596,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     if(gridAbnormal(crops[gi].cv,pg2.subjective[gi])){gridBad=true;break;}
   }
   if(gridBad){
+    let retried=false;
     if(!opts.noGlobal&&globalUsed){
       const r2=await recognizeCanvas(cv,layout,pageIdx,Object.assign({},opts,{noGlobal:true}));
       if(r2.ok&&r2.crops){
@@ -2606,13 +2609,23 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
           return r2;
         }
       }
-      flags.push('切割图纵横比例异常，改用预期位置定位仍未通过——已按格线周期自动校正；若仍偏斜请检查四角锚点或使用手动重定位');
-    }else{
-      flags.push('切割图纵横比例异常（预期位置定位）：已按格线周期自动校正；若仍偏斜请检查锚点或使用手动重定位');
+      retried=true;
     }
+    /* 先尝试自愈，再根据结果写 flag——此前文案固定写「已校正」，但 realignGrid 有异常值保护，
+       测量不可靠时会返回 null 保留原图，文案与实际不符（吓人） */
+    let fixedAny=false;
     for(let gi=0;gi<pg2.subjective.length&&gi<crops.length;gi++){
       const fix=realignGrid(crops[gi].cv,pg2.subjective[gi]);
-      if(fix)crops[gi].cv=fix;
+      if(fix){crops[gi].cv=fix;fixedAny=true;}
+    }
+    if(fixedAny){
+      flags.push(retried
+        ?'切割图纵横比例异常，改用预期位置定位仍未通过——已按格线周期自动校正；若仍偏斜请检查四角锚点或使用手动重定位'
+        :'切割图纵横比例异常（预期位置定位）：已按格线周期自动校正；若仍偏斜请检查锚点或使用手动重定位');
+    }else{
+      flags.push(retried
+        ?'切割图纵横比例疑似异常，重试与自动校正均不适用（块过小或格线测量不可靠）——已保留原图；若确实偏斜请检查四角锚点或使用手动重定位'
+        :'切割图纵横比例疑似异常（预期位置定位），自动校正不适用——已保留原图；若确实偏斜请检查锚点或使用手动重定位');
     }
   }
   const detectedPageNo=(pg2&&pg2.footer&&pg2.footer.n)?pg2.footer.n:null;
@@ -6974,8 +6987,8 @@ Object.assign(ACTS,{
     a1.push(['成绩册（按人）','',(ex.paperTitle||ex.name),'',(ex.className||'')]);
     a1.push(['参考 '+live.length+' 人'+(absentN?('（缺考 '+absentN+'）'):''),'',
       '全卷满分 '+fullAll+' 分（客观 '+book.objFull+' + 主观 '+book.subjFull+'）','',
-      '分数线：优秀≥'+th().ex+'　良好≥'+th().good+'　合格≥'+th().pass+' 分']);
-    a1.push(['平均总分 '+avgT.toFixed(1),'','最高 '+maxT,'最低 '+minT,'优秀率 '+rateOf(th().ex)+'%　及格率 '+rateOf(th().pass)+'%']);
+      '分数线：优秀≥'+T.ex+'　良好≥'+T.good+'　合格≥'+T.pass+' 分']);
+    a1.push(['平均总分 '+avgT.toFixed(1),'','最高 '+maxT,'最低 '+minT,'优秀率 '+rateOf(T.ex)+'%　及格率 '+rateOf(T.pass)+'%']);
     a1.push([]);
     /* 表头：各题/各段满分直接写在列名里 */
     const kpOfQ={};
@@ -7003,7 +7016,7 @@ Object.assign(ACTS,{
         line.push(sum);
       });
       if(r.absent){line.push('','','缺考');a1.push(line);return}   /* 总分/得分率留空，等级/状态=缺考 */
-      const lv=gradeLevelOf(r.total,th())[0];
+      const lv=gradeLevelOf(r.total,T)[0];
       const pending=(r.subjGraded<meta.subjList.length);
       line.push(r.total,fullAll?((r.total/fullAll*100).toFixed(1)+'%'):'',pending?('阅卷中（'+lv+'）'):lv);
       a1.push(line);
@@ -7141,7 +7154,7 @@ Object.assign(ACTS,{
       book.kpStats.forEach(function(k){
         const pct=Math.round(k.rate*100);
         a6.push([k.kp,k.qnos.join('、'),k.count,k.full,Math.round(k.avg*10)/10,pct+'%',
-          pct>=th().exPct?'良好':(pct>=th().passPct?'一般，需巩固':'薄弱，重点讲评')]);
+          pct>=T.exPct?'良好':(pct>=T.passPct?'一般，需巩固':'薄弱，重点讲评')]);
       });
       const ws6=XLSX.utils.aoa_to_sheet(a6);
       ws6['!cols']=[{wch:20},{wch:20},{wch:7},{wch:8},{wch:10},{wch:9},{wch:16}];
@@ -7711,7 +7724,8 @@ window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,
   renderPageCanvas:renderPageCanvas,renderPagesAsync:renderPagesAsync,canvasDataURL:canvasDataURL,
   canvasToThumb:canvasToThumb,
   imageViewer:imageViewer,enhanceImageData:enhanceImageData,median3Gray:median3Gray,estimateBackground:estimateBackground,enhanceCropURL:enhanceCropURL,gradePref:function(){return gradePref},
-  getAll:function(s){return dbAll(s)},get:dbGet,examMeta:examMeta,computeScorebook:computeScorebook,pageRegDigits:pageRegDigits};
+  getAll:function(s){return dbAll(s)},get:dbGet,examMeta:examMeta,computeScorebook:computeScorebook,pageRegDigits:pageRegDigits,
+  examThresholdsOf:examThresholdsOf,gradeLevelOf:gradeLevelOf,seqLetters:seqLetters,normalizeSections:normalizeSections,blanksCfgOf:blanksCfgOf};
 })();
 </script>
 </body>
