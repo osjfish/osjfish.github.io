@@ -3684,7 +3684,7 @@ async function renderExam(){
     +'<button class="btn btn-p" data-act="exam-new">＋ 新建考试</button>'
     +'<span class="tip">考试 = 班级（可多选）+ 答题卡模板 + 客观题答案 + 主观题满分/评分要点</span></div>';
   if(!exams.length){
-    html+='<div class="card">'+emptyBox('📋','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
+    html+='<div class="card">'+emptyBox('◇','还没有考试。'+(classes.length?'':' 请先在「班级学生」创建班级。')+(tpls.length?'':' 请先在「答题卡模板」创建模板。'))+'</div>';
   }else{
     const cards=[];
     let statusMap={};
@@ -3701,7 +3701,7 @@ async function renderExam(){
         +'<button class="btn btn-s btn-p" data-act="exam-open" data-id="'+ex.id+'" data-to="scan">扫描</button>'
         +'<button class="btn btn-s btn-b" data-act="exam-open" data-id="'+ex.id+'" data-to="grade">阅卷</button>'
         +'<button class="btn btn-s" data-act="exam-open" data-id="'+ex.id+'" data-to="score">成绩</button>'
-        +'<button class="btn btn-s btn-o" data-act="exam-pdf" data-id="'+ex.id+'">🖨 打印答题卡</button>'
+        +'<button class="btn btn-s btn-o" data-act="exam-pdf" data-id="'+ex.id+'">打印答题卡</button>'
         +'<button class="btn btn-s" data-act="exam-edit" data-id="'+ex.id+'">编辑</button>'
         +'<button class="btn btn-s btn-d" data-act="exam-del" data-id="'+ex.id+'">删除</button>'
         +'</div></div>');
@@ -4370,7 +4370,7 @@ async function runScanUpload(files){
     },function(info){
       /* 每页结果：显示第几张、第几页、识别出的考号 */
       if(info&&info.pageNo!=null){
-        pushLog('第 '+info.filePage+'/'+totalFiles+' 张 → 第 '+info.pageNo+' 页　考号 '+(info.studentNo||'（无）')+(info.status==='ok'?'':'　⚠ '+(info.flag||'未识别')));
+        pushLog('第 '+info.filePage+'/'+totalFiles+' 张 → 第 '+info.pageNo+' 页　考号 '+(info.studentNo||'（无）')+(info.status==='ok'?'':'　注意：'+(info.flag||'未识别')));
       }
       const t1=$('scanProgTxt');
       if(t1&&info)t1.textContent='正在识别第 '+(info.filePage+1>totalFiles?totalFiles:info.filePage+1)+'/'+totalFiles+' 张…';
@@ -4989,7 +4989,7 @@ async function renderGrade(){
   const exams=examsAll.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'')});
   if(!ui.gradeExam||!(exams.find(function(e){return e.id===ui.gradeExam})))ui.gradeExam=exams.length?exams[0].id:null;
   if(!ui.gradeExam){
-    $('page').innerHTML='<div class="card">'+emptyBox('📋','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
+    $('page').innerHTML='<div class="card">'+emptyBox('◇','没有考试。请先创建考试并扫描识别，生成主观题裁剪图。')
       +'<button class="btn btn-p" data-act="go-exam">去创建考试</button></div>';
     return;
   }
@@ -6019,7 +6019,7 @@ function kpSummaryOf(hist){
 async function renderStuAna(){
   const classes=await dbAll('classes');
   if(!classes.length){
-    $('page').innerHTML='<div class="card">'+emptyBox('📋','还没有班级。请先在「班级学生」创建班级并导入学生名单。')
+    $('page').innerHTML='<div class="card">'+emptyBox('◇','还没有班级。请先在「班级学生」创建班级并导入学生名单。')
       +'<button class="btn btn-p" data-act="go-class">去创建班级</button></div>';
     return;
   }
@@ -6037,12 +6037,12 @@ async function renderStuAna(){
     +'<span class="kv">统计该生在所有包含本班的考试中的表现（分数、排名、强项与弱项）</span>'
     +'</div></div>';
   if(!ui.stuAnaNo){
-    html+='<div class="card">'+emptyBox('📋','请选择要分析的学生。')+'</div>';
+    html+='<div class="card">'+emptyBox('◇','请选择要分析的学生。')+'</div>';
   }else{
     const st=stus.find(function(x){return String(x.no)===String(ui.stuAnaNo)});
     const hist=await computeStudentHistory(st);
     if(!hist.length){
-      html+='<div class="card">'+emptyBox('📋','该生还没有任何考试成绩数据（需先创建考试、扫描并阅卷）。')+'</div>';
+      html+='<div class="card">'+emptyBox('◇','该生还没有任何考试成绩数据（需先创建考试、扫描并阅卷）。')+'</div>';
     }else{
       const first=hist[0],last=hist[hist.length-1];
       const dScore=last.rate-first.rate;
