@@ -306,7 +306,7 @@ let ai=migrateAIModel(Object.assign(defaultAI(),loadJSON(LS_AI)||{}));
 let gradePref=Object.assign({step:0.5,enhance:0,autoNext:1},loadJSON(LS_GRADE)||{});
 
 /* ---------- 状态 ---------- */
-let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:null,gradeExam:null,gradeQno:null,scoreExam:null,stuHistNo:null};
+let ui={tab:'home',tplEdit:null,clsCur:null,examCur:null,scanExam:null,scanRun:null,gradeExam:null,gradeQno:null,scoreExam:null,stuHistNo:null,stuAnaCls:null,stuAnaNo:null};
 let scanCtx=null;   // 扫描会话 {examId, total, done, status, logs}
 
 /* ---------- IndexedDB ---------- */
@@ -525,9 +525,10 @@ document.addEventListener('change',function(e){
 /* ---------- 导航 ---------- */
 const TABS=[
   ['home','首页','首页'],['class','班级学生','班级'],['tpl','答题卡模板','模板'],['exam','考试管理','考试'],
-  ['scan','扫描识别','扫描'],['grade','阅卷工作台','阅卷'],['score','成绩分析','成绩'],['set','设置','设置']
+  ['scan','扫描识别','扫描'],['grade','阅卷工作台','阅卷'],['score','成绩分析','成绩'],
+  ['stuana','学生分析','学生'],['set','设置','设置']
 ];
-const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩分析',set:'设置'};
+const TAB_TITLES={home:'首页',tpl:'答题卡模板',class:'班级学生',exam:'考试管理',scan:'扫描识别',grade:'阅卷工作台',score:'成绩分析',stuana:'学生分析',set:'设置'};
 function renderNav(){
   $('nav').innerHTML=TABS.map(function(t){
     return '<div class="sj-nav-item '+(ui.tab===t[0]?'on':'')+'" data-act="nav" data-tab="'+t[0]+'"><span class="tx">'+t[1]+'</span><span class="sh">'+t[2]+'</span></div>';
@@ -540,7 +541,7 @@ function go(tab){
   renderNav();
   $('pageTitle').innerHTML=TAB_TITLES[tab]||'';
   $('topBtns').innerHTML='';
-  const f={home:renderHome,tpl:renderTpl,class:renderCls,exam:renderExam,scan:renderScan,grade:renderGrade,score:renderScore,set:renderSet}[tab]||renderHome;
+  const f={home:renderHome,tpl:renderTpl,class:renderCls,exam:renderExam,scan:renderScan,grade:renderGrade,score:renderScore,stuana:renderStuAna,set:renderSet}[tab]||renderHome;
   /* 渲染函数是异步的：等 DOM 真正写入后再回填缩略图，否则列表图片仍是占位图 */
   Promise.resolve().then(f).then(function(){afterRender(fillThumbs)}).catch(function(err){console.error(err)});
 }
@@ -558,7 +559,7 @@ function emptyBox(icon,text){
 function badge(cls,txt){return '<span class="badge bd-'+cls+'">'+esc(txt)+'</span>'}
 
 /* ---------- 各页渲染入口（在各代码段中实现） ---------- */
-function renderHome(){} function renderTpl(){} function renderCls(){} function renderExam(){}
+function renderHome(){} function renderTpl(){} function renderCls(){} function renderExam(){} function renderStuAna(){}
 function renderScan(){} function renderGrade(){} function renderScore(){} function renderSet(){}
 
 Object.assign(ACTS,{
@@ -5637,6 +5638,126 @@ function kpSummaryOf(hist){
     return {kp:k,rate:a.n?a.sum/a.n:0,classRate:a.n?a.cSum/a.n:0,n:a.n};
   }).sort(function(x,y){return y.rate-x.rate});
 }
+/* ============ 学生分析（独立板块）============
+   选班级 → 选学生 → 汇总该生在所有包含其班级的考试中的表现：
+   分数与排名变化、趋势、历次明细、跨考试聚合的知识点强弱项 */
+async function renderStuAna(){
+  const classes=await dbAll('classes');
+  if(!classes.length){
+    $('page').innerHTML='<div class="card">'+emptyBox('·','还没有班级。请先在「班级学生」创建班级并导入学生名单。')
+      +'<button class="btn btn-p" data-act="go-class">去创建班级</button></div>';
+    return;
+  }
+  if(!ui.stuAnaCls||!classes.some(function(c){return c.id===ui.stuAnaCls}))ui.stuAnaCls=classes[0].id;
+  const stus=(await dbByIdx('students','byClass',ui.stuAnaCls)).slice().sort(function(a,b){return String(a.no).localeCompare(String(b.no))});
+  if(!ui.stuAnaNo||!stus.some(function(x){return String(x.no)===String(ui.stuAnaNo)}))ui.stuAnaNo=null;
+  let html='<div class="card"><div class="f-row" style="align-items:center">'
+    +'<span class="kv">班级</span><select class="inp" style="width:180px" data-on="stuana-cls">'
+    +classes.map(function(c){return '<option value="'+c.id+'"'+(c.id===ui.stuAnaCls?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')
+    +'</select>'
+    +'<span class="kv">学生</span><select class="inp" style="width:200px" data-on="stuana-stu">'
+    +'<option value="">（请选择）</option>'
+    +stus.map(function(x){return '<option value="'+esc(String(x.no))+'"'+(String(x.no)===String(ui.stuAnaNo)?' selected':'')+'>'+esc((x.name||'未命名')+'　'+x.no)+'</option>'}).join('')
+    +'</select>'
+    +'<span class="kv">统计该生在所有包含本班的考试中的表现（分数、排名、强项与弱项）</span>'
+    +'</div></div>';
+  if(!ui.stuAnaNo){
+    html+='<div class="card">'+emptyBox('·','请选择要分析的学生。')+'</div>';
+  }else{
+    const st=stus.find(function(x){return String(x.no)===String(ui.stuAnaNo)});
+    const hist=await computeStudentHistory(st);
+    if(!hist.length){
+      html+='<div class="card">'+emptyBox('·','该生还没有任何考试成绩数据（需先创建考试、扫描并阅卷）。')+'</div>';
+    }else{
+      const first=hist[0],last=hist[hist.length-1];
+      const dScore=last.rate-first.rate;
+      const dRank=(first.rank-last.rank);
+      const avgRate=hist.reduce(function(a,h){return a+h.rate},0)/hist.length;
+      const kps=kpSummaryOf(hist);
+      html+='<div class="card"><h3>'+esc(st.name||'未命名')+'（考号 '+esc(String(st.no))+'）· 共 '+hist.length+' 场考试</h3>';
+      html+=statCards([
+        {n:hist.length,l:'统计考试场次'},
+        {n:Math.round(avgRate*100)+'%',l:'平均得分率'},
+        {n:last.rank+' / '+last.live,l:'最近一场排名'},
+        {n:(dScore>=0?'+':'')+Math.round(dScore*100)+'%',l:'得分率变化（首→末）'},
+        {n:(dRank>0?('↑'+dRank):(dRank<0?('↓'+(-dRank)):'持平')),l:'排名变化（首→末）'}
+      ]);
+      /* 趋势折线 */
+      if(hist.length>1){
+        const W=100,H=100;
+        const pts=hist.map(function(h,i){return (i/(hist.length-1)*W).toFixed(1)+','+(H-h.rate*H).toFixed(1)}).join(' ');
+        html+='<div style="margin:10px 0 4px"><div class="kv" style="margin-bottom:4px">得分率变化（每点一场考试，由早到晚）</div>'
+          +'<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:140px;background:#FBF8F2;border:1px solid var(--line);border-radius:8px">'
+          +'<polyline points="'+pts+'" fill="none" stroke="#33507A" stroke-width="0.8" vector-effect="non-scaling-stroke"/>'
+          +hist.map(function(h,i){
+            const x=hist.length>1?(i/(hist.length-1)*W):0;
+            const y=H-h.rate*H;
+            return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="1.2" fill="'+(i===hist.length-1?'#A93226':'#33507A')+'" vector-effect="non-scaling-stroke"/>';
+          }).join('')
+          +'</svg></div>';
+      }
+      /* 历次明细 */
+      html+='<div class="tbl-wrap" style="margin-top:8px"><table class="tbl tbl-nowrap"><tr>'
+        +'<th>考试</th><th>日期</th><th>得分</th><th>得分率</th><th>班级排名</th><th>班级平均</th><th>与平均</th><th>客观</th><th>主观</th><th>知识点最强 / 最弱</th></tr>';
+      hist.forEach(function(h,idx){
+        const pre=idx>0?hist[idx-1]:null;
+        const dR=pre?(h.rank-pre.rank):0;
+        const arrow=dR<0?'<span style="color:var(--green)">↑'+(-dR)+'</span>':(dR>0?'<span style="color:var(--danger)">↓'+dR+'</span>':'—');
+        const diff=h.total-h.classAvg;
+        const arr=Object.keys(h.kpRates||{}).map(function(k){return {kp:k,rate:h.kpRates[k].rate,classRate:h.kpRates[k].classRate}});
+        let kpTxt='—';
+        if(arr.length){
+          arr.sort(function(a,b){return b.rate-a.rate});
+          const best=arr[0],worst=arr[arr.length-1];
+          kpTxt=esc(best.kp)+' '+Math.round(best.rate*100)+'%'
+            +(arr.length>1?('　/　'+esc(worst.kp)+' '+Math.round(worst.rate*100)+'%'):'');
+        }
+        html+='<tr><td>'+esc(h.name)+'</td><td class="kv">'+esc(h.date)+'</td>'
+          +'<td><b>'+h.total+'</b>/'+h.full+'</td><td>'+Math.round(h.rate*100)+'%</td>'
+          +'<td>'+h.rank+' / '+h.live+' '+arrow+'</td><td>'+h.classAvg.toFixed(1)+'</td>'
+          +'<td style="color:'+(diff>=0?'var(--green)':'var(--danger)')+'">'+(diff>=0?'+':'')+diff.toFixed(1)+'</td>'
+          +'<td>'+h.objScore+'</td><td>'+h.subjScore+'</td><td class="kv">'+kpTxt+'</td></tr>';
+      });
+      html+='</table></div></div>';
+      /* 强弱项 */
+      html+='<div class="card"><h3>强项与需加强（跨考试平均得分率）</h3>';
+      if(kps.length){
+        const exL=th().exPct/100, passL=th().passPct/100;
+        let strongLabel='强项（达标≥'+th().exPct+'%）';
+        let strong=kps.filter(function(k){return k.rate>=exL}).slice(0,4);
+        if(!strong.length){strong=kps.slice(0,2);strongLabel='相对较好（均未达优秀线'+th().exPct+'%）';}
+        const strongSet={};
+        strong.forEach(function(k){strongSet[k.kp]=1});
+        const weak=kps.filter(function(k){return !strongSet[k.kp]&&(k.rate<passL||k.rate<k.classRate)})
+          .sort(function(a,b){return a.rate-b.rate}).slice(0,4);
+        const chipRow=function(list,color){
+          return list.map(function(k){
+            const pct=Math.round(k.rate*100);
+            const up=k.rate>=k.classRate;
+            return '<span class="chip" style="cursor:default;border-color:'+color+';color:'+color+'">'+esc(k.kp)+' '+pct+'%'
+              +'<span class="kv">（班均'+Math.round(k.classRate*100)+'%'+(up?' ↑':' ↓')+'，'+k.n+' 场）</span></span>';
+          }).join('');
+        };
+        html+='<div class="f-row" style="align-items:flex-start;gap:24px">'
+          +'<div><div class="kv" style="margin-bottom:4px"><b style="color:var(--green)">'+strongLabel+'</b></div>'
+          +(strong.length?chipRow(strong,'#1F8A70'):'<span class="kv">暂无达到优秀线的知识点</span>')+'</div>'
+          +'<div><div class="kv" style="margin-bottom:4px"><b style="color:var(--danger)">需加强（低于合格线或班级平均）</b></div>'
+          +(weak.length?chipRow(weak,'#B8453C'):'<span class="kv">无明显薄弱项，各知识点均达到或超过班级水平</span>')+'</div>'
+          +'</div>';
+      }else{
+        html+='<div class="kv">未统计知识点强弱：模板中给小题填写「知识点」后即可显示（阈值跟随各场考试的分数线）。</div>';
+      }
+      html+='</div>';
+    }
+  }
+  $('page').innerHTML=html;
+  afterRender(function(){});
+}
+Object.assign(ACTS,{
+  'go-class':function(){go('class')},
+  'stuana-cls':function(el){ui.stuAnaCls=el.value;ui.stuAnaNo=null;renderStuAna()},
+  'stuana-stu':function(el){ui.stuAnaNo=el.value||null;renderStuAna()}
+});
 /* 成绩册勾选（批量导出学生报告用） */
 function updateRepSelCount(){
   const chks=[...document.querySelectorAll('.repChk')];
@@ -5906,118 +6027,11 @@ async function renderScore(){
     html+='<td>'+(r.absent?badge('gray','缺考'):(r.subjGraded<meta.subjList.length?badge('warn','阅卷中'):badge('ok','完成')))+'</td></tr>';
   });
   html+='</table></div></div>';
-  /* ===== 学生分析（历次考试） ===== */
-  html+='<div class="card" id="stuHistCard"><h3>学生分析（历次考试）</h3>';
-  const allStu=await examStudentsOf(ex);
-  if(!allStu.length){
-    html+=emptyBox('·','本场考试所选班级还没有学生名单。');
-  }else{
-    if(!ui.stuHistNo||!allStu.some(function(x){return String(x.no)===String(ui.stuHistNo)}))ui.stuHistNo=null;
-    html+='<div class="f-row" style="margin-bottom:10px;align-items:center">'
-      +'<span class="kv">选择学生</span><select class="inp" style="width:220px" data-on="stu-hist-pick">'
-      +'<option value="">（请选择）</option>'
-      +allStu.map(function(x){
-        const nm=(x.name||'未命名')+'　'+x.no;
-        return '<option value="'+esc(String(x.no))+'"'+(String(x.no)===String(ui.stuHistNo)?' selected':'')+'>'+esc(nm)+'</option>';
-      }).join('')+'</select>'
-      +'<span class="kv">统计该生在所有包含其班级的考试中的表现（分数、排名、强项与弱项）</span></div>';
-    if(ui.stuHistNo){
-      const st=allStu.find(function(x){return String(x.no)===String(ui.stuHistNo)});
-      const hist=await computeStudentHistory(st);
-      if(!hist.length){
-        html+=emptyBox('·','该生还没有任何考试成绩数据。');
-      }else{
-        const first=hist[0],last=hist[hist.length-1];
-        const dScore=last.rate-first.rate;
-        const dRank=(first.rank-last.rank);   /* 名次数字变小=进步 */
-        const avgRate=hist.reduce(function(a,h){return a+h.rate},0)/hist.length;
-        const kps=kpSummaryOf(hist);
-        /* 概览 */
-        html+='<div class="stats" style="margin-bottom:12px">'
-          +['<div class="stat"><div class="n">'+hist.length+'</div><div class="l">统计考试场次</div></div>',
-            '<div class="stat"><div class="n">'+Math.round(avgRate*100)+'%</div><div class="l">平均得分率</div></div>',
-            '<div class="stat"><div class="n">'+last.rank+'</div><div class="l">最近一场排名（共'+last.live+'人）</div></div>',
-            '<div class="stat"><div class="n" style="color:'+(dScore>=0?'var(--green)':'var(--danger)')+'">'+(dScore>=0?'+':'')+Math.round(dScore*100)+'%</div><div class="l">得分率变化（首→末）</div></div>',
-            '<div class="stat"><div class="n" style="color:'+(dRank>=0?'var(--green)':'var(--danger)')+'">'+(dRank>0?('↑'+dRank):(dRank<0?('↓'+(-dRank)):'—'))+'</div><div class="l">排名变化（首→末）</div></div>'
-          ].join('');
-        /* 趋势：得分率折线（HTML/SVG，缩放清晰） */
-        if(hist.length>1){
-          const W=100,H=100;
-          const pts=hist.map(function(h,i){
-            const x=hist.length>1?(i/(hist.length-1)*W):0;
-            const y=H-(h.rate*H);
-            return x.toFixed(1)+','+y.toFixed(1);
-          }).join(' ');
-          html+='<div style="margin:6px 0 4px"><div class="kv" style="margin-bottom:4px">得分率变化（每点一场考试）</div>'
-            +'<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:130px;background:#FBF8F2;border:1px solid var(--line);border-radius:8px">'
-            +'<polyline points="'+pts+'" fill="none" stroke="#33507A" stroke-width="0.8" vector-effect="non-scaling-stroke"/>'
-            +hist.map(function(h,i){
-              const x=hist.length>1?(i/(hist.length-1)*W):0;
-              const y=H-(h.rate*H);
-              return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="1.1" fill="'+(i===hist.length-1?'#A93226':'#33507A')+'" vector-effect="non-scaling-stroke"/>';
-            }).join('')
-            +'</svg></div>';
-        }
-        /* 历次考试明细 */
-        html+='<div class="tbl-wrap" style="margin-top:8px"><table class="tbl tbl-nowrap"><tr>'
-          +'<th>考试</th><th>日期</th><th>得分</th><th>得分率</th><th>班级排名</th><th>班级平均</th><th>与平均</th><th>客观</th><th>主观</th></tr>';
-        hist.forEach(function(h,idx){
-          const pre=idx>0?hist[idx-1]:null;
-          const dR=pre?(h.rank-pre.rank):0;
-          const arrow=dR<0?'<span style="color:var(--green)">↑'+(-dR)+'</span>':(dR>0?'<span style="color:var(--danger)">↓'+dR+'</span>':'—');
-          const diff=h.total-h.classAvg;
-          html+='<tr><td>'+esc(h.name)+'</td><td class="kv">'+esc(h.date)+'</td>'
-            +'<td><b>'+h.total+'</b>/'+h.full+'</td><td>'+Math.round(h.rate*100)+'%</td>'
-            +'<td>'+h.rank+' / '+h.live+' '+arrow+'</td><td>'+h.classAvg.toFixed(1)+'</td>'
-            +'<td style="color:'+(diff>=0?'var(--green)':'var(--danger)')+'">'+(diff>=0?'+':'')+diff.toFixed(1)+'</td>'
-            +'<td>'+h.objScore+'</td><td>'+h.subjScore+'</td></tr>';
-        });
-        html+='</table></div>';
-        /* 强项 / 弱项（按知识点，跨考试平均） */
-        if(kps.length){
-          /* 强项：达到优秀线（或取最好两三项）；需加强：低于合格线或低于班级平均，且不与强项重复 */
-          const exL=th().exPct/100, passL=th().passPct/100;
-          let strongLabel='强项（达标≥'+th().exPct+'%，跨考试平均）';
-          let strong=kps.filter(function(k){return k.rate>=exL}).slice(0,4);
-          if(!strong.length){strong=kps.slice(0,2);strongLabel='相对较好（均未达优秀线'+th().exPct+'%，跨考试平均）';}
-          const strongSet={};
-          strong.forEach(function(k){strongSet[k.kp]=1});
-          const weak=kps.filter(function(k){
-            return !strongSet[k.kp]&&(k.rate<passL||k.rate<k.classRate);
-          }).sort(function(a,b){return a.rate-b.rate}).slice(0,4);
-          const chipRow=function(list,color){
-            return list.map(function(k){
-              const pct=Math.round(k.rate*100);
-              const up=k.rate>=k.classRate;
-              return '<span class="chip" style="cursor:default;border-color:'+color+';color:'+color+'">'+esc(k.kp)+' '+pct+'%'
-                +'<span class="kv">（班均'+Math.round(k.classRate*100)+'%'+(up?' ↑':' ↓')+'）</span></span>';
-            }).join('');
-          };
-          html+='<div class="f-row" style="margin-top:12px;align-items:flex-start;gap:24px">'
-            +'<div><div class="kv" style="margin-bottom:4px"><b style="color:var(--green)">'+strongLabel+'</b></div>'
-            +(strong.length?chipRow(strong,'#1F8A70'):'<span class="kv">暂无达到优秀线的知识点</span>')+'</div>'
-            +'<div><div class="kv" style="margin-bottom:4px"><b style="color:var(--danger)">需加强</b>（低于合格线或班级平均）</div>'
-            +(weak.length?chipRow(weak,'#B8453C'):'<span class="kv">无明显薄弱项，各知识点均达到或超过班级水平</span>')+'</div>'
-            +'</div>';
-        }else{
-          html+='<div class="kv" style="margin-top:8px">（未统计知识点强弱：模板中给小题填写「知识点」后即可显示）</div>';
-        }
-      }
-    }
-  }
-  html+='</div>';
   $('page').innerHTML=html;
   afterRender(function(){
     bindReportSelect();
   });
 }
-/* 切换「学生分析」中的学生 */
-Object.assign(ACTS,{
-  'stu-hist-pick':function(el){
-    ui.stuHistNo=el.value||null;
-    renderScore();
-  }
-});
 function max0(book){
   let t=0;
   book.meta.subjList.forEach(function(s){t+=s.score});
