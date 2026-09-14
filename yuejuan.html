@@ -2361,7 +2361,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 锚点检测：先全局搜索四角（兼容照片背景/未充满画面/倾斜），再用预期位置窗口兜底 */
   const geometry=layoutSlice||page;
   let detGlobal=null;
-  if(opts.noGlobal!==true){try{detGlobal=detectAnchorsGlobal(bin,cv.width,cv.height)}catch(e){}}
+  if(opts.noGlobal!==true&&!opts.manualPts){try{detGlobal=detectAnchorsGlobal(bin,cv.width,cv.height)}catch(e){}}
   let det=null,pts=null,usedSmall=false,globalUsed=false,smallIdx=[-1,-1,-1,-1];
   if(detGlobal){
     pts=detGlobal.pts;
@@ -2401,11 +2401,13 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       return {ok:false,status:'locate_fail',regFlags:[],flags:['定位失败：同一侧上/下两个定位点均缺失，无法唯一确定版式——请确保四角定位点完整可见，或使用手动重定位'],warn:detWarn};
     }
   }
-  /* 四点形状校验：宽高比须与版式接近，防止退化组合（如两侧都用同一小锚顶替）静默输出错位结果 */
+  /* 四点形状校验：宽高比须与版式接近，防止自动检测的退化组合（如两侧都用同一小锚顶替）静默输出错位结果。
+     手动 4 点是用户明确点选的真实锚点，强透视（倾斜大）下画面四边形的宽高比天然会偏离版式，
+     故对手动点豁免此校验，只信任用户点选。 */
   const qW=(Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)+Math.hypot(pts[3].x-pts[2].x,pts[3].y-pts[2].y))/2;
   const qH=(Math.hypot(pts[0].x-pts[3].x,pts[0].y-pts[3].y)+Math.hypot(pts[1].x-pts[2].x,pts[1].y-pts[2].y))/2;
   const qAsp=qW/Math.max(1,qH), tAsp=page.w/page.h;
-  if(qAsp<tAsp*0.6||qAsp>tAsp*1.6){
+  if(!opts.manualPts&&(qAsp<tAsp*0.6||qAsp>tAsp*1.6)){
     return {ok:false,status:'locate_fail',regFlags:[],flags:['定位校验未通过：四点构成的形状与版式不符（请检查定位点是否被遮挡或印刷不清）'],warn:detWarn};
   }
   /* 按实际来源配对 mm 源：小锚顶替的角用锚点4/5的坐标参与单应，杜绝“配错源”造成的纵横比例失真 */
@@ -2415,7 +2417,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     return {x:a.x+a.s/2,y:a.y+a.s/2};
   });
   let H=null;
-  if(detGlobal&&detGlobal.tri&&detGlobal.tplIdx){
+  if(!opts.manualPts&&detGlobal&&detGlobal.tri&&detGlobal.tplIdx){
     const ti=detGlobal.tplIdx;
     H=solveAffine([srcPts[ti[0]],srcPts[ti[1]],srcPts[ti[2]]],
       [{x:pts[ti[0]].x,y:pts[ti[0]].y},{x:pts[ti[1]].x,y:pts[ti[1]].y},{x:pts[ti[2]].x,y:pts[ti[2]].y}]);
@@ -2424,10 +2426,15 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }else{
     H=solveHomo(srcPts,pts.map(function(p){return {x:p.x,y:p.y}}));
   }
+  /* 手动 4 点若退化（几乎共线/顺序错）solveHomo 会返回 null，给明确指引而非后续采样报错 */
+  if(!H){
+    return {ok:false,status:'locate_fail',regFlags:[],
+      flags:[opts.manualPts?'手动定位失败：4 点几乎共线或顺序有误（请按 左上→右上→右下→左下 重新点选，间距拉开）':'定位失败：无法根据定位点求解版式（请检查锚点是否清晰可见）'],warn:detWarn};
+  }
   /* 全局匹配的模板一致性校验：用 2 个小锚验证，防止桌面杂物拼成的假四边形被当成答题卡。
      窗口收紧到小锚尺寸（垂直 ±0.55s，避开 10mm 外的大锚），真实投影误差仅 0.3-1mm，
      错位四边形会产生 >10mm 的残差，4mm 判线两侧都有充足余量 */
-  if(globalUsed&&geometry.anchors[4]&&geometry.anchors[5]){
+  if(!opts.manualPts&&globalUsed&&geometry.anchors[4]&&geometry.anchors[5]){
     let checked=0,bad=0;
     [geometry.anchors[4],geometry.anchors[5]].forEach(function(a){
       const e=H(a.x+a.s/2,a.y+a.s/2);
@@ -2446,7 +2453,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   }
   /* 小锚残差校验（全局匹配下跳过） */
   const smallRef=det?det.small:[null,null];
-  if(!globalUsed&&geometry.anchors[4]&&geometry.anchors[5]&&smallRef[0]&&smallRef[1]){
+  if(!opts.manualPts&&!globalUsed&&geometry.anchors[4]&&geometry.anchors[5]&&smallRef[0]&&smallRef[1]){
     const e1=H(geometry.anchors[4].x+geometry.anchors[4].s/2,geometry.anchors[4].y+geometry.anchors[4].s/2);
     const e2=H(geometry.anchors[5].x+geometry.anchors[5].s/2,geometry.anchors[5].y+geometry.anchors[5].s/2);
     const d1=Math.sqrt((e1.x-smallRef[0].x)*(e1.x-smallRef[0].x)+(e1.y-smallRef[0].y)*(e1.y-smallRef[0].y))/smm;
