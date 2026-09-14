@@ -2464,11 +2464,14 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     }
   }
   /* 页码标记读数：左侧方块数量=页码。定位已完成（4大锚各页同位），故可直接读出页号并切换版式，
-     比二维码更鲁棒（模糊/低分辨率也能数清）；读不出则沿用传入页/二维码页 */
+     比二维码更鲁棒（模糊/低分辨率也能数清）；读不出则沿用传入页/二维码页。
+     对 minimal 二维码（只有模板ID+hash，不含真实页码）也启用页码标记纠正，
+     防止“传入 pageIdx 错误”或“旧版卡 hash 不匹配”时错页。完整版式二维码（flag=3）自带页码，优先相信。 */
   let pageMarkNo=null,effPage=page;
-  if(!layoutSlice&&layout.pages.length>1&&!opts.noPageMark){
+  const canUsePageMark=!layoutSlice||(layoutSlice.minimal);
+  if(layout.pages.length>1&&!opts.noPageMark&&canUsePageMark){
     pageMarkNo=readPageMarks(bin,cv.width,cv.height,H,smm);
-    if(pageMarkNo&&pageMarkNo>=1&&pageMarkNo<=layout.pages.length&&(pageMarkNo-1)!==pageIdx){
+    if(pageMarkNo&&pageMarkNo>=1&&pageMarkNo<=layout.pages.length){
       effPage=layout.pages[pageMarkNo-1];
     }
   }
@@ -2651,7 +2654,9 @@ async function scanExamPages(exam,files,onProgress,onPage,isAborted){
     if(isAborted&&isAborted())break;   /* 用户点了「停止识别」 */
     let dupNoWarned=false;   /* 同一批次内只提示一次考号冲突 */
     /* 页号候选顺序：识别内部会先按卡片左侧的页码方块直接定页（最可靠）；
-       此处的顺序只在页码读不出时（旧卡/标记被裁）用于逐个试配，顺序页优先以减少重试。 */
+       此处的顺序只在页码读不出时（旧卡/标记被裁）用于逐个试配，顺序页优先以减少重试。
+       注意：文件顺序页必须始终排在第一位，否则“当前页有二维码但模板首页无二维码”
+       或“二维码识别不稳定”时，会把首页错配到后续页。 */
     const seqIdx=Math.min(layout.pages.length-1,(it.pageNo||1)-1);
     let order;
     if(layout.pages.length===1){
@@ -2661,10 +2666,9 @@ async function scanExamPages(exam,files,onProgress,onPage,isAborted){
       try{hasQR=!!qrFromCanvas(it.cv)}catch(e){}
       const wq=[],nq=[];
       layout.pages.forEach(function(p,i){(p.qr?wq:nq).push(i)});
-      const grp=hasQR?wq:nq;
-      const at=grp.indexOf(seqIdx);
-      if(at>0){grp.splice(at,1);grp.unshift(seqIdx)} /* 同组内优先按输入顺序页，减少多余尝试 */
-      order=hasQR?wq.concat(nq):nq.concat(wq);
+      const same=(hasQR?wq:nq).filter(function(i){return i!==seqIdx});
+      const other=(hasQR?nq:wq).filter(function(i){return i!==seqIdx});
+      order=[seqIdx].concat(same).concat(other);
     }
     let res=null,pageIdx=order[0];
     for(const pi of order){
@@ -4900,7 +4904,8 @@ async function runAIWholeExam(ex,writeScore){
 async function redoPage(p,cv,layout,opts){
   opts=opts||{};
   /* 未显式指定页时自动匹配页号（修正历史错配的页：如把续页当首页扫出来的记录）；
-     显式指定 manualPts 时页号必须固定，否则手动锚点与版式不符 */
+     显式指定 manualPts 时页号必须固定，否则手动锚点与版式不符。
+     原页号必须始终排在 order[0]，避免二维码检测抖动或模板首页无二维码时错配到后续页。 */
   let res,pageIdx=opts.pageIdx;
   if(pageIdx==null&&!opts.manualPts&&layout.pages.length>1){
     let hasQR=false;
@@ -4908,10 +4913,9 @@ async function redoPage(p,cv,layout,opts){
     const wq=[],nq=[];
     layout.pages.forEach(function(pg,i){(pg.qr?wq:nq).push(i)});
     const pref=p.meta&&p.meta.pageIdx;
-    const grp=hasQR?wq:nq;
-    const at=grp.indexOf(pref);
-    if(at>0){grp.splice(at,1);grp.unshift(pref)} /* 原页号优先尝试，多数情况一次命中 */
-    const order=hasQR?wq.concat(nq):nq.concat(wq);
+    const same=(hasQR?wq:nq).filter(function(i){return i!==pref});
+    const other=(hasQR?nq:wq).filter(function(i){return i!==pref});
+    const order=[pref].concat(same).concat(other);
     for(const pi of order){
       res=await recognizeCanvas(cv,layout,pi,opts);
       pageIdx=pi;
