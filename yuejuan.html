@@ -2340,6 +2340,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 尝试读取二维码（先整页后裁剪） */
   const qrRaw=qrFromCanvas(cv);
   if(qrRaw){try{layoutSlice=await qrParsePayload(qrRaw);qrFound=true}catch(e){}}
+  const minimalQR=!!(layoutSlice&&layoutSlice.minimal);  /* 最小码(无页码)标志：layoutSlice 随后会被覆盖为版式对象，须提前留存 */
   if(layoutSlice&&layoutSlice.minimal){
     try{
       const mtpl=await dbGet('templates',layoutSlice.tplId);
@@ -2463,19 +2464,25 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       }catch(e){}
     }
   }
-  /* 页码标记读数：左侧方块数量=页码。定位已完成（4大锚各页同位），故可直接读出页号并切换版式，
-     比二维码更鲁棒（模糊/低分辨率也能数清）；读不出则沿用传入页/二维码页。
-     对 minimal 二维码（只有模板ID+hash，不含真实页码）也启用页码标记纠正，
-     防止“传入 pageIdx 错误”或“旧版卡 hash 不匹配”时错页。完整版式二维码（flag=3）自带页码，优先相信。 */
+  /* 页码标记读数：续页左侧方块数量=页码，模糊/低分辨率也能数清，是续页判页最可靠依据。
+     但“有二维码(无页码)即首页”是更强的首页标志——版式层面仅首页对象带 qr 坐标、续页 qr 一律为 null，
+     且该最小码(minimal)只含模板ID+hash、不含真实页码，无法反查页号。故一旦检测到 minimal 二维码，
+     直接锁定首页，不再用页码方块（避免首页左侧考号区边框等干扰黑块被多计成 2 而错页）。
+     完整版式二维码（flag=3，含 groups 自带页码）走候选页号定版式，不在此处理。 */
   let pageMarkNo=null,effPage=page;
-  const canUsePageMark=!layoutSlice||(layoutSlice.minimal);
-  if(layout.pages.length>1&&!opts.noPageMark&&canUsePageMark){
-    pageMarkNo=readPageMarks(bin,cv.width,cv.height,H,smm);
-    if(pageMarkNo&&pageMarkNo>=1&&pageMarkNo<=layout.pages.length){
-      effPage=layout.pages[pageMarkNo-1];
+  const isMinimalQR=qrFound&&minimalQR;
+  if(layout.pages.length>1&&!opts.noPageMark){
+    if(isMinimalQR){
+      effPage=layout.pages[0];   /* 首页独有标志：检测到 minimal 二维码即锁定首页 */
+      pageMarkNo='QR';
+    }else if(!layoutSlice){
+      pageMarkNo=readPageMarks(bin,cv.width,cv.height,H,smm);
+      if(pageMarkNo&&pageMarkNo>=1&&pageMarkNo<=layout.pages.length){
+        effPage=layout.pages[pageMarkNo-1];
+      }
     }
   }
-  const pg2=(layoutSlice&&Array.isArray(layoutSlice.groups))?layoutSlice:effPage;
+  const pg2=(!minimalQR&&layoutSlice&&Array.isArray(layoutSlice.groups)&&layoutSlice.groups.length)?layoutSlice:effPage;
   const reg=pg2.reg||null;
   const regDigitsN=(pg2.regDigits!=null)?pg2.regDigits:page.regDigits;
   /* 考号识别（含同步条行校正；无考号区页面跳过并向组装阶段沿用上一页考号） */
