@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>白居易诗词选 · 逐句注释与译文</title>
+<title>白居易诗词选 · 更新主题作文</title>
 <style>
   :root {
     --base-font-size: 17px;
+    --toolbar-h: 3.2rem;
     --ink: #2b2b2b;
     --ink-soft: #5c5c5c;
     --accent: #8c5a2b;
@@ -14,9 +15,11 @@
     --paper: #faf6ee;
     --card: #fffdf7;
     --line: #e5d9c3;
+    --green: #3d6b4f;
+    --green-light: #e8f0e6;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { font-size: var(--base-font-size); }
+  html { font-size: var(--base-font-size); scroll-behavior: smooth; }
   body {
     font-family: "Songti SC", "SimSun", "STSong", "Noto Serif SC", serif;
     background: var(--paper);
@@ -31,7 +34,8 @@
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
     display: flex; align-items: center; justify-content: center;
-    gap: 0.6rem; padding: 0.6rem 1rem; flex-wrap: wrap;
+    gap: 0.6rem; padding: 0.45rem 1rem; flex-wrap: wrap;
+    height: var(--toolbar-h);
   }
   .toolbar .title-tag {
     font-weight: 700; color: var(--accent); font-size: 1rem;
@@ -41,7 +45,7 @@
     font-family: inherit; font-size: 1rem;
     border: 1px solid var(--line); background: var(--card);
     color: var(--ink); border-radius: 0.4rem;
-    padding: 0.25rem 0.9rem; cursor: pointer;
+    padding: 0.2rem 0.9rem; cursor: pointer;
     transition: background 0.15s, transform 0.1s;
   }
   .btn:hover { background: var(--accent-light); }
@@ -51,19 +55,81 @@
     min-width: 6.5rem; text-align: center;
   }
   .reset-btn { color: var(--accent); }
-  /* ---- 页头 ---- */
+  .menu-btn { display: none; }
+  /* ---- 整体布局 ---- */
+  .layout { display: flex; align-items: flex-start; max-width: 76rem; margin: 0 auto; }
+  /* ---- 左侧目录 ---- */
+  .sidebar {
+    position: sticky; top: var(--toolbar-h);
+    width: 15.5rem; flex-shrink: 0;
+    height: calc(100vh - var(--toolbar-h));
+    overflow-y: auto;
+    background: rgba(245, 234, 216, 0.45);
+    border-right: 1px solid var(--line);
+    padding: 1rem 0.8rem 2rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .sidebar-title {
+    font-size: 1.1rem; font-weight: 700; color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.4rem; margin-bottom: 0.8rem;
+    letter-spacing: 0.1em; text-align: center;
+  }
+  .nav-group {
+    font-size: 0.82rem; font-weight: 700; color: var(--ink-soft);
+    margin: 1rem 0 0.35rem; padding-left: 0.3rem;
+    letter-spacing: 0.08em;
+  }
+  .nav-group:first-of-type { margin-top: 0.2rem; }
+  .nav-link {
+    display: block; text-decoration: none; color: var(--ink);
+    font-size: 0.88rem; line-height: 1.5;
+    padding: 0.18rem 0.45rem;
+    border-left: 3px solid transparent;
+    border-radius: 0 0.3rem 0.3rem 0;
+    transition: background 0.15s, color 0.15s;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .nav-link:hover { background: var(--accent-light); color: var(--accent); }
+  .nav-link.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-left-color: var(--accent);
+    font-weight: 700;
+  }
+  .nav-link.green.active { background: var(--green-light); color: var(--green); border-left-color: var(--green); }
+  .backdrop {
+    display: none;
+    position: fixed; inset: 0; z-index: 150;
+    background: rgba(0,0,0,0.35);
+  }
+  .backdrop.show { display: block; }
+  /* ---- 内容区 ---- */
+  .content { flex: 1; min-width: 0; padding: 0 1.4rem; }
   header {
-    text-align: center; padding: 3rem 1.25rem 1.5rem;
+    text-align: center; padding: 2.4rem 1.25rem 1.3rem;
     border-bottom: 2px solid var(--line);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
   header h1 {
-    font-size: 2.1rem; color: var(--accent);
+    font-size: 2rem; color: var(--accent);
     letter-spacing: 0.15em; margin-bottom: 0.4rem;
   }
   header p { color: var(--ink-soft); font-size: 1rem; }
+  .section-head {
+    font-size: 1.45rem; font-weight: 700;
+    color: var(--accent);
+    border-left: 5px solid var(--accent);
+    padding-left: 0.85rem;
+    margin: 2.2rem 0 1.2rem;
+    letter-spacing: 0.08em;
+  }
+  .section-head.green { color: var(--green); border-left-color: var(--green); }
+  main { max-width: 52rem; margin: 0 auto; }
   /* ---- 诗词卡片 ---- */
-  main { max-width: 52rem; margin: 0 auto; padding: 0 1.1rem; }
   .poem {
     background: var(--card);
     border: 1px solid var(--line);
@@ -105,121 +171,189 @@
   }
   .note p { margin: 0.35rem 0; }
   .note .w { color: var(--ink-soft); }
+  /* ---- 作文卡片 ---- */
+  .essay .poem-num { background: var(--green); }
+  .essay .poem-title { color: var(--green); }
+  .essay-text p {
+    text-indent: 2em;
+    margin-bottom: 0.9em;
+    text-align: justify;
+  }
+  .essay-text p:last-child { margin-bottom: 0; }
   footer {
     text-align: center; color: var(--ink-soft);
     font-size: 0.85rem; margin-top: 2.5rem;
   }
-  @media (max-width: 40rem) {
-    header h1 { font-size: 1.6rem; }
+  /* ---- 移动端 ---- */
+  @media (max-width: 56rem) {
+    .layout { display: block; }
+    .sidebar {
+      position: fixed; top: 0; left: -17rem;
+      height: 100vh; z-index: 200;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+      transition: left 0.25s ease;
+      background: #faf6ee;
+    }
+    .sidebar.open { left: 0; }
+    .menu-btn { display: inline-block; }
+    .content { padding: 0 0.9rem; }
+    header h1 { font-size: 1.5rem; }
     .poem { padding: 1.2rem 1.1rem; }
     .poem-text { font-size: 1.08rem; }
+    .title-tag { display: none; }
   }
 </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <span class="title-tag">白居易诗词 · 注释译文</span>
+  <button class="btn menu-btn" id="menuBtn" title="打开目录">☰ 目录</button>
+  <span class="title-tag">白居易诗词选 · 更新主题作文</span>
   <button class="btn" id="zoomOut" title="缩小字体">A−</button>
   <span class="size-info" id="sizeInfo">字号 100%</span>
   <button class="btn" id="zoomIn" title="放大字体">A＋</button>
   <button class="btn reset-btn" id="zoomReset" title="恢复默认字号">重置</button>
 </div>
 
-<header>
-  <h1>白居易诗词选</h1>
-  <p>逐句注释与译文 · 共 25 首</p>
-</header>
+<div class="layout">
 
-<main>
+  <!-- 左侧目录 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">目 录</div>
+    <nav id="nav">
+      <div class="nav-group">白居易诗词选（25 首）</div>
+      <a class="nav-link" href="#poem-3">3. 钱塘湖春行</a>
+      <a class="nav-link" href="#poem-4">4. 赋得古原草送别</a>
+      <a class="nav-link" href="#poem-5">5. 问刘十九</a>
+      <a class="nav-link" href="#poem-6">6. 大林寺桃花</a>
+      <a class="nav-link" href="#poem-7">7. 卖炭翁</a>
+      <a class="nav-link" href="#poem-8">8. 梦微之</a>
+      <a class="nav-link" href="#poem-9">9. 暮江吟</a>
+      <a class="nav-link" href="#poem-10">10. 忆江南（其一）</a>
+      <a class="nav-link" href="#poem-11">11. 花非花</a>
+      <a class="nav-link" href="#poem-12">12. 池上</a>
+      <a class="nav-link" href="#poem-13">13. 长相思·汴水流</a>
+      <a class="nav-link" href="#poem-14">14. 夜雨</a>
+      <a class="nav-link" href="#poem-15">15. 观刈麦</a>
+      <a class="nav-link" href="#poem-16">16. 浪淘沙·借问江潮与海水</a>
+      <a class="nav-link" href="#poem-17">17. 放言五首·其三</a>
+      <a class="nav-link" href="#poem-18">18. 白云泉</a>
+      <a class="nav-link" href="#poem-19">19. 夜雪</a>
+      <a class="nav-link" href="#poem-20">20. 南浦别</a>
+      <a class="nav-link" href="#poem-21">21. 鸟</a>
+      <a class="nav-link" href="#poem-22">22. 望月有感</a>
+      <a class="nav-link" href="#poem-23">23. 醉赠刘二十八使君</a>
+      <a class="nav-link" href="#poem-24">24. 后宫词</a>
+      <a class="nav-link" href="#poem-25">25. 邯郸冬至夜思家</a>
+      <a class="nav-link" href="#poem-26">26. 奉和令公绿野堂种花</a>
+      <a class="nav-link" href="#poem-27">27. 对酒五首·其二</a>
+      <div class="nav-group">更新主题作文（4 篇）</div>
+      <a class="nav-link green" href="#essay-1">1. 自我更新</a>
+      <a class="nav-link green" href="#essay-2">2. 更新·拥抱温柔</a>
+      <a class="nav-link green" href="#essay-3">3. 更迭破出</a>
+      <a class="nav-link green" href="#essay-4">4. 更新自我，方能更好地成就自我</a>
+    </nav>
+  </aside>
+  <div class="backdrop" id="backdrop"></div>
 
-<!-- 3 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">3</span>
-    <span class="poem-title">钱塘湖春行</span>
-  </div>
-  <div class="poem-text">孤山寺北贾亭西，水面初平云脚低。
+  <!-- 内容区 -->
+  <div class="content">
+
+    <header>
+      <h1>白居易诗词选</h1>
+      <p>逐句注释与译文 · 共 25 首</p>
+    </header>
+
+    <main>
+      <div class="section-head">一、白居易诗词选</div>
+
+      <!-- 3 -->
+      <section class="poem" id="poem-3">
+        <div class="poem-head">
+          <span class="poem-num">3</span>
+          <span class="poem-title">钱塘湖春行</span>
+        </div>
+        <div class="poem-text">孤山寺北贾亭西，水面初平云脚低。
 几处早莺争暖树，谁家新燕啄春泥。
 乱花渐欲迷人眼，浅草才能没马蹄。
 最爱湖东行不足，绿杨阴里白沙堤。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>孤山寺北贾亭西</strong>：孤山寺，杭州西湖孤山上的寺庙。贾亭，唐代杭州刺史贾全所建的亭子。<span class="w">译文：在孤山寺的北面、贾亭的西面。</span></p>
-    <p><strong>水面初平云脚低</strong>：水面初平，湖面刚刚与堤岸齐平。云脚低，云层低垂，贴近水面。<span class="w">译文：湖水刚刚涨到与岸齐平，云层低垂贴近水面。</span></p>
-    <p><strong>几处早莺争暖树</strong>：早莺，早春的黄莺。争暖树，争着飞到向阳的树枝上。<span class="w">译文：几只早出的黄莺争着飞到向阳的暖树上。</span></p>
-    <p><strong>谁家新燕啄春泥</strong>：新燕，新来的燕子。啄春泥，衔取湿润的泥土筑巢。<span class="w">译文：是谁家新来的燕子在衔取春泥筑巢。</span></p>
-    <p><strong>乱花渐欲迷人眼</strong>：乱花，各种杂花。渐欲，渐渐将要。迷人眼，让人眼花缭乱。<span class="w">译文：各种花儿纷纷开放，渐渐使人眼花缭乱。</span></p>
-    <p><strong>浅草才能没马蹄</strong>：浅草，初生短小的青草。才能，刚刚能够。没马蹄，没过马蹄。<span class="w">译文：嫩绿的小草刚能没过马蹄。</span></p>
-    <p><strong>最爱湖东行不足</strong>：最爱，最喜爱。湖东，西湖的东面。行不足，走不够、游赏不尽。<span class="w">译文：最喜爱湖东的景色，怎么走也走不够。</span></p>
-    <p><strong>绿杨阴里白沙堤</strong>：绿杨阴，绿杨树的树荫。白沙堤，即白堤，在西湖东面。<span class="w">译文：在绿杨树荫下的白沙堤上流连忘返。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>孤山寺北贾亭西</strong>：孤山寺，杭州西湖孤山上的寺庙。贾亭，唐代杭州刺史贾全所建的亭子。<span class="w">译文：在孤山寺的北面、贾亭的西面。</span></p>
+          <p><strong>水面初平云脚低</strong>：水面初平，湖面刚刚与堤岸齐平。云脚低，云层低垂，贴近水面。<span class="w">译文：湖水刚刚涨到与岸齐平，云层低垂贴近水面。</span></p>
+          <p><strong>几处早莺争暖树</strong>：早莺，早春的黄莺。争暖树，争着飞到向阳的树枝上。<span class="w">译文：几只早出的黄莺争着飞到向阳的暖树上。</span></p>
+          <p><strong>谁家新燕啄春泥</strong>：新燕，新来的燕子。啄春泥，衔取湿润的泥土筑巢。<span class="w">译文：是谁家新来的燕子在衔取春泥筑巢。</span></p>
+          <p><strong>乱花渐欲迷人眼</strong>：乱花，各种杂花。渐欲，渐渐将要。迷人眼，让人眼花缭乱。<span class="w">译文：各种花儿纷纷开放，渐渐使人眼花缭乱。</span></p>
+          <p><strong>浅草才能没马蹄</strong>：浅草，初生短小的青草。才能，刚刚能够。没马蹄，没过马蹄。<span class="w">译文：嫩绿的小草刚能没过马蹄。</span></p>
+          <p><strong>最爱湖东行不足</strong>：最爱，最喜爱。湖东，西湖的东面。行不足，走不够、游赏不尽。<span class="w">译文：最喜爱湖东的景色，怎么走也走不够。</span></p>
+          <p><strong>绿杨阴里白沙堤</strong>：绿杨阴，绿杨树的树荫。白沙堤，即白堤，在西湖东面。<span class="w">译文：在绿杨树荫下的白沙堤上流连忘返。</span></p>
+        </div>
+      </section>
 
-<!-- 4 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">4</span>
-    <span class="poem-title">赋得古原草送别</span>
-  </div>
-  <div class="poem-text">离离原上草，一岁一枯荣。
+      <!-- 4 -->
+      <section class="poem" id="poem-4">
+        <div class="poem-head">
+          <span class="poem-num">4</span>
+          <span class="poem-title">赋得古原草送别</span>
+        </div>
+        <div class="poem-text">离离原上草，一岁一枯荣。
 野火烧不尽，春风吹又生。
 远芳侵古道，晴翠接荒城。
 又送王孙去，萋萋满别情。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>离离原上草</strong>：离离，茂盛繁密的样子。原，原野。<span class="w">译文：原野上长满了繁茂的青草。</span></p>
-    <p><strong>一岁一枯荣</strong>：一岁，一年。枯，枯萎。荣，茂盛。<span class="w">译文：一年之中，一次枯萎一次茂盛。</span></p>
-    <p><strong>野火烧不尽</strong>：野火，野外的大火。烧不尽，烧不完。<span class="w">译文：野火再猛也烧不完这些草根。</span></p>
-    <p><strong>春风吹又生</strong>：又生，重新生长。<span class="w">译文：春风吹过时，它们又再生了。</span></p>
-    <p><strong>远芳侵古道</strong>：远芳，远处的芳草。侵，蔓延、覆盖。古道，古老的道路。<span class="w">译文：远处的芳草蔓延到古老的驿道上。</span></p>
-    <p><strong>晴翠接荒城</strong>：晴翠，阳光下翠绿的草色。接，连接。荒城，荒凉的城池。<span class="w">译文：阳光下碧绿的草色连接着荒城。</span></p>
-    <p><strong>又送王孙去</strong>：王孙，指远行的朋友（典出《楚辞·招隐士》"王孙游兮不归，春草生兮萋萋"）。<span class="w">译文：又要送别远行的朋友离去。</span></p>
-    <p><strong>萋萋满别情</strong>：萋萋，草木茂盛的样子。满别情，满怀着离别的深情。<span class="w">译文：茂盛的青草也满怀离别的深情。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>离离原上草</strong>：离离，茂盛繁密的样子。原，原野。<span class="w">译文：原野上长满了繁茂的青草。</span></p>
+          <p><strong>一岁一枯荣</strong>：一岁，一年。枯，枯萎。荣，茂盛。<span class="w">译文：一年之中，一次枯萎一次茂盛。</span></p>
+          <p><strong>野火烧不尽</strong>：野火，野外的大火。烧不尽，烧不完。<span class="w">译文：野火再猛也烧不完这些草根。</span></p>
+          <p><strong>春风吹又生</strong>：又生，重新生长。<span class="w">译文：春风吹过时，它们又再生了。</span></p>
+          <p><strong>远芳侵古道</strong>：远芳，远处的芳草。侵，蔓延、覆盖。古道，古老的道路。<span class="w">译文：远处的芳草蔓延到古老的驿道上。</span></p>
+          <p><strong>晴翠接荒城</strong>：晴翠，阳光下翠绿的草色。接，连接。荒城，荒凉的城池。<span class="w">译文：阳光下碧绿的草色连接着荒城。</span></p>
+          <p><strong>又送王孙去</strong>：王孙，指远行的朋友（典出《楚辞·招隐士》"王孙游兮不归，春草生兮萋萋"）。<span class="w">译文：又要送别远行的朋友离去。</span></p>
+          <p><strong>萋萋满别情</strong>：萋萋，草木茂盛的样子。满别情，满怀着离别的深情。<span class="w">译文：茂盛的青草也满怀离别的深情。</span></p>
+        </div>
+      </section>
 
-<!-- 5 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">5</span>
-    <span class="poem-title">问刘十九</span>
-  </div>
-  <div class="poem-text">绿蚁新醅酒，红泥小火炉。
+      <!-- 5 -->
+      <section class="poem" id="poem-5">
+        <div class="poem-head">
+          <span class="poem-num">5</span>
+          <span class="poem-title">问刘十九</span>
+        </div>
+        <div class="poem-text">绿蚁新醅酒，红泥小火炉。
 晚来天欲雪，能饮一杯无？</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>绿蚁新醅酒</strong>：绿蚁，新酿的酒面上浮起的绿色泡沫，状如蚂蚁。醅，未过滤的酒。<span class="w">译文：新酿的米酒上浮着绿色的泡沫。</span></p>
-    <p><strong>红泥小火炉</strong>：红泥，红泥制成的小火炉。<span class="w">译文：红泥做成的小火炉烧得正旺。</span></p>
-    <p><strong>晚来天欲雪</strong>：晚来，傍晚来临。天欲雪，天将要下雪。<span class="w">译文：傍晚时分，天快要下雪了。</span></p>
-    <p><strong>能饮一杯无</strong>：无，同"否"，疑问语气词。<span class="w">译文：能来喝上一杯吗？</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>绿蚁新醅酒</strong>：绿蚁，新酿的酒面上浮起的绿色泡沫，状如蚂蚁。醅，未过滤的酒。<span class="w">译文：新酿的米酒上浮着绿色的泡沫。</span></p>
+          <p><strong>红泥小火炉</strong>：红泥，红泥制成的小火炉。<span class="w">译文：红泥做成的小火炉烧得正旺。</span></p>
+          <p><strong>晚来天欲雪</strong>：晚来，傍晚来临。天欲雪，天将要下雪。<span class="w">译文：傍晚时分，天快要下雪了。</span></p>
+          <p><strong>能饮一杯无</strong>：无，同"否"，疑问语气词。<span class="w">译文：能来喝上一杯吗？</span></p>
+        </div>
+      </section>
 
-<!-- 6 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">6</span>
-    <span class="poem-title">大林寺桃花</span>
-  </div>
-  <div class="poem-text">人间四月芳菲尽，山寺桃花始盛开。
+      <!-- 6 -->
+      <section class="poem" id="poem-6">
+        <div class="poem-head">
+          <span class="poem-num">6</span>
+          <span class="poem-title">大林寺桃花</span>
+        </div>
+        <div class="poem-text">人间四月芳菲尽，山寺桃花始盛开。
 长恨春归无觅处，不知转入此中来。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>人间四月芳菲尽</strong>：人间，山下世俗之地。芳菲，花草的芳香和艳丽。尽，凋谢完。<span class="w">译文：山下四月里，百花已经凋谢殆尽。</span></p>
-    <p><strong>山寺桃花始盛开</strong>：山寺，大林寺。始，才、刚刚。盛开，全面绽放。<span class="w">译文：山上寺院的桃花才刚刚盛开。</span></p>
-    <p><strong>长恨春归无觅处</strong>：长恨，常常遗憾。春归，春天归去。无觅处，找不到去处。<span class="w">译文：我常常遗憾春天归去无处寻觅。</span></p>
-    <p><strong>不知转入此中来</strong>：不知，没想到。转入，转移到。此中，这里。<span class="w">译文：没想到春天是转到这山中来了。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>人间四月芳菲尽</strong>：人间，山下世俗之地。芳菲，花草的芳香和艳丽。尽，凋谢完。<span class="w">译文：山下四月里，百花已经凋谢殆尽。</span></p>
+          <p><strong>山寺桃花始盛开</strong>：山寺，大林寺。始，才、刚刚。盛开，全面绽放。<span class="w">译文：山上寺院的桃花才刚刚盛开。</span></p>
+          <p><strong>长恨春归无觅处</strong>：长恨，常常遗憾。春归，春天归去。无觅处，找不到去处。<span class="w">译文：我常常遗憾春天归去无处寻觅。</span></p>
+          <p><strong>不知转入此中来</strong>：不知，没想到。转入，转移到。此中，这里。<span class="w">译文：没想到春天是转到这山中来了。</span></p>
+        </div>
+      </section>
 
-<!-- 7 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">7</span>
-    <span class="poem-title">卖炭翁</span>
-  </div>
-  <div class="poem-text">卖炭翁，伐薪烧炭南山中。
+      <!-- 7 -->
+      <section class="poem" id="poem-7">
+        <div class="poem-head">
+          <span class="poem-num">7</span>
+          <span class="poem-title">卖炭翁</span>
+        </div>
+        <div class="poem-text">卖炭翁，伐薪烧炭南山中。
 满面尘灰烟火色，两鬓苍苍十指黑。
 卖炭得钱何所营？身上衣裳口中食。
 可怜身上衣正单，心忧炭贱愿天寒。
@@ -229,166 +363,166 @@
 手把文书口称敕，回车叱牛牵向北。
 一车炭，千余斤，宫使驱将惜不得。
 半匹红纱一丈绫，系向牛头充炭直。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>卖炭翁，伐薪烧炭南山中</strong>：伐薪，砍伐木柴。南山，终南山。<span class="w">译文：有一位卖炭的老翁，在终南山中砍柴烧炭。</span></p>
-    <p><strong>满面尘灰烟火色，两鬓苍苍十指黑</strong>：烟火色，烟熏火烤的颜色。苍苍，灰白色。<span class="w">译文：满脸都是灰尘烟火的痕迹，两鬓灰白，十个指头都是黑的。</span></p>
-    <p><strong>卖炭得钱何所营？身上衣裳口中食</strong>：何所营，用来经营什么、用来做什么。<span class="w">译文：卖炭得来的钱做什么用呢？不过是身上的衣裳和口中的食物。</span></p>
-    <p><strong>可怜身上衣正单，心忧炭贱愿天寒</strong>：可怜，令人同情。衣正单，衣服正单薄。愿天寒，希望天更寒冷。<span class="w">译文：可怜他身上穿的衣服正单薄，却担心炭价太低而盼望天气更寒冷。</span></p>
-    <p><strong>夜来城外一尺雪，晓驾炭车辗冰辙</strong>：夜来，夜间。一尺雪，下了一尺厚的雪。晓，天亮。辗冰辙，在结冰的车辙上碾压前行。<span class="w">译文：夜里城外下了一尺厚的雪，天刚亮就驾着炭车碾着冰辙赶路。</span></p>
-    <p><strong>牛困人饥日已高，市南门外泥中歇</strong>：牛困，牛已困乏。人饥，人已饥饿。市南门，长安集市的南门。泥中歇，在泥泞中歇息。<span class="w">译文：牛累了人也饿了，太阳已经升高，在集市南门外的泥泞中歇息。</span></p>
-    <p><strong>翩翩两骑来是谁？黄衣使者白衫儿</strong>：翩翩，轻快潇洒的样子。两骑，两个骑马的人。黄衣使者，宫中派出的太监。白衫儿，穿白衫的差役。<span class="w">译文：轻快地骑马而来的是谁？是黄衣使者和白衫儿差役。</span></p>
-    <p><strong>手把文书口称敕，回车叱牛牵向北</strong>：手把，手里拿着。文书，公文。称敕，口称奉皇帝的命令。回车，掉转车头。叱牛，呵斥牛。牵向北，牵着往北走。<span class="w">译文：手里拿着公文，嘴里说是奉皇帝的命令，掉转车头呵斥着牛往北边的皇宫拉去。</span></p>
-    <p><strong>一车炭，千余斤，宫使驱将惜不得</strong>：千余斤，一千多斤。宫使，宫廷使者。驱将，赶着走。惜不得，心疼可惜也没有办法。<span class="w">译文：一车炭有一千多斤重，宫使赶着牛车走了，老翁虽然心疼也没有办法。</span></p>
-    <p><strong>半匹红纱一丈绫，系向牛头充炭直</strong>：半匹，半匹布（唐代匹为四丈）。红纱，红纱绢。绫，一种丝织品。充炭直，充当炭的价钱。<span class="w">译文：只给了半匹红纱和一丈绫罗，系在牛头上，就算是这一车炭的价钱了。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>卖炭翁，伐薪烧炭南山中</strong>：伐薪，砍伐木柴。南山，终南山。<span class="w">译文：有一位卖炭的老翁，在终南山中砍柴烧炭。</span></p>
+          <p><strong>满面尘灰烟火色，两鬓苍苍十指黑</strong>：烟火色，烟熏火烤的颜色。苍苍，灰白色。<span class="w">译文：满脸都是灰尘烟火的痕迹，两鬓灰白，十个指头都是黑的。</span></p>
+          <p><strong>卖炭得钱何所营？身上衣裳口中食</strong>：何所营，用来经营什么、用来做什么。<span class="w">译文：卖炭得来的钱做什么用呢？不过是身上的衣裳和口中的食物。</span></p>
+          <p><strong>可怜身上衣正单，心忧炭贱愿天寒</strong>：可怜，令人同情。衣正单，衣服正单薄。愿天寒，希望天更寒冷。<span class="w">译文：可怜他身上穿的衣服正单薄，却担心炭价太低而盼望天气更寒冷。</span></p>
+          <p><strong>夜来城外一尺雪，晓驾炭车辗冰辙</strong>：夜来，夜间。一尺雪，下了一尺厚的雪。晓，天亮。辗冰辙，在结冰的车辙上碾压前行。<span class="w">译文：夜里城外下了一尺厚的雪，天刚亮就驾着炭车碾着冰辙赶路。</span></p>
+          <p><strong>牛困人饥日已高，市南门外泥中歇</strong>：牛困，牛已困乏。人饥，人已饥饿。市南门，长安集市的南门。泥中歇，在泥泞中歇息。<span class="w">译文：牛累了人也饿了，太阳已经升高，在集市南门外的泥泞中歇息。</span></p>
+          <p><strong>翩翩两骑来是谁？黄衣使者白衫儿</strong>：翩翩，轻快潇洒的样子。两骑，两个骑马的人。黄衣使者，宫中派出的太监。白衫儿，穿白衫的差役。<span class="w">译文：轻快地骑马而来的是谁？是黄衣使者和白衫儿差役。</span></p>
+          <p><strong>手把文书口称敕，回车叱牛牵向北</strong>：手把，手里拿着。文书，公文。称敕，口称奉皇帝的命令。回车，掉转车头。叱牛，呵斥牛。牵向北，牵着往北走。<span class="w">译文：手里拿着公文，嘴里说是奉皇帝的命令，掉转车头呵斥着牛往北边的皇宫拉去。</span></p>
+          <p><strong>一车炭，千余斤，宫使驱将惜不得</strong>：千余斤，一千多斤。宫使，宫廷使者。驱将，赶着走。惜不得，心疼可惜也没有办法。<span class="w">译文：一车炭有一千多斤重，宫使赶着牛车走了，老翁虽然心疼也没有办法。</span></p>
+          <p><strong>半匹红纱一丈绫，系向牛头充炭直</strong>：半匹，半匹布（唐代匹为四丈）。红纱，红纱绢。绫，一种丝织品。充炭直，充当炭的价钱。<span class="w">译文：只给了半匹红纱和一丈绫罗，系在牛头上，就算是这一车炭的价钱了。</span></p>
+        </div>
+      </section>
 
-<!-- 8 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">8</span>
-    <span class="poem-title">梦微之<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">夜来携手梦同游，晨起盈巾泪莫收。
+      <!-- 8 -->
+      <section class="poem" id="poem-8">
+        <div class="poem-head">
+          <span class="poem-num">8</span>
+          <span class="poem-title">梦微之<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">夜来携手梦同游，晨起盈巾泪莫收。
 漳浦老身三度病，咸阳宿草八回秋。
 君埋泉下泥销骨，我寄人间雪满头。
 阿卫韩郎相次去，夜台茫昧得知不？</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>夜来携手梦同游</strong>：夜来，夜里。携手，手拉着手。梦同游，在梦中一同游玩。<span class="w">译文：夜里在梦中与您携手同游。</span></p>
-    <p><strong>晨起盈巾泪莫收</strong>：晨起，早晨起来。盈巾，泪水沾满手巾。莫收，止不住。<span class="w">译文：早晨醒来，泪水沾满了手巾，止也止不住。</span></p>
-    <p><strong>漳浦老身三度病</strong>：漳浦，漳州一带，指白居易晚年居住之地。老身，老人自称。三度病，多次生病。<span class="w">译文：我在漳浦年老多病，已经病了好几次。</span></p>
-    <p><strong>咸阳宿草八回秋</strong>：咸阳，指元稹的墓地所在。宿草，隔年的旧草。八回秋，过了八个秋天。<span class="w">译文：您的墓上已经长满了八年的宿草。</span></p>
-    <p><strong>君埋泉下泥销骨</strong>：埋泉下，葬在黄泉之下。泥销骨，泥土中骨肉已经销蚀。<span class="w">译文：您葬在黄泉之下，骨肉已化入泥土。</span></p>
-    <p><strong>我寄人间雪满头</strong>：寄，寄居、暂留。雪满头，白发满头如雪。<span class="w">译文：我暂留在人间，已是满头白发。</span></p>
-    <p><strong>阿卫韩郎相次去</strong>：阿卫，元稹的儿子。韩郎，元稹的女婿。相次去，相继去世。<span class="w">译文：阿卫和韩郎也相继离世了。</span></p>
-    <p><strong>夜台茫昧得知不</strong>：夜台，墓穴、阴间。茫昧，昏暗不明。得知不，知不知道呢？<span class="w">译文：您在阴间昏暗之中，是否知道这些呢？</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>夜来携手梦同游</strong>：夜来，夜里。携手，手拉着手。梦同游，在梦中一同游玩。<span class="w">译文：夜里在梦中与您携手同游。</span></p>
+          <p><strong>晨起盈巾泪莫收</strong>：晨起，早晨起来。盈巾，泪水沾满手巾。莫收，止不住。<span class="w">译文：早晨醒来，泪水沾满了手巾，止也止不住。</span></p>
+          <p><strong>漳浦老身三度病</strong>：漳浦，漳州一带，指白居易晚年居住之地。老身，老人自称。三度病，多次生病。<span class="w">译文：我在漳浦年老多病，已经病了好几次。</span></p>
+          <p><strong>咸阳宿草八回秋</strong>：咸阳，指元稹的墓地所在。宿草，隔年的旧草。八回秋，过了八个秋天。<span class="w">译文：您的墓上已经长满了八年的宿草。</span></p>
+          <p><strong>君埋泉下泥销骨</strong>：埋泉下，葬在黄泉之下。泥销骨，泥土中骨肉已经销蚀。<span class="w">译文：您葬在黄泉之下，骨肉已化入泥土。</span></p>
+          <p><strong>我寄人间雪满头</strong>：寄，寄居、暂留。雪满头，白发满头如雪。<span class="w">译文：我暂留在人间，已是满头白发。</span></p>
+          <p><strong>阿卫韩郎相次去</strong>：阿卫，元稹的儿子。韩郎，元稹的女婿。相次去，相继去世。<span class="w">译文：阿卫和韩郎也相继离世了。</span></p>
+          <p><strong>夜台茫昧得知不</strong>：夜台，墓穴、阴间。茫昧，昏暗不明。得知不，知不知道呢？<span class="w">译文：您在阴间昏暗之中，是否知道这些呢？</span></p>
+        </div>
+      </section>
 
-<!-- 9 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">9</span>
-    <span class="poem-title">暮江吟</span>
-  </div>
-  <div class="poem-text">一道残阳铺水中，半江瑟瑟半江红。
+      <!-- 9 -->
+      <section class="poem" id="poem-9">
+        <div class="poem-head">
+          <span class="poem-num">9</span>
+          <span class="poem-title">暮江吟</span>
+        </div>
+        <div class="poem-text">一道残阳铺水中，半江瑟瑟半江红。
 可怜九月初三夜，露似真珠月似弓。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>一道残阳铺水中</strong>：一道，一道光线。残阳，夕阳。铺，铺展、照射。<span class="w">译文：一道夕阳的余晖铺展在江水之中。</span></p>
-    <p><strong>半江瑟瑟半江红</strong>：瑟瑟，碧绿色（原指宝石色）。<span class="w">译文：江水一半碧绿一半鲜红。</span></p>
-    <p><strong>可怜九月初三夜</strong>：可怜，可爱。九月初三，农历九月初三。<span class="w">译文：最可爱的是九月初三的夜晚。</span></p>
-    <p><strong>露似真珠月似弓</strong>：真珠，即珍珠。月似弓，弯月像弓箭。<span class="w">译文：露水像珍珠一样晶莹，月亮像弯弓一样挂在天空。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>一道残阳铺水中</strong>：一道，一道光线。残阳，夕阳。铺，铺展、照射。<span class="w">译文：一道夕阳的余晖铺展在江水之中。</span></p>
+          <p><strong>半江瑟瑟半江红</strong>：瑟瑟，碧绿色（原指宝石色）。<span class="w">译文：江水一半碧绿一半鲜红。</span></p>
+          <p><strong>可怜九月初三夜</strong>：可怜，可爱。九月初三，农历九月初三。<span class="w">译文：最可爱的是九月初三的夜晚。</span></p>
+          <p><strong>露似真珠月似弓</strong>：真珠，即珍珠。月似弓，弯月像弓箭。<span class="w">译文：露水像珍珠一样晶莹，月亮像弯弓一样挂在天空。</span></p>
+        </div>
+      </section>
 
-<!-- 10 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">10</span>
-    <span class="poem-title">忆江南（其一）</span>
-  </div>
-  <div class="poem-text">江南好，风景旧曾谙。
+      <!-- 10 -->
+      <section class="poem" id="poem-10">
+        <div class="poem-head">
+          <span class="poem-num">10</span>
+          <span class="poem-title">忆江南（其一）</span>
+        </div>
+        <div class="poem-text">江南好，风景旧曾谙。
 日出江花红胜火，春来江水绿如蓝。
 能不忆江南？</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>江南好，风景旧曾谙</strong>：旧，从前。曾，曾经。谙，熟悉、深知。<span class="w">译文：江南真是好地方，那里的风景我从前就很熟悉。</span></p>
-    <p><strong>日出江花红胜火</strong>：江花，江边的花朵。红胜火，红得胜过了火焰。<span class="w">译文：太阳升起时，江边的花朵红得像燃烧的火焰。</span></p>
-    <p><strong>春来江水绿如蓝</strong>：绿如蓝，绿得像蓝草（蓝草是一种染料）一样。<span class="w">译文：春天到来时，江水碧绿得像蓝草一样。</span></p>
-    <p><strong>能不忆江南</strong>：能不，怎么能不。<span class="w">译文：怎么能不让我怀念江南呢？</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>江南好，风景旧曾谙</strong>：旧，从前。曾，曾经。谙，熟悉、深知。<span class="w">译文：江南真是好地方，那里的风景我从前就很熟悉。</span></p>
+          <p><strong>日出江花红胜火</strong>：江花，江边的花朵。红胜火，红得胜过了火焰。<span class="w">译文：太阳升起时，江边的花朵红得像燃烧的火焰。</span></p>
+          <p><strong>春来江水绿如蓝</strong>：绿如蓝，绿得像蓝草（蓝草是一种染料）一样。<span class="w">译文：春天到来时，江水碧绿得像蓝草一样。</span></p>
+          <p><strong>能不忆江南</strong>：能不，怎么能不。<span class="w">译文：怎么能不让我怀念江南呢？</span></p>
+        </div>
+      </section>
 
-<!-- 11 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">11</span>
-    <span class="poem-title">花非花<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">花非花，雾非雾。
+      <!-- 11 -->
+      <section class="poem" id="poem-11">
+        <div class="poem-head">
+          <span class="poem-num">11</span>
+          <span class="poem-title">花非花<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">花非花，雾非雾。
 夜半来，天明去。
 来如春梦几多时？
 去似朝云无觅处。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>花非花，雾非雾</strong>：非，不是。<span class="w">译文：说它是花又不是花，说它是雾又不是雾。</span></p>
-    <p><strong>夜半来，天明去</strong>：夜半，半夜。天明，天亮。<span class="w">译文：半夜里悄悄到来，天亮了就离去。</span></p>
-    <p><strong>来如春梦几多时</strong>：如，像。几多时，能有多长时间。<span class="w">译文：来的时候像春梦一样，能停留多久呢？</span></p>
-    <p><strong>去似朝云无觅处</strong>：朝云，早晨的云霞。无觅处，无处寻觅。<span class="w">译文：去的时候像朝霞一样，再也找不到踪迹。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>花非花，雾非雾</strong>：非，不是。<span class="w">译文：说它是花又不是花，说它是雾又不是雾。</span></p>
+          <p><strong>夜半来，天明去</strong>：夜半，半夜。天明，天亮。<span class="w">译文：半夜里悄悄到来，天亮了就离去。</span></p>
+          <p><strong>来如春梦几多时</strong>：如，像。几多时，能有多长时间。<span class="w">译文：来的时候像春梦一样，能停留多久呢？</span></p>
+          <p><strong>去似朝云无觅处</strong>：朝云，早晨的云霞。无觅处，无处寻觅。<span class="w">译文：去的时候像朝霞一样，再也找不到踪迹。</span></p>
+        </div>
+      </section>
 
-<!-- 12 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">12</span>
-    <span class="poem-title">池上<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">小娃撑小艇，偷采白莲回。
+      <!-- 12 -->
+      <section class="poem" id="poem-12">
+        <div class="poem-head">
+          <span class="poem-num">12</span>
+          <span class="poem-title">池上<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">小娃撑小艇，偷采白莲回。
 不解藏踪迹，浮萍一道开。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>小娃撑小艇</strong>：小娃，小孩子。撑，用竹篙撑船。小艇，小船。<span class="w">译文：小孩子撑着小船。</span></p>
-    <p><strong>偷采白莲回</strong>：偷采，偷偷去采摘。白莲，白色的莲花。<span class="w">译文：偷偷去采了白莲花回来。</span></p>
-    <p><strong>不解藏踪迹</strong>：不解，不懂得。藏踪迹，隐藏行踪。<span class="w">译文：不懂得隐藏自己的踪迹。</span></p>
-    <p><strong>浮萍一道开</strong>：浮萍，水面上漂浮的植物。一道开，划开一道痕迹。<span class="w">译文：小船在水面上划过，浮萍分开了一道水痕。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>小娃撑小艇</strong>：小娃，小孩子。撑，用竹篙撑船。小艇，小船。<span class="w">译文：小孩子撑着小船。</span></p>
+          <p><strong>偷采白莲回</strong>：偷采，偷偷去采摘。白莲，白色的莲花。<span class="w">译文：偷偷去采了白莲花回来。</span></p>
+          <p><strong>不解藏踪迹</strong>：不解，不懂得。藏踪迹，隐藏行踪。<span class="w">译文：不懂得隐藏自己的踪迹。</span></p>
+          <p><strong>浮萍一道开</strong>：浮萍，水面上漂浮的植物。一道开，划开一道痕迹。<span class="w">译文：小船在水面上划过，浮萍分开了一道水痕。</span></p>
+        </div>
+      </section>
 
-<!-- 13 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">13</span>
-    <span class="poem-title">长相思·汴水流</span>
-  </div>
-  <div class="poem-text">汴水流，泗水流，流到瓜洲古渡头。吴山点点愁。
+      <!-- 13 -->
+      <section class="poem" id="poem-13">
+        <div class="poem-head">
+          <span class="poem-num">13</span>
+          <span class="poem-title">长相思·汴水流</span>
+        </div>
+        <div class="poem-text">汴水流，泗水流，流到瓜洲古渡头。吴山点点愁。
 思悠悠，恨悠悠，恨到归时方始休。月明人倚楼。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>汴水流，泗水流</strong>：汴水，河南境内的一条河。泗水，山东境内的一条河。<span class="w">译文：汴水向东流，泗水也向东流。</span></p>
-    <p><strong>流到瓜洲古渡头</strong>：瓜洲，扬州南面的古渡口，在长江北岸。古渡头，古老的渡口。<span class="w">译文：都流到瓜洲那个古老的渡口。</span></p>
-    <p><strong>吴山点点愁</strong>：吴山，江南的山。点点，一点一点。愁，带着愁意。<span class="w">译文：江南的座座山峰都带着点点愁意。</span></p>
-    <p><strong>思悠悠，恨悠悠</strong>：悠悠，绵长不断。<span class="w">译文：思念绵长无尽，遗恨绵长无尽。</span></p>
-    <p><strong>恨到归时方始休</strong>：休，停止。<span class="w">译文：这愁恨直到你归来的时候才能罢休。</span></p>
-    <p><strong>月明人倚楼</strong>：倚楼，靠在楼栏上。<span class="w">译文：明月当空，一个人独倚高楼。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>汴水流，泗水流</strong>：汴水，河南境内的一条河。泗水，山东境内的一条河。<span class="w">译文：汴水向东流，泗水也向东流。</span></p>
+          <p><strong>流到瓜洲古渡头</strong>：瓜洲，扬州南面的古渡口，在长江北岸。古渡头，古老的渡口。<span class="w">译文：都流到瓜洲那个古老的渡口。</span></p>
+          <p><strong>吴山点点愁</strong>：吴山，江南的山。点点，一点一点。愁，带着愁意。<span class="w">译文：江南的座座山峰都带着点点愁意。</span></p>
+          <p><strong>思悠悠，恨悠悠</strong>：悠悠，绵长不断。<span class="w">译文：思念绵长无尽，遗恨绵长无尽。</span></p>
+          <p><strong>恨到归时方始休</strong>：休，停止。<span class="w">译文：这愁恨直到你归来的时候才能罢休。</span></p>
+          <p><strong>月明人倚楼</strong>：倚楼，靠在楼栏上。<span class="w">译文：明月当空，一个人独倚高楼。</span></p>
+        </div>
+      </section>
 
-<!-- 14 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">14</span>
-    <span class="poem-title">夜雨<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">我有所念人，隔在远远乡。
+      <!-- 14 -->
+      <section class="poem" id="poem-14">
+        <div class="poem-head">
+          <span class="poem-num">14</span>
+          <span class="poem-title">夜雨<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">我有所念人，隔在远远乡。
 我有所感事，结在深深肠。
 乡远去不得，无日不瞻望。
 肠深解不得，无夕不思量。
 况此残灯夜，独宿在空堂。
 秋天殊未晓，风雨正苍苍。
 不学头陀法，前心安可忘。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>我有所念人，隔在远远乡</strong>：所念人，所思念的人。隔，相隔。远远乡，遥远的家乡。<span class="w">译文：我有思念的人，隔着遥远的故乡。</span></p>
-    <p><strong>我有所感事，结在深深肠</strong>：所感事，所感触的事。结，郁结。深深肠，内心深处。<span class="w">译文：我有感触的心事，郁结在内心深处。</span></p>
-    <p><strong>乡远去不得，无日不瞻望</strong>：去不得，回不去。无日，没有一天。瞻望，远望、期盼。<span class="w">译文：故乡遥远回不去，没有一天不向远方眺望。</span></p>
-    <p><strong>肠深解不得，无夕不思量</strong>：肠深，内心深处。解不得，无法排解。无夕，没有一夜。思量，思念考量。<span class="w">译文：心中郁结无法排解，没有一夜不深深思念。</span></p>
-    <p><strong>况此残灯夜，独宿在空堂</strong>：况此，何况在这。残灯，将尽的灯。空堂，空旷的厅堂。<span class="w">译文：何况在这残灯如豆的夜晚，独自一人睡在空荡的堂屋中。</span></p>
-    <p><strong>秋天殊未晓，风雨正苍苍</strong>：殊未晓，还没有天亮。苍苍，风雨交加、昏暗的样子。<span class="w">译文：秋天深夜，天还没有亮，窗外风雨正凄凉昏暗。</span></p>
-    <p><strong>不学头陀法，前心安可忘</strong>：头陀，佛教苦行僧。头陀法，指佛教修行中消除心中烦恼的法门。安可忘，怎能忘记。<span class="w">译文：我没有学头陀的修行之法，心中的思念又怎能忘记呢？</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>我有所念人，隔在远远乡</strong>：所念人，所思念的人。隔，相隔。远远乡，遥远的家乡。<span class="w">译文：我有思念的人，隔着遥远的故乡。</span></p>
+          <p><strong>我有所感事，结在深深肠</strong>：所感事，所感触的事。结，郁结。深深肠，内心深处。<span class="w">译文：我有感触的心事，郁结在内心深处。</span></p>
+          <p><strong>乡远去不得，无日不瞻望</strong>：去不得，回不去。无日，没有一天。瞻望，远望、期盼。<span class="w">译文：故乡遥远回不去，没有一天不向远方眺望。</span></p>
+          <p><strong>肠深解不得，无夕不思量</strong>：肠深，内心深处。解不得，无法排解。无夕，没有一夜。思量，思念考量。<span class="w">译文：心中郁结无法排解，没有一夜不深深思念。</span></p>
+          <p><strong>况此残灯夜，独宿在空堂</strong>：况此，何况在这。残灯，将尽的灯。空堂，空旷的厅堂。<span class="w">译文：何况在这残灯如豆的夜晚，独自一人睡在空荡的堂屋中。</span></p>
+          <p><strong>秋天殊未晓，风雨正苍苍</strong>：殊未晓，还没有天亮。苍苍，风雨交加、昏暗的样子。<span class="w">译文：秋天深夜，天还没有亮，窗外风雨正凄凉昏暗。</span></p>
+          <p><strong>不学头陀法，前心安可忘</strong>：头陀，佛教苦行僧。头陀法，指佛教修行中消除心中烦恼的法门。安可忘，怎能忘记。<span class="w">译文：我没有学头陀的修行之法，心中的思念又怎能忘记呢？</span></p>
+        </div>
+      </section>
 
-<!-- 15 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">15</span>
-    <span class="poem-title">观刈麦</span>
-  </div>
-  <div class="poem-text">田家少闲月，五月人倍忙。
+      <!-- 15 -->
+      <section class="poem" id="poem-15">
+        <div class="poem-head">
+          <span class="poem-num">15</span>
+          <span class="poem-title">观刈麦</span>
+        </div>
+        <div class="poem-text">田家少闲月，五月人倍忙。
 夜来南风起，小麦覆陇黄。
 妇姑荷箪食，童稚携壶浆。
 相随饷田去，丁壮在南冈。
@@ -401,253 +535,328 @@
 今我何功德？曾不事农桑。
 吏禄三百石，岁晏有余粮。
 念此私自愧，尽日不能忘。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>田家少闲月，五月人倍忙</strong>：田家，农家。闲月，空闲的月份。倍忙，加倍忙碌。<span class="w">译文：农家很少有空闲的月份，到了五月人更加忙碌。</span></p>
-    <p><strong>夜来南风起，小麦覆陇黄</strong>：夜来，夜里。南风起，南风吹起。覆陇黄，覆盖田垄的小麦都成熟变黄了。<span class="w">译文：夜里南风吹来，田垄上的小麦都熟得金黄。</span></p>
-    <p><strong>妇姑荷箪食，童稚携壶浆</strong>：妇姑，媳妇和婆婆。荷，肩挑。箪食，用竹篮盛着的饭食。童稚，小孩。携，提着。壶浆，瓦壶装的汤水。<span class="w">译文：妇女们挑着竹篮饭食，孩子们提着瓦壶汤水。</span></p>
-    <p><strong>相随饷田去，丁壮在南冈</strong>：相随，互相跟随着。饷田，给田间劳作的人送饭。丁壮，壮年男子。南冈，南面的山冈。<span class="w">译文：相互结伴去田里送饭，壮劳力们正在南冈割麦。</span></p>
-    <p><strong>足蒸暑土气，背灼炎天光</strong>：蒸，被热气蒸烤。暑土气，炎热土地散发的热气。灼，烤灼。炎天光，烈日的光芒。<span class="w">译文：脚下被暑热蒸烤的土气熏着，脊背被灼热的日光烤着。</span></p>
-    <p><strong>力尽不知热，但惜夏日长</strong>：力尽，力气用尽。但惜，只珍惜。夏日长，夏天白昼长。<span class="w">译文：力气耗尽却顾不上炎热，只珍惜夏日的白天够长（好抢收）。</span></p>
-    <p><strong>复有贫妇人，抱子在其旁</strong>：复有，又有。贫妇人，贫穷的妇女。抱子，抱着孩子。在其旁，在他们旁边。<span class="w">译文：还有一个贫穷的妇女，抱着孩子在他们旁边。</span></p>
-    <p><strong>右手秉遗穗，左臂悬敝筐</strong>：秉，握着。遗穗，收割后遗落的麦穗。悬，挂着。敝筐，破旧的篮子。<span class="w">译文：右手拾捡遗落的麦穗，左臂挂着破旧的竹筐。</span></p>
-    <p><strong>听其相顾言，闻者为悲伤</strong>：相顾言，互相看着说话。闻者，听到的人。<span class="w">译文：听她们互相说的话，听到的人都为之悲伤。</span></p>
-    <p><strong>家田输税尽，拾此充饥肠</strong>：输税，缴纳赋税。尽，完。充饥肠，填饱肚子。<span class="w">译文：家里的田产因为缴税已经卖光了，只能拾麦穗来填肚子。</span></p>
-    <p><strong>今我何功德？曾不事农桑</strong>：何，什么。曾不，不曾。事，从事。农桑，农耕与养蚕，泛指农业生产。<span class="w">译文：如今我又有什么功德呢？从来不曾干过农活。</span></p>
-    <p><strong>吏禄三百石，岁晏有余粮</strong>：吏禄，官俸。三百石，唐代县令月俸约三百石粮食。岁晏，年终。余粮，有余的粮食。<span class="w">译文：每年俸禄有三百石粮食，年底还有余粮。</span></p>
-    <p><strong>念此私自愧，尽日不能忘</strong>：念此，想到这些。私自愧，自己内心惭愧。尽日，整天。<span class="w">译文：想到这些我内心惭愧，一整天都不能忘怀。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>田家少闲月，五月人倍忙</strong>：田家，农家。闲月，空闲的月份。倍忙，加倍忙碌。<span class="w">译文：农家很少有空闲的月份，到了五月人更加忙碌。</span></p>
+          <p><strong>夜来南风起，小麦覆陇黄</strong>：夜来，夜里。南风起，南风吹起。覆陇黄，覆盖田垄的小麦都成熟变黄了。<span class="w">译文：夜里南风吹来，田垄上的小麦都熟得金黄。</span></p>
+          <p><strong>妇姑荷箪食，童稚携壶浆</strong>：妇姑，媳妇和婆婆。荷，肩挑。箪食，用竹篮盛着的饭食。童稚，小孩。携，提着。壶浆，瓦壶装的汤水。<span class="w">译文：妇女们挑着竹篮饭食，孩子们提着瓦壶汤水。</span></p>
+          <p><strong>相随饷田去，丁壮在南冈</strong>：相随，互相跟随着。饷田，给田间劳作的人送饭。丁壮，壮年男子。南冈，南面的山冈。<span class="w">译文：相互结伴去田里送饭，壮劳力们正在南冈割麦。</span></p>
+          <p><strong>足蒸暑土气，背灼炎天光</strong>：蒸，被热气蒸烤。暑土气，炎热土地散发的热气。灼，烤灼。炎天光，烈日的光芒。<span class="w">译文：脚下被暑热蒸烤的土气熏着，脊背被灼热的日光烤着。</span></p>
+          <p><strong>力尽不知热，但惜夏日长</strong>：力尽，力气用尽。但惜，只珍惜。夏日长，夏天白昼长。<span class="w">译文：力气耗尽却顾不上炎热，只珍惜夏日的白天够长（好抢收）。</span></p>
+          <p><strong>复有贫妇人，抱子在其旁</strong>：复有，又有。贫妇人，贫穷的妇女。抱子，抱着孩子。在其旁，在他们旁边。<span class="w">译文：还有一个贫穷的妇女，抱着孩子在他们旁边。</span></p>
+          <p><strong>右手秉遗穗，左臂悬敝筐</strong>：秉，握着。遗穗，收割后遗落的麦穗。悬，挂着。敝筐，破旧的篮子。<span class="w">译文：右手拾捡遗落的麦穗，左臂挂着破旧的竹筐。</span></p>
+          <p><strong>听其相顾言，闻者为悲伤</strong>：相顾言，互相看着说话。闻者，听到的人。<span class="w">译文：听她们互相说的话，听到的人都为之悲伤。</span></p>
+          <p><strong>家田输税尽，拾此充饥肠</strong>：输税，缴纳赋税。尽，完。充饥肠，填饱肚子。<span class="w">译文：家里的田产因为缴税已经卖光了，只能拾麦穗来填肚子。</span></p>
+          <p><strong>今我何功德？曾不事农桑</strong>：何，什么。曾不，不曾。事，从事。农桑，农耕与养蚕，泛指农业生产。<span class="w">译文：如今我又有什么功德呢？从来不曾干过农活。</span></p>
+          <p><strong>吏禄三百石，岁晏有余粮</strong>：吏禄，官俸。三百石，唐代县令月俸约三百石粮食。岁晏，年终。余粮，有余的粮食。<span class="w">译文：每年俸禄有三百石粮食，年底还有余粮。</span></p>
+          <p><strong>念此私自愧，尽日不能忘</strong>：念此，想到这些。私自愧，自己内心惭愧。尽日，整天。<span class="w">译文：想到这些我内心惭愧，一整天都不能忘怀。</span></p>
+        </div>
+      </section>
 
-<!-- 16 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">16</span>
-    <span class="poem-title">浪淘沙·借问江潮与海水<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">借问江潮与海水，何似君情与妾心？
+      <!-- 16 -->
+      <section class="poem" id="poem-16">
+        <div class="poem-head">
+          <span class="poem-num">16</span>
+          <span class="poem-title">浪淘沙·借问江潮与海水<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">借问江潮与海水，何似君情与妾心？
 相恨不如潮有信，相思始觉海非深。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>借问江潮与海水</strong>：借问，请问。<span class="w">译文：试问那江潮和海水。</span></p>
-    <p><strong>何似君情与妾心</strong>：何似，像什么、如何比得上。君情，你的情意。妾心，我的心。<span class="w">译文：哪里比得上你的情意和我的心呢？</span></p>
-    <p><strong>相恨不如潮有信</strong>：相恨，互相怨恨。潮有信，潮水涨落有定时，叫做潮信。<span class="w">译文：怨恨你不如潮水那样守信有信期。</span></p>
-    <p><strong>相思始觉海非深</strong>：始觉，才觉得。非深，不算深。<span class="w">译文：相思之时才觉得大海也不算深。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>借问江潮与海水</strong>：借问，请问。<span class="w">译文：试问那江潮和海水。</span></p>
+          <p><strong>何似君情与妾心</strong>：何似，像什么、如何比得上。君情，你的情意。妾心，我的心。<span class="w">译文：哪里比得上你的情意和我的心呢？</span></p>
+          <p><strong>相恨不如潮有信</strong>：相恨，互相怨恨。潮有信，潮水涨落有定时，叫做潮信。<span class="w">译文：怨恨你不如潮水那样守信有信期。</span></p>
+          <p><strong>相思始觉海非深</strong>：始觉，才觉得。非深，不算深。<span class="w">译文：相思之时才觉得大海也不算深。</span></p>
+        </div>
+      </section>
 
-<!-- 17 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">17</span>
-    <span class="poem-title">放言五首·其三<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">赠君一法决狐疑，不用钻龟与祝蓍。
+      <!-- 17 -->
+      <section class="poem" id="poem-17">
+        <div class="poem-head">
+          <span class="poem-num">17</span>
+          <span class="poem-title">放言五首·其三<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">赠君一法决狐疑，不用钻龟与祝蓍。
 试玉要烧三日满，辨材须待七年期。
 周公恐惧流言日，王莽谦恭未篡时。
 向使当初身便死，一生真伪复谁知？</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>赠君一法决狐疑</strong>：赠君，赠给您。一法，一个办法。决狐疑，解除心中的疑虑。<span class="w">译文：赠您一个解除疑虑的方法。</span></p>
-    <p><strong>不用钻龟与祝蓍</strong>：钻龟，古代占卜时钻灼龟甲。祝蓍，用蓍草占卜。<span class="w">译文：不用靠占卜（钻龟甲、用蓍草）来决断。</span></p>
-    <p><strong>试玉要烧三日满</strong>：试玉，检验玉的真假。要烧三日满，要用火烧三天三夜（真玉火烧不热不裂）。<span class="w">译文：检验玉石的真假，需要用火烧满三天。</span></p>
-    <p><strong>辨材须待七年期</strong>：辨材，辨别木材的优劣。七年期，七年的时间（指豫章木长成）。<span class="w">译文：辨别良材，必须等待七年的时间。</span></p>
-    <p><strong>周公恐惧流言日</strong>：周公，西周初年政治家，辅佐成王时曾遭流言攻击。恐惧，担忧害怕。流言日，被流言中伤的时候。<span class="w">译文：周公当年害怕流言蜚语的时候。</span></p>
-    <p><strong>王莽谦恭未篡时</strong>：王莽，西汉末篡汉立新朝。谦恭，谦逊恭敬。未篡时，还没有篡位的时候。<span class="w">译文：王莽当年谦逊恭敬还没有篡位的时候。</span></p>
-    <p><strong>向使当初身便死</strong>：向使，假如当初。身便死，就死了。<span class="w">译文：假如当初他们在那时就死了。</span></p>
-    <p><strong>一生真伪复谁知</strong>：复，又。真伪，真假。谁知，谁能知道。<span class="w">译文：他们一生的真假又有谁知道呢？</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>赠君一法决狐疑</strong>：赠君，赠给您。一法，一个办法。决狐疑，解除心中的疑虑。<span class="w">译文：赠您一个解除疑虑的方法。</span></p>
+          <p><strong>不用钻龟与祝蓍</strong>：钻龟，古代占卜时钻灼龟甲。祝蓍，用蓍草占卜。<span class="w">译文：不用靠占卜（钻龟甲、用蓍草）来决断。</span></p>
+          <p><strong>试玉要烧三日满</strong>：试玉，检验玉的真假。要烧三日满，要用火烧三天三夜（真玉火烧不热不裂）。<span class="w">译文：检验玉石的真假，需要用火烧满三天。</span></p>
+          <p><strong>辨材须待七年期</strong>：辨材，辨别木材的优劣。七年期，七年的时间（指豫章木长成）。<span class="w">译文：辨别良材，必须等待七年的时间。</span></p>
+          <p><strong>周公恐惧流言日</strong>：周公，西周初年政治家，辅佐成王时曾遭流言攻击。恐惧，担忧害怕。流言日，被流言中伤的时候。<span class="w">译文：周公当年害怕流言蜚语的时候。</span></p>
+          <p><strong>王莽谦恭未篡时</strong>：王莽，西汉末篡汉立新朝。谦恭，谦逊恭敬。未篡时，还没有篡位的时候。<span class="w">译文：王莽当年谦逊恭敬还没有篡位的时候。</span></p>
+          <p><strong>向使当初身便死</strong>：向使，假如当初。身便死，就死了。<span class="w">译文：假如当初他们在那时就死了。</span></p>
+          <p><strong>一生真伪复谁知</strong>：复，又。真伪，真假。谁知，谁能知道。<span class="w">译文：他们一生的真假又有谁知道呢？</span></p>
+        </div>
+      </section>
 
-<!-- 18 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">18</span>
-    <span class="poem-title">白云泉<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">天平山上白云泉，云自无心水自闲。
+      <!-- 18 -->
+      <section class="poem" id="poem-18">
+        <div class="poem-head">
+          <span class="poem-num">18</span>
+          <span class="poem-title">白云泉<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">天平山上白云泉，云自无心水自闲。
 何必奔冲山下去，更添波浪向人间。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>天平山上白云泉</strong>：天平山，在今江苏苏州。白云泉，天平山上的泉水。<span class="w">译文：天平山上有著名的白云泉。</span></p>
-    <p><strong>云自无心水自闲</strong>：自，本来。无心，无意、自在。闲，闲适悠然。<span class="w">译文：云彩自然无心飘荡，泉水自然闲适流淌。</span></p>
-    <p><strong>何必奔冲山下去</strong>：何必，何苦非要。奔冲，奔腾冲泻。山下，流到山下去。<span class="w">译文：何必要匆匆奔冲到山下去呢？</span></p>
-    <p><strong>更添波浪向人间</strong>：更添，再添加。波浪，此处喻指尘世的风波纷扰。人间，人世间。<span class="w">译文：再去为人间增添风波呢？</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>天平山上白云泉</strong>：天平山，在今江苏苏州。白云泉，天平山上的泉水。<span class="w">译文：天平山上有著名的白云泉。</span></p>
+          <p><strong>云自无心水自闲</strong>：自，本来。无心，无意、自在。闲，闲适悠然。<span class="w">译文：云彩自然无心飘荡，泉水自然闲适流淌。</span></p>
+          <p><strong>何必奔冲山下去</strong>：何必，何苦非要。奔冲，奔腾冲泻。山下，流到山下去。<span class="w">译文：何必要匆匆奔冲到山下去呢？</span></p>
+          <p><strong>更添波浪向人间</strong>：更添，再添加。波浪，此处喻指尘世的风波纷扰。人间，人世间。<span class="w">译文：再去为人间增添风波呢？</span></p>
+        </div>
+      </section>
 
-<!-- 19 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">19</span>
-    <span class="poem-title">夜雪<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">已讶衾枕冷，复见窗户明。
+      <!-- 19 -->
+      <section class="poem" id="poem-19">
+        <div class="poem-head">
+          <span class="poem-num">19</span>
+          <span class="poem-title">夜雪<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">已讶衾枕冷，复见窗户明。
 夜深知雪重，时闻折竹声。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>已讶衾枕冷</strong>：已讶，已经惊讶。衾枕，被子和枕头。冷，寒冷。<span class="w">译文：已经惊讶于被子和枕头格外寒冷。</span></p>
-    <p><strong>复见窗户明</strong>：复见，又看见。窗户明，窗户透出亮光（雪光映照）。<span class="w">译文：又看见窗户透着亮光。</span></p>
-    <p><strong>夜深知雪重</strong>：夜深，夜深的时候。知，察觉。雪重，雪下得很大很厚。<span class="w">译文：深夜里知道雪下得很大。</span></p>
-    <p><strong>时闻折竹声</strong>：时闻，不时听到。折竹声，竹子被雪压断的声音。<span class="w">译文：不时听到竹子被雪压断的声音。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>已讶衾枕冷</strong>：已讶，已经惊讶。衾枕，被子和枕头。冷，寒冷。<span class="w">译文：已经惊讶于被子和枕头格外寒冷。</span></p>
+          <p><strong>复见窗户明</strong>：复见，又看见。窗户明，窗户透出亮光（雪光映照）。<span class="w">译文：又看见窗户透着亮光。</span></p>
+          <p><strong>夜深知雪重</strong>：夜深，夜深的时候。知，察觉。雪重，雪下得很大很厚。<span class="w">译文：深夜里知道雪下得很大。</span></p>
+          <p><strong>时闻折竹声</strong>：时闻，不时听到。折竹声，竹子被雪压断的声音。<span class="w">译文：不时听到竹子被雪压断的声音。</span></p>
+        </div>
+      </section>
 
-<!-- 20 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">20</span>
-    <span class="poem-title">南浦别<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">南浦凄凄别，西风袅袅秋。
+      <!-- 20 -->
+      <section class="poem" id="poem-20">
+        <div class="poem-head">
+          <span class="poem-num">20</span>
+          <span class="poem-title">南浦别<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">南浦凄凄别，西风袅袅秋。
 一看肠一断，好去莫回头。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>南浦凄凄别</strong>：南浦，南边的水边，泛指送别之地。凄凄，悲伤凄凉。别，离别。<span class="w">译文：在南浦凄凄凉凉地告别。</span></p>
-    <p><strong>西风袅袅秋</strong>：西风，秋风。袅袅，轻柔地吹拂的样子。秋，秋天。<span class="w">译文：秋风中袅袅吹拂，一片萧瑟秋意。</span></p>
-    <p><strong>一看肠一断</strong>：一看，回头看一眼。肠一断，肝肠寸断一次。<span class="w">译文：每回头看一次，就肝肠寸断一次。</span></p>
-    <p><strong>好去莫回头</strong>：好去，一路走好。莫回头，不要回头。<span class="w">译文：一路走好，不要再回头了。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>南浦凄凄别</strong>：南浦，南边的水边，泛指送别之地。凄凄，悲伤凄凉。别，离别。<span class="w">译文：在南浦凄凄凉凉地告别。</span></p>
+          <p><strong>西风袅袅秋</strong>：西风，秋风。袅袅，轻柔地吹拂的样子。秋，秋天。<span class="w">译文：秋风中袅袅吹拂，一片萧瑟秋意。</span></p>
+          <p><strong>一看肠一断</strong>：一看，回头看一眼。肠一断，肝肠寸断一次。<span class="w">译文：每回头看一次，就肝肠寸断一次。</span></p>
+          <p><strong>好去莫回头</strong>：好去，一路走好。莫回头，不要回头。<span class="w">译文：一路走好，不要再回头了。</span></p>
+        </div>
+      </section>
 
-<!-- 21 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">21</span>
-    <span class="poem-title">鸟<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">谁道群生性命微？一般骨肉一般皮。
+      <!-- 21 -->
+      <section class="poem" id="poem-21">
+        <div class="poem-head">
+          <span class="poem-num">21</span>
+          <span class="poem-title">鸟<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">谁道群生性命微？一般骨肉一般皮。
 劝君莫打枝头鸟，子在巢中望母归。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>谁道群生性命微</strong>：谁道，谁说。群生，众生、各种生灵。性命微，生命微小低贱。<span class="w">译文：谁说动物的生命就微不足道呢？</span></p>
-    <p><strong>一般骨肉一般皮</strong>：一般，一样、同样。骨肉，血肉之躯。皮，皮毛肌肤。<span class="w">译文：它们和我们一样有血有肉有皮毛。</span></p>
-    <p><strong>劝君莫打枝头鸟</strong>：劝君，劝您。莫打，不要打。枝头鸟，停在枝头的鸟。<span class="w">译文：劝您不要打枝头上的鸟儿。</span></p>
-    <p><strong>子在巢中望母归</strong>：子，幼鸟。巢中，鸟窝里。望母归，盼望着母亲回来。<span class="w">译文：因为它的孩子在窝里等着母亲归来。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>谁道群生性命微</strong>：谁道，谁说。群生，众生、各种生灵。性命微，生命微小低贱。<span class="w">译文：谁说动物的生命就微不足道呢？</span></p>
+          <p><strong>一般骨肉一般皮</strong>：一般，一样、同样。骨肉，血肉之躯。皮，皮毛肌肤。<span class="w">译文：它们和我们一样有血有肉有皮毛。</span></p>
+          <p><strong>劝君莫打枝头鸟</strong>：劝君，劝您。莫打，不要打。枝头鸟，停在枝头的鸟。<span class="w">译文：劝您不要打枝头上的鸟儿。</span></p>
+          <p><strong>子在巢中望母归</strong>：子，幼鸟。巢中，鸟窝里。望母归，盼望着母亲回来。<span class="w">译文：因为它的孩子在窝里等着母亲归来。</span></p>
+        </div>
+      </section>
 
-<!-- 22 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">22</span>
-    <span class="poem-title">望月有感</span>
-  </div>
-  <div class="poem-text">时难年荒世业空，弟兄羁旅各西东。
+      <!-- 22 -->
+      <section class="poem" id="poem-22">
+        <div class="poem-head">
+          <span class="poem-num">22</span>
+          <span class="poem-title">望月有感</span>
+        </div>
+        <div class="poem-text">时难年荒世业空，弟兄羁旅各西东。
 田园寥落干戈后，骨肉流离道路中。
 吊影分为千里雁，辞根散作九秋蓬。
 共看明月应垂泪，一夜乡心五处同。</div>
-  <div class="note">
-    <div class="note-title">题记</div>
-    <p>自河南经乱，关内阻饥，兄弟离散，各在一处。因望月有感，聊书所怀，寄上浮梁大兄、於潜七兄、乌江十五兄，兼示符离及下邽弟妹。</p>
-    <div class="note-title" style="margin-top:0.6rem;">逐句注释与译文</div>
-    <p><strong>时难年荒世业空</strong>：时难，时局艰难（指战乱）。年荒，年成荒歉（指饥荒）。世业，祖先遗留的家业。空，荡然无存。<span class="w">译文：时局艰难，年成荒歉，祖先留下的家业都空了。</span></p>
-    <p><strong>弟兄羁旅各西东</strong>：羁旅，客居他乡。各西东，各奔东西。<span class="w">译文：兄弟们客居各处，各自离散在西东。</span></p>
-    <p><strong>田园寥落干戈后</strong>：寥落，荒凉冷落。干戈，代指战乱。<span class="w">译文：战乱之后，田园一片荒凉冷落。</span></p>
-    <p><strong>骨肉流离道路中</strong>：流离，流散分离。道路中，在道路上奔波。<span class="w">译文：骨肉亲人在道路上流离失所。</span></p>
-    <p><strong>吊影分为千里雁</strong>：吊影，顾影自怜。分为，分散成为。千里雁，飞散千里的雁群。<span class="w">译文：如同离群的孤雁，分散在千里之外。</span></p>
-    <p><strong>辞根散作九秋蓬</strong>：辞根，离开根。散作，分散成为。九秋，深秋。蓬，蓬草，秋天枯死被风吹散。<span class="w">译文：像深秋的蓬草离开根系，四处飘散。</span></p>
-    <p><strong>共看明月应垂泪</strong>：共看，一同看着。应垂泪，应该都会落泪。<span class="w">译文：一起看着明月，应该都会流下泪水。</span></p>
-    <p><strong>一夜乡心五处同</strong>：乡心，思乡之心。五处，兄弟五人分散在五处。同，相同。<span class="w">译文：这一夜的思乡之心，五处相同。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">题记</div>
+          <p>自河南经乱，关内阻饥，兄弟离散，各在一处。因望月有感，聊书所怀，寄上浮梁大兄、於潜七兄、乌江十五兄，兼示符离及下邽弟妹。</p>
+          <div class="note-title" style="margin-top:0.6rem;">逐句注释与译文</div>
+          <p><strong>时难年荒世业空</strong>：时难，时局艰难（指战乱）。年荒，年成荒歉（指饥荒）。世业，祖先遗留的家业。空，荡然无存。<span class="w">译文：时局艰难，年成荒歉，祖先留下的家业都空了。</span></p>
+          <p><strong>弟兄羁旅各西东</strong>：羁旅，客居他乡。各西东，各奔东西。<span class="w">译文：兄弟们客居各处，各自离散在西东。</span></p>
+          <p><strong>田园寥落干戈后</strong>：寥落，荒凉冷落。干戈，代指战乱。<span class="w">译文：战乱之后，田园一片荒凉冷落。</span></p>
+          <p><strong>骨肉流离道路中</strong>：流离，流散分离。道路中，在道路上奔波。<span class="w">译文：骨肉亲人在道路上流离失所。</span></p>
+          <p><strong>吊影分为千里雁</strong>：吊影，顾影自怜。分为，分散成为。千里雁，飞散千里的雁群。<span class="w">译文：如同离群的孤雁，分散在千里之外。</span></p>
+          <p><strong>辞根散作九秋蓬</strong>：辞根，离开根。散作，分散成为。九秋，深秋。蓬，蓬草，秋天枯死被风吹散。<span class="w">译文：像深秋的蓬草离开根系，四处飘散。</span></p>
+          <p><strong>共看明月应垂泪</strong>：共看，一同看着。应垂泪，应该都会落泪。<span class="w">译文：一起看着明月，应该都会流下泪水。</span></p>
+          <p><strong>一夜乡心五处同</strong>：乡心，思乡之心。五处，兄弟五人分散在五处。同，相同。<span class="w">译文：这一夜的思乡之心，五处相同。</span></p>
+        </div>
+      </section>
 
-<!-- 23 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">23</span>
-    <span class="poem-title">醉赠刘二十八使君<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">为我引杯添酒饮，与君把箸击盘歌。
+      <!-- 23 -->
+      <section class="poem" id="poem-23">
+        <div class="poem-head">
+          <span class="poem-num">23</span>
+          <span class="poem-title">醉赠刘二十八使君<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">为我引杯添酒饮，与君把箸击盘歌。
 诗称国手徒为尔，命压人头不奈何。
 举眼风光长寂寞，满朝官职独蹉跎。
 亦知合被才名折，二十三年折太多。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>为我引杯添酒饮</strong>：引杯，举杯。添酒，再斟满酒。<span class="w">译文：为我举起酒杯，添满酒来饮。</span></p>
-    <p><strong>与君把箸击盘歌</strong>：把箸，拿起筷子。击盘，敲击盘碟。歌，唱歌。<span class="w">译文：和您一起拿起筷子敲着盘碟放声高歌。</span></p>
-    <p><strong>诗称国手徒为尔</strong>：诗称国手，您的诗被称誉为国手级。徒为尔，白白地只能如此。<span class="w">译文：您的诗被称誉为国手，却也白白地只能如此。</span></p>
-    <p><strong>命压人头不奈何</strong>：命压人头，命运压迫在头上。不奈何，无可奈何。<span class="w">译文：命运压在头上，让人无可奈何。</span></p>
-    <p><strong>举眼风光长寂寞</strong>：举眼，放眼望去。风光，眼前的繁华。长寂寞，却总是感到寂寞。<span class="w">译文：放眼望去，满眼风光却长久寂寞。</span></p>
-    <p><strong>满朝官职独蹉跎</strong>：满朝，满朝文武。蹉跎，失意虚度光阴。<span class="w">译文：满朝文武都有官职，只有您独独蹉跎岁月。</span></p>
-    <p><strong>亦知合被才名折</strong>：亦知，也知道。合被，应该被。才名折，才华名声所折损。<span class="w">译文：我也知道应该被才名所折损。</span></p>
-    <p><strong>二十三年折太多</strong>：二十三年，刘禹锡被贬的时间。折太多，折损得太多了。<span class="w">译文：但二十三年的折损也实在太多了。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>为我引杯添酒饮</strong>：引杯，举杯。添酒，再斟满酒。<span class="w">译文：为我举起酒杯，添满酒来饮。</span></p>
+          <p><strong>与君把箸击盘歌</strong>：把箸，拿起筷子。击盘，敲击盘碟。歌，唱歌。<span class="w">译文：和您一起拿起筷子敲着盘碟放声高歌。</span></p>
+          <p><strong>诗称国手徒为尔</strong>：诗称国手，您的诗被称誉为国手级。徒为尔，白白地只能如此。<span class="w">译文：您的诗被称誉为国手，却也白白地只能如此。</span></p>
+          <p><strong>命压人头不奈何</strong>：命压人头，命运压迫在头上。不奈何，无可奈何。<span class="w">译文：命运压在头上，让人无可奈何。</span></p>
+          <p><strong>举眼风光长寂寞</strong>：举眼，放眼望去。风光，眼前的繁华。长寂寞，却总是感到寂寞。<span class="w">译文：放眼望去，满眼风光却长久寂寞。</span></p>
+          <p><strong>满朝官职独蹉跎</strong>：满朝，满朝文武。蹉跎，失意虚度光阴。<span class="w">译文：满朝文武都有官职，只有您独独蹉跎岁月。</span></p>
+          <p><strong>亦知合被才名折</strong>：亦知，也知道。合被，应该被。才名折，才华名声所折损。<span class="w">译文：我也知道应该被才名所折损。</span></p>
+          <p><strong>二十三年折太多</strong>：二十三年，刘禹锡被贬的时间。折太多，折损得太多了。<span class="w">译文：但二十三年的折损也实在太多了。</span></p>
+        </div>
+      </section>
 
-<!-- 24 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">24</span>
-    <span class="poem-title">后宫词</span>
-  </div>
-  <div class="poem-text">泪湿罗巾梦不成，夜深前殿按歌声。
+      <!-- 24 -->
+      <section class="poem" id="poem-24">
+        <div class="poem-head">
+          <span class="poem-num">24</span>
+          <span class="poem-title">后宫词</span>
+        </div>
+        <div class="poem-text">泪湿罗巾梦不成，夜深前殿按歌声。
 红颜未老恩先断，斜倚薰笼坐到明。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>泪湿罗巾梦不成</strong>：泪湿，泪水沾湿。罗巾，丝绸手帕。梦不成，无法入睡成梦。<span class="w">译文：泪水沾湿了罗巾，连梦也做不成。</span></p>
-    <p><strong>夜深前殿按歌声</strong>：前殿，前面的宫殿。按歌，按着节拍歌唱。<span class="w">译文：深夜里前殿传来按节拍歌唱的声音。</span></p>
-    <p><strong>红颜未老恩先断</strong>：红颜，美丽的容颜。未老，还没有衰老。恩先断，皇帝的恩宠却先断了。<span class="w">译文：容颜还没有衰老，君王的恩宠却早已断绝。</span></p>
-    <p><strong>斜倚薰笼坐到明</strong>：斜倚，斜靠着。薰笼，熏香用的笼子。坐到明，坐到天亮。<span class="w">译文：斜靠着薰香笼，独自坐到天亮。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>泪湿罗巾梦不成</strong>：泪湿，泪水沾湿。罗巾，丝绸手帕。梦不成，无法入睡成梦。<span class="w">译文：泪水沾湿了罗巾，连梦也做不成。</span></p>
+          <p><strong>夜深前殿按歌声</strong>：前殿，前面的宫殿。按歌，按着节拍歌唱。<span class="w">译文：深夜里前殿传来按节拍歌唱的声音。</span></p>
+          <p><strong>红颜未老恩先断</strong>：红颜，美丽的容颜。未老，还没有衰老。恩先断，皇帝的恩宠却先断了。<span class="w">译文：容颜还没有衰老，君王的恩宠却早已断绝。</span></p>
+          <p><strong>斜倚薰笼坐到明</strong>：斜倚，斜靠着。薰笼，熏香用的笼子。坐到明，坐到天亮。<span class="w">译文：斜靠着薰香笼，独自坐到天亮。</span></p>
+        </div>
+      </section>
 
-<!-- 25 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">25</span>
-    <span class="poem-title">邯郸冬至夜思家</span>
-  </div>
-  <div class="poem-text">邯郸驿里逢冬至，抱膝灯前影伴身。
+      <!-- 25 -->
+      <section class="poem" id="poem-25">
+        <div class="poem-head">
+          <span class="poem-num">25</span>
+          <span class="poem-title">邯郸冬至夜思家</span>
+        </div>
+        <div class="poem-text">邯郸驿里逢冬至，抱膝灯前影伴身。
 想得家中夜深坐，还应说着远行人。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>邯郸驿里逢冬至</strong>：邯郸，今河北邯郸。驿里，驿站中。逢冬至，正遇冬至节气。<span class="w">译文：在邯郸的驿站里正逢冬至佳节。</span></p>
-    <p><strong>抱膝灯前影伴身</strong>：抱膝，双手抱膝。灯前，在灯前。影伴身，只有影子陪伴着自己。<span class="w">译文：双手抱膝坐在灯前，只有影子与自己相伴。</span></p>
-    <p><strong>想得家中夜深坐</strong>：想得，想象到。家中，家中的人。夜深坐，深夜里坐着。<span class="w">译文：想象家中的亲人深夜还坐在一起。</span></p>
-    <p><strong>还应说着远行人</strong>：还应，应该还在。说着，谈论着。远行人，在远方旅行的我。<span class="w">译文：应该还在谈论着远行的我吧。</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>邯郸驿里逢冬至</strong>：邯郸，今河北邯郸。驿里，驿站中。逢冬至，正遇冬至节气。<span class="w">译文：在邯郸的驿站里正逢冬至佳节。</span></p>
+          <p><strong>抱膝灯前影伴身</strong>：抱膝，双手抱膝。灯前，在灯前。影伴身，只有影子陪伴着自己。<span class="w">译文：双手抱膝坐在灯前，只有影子与自己相伴。</span></p>
+          <p><strong>想得家中夜深坐</strong>：想得，想象到。家中，家中的人。夜深坐，深夜里坐着。<span class="w">译文：想象家中的亲人深夜还坐在一起。</span></p>
+          <p><strong>还应说着远行人</strong>：还应，应该还在。说着，谈论着。远行人，在远方旅行的我。<span class="w">译文：应该还在谈论着远行的我吧。</span></p>
+        </div>
+      </section>
 
-<!-- 26 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">26</span>
-    <span class="poem-title">奉和令公绿野堂种花<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">绿野堂开占物华，路人指道令公家。
+      <!-- 26 -->
+      <section class="poem" id="poem-26">
+        <div class="poem-head">
+          <span class="poem-num">26</span>
+          <span class="poem-title">奉和令公绿野堂种花<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">绿野堂开占物华，路人指道令公家。
 令公桃李满天下，何用堂前更种花。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>绿野堂开占物华</strong>：绿野堂，裴度的居所。开，建成。占物华，占据了世间美好的景物。<span class="w">译文：绿野堂建成占据了世间的美好景物。</span></p>
-    <p><strong>路人指道令公家</strong>：路人，行人。指道，指着说。令公，指裴度（唐代宰相，被封为晋国公）。<span class="w">译文：路人都指着说这是令公的家。</span></p>
-    <p><strong>令公桃李满天下</strong>：桃李，学生弟子。满天下，遍布天下。<span class="w">译文：令公的学生门生已经遍布天下。</span></p>
-    <p><strong>何用堂前更种花</strong>：何用，何必用。更种花，再种花。<span class="w">译文：何必还要在堂前再种花呢？</span></p>
-  </div>
-</section>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>绿野堂开占物华</strong>：绿野堂，裴度的居所。开，建成。占物华，占据了世间美好的景物。<span class="w">译文：绿野堂建成占据了世间的美好景物。</span></p>
+          <p><strong>路人指道令公家</strong>：路人，行人。指道，指着说。令公，指裴度（唐代宰相，被封为晋国公）。<span class="w">译文：路人都指着说这是令公的家。</span></p>
+          <p><strong>令公桃李满天下</strong>：桃李，学生弟子。满天下，遍布天下。<span class="w">译文：令公的学生门生已经遍布天下。</span></p>
+          <p><strong>何用堂前更种花</strong>：何用，何必用。更种花，再种花。<span class="w">译文：何必还要在堂前再种花呢？</span></p>
+        </div>
+      </section>
 
-<!-- 27 -->
-<section class="poem">
-  <div class="poem-head">
-    <span class="poem-num">27</span>
-    <span class="poem-title">对酒五首·其二<span class="star">*</span></span>
-  </div>
-  <div class="poem-text">蜗牛角上争何事，石火光中寄此身。
+      <!-- 27 -->
+      <section class="poem" id="poem-27">
+        <div class="poem-head">
+          <span class="poem-num">27</span>
+          <span class="poem-title">对酒五首·其二<span class="star">*</span></span>
+        </div>
+        <div class="poem-text">蜗牛角上争何事，石火光中寄此身。
 随富随贫且欢乐，不开口笑是痴人。</div>
-  <div class="note">
-    <div class="note-title">逐句注释与译文</div>
-    <p><strong>蜗牛角上争何事</strong>：蜗牛角上，比喻极小的地方，典出《庄子》"蜗角之争"。争何事，争些什么事。<span class="w">译文：在蜗牛角那么小的地方争什么呢？</span></p>
-    <p><strong>石火光中寄此身</strong>：石火光，敲击石头迸出的火光，比喻极为短暂的人生。寄此身，寄托这短暂的一生。<span class="w">译文：人生如同石火一闪的光景，只是暂时寄托在此。</span></p>
-    <p><strong>随富随贫且欢乐</strong>：随富随贫，无论富贵还是贫穷。且，姑且、暂且。欢乐，快乐。<span class="w">译文：无论富贵还是贫穷，姑且欢乐度日。</span></p>
-    <p><strong>不开口笑是痴人</strong>：开口笑，开口欢笑。痴人，愚蠢的人。<span class="w">译文：不开口笑的人才是真正的痴人。</span></p>
+        <div class="note">
+          <div class="note-title">逐句注释与译文</div>
+          <p><strong>蜗牛角上争何事</strong>：蜗牛角上，比喻极小的地方，典出《庄子》"蜗角之争"。争何事，争些什么事。<span class="w">译文：在蜗牛角那么小的地方争什么呢？</span></p>
+          <p><strong>石火光中寄此身</strong>：石火光，敲击石头迸出的火光，比喻极为短暂的人生。寄此身，寄托这短暂的一生。<span class="w">译文：人生如同石火一闪的光景，只是暂时寄托在此。</span></p>
+          <p><strong>随富随贫且欢乐</strong>：随富随贫，无论富贵还是贫穷。且，姑且、暂且。欢乐，快乐。<span class="w">译文：无论富贵还是贫穷，姑且欢乐度日。</span></p>
+          <p><strong>不开口笑是痴人</strong>：开口笑，开口欢笑。痴人，愚蠢的人。<span class="w">译文：不开口笑的人才是真正的痴人。</span></p>
+        </div>
+      </section>
+
+      <!-- ============ 更新主题作文 ============ -->
+      <div class="section-head green">二、更新主题作文（4 篇）</div>
+
+      <!-- 作文 1 -->
+      <section class="poem essay" id="essay-1">
+        <div class="poem-head">
+          <span class="poem-num">1</span>
+          <span class="poem-title">自我更新</span>
+        </div>
+        <div class="essay-text">
+          <p>绯红的裙裾扬起化作流云，我旋身提踵，轻巧回身，激起舞裙上流苏碰撞的"叮当"声响。舞室外蝉鸣吵嚷，我的目光紧盯着老师示范的动作，一一努力复刻，练了许久，却总以为少了一抹注入舞曲的神韵。</p>
+          <p>回家后凝神细思，我发现自己对"跳好舞"的认知只限于完美跳出示范动作，而非跳出舞者个人情感、跳出自己别具一格的风韵。一位真正有表现力的舞者，举手投足身姿挪移间皆应透着个人思考。于是我将诗刊的体悟融入乐音。当晨辉破开袅袅的晨雾，我和着音乐起舞，左腕轻盈抬起，倾首旋身，跳出舞曲的第一个八拍。不同于先前机械模仿，我脑海中涌现了曲中所描绘的一幕幕场景。通过沉郁的舞步，温和的动作，我的身体绘出大漠孤烟、单骑踏沙，曲调乍而高骤起，我的眼神中透着淡淡的愁思与壮美……一曲《汉宫秋》跳毕，我对昭君的理解呈现得淋漓尽致，舞姿自然富有神韵。如今"舞蹈"对我而言不是复刻而是呈现与自然表达，我低头看着舞裙上的流苏，默默坚定日后"融情于舞"的方向。</p>
+          <p>随着能力的提升，我报名了中国舞十级的考核，但在两次试练中因过于紧张，发挥并不理想。面对困难，更新心态成了首选。再度上台时，我深吸一口气，将功利与成败一并弃入尘灰；高难度"前桥"时，我心中所想不再是"这个动作是着重计力点"，而是如何调动全身、更好地将动作本身呈现；平转云手甩水袖一气呵成时，我将以往"不能失误否则过不了"的心绪化作专注于指尖的曲度、步数的精确。通过将患得患失的心态化作动作本身，以获取心灵的恬静，我似卸下了肩上由自己强加的负担，在台上也可以做到正常、稳定发挥。</p>
+          <p>盛夏阳光洒在我的十级证书上。我踏上了新的台阶，面前舞蹈的天地更加广阔，为我持续发展提供了更好的平台，为自我成就助力。</p>
+          <p>在自我更新认知与心态的过程中，我对舞蹈的认知更加深入，能以平静恬和的心态面对考级的"腥风血雨"，从而使技术精纯、发挥稳定，以十级的证书为日后更进一步提供基石，更好地成就我精进舞蹈的愿望。</p>
+          <p>骄阳倾泻而下，在舞裙流苏上反射出熠熠的碎光。我沐浴着暖阳，心中满是欢欣、平和与希望。</p>
+        </div>
+      </section>
+
+      <!-- 作文 2 -->
+      <section class="poem essay" id="essay-2">
+        <div class="poem-head">
+          <span class="poem-num">2</span>
+          <span class="poem-title">更新·拥抱温柔</span>
+        </div>
+        <div class="essay-text">
+          <p>父母终日奔波在外，三餐冷暖皆由自己动手，因嫌麻烦，我整日都敷衍而过，却不知，怠慢的不仅是自己，还有平凡岁月中的美好。</p>
+          <p>一日清晨，偶然经过菜市场，薄雾轻柔笼罩街巷，竹编的篮子中，色泽鲜艳的蔬果反射着细碎金光，叶尖挂着未干露珠。泥土的苦香混杂着清甜的微风掠过发梢。往来行人精心挑选着食材，望着这份未经雕琢的鲜活绿意，我心底猛然一颤：或许，我该更新一下心态，不辜负这份生活美好，认真对待三餐。</p>
+          <p>挑选一把油麦菜回家，指尖捏住菜根，细心掐去发硬老梗，捋平卷曲菜叶，将整根油麦菜整齐掰开，指腹顺着叶脉缓缓擦拭，冲净菜叶里细碎的泥沙，不再像以往一般胡乱冲洗了事。原本微微发蔫、垂落无力的菜叶吸饱了清水，重新挺直腰杆，翠绿饱满的叶片挂满晶莹透亮的水珠。我心底也生出一丝愉悦。</p>
+          <p>我摒弃以往随意翻炒的做法，而是先将菜叶放入沥水篮中铺平沥干，打开燃气灶，淡蓝火焰静静舔舐锅底。待锅烧热，我将食用油沿着锅壁缓缓倒入，透亮的油面泛起细密透亮的小泡，待油烟升起，我抬手，将油麦菜尽数倒入锅中，油面瞬间包裹住菜叶，发出清脆细密的"刺拉"声，浅绿的菜叶逐渐变成温润浓郁的深绿，硬挺的菜叶舒展开来，淡淡的草木清香在厨房弥漫。浮躁的心沉寂下来。</p>
+          <p>我一手握紧锅柄，一手执着锅铲，手腕沉稳发力，不断翻拌颠炒，在心中记着烹制时间，同时用筷子将粘连在一起的叶片拨开，确保每一片菜叶都受热均匀，不焦不生，最后，我又撒上少许食盐，快速翻炒出锅。</p>
+          <p>夹起一筷送入口中，最先漫开一层淡淡油润，紧随其后的是油麦菜独有的清冽甘鲜。油光翠绿的小菜冒着袅袅热气。朦胧间，鲜活热闹的菜市场浮现眼前，原本那个敷衍三餐的自我在更新中触摸到了凡尘烟火暖意，从此桌上不再是发黄软塌的菜肴，而是一盘盘精心搭配，色味俱全的温柔。</p>
+          <p>更新自己，使我有机会能够沉下心，发现生活细碎的美好；面对清冷餐桌，也不再孤独，与世间温柔相拥，善待时光。</p>
+        </div>
+      </section>
+
+      <!-- 作文 3 -->
+      <section class="poem essay" id="essay-3">
+        <div class="poem-head">
+          <span class="poem-num">3</span>
+          <span class="poem-title">更迭破出</span>
+        </div>
+        <div class="essay-text">
+          <p>梧桐枝摇影动，斑驳光影映射石面。锋利刀尖辗转而出，每一道刻痕皆蕴含着"更新"的力道，成就石面的精美图章。</p>
+          <p>青灰石块置于桌面，刀锋折射寒冷锋芒。我手执刻刀于石面雕琢，力求遵循视频教程完成篆刻。</p>
+          <p>"只要力道足够就能雕刻好吧？"我脑中浮现曾随意扫过的雕刻教程，自信抬起刻刀。手下发力，指尖泛白，刀尖錾于石面，留下丑陋而狰狞的划痕，似在诉说我的暴力。我惊诧地望向笔尖，难以置信地呆滞原地。</p>
+          <p>簌簌桐叶飘落而下，扫落枯叶，却见枝干吐露新芽。怔愣间，我却不再茫然。原先我只基于寥寥几眼便断定雕刻以蛮力为要，可错误的认知却无法支撑我完成篆刻，唯有学习正规的方法，了解篆刻的基本原则，更新认知方能改进技法。</p>
+          <p>调整心态，我不再执着以蛮力突破。翻阅教程，我咬文嚼字，汲取字里行间的知识，曾经偏差的观念似被推翻，于阅读中重塑、构建，脑中对篆刻的认知逐渐清晰，搭建完整框架。</p>
+          <p>重握刻刀，我亦不再迷茫，运用脑中不断涌现的技巧调整刻刀角度，寻找合适的下笔位置。雕刻不再是刀尖盲目的冲锋陷阵，而是一场力道控制与角度探寻的较量。</p>
+          <p>指尖抚过石料表面的颗粒，我感受着石块本身的质地，心中一片辽阔开明。我明白，雕刻讲究下笔位置与切入角度，莽撞使劲无法破局。刻刀于石面游走，不再是生硬地横冲直撞。我紧握刀柄，石随刀变，刀随石走。石料坚毅处，我耐心比对切入口，细调整笔下力道，斜切至合适深度，轻切慢推把握刻刀走向；自然斑驳处，我将其化作笔触飞白，融为艺术的一呼一吸，将微小瑕疵变为独特美感。刻痕不再呆板而丑陋，而是透露着随性，笔触自然生动，精致却不显刻意。</p>
+          <p>石面上更迭的刻痕，皆是我不断"更新"的路程图。我于雕刻中更新认知，迭代技法，方雕琢出完美图章。人生之路亦然，困阻阵碍之时，更新是突破路径的最佳导向。若固步自封，固守旧知只会停滞不前；唯以路程中的心历为念，启发改进方向、明确规划，改变错误观念，更新更加高效的技法与方向，方可突破自我，抵至更广阔的人生宏图。</p>
+        </div>
+      </section>
+
+      <!-- 作文 4 -->
+      <section class="poem essay" id="essay-4">
+        <div class="poem-head">
+          <span class="poem-num">4</span>
+          <span class="poem-title">更新自我，方能更好地成就自我</span>
+        </div>
+        <div class="essay-text">
+          <p>晚风入窗，墨香浸岁。一砚烟雨落素宣，半笔清欢渡流年。横竖藏山河，点画见风骨。于笔墨悠悠的时光中，深谙，唯有更新自己，才能更好地成就自己。</p>
+          <p>澄黄的庭院淡雅悠然，微凉的秋风穿过枝叶，落下的光影细碎斑驳。我正襟危坐，执起毛笔，起笔、落笔、运笔、行笔、收笔，连带，一气呵成，临摹的字体极为形似却没什么长进。于是，我更新认知，不拘泥于简单的临摹，而转向钻研自己的笔法，走出自己的路。这让我明确了练习方向，拿去摹本，仅凭基本笔画，摸索字体的框架结构，探寻独属自己的书写方式，兼融大家的写作特色，融会贯通自己的笔锋。柔软的笔尖与纸交融，创造出独属我的字。</p>
+          <p>窗外的流云缓缓游走，墙角雏菊悄然绽放，砚池盛满清水。提笔，落笔，墨于纸上绽放，又遇到了瓶颈，感觉许久没进步了。遂，我更新思维，不去跟风打磨字体，而是在空闲之余，感受作品的意境。这让我书法水平进步神速，品读作品，了解其情感主旨，沉浸于"天朗气清，惠风和畅"的清悠，感受"仰天大笑出门去，我辈岂是蓬蒿人"的豪放，领悟作品的弦外之音并加以抒发。伴随着世界上最柔软的东西于笔尖倾泻，字体愈发富有神韵。</p>
+          <p>也曾面临他人对自己的嘲讽，微微失神，墨迹揉开。于是，我更新心态，紧扣心门，怀着一份从容定力。这让我更加稳健地投入书法练习，专心于方折顿笔棱角分明，心无旁骛地练习圆转圆润流畅，沉下心来研究使转、顿挫、提按，专注于字体疏密排布。渐渐地，翻起笔如高山碧石，落笔如万岁枯藤。</p>
+          <p>阳光顺着窗台洒下，浅色的窗台被阳光分割，桌上，鎏金的冠军奖状在阳光的映照下熠熠生辉。</p>
+          <p>晓看红湿处，花重锦官城。正因我在练习书法的过程中，及时更新自己的认识、思维、心态，方能摘得比赛桂冠。</p>
+          <p>墨染流年静，携笔修内心。一纸书法，写得是汉字形态，磨的是练习心态。往后岁月，愿持更新自我的信念，向着梦想彼岸，穿过人生的考验与风浪，笃定前行。</p>
+          <p>一笔山河阔，一墨岁月长。征途的辽阔与梦想的璀璨，便在这一楫一杖的奔赴中慢慢靠近。</p>
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      <p>白居易诗词选 · 更新主题作文</p>
+    </footer>
+
   </div>
-</section>
-
-</main>
-
-<footer>
-  <p>白居易诗词选 · 逐句注释与译文</p>
-</footer>
+</div>
 
 <script>
   (function () {
@@ -665,6 +874,46 @@
     document.getElementById('zoomOut').addEventListener('click', function () { apply(base - STEP); });
     document.getElementById('zoomReset').addEventListener('click', function () { apply(17); });
     apply(base);
+
+    /* ---- 移动端目录抽屉 ---- */
+    var sidebar = document.getElementById('sidebar');
+    var backdrop = document.getElementById('backdrop');
+    var menuBtn = document.getElementById('menuBtn');
+    function closeNav() {
+      sidebar.classList.remove('open');
+      backdrop.classList.remove('show');
+    }
+    if (menuBtn) {
+      menuBtn.addEventListener('click', function () {
+        sidebar.classList.toggle('open');
+        backdrop.classList.toggle('show');
+      });
+      backdrop.addEventListener('click', closeNav);
+    }
+    sidebar.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', closeNav);
+    });
+
+    /* ---- 滚动高亮当前篇目 ---- */
+    var sections = Array.prototype.slice.call(document.querySelectorAll('section[id]'));
+    var links = {};
+    sections.forEach(function (s) {
+      var l = document.querySelector('.sidebar a[href="#' + s.id + '"]');
+      if (l) links[s.id] = l;
+    });
+    function onScroll() {
+      var current = null;
+      var probe = window.scrollY + 140;
+      sections.forEach(function (s) {
+        var r = s.getBoundingClientRect();
+        if (window.scrollY + r.top <= probe) current = s.id;
+      });
+      Object.keys(links).forEach(function (id) {
+        links[id].classList.toggle('active', id === current);
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
   })();
 </script>
 
