@@ -313,7 +313,7 @@ body>*{position:relative;z-index:1}
   · 牌型：万条筒1-9各4张 + 红中发财白板东南西北各4张，共136张<br>
   · 胡牌：4组面子（顺子或刻子）+ 一对将；或七对子<br>
   · <b style="color:#ffd857">将牌</b>：屁胡的将必须是二、五、八（万条筒均可）；清一色、碰碰胡、七对等大胡任意对子作将<br>
-  · <b style="color:#ffd857">赖子</b>：开局翻一张明牌，它的下一张是赖子（翻九万则一万，翻红中/发财则白板，翻白板则白板本身作赖子）。赖子可代替任何牌参与组牌和胡牌，但<b>手里还有普通牌时不能直接打出（只能杠）</b><br>
+  · <b style="color:#ffd857">赖子</b>：开局翻一张明牌，它的下一张是赖子（数牌同花色 1-9 循环，翻九万则一万；字牌按 东→南→西→北→中→发→白 循环，翻白板则东风）。因红中/发财不能参与组牌、当赖子无用，若下一张是红中或发财就改取白板（故翻北风、翻红中、翻发财均为白板）。赖子可代替任何牌参与组牌和胡牌，但<b>手里还有普通牌时不能直接打出（只能杠）</b><br>
   · <b style="color:#ffd857">杠</b>：暗杠（手中4张相同）、明杠（对方打出的第4张）、补杠（碰后再摸到同牌）；<b style="color:#ffd857">红中和发财随时可杠</b>（手中有一张即可），杠后从牌尾摸一张补牌<br>
   · <b style="color:#ffd857">红中/发财不能参与组牌</b>：不能凑顺子、刻子或当将，手里留着它们就<b>不能和牌</b>，必须先杠掉——所以它们也是「杠上开花（+20分）」最常见的来源<br>
   · <b style="color:#ffd857">开口</b>：屁胡必须先有吃、碰或明杠至少一次才能胡牌；清一色、碰碰胡、七对等大和不需要开口<br>
@@ -366,24 +366,24 @@ function tileName(c){
   return CN_NUM[+c[1]]+SUIT_NAME[c[0]];
 }
 function isHonor(c){return !!HONOR_NAME[c];}
+/* 手牌展示顺序：条→筒→万→风→白板→赖子→红中→发财（赖子固定落在风牌与红中之间） */
+var JOKER_SORT_KEY=110;
 function tileSortKey(c){
-  if(!isHonor(c))return {m:0,t:1,d:2}[c[0]]*10+(+c[1]);
-  return 100+{hz:0,fc:1,bb:2,df:3,nf:4,xf:5,bf:6}[c];
+  if(G&&G.joker&&c===G.joker)return JOKER_SORT_KEY;
+  if(!isHonor(c))return {t:0,d:1,m:2}[c[0]]*10+(+c[1]);
+  return 100+{df:0,nf:1,xf:2,bf:3,bb:4,hz:20,fc:21}[c];
 }
 function sortTiles(arr){
   return arr.slice().sort(function(a,b){return tileSortKey(a)-tileSortKey(b)|| (a<b?-1:a>b?1:0);});
 }
 function nextTileCode(c){
-  if(isHonor(c)){
-    if(WIND_CHAR[c])return {df:'nf',nf:'xf',xf:'bf',bf:'df'}[c];
-    return {hz:'fc',fc:'bb',bb:'hz'}[c];
-  }
+  if(isHonor(c))return {df:'nf',nf:'xf',xf:'bf',bf:'hz',hz:'fc',fc:'bb',bb:'df'}[c];
   var n=+c[1];
   return n>=9? c[0]+'1' : c[0]+(n+1);
 }
 function calcJoker(flip){
   var s=nextTileCode(flip);
-  if(s==='hz'||s==='fc')return 'bb';
+  if(s==='hz'||s==='fc')return 'bb';   /* 红中/发财不能参与组牌，当赖子无用，改为白板 */
   return s;
 }
 function buildDeck(){
