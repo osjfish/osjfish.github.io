@@ -651,6 +651,26 @@ function blanksCfgOf(it){
     fmt:BLANK_MARKERS[marker].fmt
   };
 }
+/* ---------- 横线格行距（每行书写高度 rowH，毫米） ----------
+   填空 blanks / 问答横线 lines 两条线之间的高度＝学生一行的书写空间，可在模板编辑器按题设置。
+   默认值必须与历史版本完全一致（blanks 8.4 / lines 8.0），否则已印刷答题卡的排版会被改动、
+   版式指纹对不上；只有用户显式设了 rowH 才生效。
+   量化到 0.5mm：二维码载荷里 rowH 以 Math.round(rowH*2) 存一个字节，重建版式时按 u()/2 还原，
+   0.5 的整数倍可精确往返——否则本地排版与"扫码重建版式"算出的框高会差半格，底部被裁掉。 */
+const ROW_H_MIN=6, ROW_H_MAX=20;
+const ROW_H_DEF={blanks:8.4,lines:8};
+function rowHQuantize(v){
+  if(v===''||v==null)return null;                 /* 留空＝恢复默认行距 */
+  v=Number(v);
+  if(!Number.isFinite(v))return null;
+  return Math.min(ROW_H_MAX,Math.max(ROW_H_MIN,Math.round(v*2)/2));
+}
+function subjRowHOf(type,it){
+  const d=(ROW_H_DEF[type]!=null)?ROW_H_DEF[type]:8;
+  if(!it||it.rowH==null||it.rowH==='')return d;
+  const q=rowHQuantize(it.rowH);
+  return (q==null)?d:q;
+}
 /* 选择题排列偏好：q=题目排列(v 纵向逐行 / h 横向并排)，o=选项排列(h 横向 A B C D / v 纵向逐行)；默认纵向题目+横向选项 */
 /* 分值显示开关：大题标题后 / 小题标签后是否带分值（默认都显示） */
 function showScoreOf(tpl){
@@ -967,12 +987,14 @@ function layoutTemplate(tpl,opts){
       const perRow=Math.max(1,Math.floor(colWmm-6)/perW|0);
       blankPerRow=Math.max(1,Math.min(cfg.count,perRow));
       blankRows=Math.max(1,Math.ceil(cfg.count/blankPerRow));
-      rowH=8.4;
+      rowH=subjRowHOf('blanks',it);            /* 行距可设置，默认与历史排版一致 */
       totalRows=blankRows;
     }else if(type==='blank'){
       rowH=8; totalRows=Math.max(1,it.rows||4);
     }else{
-      rowH=8; totalRows=Math.max(1,it.rows||3);
+      /* 问答横线：行距可设置（默认 8mm） */
+      rowH=subjRowHOf('lines',it);
+      totalRows=Math.max(1,it.rows||3);
     }
     return {type:type,gridCols:gridCols,rowH:rowH,titleHead:titleHead,totalRows:totalRows,
       blankPerRow:blankPerRow,blanksCfg:(type==='blanks')?blanksCfgOf(it):null};
@@ -2121,6 +2143,18 @@ function gridPitchRatio(cv,expColPx,expRowPx){
     return {rel:(px/expColPx)/(py/expRowPx),px:px,py:py};
   }catch(e){return null}
 }
+/* ---------- 主观题识别范围：作答框向外放宽（毫米） ----------
+   学生写到框线外一点也必须能判到，因此判分用的裁剪比画出来的实心框大一圈。取值受版式留白约束：
+   横向 3mm——多列排版时相邻两个作答框之间只有「列间距 6mm + 两侧各内缩 1mm」= 8mm，两侧各放宽 3mm
+     后仍留 2mm 余量，不会把隔壁列的作答框进本题；单列排版两侧是 14mm 页边距，更宽裕。
+   纵向——上方只放 2mm：框顶上方 2.6mm 是「题号（分值）」字样，字形纵向约占 -5.8~-2.2mm，再往里会把
+     整行标题框进作答图；下方放 5mm：到下一个作答框顶有 11mm 间隙，留够而且最常用的就是这里
+     （学生写不完往往顺着往下溢出）。 */
+const SUBJ_PAD={l:3,r:3,t:2,b:5};
+function subjCropRect(sb){
+  return {x:sb.x-SUBJ_PAD.l,y:sb.y-SUBJ_PAD.t,
+    w:sb.w+SUBJ_PAD.l+SUBJ_PAD.r,h:sb.h+SUBJ_PAD.t+SUBJ_PAD.b};
+}
 function gridAbnormal(cc,sb){
   if(sb.type!=='grid-cn'||!sb.cols)return false;
   /* 行/格过少时周期无法可靠测量，跳过判定避免误报。
@@ -2128,7 +2162,7 @@ function gridAbnormal(cc,sb){
      好图被误判“压扁”——rows<5 一律不测（小块即使真压扁，影响也小） */
   if(sb.rows<5)return false;
   const cellW=Math.min(8,(sb.w-12)/sb.cols);
-  const ppm=cc.width/(sb.w+2.4);
+  const ppm=cc.width/subjCropRect(sb).w;
   const expRow=(sb.rowH||9.2)*ppm;
   if(cc.height<expRow*2.5)return false;
   const r=gridPitchRatio(cc,cellW*ppm,expRow);
@@ -2142,7 +2176,7 @@ function realignGrid(cc,sb){
   if(sb.rows<3)return null;
   try{
     const cellW=Math.min(8,(sb.w-12)/sb.cols);
-    const ppm=cc.width/(sb.w+2.4);
+    const ppm=cc.width/subjCropRect(sb).w;
     const expCol=cellW*ppm, expRow=(sb.rowH||9.2)*ppm;
     const w=cvWt(cc),h=cvHt(cc);
     const d=cc.getContext('2d').getImageData(0,0,w,h).data;
@@ -2615,9 +2649,10 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   for(const sb of pg2.subjective){
     /* 切割按源图原生分辨率 1:1 采样（不发虚）；拼接对齐由显示层等宽缩放保证。
        常规轻度锐化提升线条观感；源区域像素不足（如 PDF 内嵌低清图被放大渲染）时加大锐化补偿 */
-    const outW=Math.round(Math.min(1440,Math.max(420,(sb.w+2.4)*Math.min(12,smm*1.05))));
-    const srcRegionPx=(sb.w+2.4)*smm;
-    const cc=cropViaH(cv,H,sb.x-1.2,sb.y-1.2,sb.w+2.4,sb.h+2.4,outW, outW>srcRegionPx*1.15?0.85:0.4);
+    const cr=subjCropRect(sb);
+    const outW=Math.round(Math.min(1440,Math.max(420,cr.w*Math.min(12,smm*1.05))));
+    const srcRegionPx=cr.w*smm;
+    const cc=cropViaH(cv,H,cr.x,cr.y,cr.w,cr.h,outW, outW>srcRegionPx*1.15?0.85:0.4);
     crops.push({qno:sb.qno,part:sb.part||0,score:sb.score,cv:cc});
   }
   /* 切割图格距自检：网格题纵/横线周期异常（“格子变扁”）→ 全局定位可疑 → 换“预期位置窗口”定位重试；
@@ -3057,13 +3092,17 @@ async function tplEditorHTML(tplId){
       const cfgB=blanksCfgOf(it);
       extra='<span class="kv" title="本题共有几个空">空数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="count" type="number" min="1" max="60" value="'+esc(cfgB.count)+'">'
         +'<span class="kv" title="每空横线长度（毫米）">线长(mm)</span><input class="inp" style="width:64px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="len" type="number" min="12" max="120" value="'+esc(cfgB.len)+'">'
+        +'<span class="kv" title="两行横线之间的间距（毫米），决定每行的书写空间">行距(mm)</span><input class="inp" style="width:62px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rowH" type="number" step="0.5" min="'+ROW_H_MIN+'" max="'+ROW_H_MAX+'" value="'+esc(it.rowH!=null&&it.rowH!==''?it.rowH:'')+'" placeholder="'+ROW_H_DEF.blanks+'">'
         +'<span class="kv">序号符</span><select class="inp" style="width:92px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="marker">'
         +Object.keys(BLANK_MARKERS).map(function(k){return '<option value="'+k+'"'+(cfgB.marker===k?' selected':'')+'>'+BLANK_MARKERS[k].label+'</option>'}).join('')
         +'</select>';
     }else if(kind==='qa'){
+      const sty=(it.style==='blank')?'blank':'lines';
       extra='<span class="kv">作答</span><select class="inp" style="width:84px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="style">'
         +[['lines','横线'],['blank','空白']].map(function(x){return '<option value="'+x[0]+'"'+((it.style||'lines')===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select>'
-        +'<span class="kv">行数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rows" type="number" min="1" value="'+esc(it.rows||3)+'">';
+        +'<span class="kv">行数</span><input class="inp" style="width:56px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rows" type="number" min="1" value="'+esc(it.rows||3)+'">'
+        /* 空白作答框不画横线，行距无意义，只在“横线”样式下给出 */
+        +(sty==='lines'?('<span class="kv" title="两条横线之间的间距（毫米），决定每行的书写空间">行距(mm)</span><input class="inp" style="width:62px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="rowH" type="number" step="0.5" min="'+ROW_H_MIN+'" max="'+ROW_H_MAX+'" value="'+esc(it.rowH!=null&&it.rowH!==''?it.rowH:'')+'" placeholder="'+ROW_H_DEF.lines+'">'):'');
     }else if(kind==='essay'){
       /* 作文只保留语文作文格（横线/英语格已取消），直接给格数/总格数/题目栏 */
       extra='<span class="kv" title="每行格数">每行格数</span><input class="inp" style="width:54px" data-on="tpl-it" data-id="'+t.id+'" data-s="'+si+'" data-i="'+ii+'" data-f="cols" type="number" min="10" max="40" value="'+esc(it.cols||20)+'">'
@@ -3413,6 +3452,7 @@ async function tplItApply(el){
     else if(f==='count')it.count=(Number.isFinite(v)&&v>0)?Math.max(1,Math.min(60,Math.round(v))):null;
     else if(f==='len')it.len=Math.max(12,Math.min(120,Math.round(v)||30));
     else if(f==='rows')it.rows=Math.max(1,Math.round(v)||1);
+    else if(f==='rowH'){const rq=rowHQuantize(el.value);if(rq==null)delete it.rowH;else it.rowH=rq;}
     else it[f]=Number.isFinite(v)?v:el.value;
   }
   else it[f]=el.value;
@@ -7772,7 +7812,8 @@ window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,
   canvasToThumb:canvasToThumb,
   imageViewer:imageViewer,enhanceImageData:enhanceImageData,median3Gray:median3Gray,estimateBackground:estimateBackground,enhanceCropURL:enhanceCropURL,gradePref:function(){return gradePref},
   getAll:function(s){return dbAll(s)},get:dbGet,examMeta:examMeta,computeScorebook:computeScorebook,pageRegDigits:pageRegDigits,
-  examThresholdsOf:examThresholdsOf,gradeLevelOf:gradeLevelOf,seqLetters:seqLetters,normalizeSections:normalizeSections,blanksCfgOf:blanksCfgOf};
+  examThresholdsOf:examThresholdsOf,gradeLevelOf:gradeLevelOf,seqLetters:seqLetters,normalizeSections:normalizeSections,blanksCfgOf:blanksCfgOf,
+  subjCropRect:subjCropRect,SUBJ_PAD:function(){return SUBJ_PAD},subjRowHOf:subjRowHOf,rowHQuantize:rowHQuantize,ROW_H_DEF:function(){return ROW_H_DEF}};
 })();
 </script>
 </body>
