@@ -6,8 +6,8 @@
 <title>白居易诗词选 · 更新主题作文</title>
 <style>
   :root {
-    --base-font-size: 17px;
-    --toolbar-h: 3.2rem;
+    --base-font-size: 25.5px;
+    --toolbar-h: 52px;
     --ink: #2b2b2b;
     --ink-soft: #5c5c5c;
     --accent: #8c5a2b;
@@ -38,11 +38,11 @@
     height: var(--toolbar-h);
   }
   .toolbar .title-tag {
-    font-weight: 700; color: var(--accent); font-size: 1rem;
+    font-weight: 700; color: var(--accent); font-size: 15px;
     margin-right: 0.8rem; letter-spacing: 0.05em;
   }
   .btn {
-    font-family: inherit; font-size: 1rem;
+    font-family: inherit; font-size: 15px;
     border: 1px solid var(--line); background: var(--card);
     color: var(--ink); border-radius: 0.4rem;
     padding: 0.2rem 0.9rem; cursor: pointer;
@@ -50,46 +50,46 @@
   }
   .btn:hover { background: var(--accent-light); }
   .btn:active { transform: scale(0.96); }
+  .btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   .size-info {
-    font-size: 0.85rem; color: var(--ink-soft);
-    min-width: 6.5rem; text-align: center;
+    font-size: 13px; color: var(--ink-soft);
+    min-width: 5rem; text-align: center;
   }
-  .reset-btn { color: var(--accent); }
   .menu-btn { display: none; }
   /* ---- 整体布局 ---- */
-  .layout { display: flex; align-items: flex-start; max-width: 76rem; margin: 0 auto; }
+  .layout { display: flex; align-items: flex-start; max-width: 1600px; margin: 0 auto; padding: 0 1rem; }
   /* ---- 左侧目录 ---- */
   .sidebar {
     position: sticky; top: var(--toolbar-h);
-    width: 15.5rem; flex-shrink: 0;
+    width: 250px; flex-shrink: 0;
     height: calc(100vh - var(--toolbar-h));
     overflow-y: auto;
     background: rgba(245, 234, 216, 0.45);
     border-right: 1px solid var(--line);
-    padding: 1rem 0.8rem 2rem;
+    padding: 14px 12px 28px;
     scrollbar-width: thin;
     scrollbar-color: var(--line) transparent;
   }
   .sidebar::-webkit-scrollbar { width: 6px; }
   .sidebar::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
   .sidebar-title {
-    font-size: 1.1rem; font-weight: 700; color: var(--accent);
+    font-size: 18px; font-weight: 700; color: var(--accent);
     border-bottom: 2px solid var(--accent);
-    padding-bottom: 0.4rem; margin-bottom: 0.8rem;
+    padding-bottom: 6px; margin-bottom: 10px;
     letter-spacing: 0.1em; text-align: center;
   }
   .nav-group {
-    font-size: 0.82rem; font-weight: 700; color: var(--ink-soft);
-    margin: 1rem 0 0.35rem; padding-left: 0.3rem;
+    font-size: 12px; font-weight: 700; color: var(--ink-soft);
+    margin: 14px 0 4px; padding-left: 5px;
     letter-spacing: 0.08em;
   }
-  .nav-group:first-of-type { margin-top: 0.2rem; }
+  .nav-group:first-of-type { margin-top: 3px; }
   .nav-link {
     display: block; text-decoration: none; color: var(--ink);
-    font-size: 0.88rem; line-height: 1.5;
-    padding: 0.18rem 0.45rem;
+    font-size: 13px; line-height: 1.5;
+    padding: 3px 7px;
     border-left: 3px solid transparent;
-    border-radius: 0 0.3rem 0.3rem 0;
+    border-radius: 0 5px 5px 0;
     transition: background 0.15s, color 0.15s;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
@@ -128,7 +128,7 @@
     letter-spacing: 0.08em;
   }
   .section-head.green { color: var(--green); border-left-color: var(--green); }
-  main { max-width: 52rem; margin: 0 auto; }
+  main { max-width: none; }
   /* ---- 诗词卡片 ---- */
   .poem {
     background: var(--card);
@@ -188,7 +188,7 @@
   @media (max-width: 56rem) {
     .layout { display: block; }
     .sidebar {
-      position: fixed; top: 0; left: -17rem;
+      position: fixed; top: 0; left: -262px;
       height: 100vh; z-index: 200;
       box-shadow: 2px 0 12px rgba(0,0,0,0.15);
       transition: left 0.25s ease;
@@ -209,10 +209,11 @@
 <div class="toolbar">
   <button class="btn menu-btn" id="menuBtn" title="打开目录">☰ 目录</button>
   <span class="title-tag">白居易诗词选 · 更新主题作文</span>
-  <button class="btn" id="zoomOut" title="缩小字体">A−</button>
-  <span class="size-info" id="sizeInfo">字号 100%</span>
-  <button class="btn" id="zoomIn" title="放大字体">A＋</button>
-  <button class="btn reset-btn" id="zoomReset" title="恢复默认字号">重置</button>
+  <span class="size-info" id="sizeInfo">字号 150%</span>
+  <button class="btn size-btn" data-size="150" title="字号 150%">150%</button>
+  <button class="btn size-btn" data-size="200" title="字号 200%">200%</button>
+  <button class="btn size-btn" data-size="250" title="字号 250%">250%</button>
+  <button class="btn size-btn" data-size="300" title="字号 300%">300%</button>
 </div>
 
 <div class="layout">
@@ -860,20 +861,24 @@
 
 <script>
   (function () {
-    var MIN = 12, MAX = 34, STEP = 1;
+    var BASE = 17;
     var root = document.documentElement;
-    var base = parseFloat(getComputedStyle(root).fontSize) || 17;
     var info = document.getElementById('sizeInfo');
+    var btns = Array.prototype.slice.call(document.querySelectorAll('.size-btn'));
 
-    function apply(px) {
-      base = Math.min(MAX, Math.max(MIN, px));
-      root.style.setProperty('--base-font-size', base + 'px');
-      info.textContent = '字号 ' + Math.round(base / 17 * 100) + '%';
+    function apply(pct) {
+      root.style.setProperty('--base-font-size', (BASE * pct / 100) + 'px');
+      info.textContent = '字号 ' + pct + '%';
+      btns.forEach(function (b) {
+        b.classList.toggle('active', parseInt(b.getAttribute('data-size'), 10) === pct);
+      });
     }
-    document.getElementById('zoomIn').addEventListener('click', function () { apply(base + STEP); });
-    document.getElementById('zoomOut').addEventListener('click', function () { apply(base - STEP); });
-    document.getElementById('zoomReset').addEventListener('click', function () { apply(17); });
-    apply(base);
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        apply(parseInt(b.getAttribute('data-size'), 10));
+      });
+    });
+    apply(150);
 
     /* ---- 移动端目录抽屉 ---- */
     var sidebar = document.getElementById('sidebar');
