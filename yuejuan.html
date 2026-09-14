@@ -1897,31 +1897,44 @@ function inkRatio(bin,w,h,cx,cy,r){
   }
   return total?cnt/total:0;
 }
-/* 同步条行检测：对每个预期行位置，在 x±2mm 竖窗内找黑色横段质心 */
+/* 同步条行检测：对每个预期行位置，在 x±1.5mm 竖窗内找黑色横段质心 */
 function detectRowMarks(bin,w,h,expPx,smm){
   const marks=[];
-  /* 同步条宽 0.8-1mm，选择题组左边框线只有 0.3mm：按“毫米宽度”而非固定像素数判定，
-     否则高分辨率（打印放大/高像素手机照片）时边框线也满足 c>=4，会把相邻同步条连成一条长黑带而全部漏检 */
+  /* 同步条宽 0.8-1mm。窗口不能开太宽：选择题组（考号涂卡区同理）的左边框线就在同步条右侧
+     约 1.7-2mm 处，±2mm 窗口会把它也框进来，扫描/拍照后边框墨迹扩散，每一行都能凑够阈值像素，
+     于是边框把同步条的墨迹 run 连成一条贯穿整窗的长带 → 所有同步条都判为缺失，
+     整页按“定位失败”丢弃（印刷清晰、扫描件才会出现，应用自渲染的卡反而不受影响）。
+     故窗口收窄到 ±1.5mm，并加基线抑制双保险。 */
   const needCol=Math.max(4,Math.round(smm*0.45));
   expPx.forEach(function(exp,idx){
     const mm=smm;
     const y0=Math.round(exp.y-mm*4.2),y1=Math.round(exp.y+mm*4.2);
-    const x0=Math.round(exp.x-mm*2),x1=Math.round(exp.x+mm*2);
+    const x0=Math.round(exp.x-mm*1.5),x1=Math.round(exp.x+mm*1.5);
     const minRun=Math.max(3,Math.round(mm*0.8)),maxRun=Math.round(mm*3.6);
-    let runY=null,runLen=0,best=null,widthMax=0;
+    /* 逐行墨迹剖面：以 25% 分位为基线（竖线在窗内时每行都有少量黑像素，构成高基线），
+       只有明显高出基线的行才算同步条墨迹，避免细边框把 run 连成长带 */
+    const prof=[];
     for(let y=y0;y<=y1;y++){
       let c=0;
       for(let x=x0;x<=x1;x++)if(bin[y*w+x])c++;
-      if(c>=needCol){if(runY===null)runY=y;runLen++;if(c>widthMax)widthMax=c;}
+      prof.push(c);
+    }
+    const srt=prof.slice().sort(function(a,b){return a-b});
+    const base=srt[Math.floor(srt.length*0.25)]||0;
+    const thr=Math.max(needCol,base+Math.max(2,Math.round(mm*0.3)));
+    let runY=null,runLen=0,best=null,widthMax=0;
+    for(let i=0;i<prof.length;i++){
+      const c=prof[i];
+      if(c>=thr){if(runY===null)runY=y0+i;runLen++;if(c>widthMax)widthMax=c;}
       else{
-        if(runLen>=minRun&&runLen<=maxRun&&widthMax>=needCol){
+        if(runLen>=minRun&&runLen<=maxRun&&widthMax>=thr){
           const center=runY+(runLen-1)/2;
           if(best===null||Math.abs(center-exp.y)<Math.abs(best-exp.y))best=center;
         }
         runY=null;runLen=0;widthMax=0;
       }
     }
-    if(runLen>=minRun&&runLen<=maxRun&&widthMax>=needCol){
+    if(runLen>=minRun&&runLen<=maxRun&&widthMax>=thr){
       const center=runY+(runLen-1)/2;
       if(best===null||Math.abs(center-exp.y)<Math.abs(best-exp.y))best=center;
     }
@@ -2394,11 +2407,11 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     }
   }
   let okCount=pts.filter(function(p){return p}).length;
-  if(okCount<4){return {ok:false,status:'locate_fail',regFlags:[],flags:['定位失败：锚点不足('+okCount+'/4)（照片请平正拍摄、四角完整可见）'],warn:detWarn}}
+  if(okCount<4){return {ok:false,status:'locate_fail',regFlags:[],flags:flags.concat(['定位失败：锚点不足('+okCount+'/4)（照片请平正拍摄、四角完整可见）']),warn:detWarn}}
   /* 退化组合拒绝：同一个小锚被占两个角时 mm 源重复、单应无解——不再容忍“静默压扁”输出 */
   if(usedSmall&&!opts.manualPts){
     if((smallIdx[0]>=0&&smallIdx[3]>=0&&smallIdx[0]===smallIdx[3])||(smallIdx[1]>=0&&smallIdx[2]>=0&&smallIdx[1]===smallIdx[2])){
-      return {ok:false,status:'locate_fail',regFlags:[],flags:['定位失败：同一侧上/下两个定位点均缺失，无法唯一确定版式——请确保四角定位点完整可见，或使用手动重定位'],warn:detWarn};
+      return {ok:false,status:'locate_fail',regFlags:[],flags:flags.concat(['定位失败：同一侧上/下两个定位点均缺失，无法唯一确定版式——请确保四角定位点完整可见，或使用手动重定位']),warn:detWarn};
     }
   }
   /* 四点形状校验：宽高比须与版式接近，防止自动检测的退化组合（如两侧都用同一小锚顶替）静默输出错位结果。
@@ -2408,7 +2421,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   const qH=(Math.hypot(pts[0].x-pts[3].x,pts[0].y-pts[3].y)+Math.hypot(pts[1].x-pts[2].x,pts[1].y-pts[2].y))/2;
   const qAsp=qW/Math.max(1,qH), tAsp=page.w/page.h;
   if(!opts.manualPts&&(qAsp<tAsp*0.6||qAsp>tAsp*1.6)){
-    return {ok:false,status:'locate_fail',regFlags:[],flags:['定位校验未通过：四点构成的形状与版式不符（请检查定位点是否被遮挡或印刷不清）'],warn:detWarn};
+    return {ok:false,status:'locate_fail',regFlags:[],flags:flags.concat(['定位校验未通过：四点构成的形状与版式不符（请检查定位点是否被遮挡或印刷不清）']),warn:detWarn};
   }
   /* 按实际来源配对 mm 源：小锚顶替的角用锚点4/5的坐标参与单应，杜绝“配错源”造成的纵横比例失真 */
   const srcPts=[0,1,2,3].map(function(i){
@@ -2429,7 +2442,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 手动 4 点若退化（几乎共线/顺序错）solveHomo 会返回 null，给明确指引而非后续采样报错 */
   if(!H){
     return {ok:false,status:'locate_fail',regFlags:[],
-      flags:[opts.manualPts?'手动定位失败：4 点几乎共线或顺序有误（请按 左上→右上→右下→左下 重新点选，间距拉开）':'定位失败：无法根据定位点求解版式（请检查锚点是否清晰可见）'],warn:detWarn};
+      flags:flags.concat([opts.manualPts?'手动定位失败：4 点几乎共线或顺序有误（请按 左上→右上→右下→左下 重新点选，间距拉开）':'定位失败：无法根据定位点求解版式（请检查锚点是否清晰可见）']),warn:detWarn};
   }
   /* 全局匹配的模板一致性校验：用 2 个小锚验证，防止桌面杂物拼成的假四边形被当成答题卡。
      窗口收紧到小锚尺寸（垂直 ±0.55s，避开 10mm 外的大锚），真实投影误差仅 0.3-1mm，
@@ -2448,7 +2461,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
     });
     if(checked>=1&&bad===checked){
       return {ok:false,status:'locate_fail',regFlags:[],
-        flags:['定位校验未通过：定位点与版式不符（画面中可能混入杂物，请调整拍摄角度/距离后重试）'],warn:detWarn};
+        flags:flags.concat(['定位校验未通过：定位点与版式不符（画面中可能混入杂物，请调整拍摄角度/距离后重试）']),warn:detWarn};
     }
   }
   /* 小锚残差校验（全局匹配下跳过） */
@@ -2558,7 +2571,8 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   /* 所有组的同步条全部/大面积缺失 → 几何几乎必然错位（如被杂物四边形欺骗、拍错页），按定位失败处理，绝不静默输出 */
   if(syncMiss.length&&syncMiss.every(function(s){return s.miss>=Math.max(2,s.rows*0.4)})){
     return {ok:false,status:'locate_fail',regFlags:[],
-      flags:['定位校验未通过：所有同步条均未找到（画面与版式严重不符，可能混入杂物或拍错页，请重拍）'],warn:detWarn};
+      flags:flags.concat(['定位校验未通过：'+syncMiss.map(function(s){return s.label+'同步条缺失'+s.miss+'/'+s.rows}).join('、')
+        +'（卡面与当前版式不符：请核对是否用本版模板打印、是否拍错页，或改用「重新定位」手动点选四角）']),warn:detWarn};
   }
   /* 页面级自适应阈值（Otsu 聚类）：仅当“空白簇/填涂簇”清晰可分时启用，
      且阈值围绕两簇均值构造，保证空白涂点（边框+字母墨量约 0.15-0.25）不被划入模糊区 */
