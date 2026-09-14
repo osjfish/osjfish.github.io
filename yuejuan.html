@@ -2626,6 +2626,19 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       }
     }
   }catch(e){}
+  /* 扫描件墨迹扩散保护：低分辨率/高压缩扫描件上，空白涂点的框线+字母本底会被抬高到
+     0.33~0.45，整页落进固定阈值的「模糊区」→ 空白卷被整页误标「待复核」。
+     当整页找不到任何实心涂点（p95 未达达标线）时，说明是本底整体偏高而非涂得轻，
+     按页内最高墨量校准空白线：只有明显高于本底包络的涂点才算有墨。 */
+  if(inkHigh===omr.inkHigh&&inkLow===omr.inkLow&&allInks.length>=20){
+    const srt=allInks.slice().sort(function(a,b){return a-b});
+    const p95=srt[Math.floor(srt.length*0.95)];
+    if(p95>=omr.inkLow&&p95<omr.inkHigh){
+      inkLow=Math.min(0.48,p95+0.01);
+      inkHigh=Math.max(omr.inkHigh,inkLow+0.1);
+      flags.push('本页墨迹扩散、空白本底偏高（页内最高 '+p95.toFixed(2)+' 未达达标线），空白线已自动校准为 '+inkLow.toFixed(2));
+    }
+  }
   /* 客观题判定回填（≥2 涂点按 MULTI 记，多选由判分阶段按答案集合比对） */
   for(const qi of perQ){
     const j=judgeQuestion(qi.raw,inkHigh,inkLow);
@@ -2697,6 +2710,7 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
   const detectedPageNo=(pg2&&pg2.footer&&pg2.footer.n)?pg2.footer.n:null;
   return {ok:true,status:'ok',H:H,geometry:pg2,sX:sX,sY:sY,smm:smm,detectedPageNo:detectedPageNo,pageMarkNo:pageMarkNo,
     qrFound:qrFound,qrLayout:!!layoutSlice,
+    thr:{h:inkHigh,l:inkLow},   /* 本次识别实际使用的判定阈值（含自适应校准），供复核弹窗显示/建议用 */
     studentNo:studentNo,regFlags:regFlags,regPts:regPts,perQ:perQ,crops:crops,flags:flags,warn:detWarn,globalAnchors:globalUsed,
     dbg:{regMarks:regDBG&&regDBG.marks,regDeltas:regDBG&&regDBG.deltas,regExpY:regDBG&&regDBG.expY,anchorPts:pts,timingX0:regDBG&&regDBG.tx}};
 }
@@ -2764,7 +2778,7 @@ async function scanExamPages(exam,files,onProgress,onPage,isAborted){
       hasThumb:1,
       meta:{status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
         perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:layout.w,layoutH:layout.h,pageIdx:usedIdx,filePage:it.pageNo,pageMarkNo:res.pageMarkNo||null,
-        H:res.H?res.H.h:null,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}};
+        thr:res.thr||null,H:res.H?res.H.h:null,srcFile:it.file||'',srcW:it.cv.width,srcH:it.cv.height}};
     await dbPut('pages',pageRec);
     await putBlob(pageRec.id,blob);
     const thb=dataURLToBlob(canvasDataURL(canvasToThumb(it.cv,220),0.7));
@@ -2890,7 +2904,7 @@ async function examReviewCount(examId){
         const ov=revs.find(function(r){return r.studentNo===p.studentNo&&r.qno===q.qno&&r.type==='q'});
         const isMultiQ=examDataX&&examDataX.qMulti&&examDataX.qMulti[q.qno];
         const needRev=(q.verdict==='REVIEW')||(!isMultiQ&&q.verdict==='MULTI');
-        if(!ov&&needRev)items.q.push({studentNo:p.studentNo,qno:q.qno,inks:q.inks,verdict:q.verdict,choice:q.choice,pageId:p.id,pageNo:p.pageNo,pageIdx:p.meta.pageIdx||0});
+        if(!ov&&needRev)items.q.push({studentNo:p.studentNo,qno:q.qno,inks:q.inks,verdict:q.verdict,choice:q.choice,pageId:p.id,pageNo:p.pageNo,pageIdx:p.meta.pageIdx||0,thr:m.thr||null});
       });
     }
   });
@@ -4187,19 +4201,29 @@ async function reviewCropURL(pageId,qno,pageIdx){
     if(!page)return null;
     let g=null,pos=-1;
     page.groups.forEach(function(gg){
-      const k=Number(qno)-gg.first;
-      if(k>=0&&k<gg.count){g=gg;pos=k}
+      /* 组内位置：优先按 qnos 精确匹配（题号有空洞/乱序时 first+k 推导会错位甚至找不到）；
+         无 qnos 的旧组才按连续题号推导 */
+      if(gg.qnos&&gg.qnos.length){
+        let k=gg.qnos.indexOf(Number(qno));
+        if(k<0)k=gg.qnos.findIndex(function(x){return String(x)===String(qno)});
+        if(k>=0){g=gg;pos=k}
+      }else{
+        const k=Number(qno)-gg.first;
+        if(k>=0&&k<gg.count){g=gg;pos=k}
+      }
     });
     if(!g)return null;
     const c=Math.floor(pos/g.rows),r=pos%g.rows;
     const rowY=g.y0+((g.rowY&&g.rowY[r]!=null)?g.rowY[r]:r*g.dy);
     /* 含题号与全部选项的一行区域（上下各留 3.4mm） */
-    const x0=g.x0-2.0,w=g.dxq+1.4,y0=rowY-3.4,h=6.8;
+    const x0=g.x0-2.0+c*g.dxq,w=g.dxq+1.4,y0=rowY-3.4,h=6.8;
     const hh=p.meta.H;
     const H=function(x,y){const den=hh[6]*x+hh[7]*y+1;return {x:(hh[0]*x+hh[1]*y+hh[2])/den,y:(hh[3]*x+hh[4]*y+hh[5])/den}};
     const blob=await getBlob(p.id);
     if(!blob)return null;
-    const {cv}=await blobCanvas(blob,2200);
+    /* 必须按识别时的画布尺寸解码：H 是在 srcW×srcH 的图上解出的像素坐标，
+       换任何其它长边解码，坐标都会整体缩放偏移（裁出的行错位） */
+    const {cv}=await blobCanvas(blob,Math.max(p.meta.srcW||0,p.meta.srcH||0)||2200);
     const smm=(cv.width/page.w+cv.height/page.h)/2;
     const outW=Math.round(Math.min(1200,Math.max(360,(w+2)*Math.min(14,smm*1.2))));
     const cc=cropViaH(cv,H,x0,y0,w,h,outW, outW>((w+2)*smm*1.15)?0.7:0.35);
@@ -4274,7 +4298,9 @@ Object.assign(ACTS,{
     for(const p of pages){
       if(await getBlob(p.id)){
         try{
-          const {cv}=await blobCanvas(await getBlob(p.id),2600);
+          /* 按各页识别时的画布尺寸解码（H 矩阵坐标与图像同一像素空间） */
+          const srcLong=Math.max(p.meta&&p.meta.srcW||0,p.meta&&p.meta.srcH||0)||2600;
+          const {cv}=await blobCanvas(await getBlob(p.id),srcLong);
           await redoPage(p,cv,layout,{});
         }catch(e){}
       }
@@ -4477,15 +4503,17 @@ async function pageMarkedImage(p){
     if(!tpl||!p.meta||!p.meta.H)return null;
     const layout=layoutTemplate(tpl);
     const page=layout.pages[p.meta.pageIdx||0];
-    /* 必须按识别时的原始长边（2200）加载，H 矩阵坐标才是同一像素空间 */
-    const {cv}=await blobCanvas(await getBlob(p.id),2200);
+    /* 必须按识别时的画布尺寸（meta.srcW/srcH）加载，H 矩阵坐标才是同一像素空间；
+       旧记录缺尺寸时退回 2200 */
+    const {cv}=await blobCanvas(await getBlob(p.id),Math.max(p.meta.srcW||0,p.meta.srcH||0)||2200);
     const hh=p.meta.H;
     const H=function(x,y){const den=hh[6]*x+hh[7]*y+1;return {x:(hh[0]*x+hh[1]*y+hh[2])/den,y:(hh[3]*x+hh[4]*y+hh[5])/den}};
     const ctx=cv.getContext('2d');
     const mmPx=function(m){return m*(cv.width/page.w)};
     const colorOf=function(ink){
-      if(ink>=omr.inkHigh)return 'rgba(28,150,70,.55)';
-      if(ink>omr.inkLow)return 'rgba(220,70,40,.6)';
+      const th=(p.meta.thr&&p.meta.thr.h)||omr.inkHigh, tl=(p.meta.thr&&p.meta.thr.l)||omr.inkLow;
+      if(ink>=th)return 'rgba(28,150,70,.55)';
+      if(ink>tl)return 'rgba(220,70,40,.6)';
       return 'rgba(110,110,110,.25)';
     };
     const mark=function(cxmm,cymm,wmm,hmm,ink,accent){
@@ -4610,7 +4638,9 @@ Object.assign(ACTS,{
       const ex=await dbGet('exams',p.examId);
       const tpl=await dbGet('templates',ex.templateId);
       const layout=layoutTemplate(tpl);
-      const {cv}=await blobCanvas(await getBlob(p.id),2200);
+      /* 按识别时的画布尺寸解码，保证 H 矩阵坐标与图像同一像素空间（meta.srcW/srcH 缺失的旧记录退回 2200） */
+      const srcLong=Math.max(p.meta&&p.meta.srcW||0,p.meta&&p.meta.srcH||0)||2200;
+      const {cv}=await blobCanvas(await getBlob(p.id),srcLong);
       await redoPage(p,cv,layout,{regOverride:no});
       /* 同一份答题卡的续页（第2张起）自动归属到改判后的考号 */
       const nSub=await propagateRegOverride(p,no);
@@ -4663,7 +4693,9 @@ Object.assign(ACTS,{
       const ex=await dbGet('exams',p.examId);
       const tpl=await dbGet('templates',ex.templateId);
       const layout=layoutTemplate(tpl);
-      const {cv}=await blobCanvas(await getBlob(p.id),2200);
+      /* 按识别时的画布尺寸解码，保证 H 矩阵坐标与图像同一像素空间（旧记录缺 srcW/srcH 时退回 2200） */
+      const srcLong=Math.max(p.meta&&p.meta.srcW||0,p.meta&&p.meta.srcH||0)||2200;
+      const {cv}=await blobCanvas(await getBlob(p.id),srcLong);
       /* 点击坐标在缩略图空间，先换算回原图像素尺度 */
       const k=rel.scale||1;
       await redoPage(p,cv,layout,{manualPts:rel.pts.map(function(pt){return {x:pt.x*k,y:pt.y*k}})});
@@ -4682,7 +4714,9 @@ Object.assign(ACTS,{
     const text=items.map(function(it,i){
       const key=esc(ex.id+'|'+(it.studentNo||'')+'|'+it.qno);
       const isMulti=!!(ex.qMulti&&ex.qMulti[it.qno]);
-      const sg=suggestVerdictFor(it.inks,omr.inkHigh,omr.inkLow);
+      /* 该页识别时的实际阈值（含自适应校准）；旧记录无 thr 时退回全局设置 */
+      const itHigh=(it.thr&&it.thr.h)||omr.inkHigh, itLow=(it.thr&&it.thr.l)||omr.inkLow;
+      const sg=suggestVerdictFor(it.inks,itHigh,itLow);
       const nOpts=(it.inks||[]).length||4;
       let pickHtml;
       if(isMulti){
@@ -4709,7 +4743,7 @@ Object.assign(ACTS,{
         +(isMulti?'（多选）':'')+'　<span class="kv">第 '+(it.pageNo||'?')+' 页</span></div>'
         +'<div class="kv" style="margin:2px 0">系统建议：<b style="color:var(--zhu)">'+esc(sg.text)+'</b>　'+esc(sg.note)+'</div>'
         +'<div class="kv">涂点密度：'+(it.inks||[]).map(function(x,k){return String.fromCharCode(65+k)+'='+Number(x).toFixed(2)}).join('　')
-        +'　<span style="color:var(--txt2)">（达标 ≥'+omr.inkHigh+'，空白 <'+omr.inkLow+'）</span></div>'
+        +'　<span style="color:var(--txt2)">（达标 ≥'+itHigh+'，空白 <'+itLow+'）</span></div>'
         +'<div style="margin-top:6px">'+sgBtn+'</div>'
         +'<div style="margin-top:6px">'+pickHtml+'</div>'
         +'</div>'
@@ -5014,7 +5048,7 @@ async function redoPage(p,cv,layout,opts){
   p.meta={status:res.status,qrFound:res.qrFound,flags:res.flags.concat(res.regFlags),
     perQ:res.perQ,regFlags:res.regFlags,regPts:res.regPts,layoutW:res.geometry?res.geometry.w:p.meta.layoutW,
     layoutH:res.geometry?res.geometry.h:p.meta.layoutH,
-    pageIdx:pageIdx,filePage:p.meta.filePage,srcFile:p.meta.srcFile||'重新识别',srcW:p.meta.srcW,srcH:p.meta.srcH,H:res.H?res.H.h:null};
+    pageIdx:pageIdx,filePage:p.meta.filePage,srcFile:p.meta.srcFile||'重新识别',srcW:cv.width,srcH:cv.height,thr:res.thr||null,H:res.H?res.H.h:null};
   await dbPut('pages',p);
   await putBlob(p.id,blob);
   /* 考号变更时，迁移该生的人工改判记录，避免复核记录变成孤儿 */
