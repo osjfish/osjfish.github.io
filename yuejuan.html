@@ -2010,12 +2010,21 @@ function uniformBand(mids,low){
   for(const x of mids){if(x.ink>mx)mx=x.ink;if(x.ink<mn)mn=x.ink;}
   return (mx-mn)<0.12 && mx<low+0.15;
 }
+/* 相对判据：没有任何达标项时，若最高项不明显高于次高项（差 <0.12），说明整题/整位没有明确选择——
+   扫描件墨迹扩散会把空白涂点的框线+字母抬到 0.3~0.45，个别项随机高一点点属本底噪声，
+   此时必须按「未填涂」处理，而不是挂在「待复核」上让老师逐题猜 */
+function noClearChoice(inks){
+  if(!inks||inks.length<2)return false;
+  const s=inks.slice().sort(function(a,b){return b.ink-a.ink});
+  return (s[0].ink-s[1].ink)<0.12;
+}
 function judgeQuestion(inks,high,low){
   const hs=[],mids=[];
   inks.forEach(function(x){if(x.ink>=high)hs.push(x);else if(x.ink>low)mids.push(x)});
   if(hs.length===1)return {verdict:'OK',choice:String(hs[0].c)};
   if(hs.length>1)return {verdict:'MULTI',choice:hs.map(function(x){return String(x.c)}).sort().join('')};
   if(mids.length){
+    if(noClearChoice(inks))return {verdict:'BLANK',choice:null};
     if(uniformBand(mids,low))return {verdict:'BLANK',choice:null};
     return {verdict:'REVIEW',choice:null};
   }
@@ -2027,6 +2036,7 @@ function judgeDigit(inks,high,low){
   if(hs.length===1)return {digit:String(hs[0].c),ok:true};
   if(hs.length>1)return {digit:null,ok:false,reason:'多涂'};
   if(mids.length){
+    if(noClearChoice(inks))return {digit:null,ok:false,reason:'空白'};
     if(uniformBand(mids,low))return {digit:null,ok:false,reason:'空白'};
     return {digit:null,ok:false,reason:'模糊'};
   }
@@ -2637,6 +2647,22 @@ async function recognizeCanvas(cv,layout,pageIdx,opts){
       inkLow=Math.min(0.48,p95+0.01);
       inkHigh=Math.max(omr.inkHigh,inkLow+0.1);
       flags.push('本页墨迹扩散、空白本底偏高（页内最高 '+p95.toFixed(2)+' 未达达标线），空白线已自动校准为 '+inkLow.toFixed(2));
+    }
+  }
+  /* 本底包络校准（补强上一段：上一段只在「整页无实心涂点」时生效）。
+     页内既有真涂点、但空白本底被扫描件整体抬高时，空白题的框线+字母墨量（0.33~0.45）
+     仍会落进「模糊区」被标待复核。这里以页内涂点墨量的 60 分位作为空白本底上包络
+     （多数涂点为空，该分位稳定落在空白簇内），凡最高项未明显高于本底的一律按未填涂处理，
+     不再因绝对阈值卡在中间而「不能确定」。本底正常（≤默认空白线）的页不触发，行为不变。 */
+  if(allInks.length>=12){
+    const srt2=allInks.slice().sort(function(a,b){return a-b});
+    const base=srt2[Math.floor(srt2.length*0.6)]||0;
+    if(base>omr.inkLow+0.02){
+      const nl=Math.min(0.55,Math.max(omr.inkLow,base+0.15));
+      if(nl>inkLow+0.02&&nl<inkHigh-0.1){
+        inkLow=nl;
+        flags.push('本页空白本底偏高（本底 '+base.toFixed(2)+'），未填涂判定线已按本底校准为 '+inkLow.toFixed(2));
+      }
     }
   }
   /* 客观题判定回填（≥2 涂点按 MULTI 记，多选由判分阶段按答案集合比对） */
@@ -4180,8 +4206,19 @@ function suggestVerdictFor(inks,inkHigh,inkLow){
   }
   if(strong.length===0){
     const t=above[0];
+    /* 相对判据：最高项若不明显高于其它项（差 <0.12），说明整题没有明确选择——
+       本底偏高的扫描件上，空白涂点的框线+字母墨量也会被抬到 0.3+，此时应判「未填涂」，
+       而不是含糊地建议某个选项。与识别端 uniformBand 判据保持一致。 */
+    const rest=arr.filter(function(x){return x.i!==t.i});
+    const rmax=rest.length?Math.max.apply(null,rest.map(function(x){return x.v})):0;
+    const gap=t.v-rmax;
+    if(gap<0.12){
+      return {verdict:'BLANK',choice:'',text:'空白',
+        note:'各项墨量接近（最高 '+String.fromCharCode(65+t.i)+'='+t.v.toFixed(2)
+          +'，次高 '+rmax.toFixed(2)+'，仅差 '+gap.toFixed(2)+'）且均未达达标线 '+inkHigh+' → 判为未填涂'};
+    }
     return {verdict:'OK',choice:String.fromCharCode(65+t.i),text:String.fromCharCode(65+t.i),
-      note:'最高项墨量 '+t.v.toFixed(2)+' 未达标（<'+inkHigh+'）但明显高于其它项，像是涂得偏轻'};
+      note:'最高项墨量 '+t.v.toFixed(2)+' 未达标（<'+inkHigh+'）但明显高于其它项（次高 '+rmax.toFixed(2)+'，差 '+gap.toFixed(2)+'），像是涂得偏轻'};
   }
   const letters=above.map(function(x){return String.fromCharCode(65+x.i)}).sort();
   return {verdict:'MULTI',choice:letters.join(''),text:'多涂('+letters.join('')+')',
@@ -4229,6 +4266,66 @@ async function reviewCropURL(pageId,qno,pageIdx){
     const cc=cropViaH(cv,H,x0,y0,w,h,outW, outW>((w+2)*smm*1.15)?0.7:0.35);
     return canvasDataURL(cc,0.86);
   }catch(e){return null}
+}
+/* 考号区裁剪：按识别时的 H 裁出整块考号填涂区（含位号与 0-9 数字列），供人工核对改判 */
+async function regCropURL(pageId){
+  try{
+    const p=await dbGet('pages',pageId);
+    if(!p||!p.meta||!p.meta.H)return null;
+    const ex=await dbGet('exams',p.examId);
+    const tpl=ex?await dbGet('templates',ex.templateId):null;
+    if(!tpl)return null;
+    const layout=layoutTemplate(tpl);
+    const page=layout.pages[p.meta.pageIdx!=null?p.meta.pageIdx:0];
+    if(!page||!page.reg||!page.reg.rowsY)return null;
+    const reg=page.reg;
+    const x0=reg.x-2.5,w=regDigitsW(reg,page)+5;
+    const y0=(reg.boxTop!=null?reg.boxTop:reg.rowsY[0]-6);
+    const h=regBottom(reg)-y0+3.4;
+    const hh=p.meta.H;
+    const H=function(x,y){const den=hh[6]*x+hh[7]*y+1;return {x:(hh[0]*x+hh[1]*y+hh[2])/den,y:(hh[3]*x+hh[4]*y+hh[5])/den}};
+    const blob=await getBlob(p.id);
+    if(!blob)return null;
+    /* 与 reviewCropURL 同理：必须按识别时画布尺寸解码，否则 H 坐标系不匹配 */
+    const {cv}=await blobCanvas(blob,Math.max(p.meta.srcW||0,p.meta.srcH||0)||2200);
+    const smm=(cv.width/page.w+cv.height/page.h)/2;
+    const outW=Math.round(Math.min(1400,Math.max(460,w*Math.min(16,smm*1.25))));
+    const cc=cropViaH(cv,H,x0,y0,w,h,outW,0.5);
+    return canvasDataURL(cc,0.9);
+  }catch(e){return null}
+}
+/* 考号逐位判定信息：状态 + 墨量前三，配合考号区截图供老师核对 */
+function regDigitsInfoHTML(p){
+  const pts=(p.meta&&p.meta.regPts)||[];
+  if(!pts.length)return '<div class="kv">（本页没有考号识别数据，请对照下方考号区截图手工填写）</div>';
+  const hi=(p.meta&&p.meta.thr&&p.meta.thr.h)||omr.inkHigh;
+  const rows=pts.map(function(rp){
+    const inks=(rp.inks||[]).slice().sort(function(a,b){return b.ink-a.ink});
+    const top=inks.slice(0,3);
+    const j=rp.j||{};
+    const ok=!!j.ok,dg=(j.digit!=null?j.digit:null);
+    let st='未填涂',col='var(--txt2)';
+    if(ok){st='已识别';col='var(--green)';}
+    else if(j.reason==='多涂'){st='多涂 '+inks.filter(function(x){return x.ink>=hi}).length+' 个';col='var(--danger)';}
+    else if(j.reason==='模糊'){st='存疑';col='var(--warn)';}
+    else {st='未填涂';col='var(--txt2)';}
+    return '<div style="display:flex;gap:8px;align-items:baseline;padding:3px 0;border-top:1px solid var(--line)">'
+      +'<span style="width:54px;color:var(--txt2)">第'+((rp.c|0)+1)+'位</span>'
+      +'<b style="width:26px">'+(ok?esc(String(dg)):'—')+'</b>'
+      +'<span style="width:78px;color:'+col+'">'+esc(st)+'</span>'
+      +'<span class="kv">'+top.map(function(x){return x.c+'='+Number(x.ink).toFixed(2)}).join('　')+'</span></div>';
+  }).join('');
+  return '<div style="max-height:200px;overflow:auto">'+rows+'</div>';
+}
+/* 考号区缩略图批量异步填充（列表里 data-regcrop 的 img） */
+function fillRegCrops(){
+  const els=document.querySelectorAll('img[data-regcrop]');
+  for(let i=0;i<els.length;i++){
+    const img=els[i],id=img.getAttribute('data-regcrop');
+    if(!id||img._regDone)continue;
+    img._regDone=1;
+    regCropURL(id).then(function(u){if(u)img.src=u}).catch(function(){});
+  }
 }
 Object.assign(ACTS,{
   'go-exam':function(){go('exam')},
@@ -4614,8 +4711,14 @@ Object.assign(ACTS,{
     let cur=String(p.studentNo||'').replace(/\?/g,'_');
     while(cur.length<rd)cur+='_';
     cur=cur.slice(0,rd);
-    dlg('<div class="kv" style="margin-bottom:8px">当前识别考号：<b>'+esc(p.studentNo||'—')+'</b>。请确认/修正每位数（共 '+rd+' 位）：</div>'
-      +'<div class="f-row" id="regFixRow">'
+    const rflags=(p.meta&&p.meta.regFlags)||[];
+    dlg('<div class="kv" style="margin-bottom:8px">当前识别考号：<b style="font-size:16px">'+esc(p.studentNo||'—')+'</b>'
+        +(rflags.length?'　<span style="color:var(--danger)">'+esc(rflags.join('；'))+'</span>':'')+'</div>'
+      +'<div id="regCropBox" style="margin:0 0 10px;padding:8px;background:#FAF8F4;border:1px solid var(--line);border-radius:8px;text-align:center">'
+        +'<div class="kv">考号区截图加载中…</div></div>'
+      +'<div style="margin-bottom:6px"><b>逐位识别情况</b><span class="kv">（墨量为该位各数字的填涂浓度，取前三）</span></div>'
+      +regDigitsInfoHTML(p)
+      +'<div class="f-row" id="regFixRow" style="margin-top:12px">'
       +cur.split('').map(function(ch,i){
         return '<div><label class="f-lb">第 '+(i+1)+' 位</label><select class="inp regFixSel" data-i="'+i+'" style="width:72px">'
           +['_','0','1','2','3','4','5','6','7','8','9'].map(function(d){
@@ -4623,7 +4726,15 @@ Object.assign(ACTS,{
           +'</select></div>';
       }).join('')+'</div>'
       +'<div class="tip" style="margin-top:8px">保存后重新识别该页并重建作答图；同一份答题卡的续页会自动归属此考号。</div>',
-      {title:'考号改判 · 第 '+p.pageNo+' 页',foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="scan-reg-save" data-id="'+p.id+'">保存重识别</button>'});
+      {title:'考号改判 · 第 '+p.pageNo+' 页',wide:true,foot:'<button class="btn" data-act="dlg-close">取消</button><button class="btn btn-p" data-act="scan-reg-save" data-id="'+p.id+'">保存重识别</button>'});
+    /* 考号区截图异步填充（裁图需解码原图，不能阻塞弹窗打开） */
+    regCropURL(p.id).then(function(u){
+      const box=$('regCropBox');
+      if(!box)return;
+      box.innerHTML=u?('<img src="'+u+'" style="max-width:100%;max-height:340px;border-radius:6px;display:inline-block">'
+          +'<div class="kv" style="margin-top:4px">↑ 考号填涂区原图，请对照逐位确认</div>')
+        :'<div class="kv">考号区截图不可用（原图已清理，或该页版式无考号区）</div>';
+    }).catch(function(){});
   },
   'scan-reg-save':async function(el){
     const p=await dbGet('pages',el.dataset.id);
@@ -4839,10 +4950,12 @@ Object.assign(ACTS,{
     const rev=await examReviewCount(ex.id);
     if(!rev.reg.length){toast('没有考号异常页面','ok');return}
     dlg(rev.reg.slice(0,60).map(function(p){
-      return '<div class="scan-item">'+(p.hasThumb?thumbImg(p.id,'width:64px;height:64px;object-fit:cover;border-radius:7px;border:1px solid var(--line)'):'<div style="width:64px;height:64px;border-radius:7px;border:1px solid var(--line);background:#EEE"></div>')
+      /* 直接显示考号区截图（而非整页缩略图）：老师一眼能看出哪一位没涂/多涂 */
+      return '<div class="scan-item"><img data-regcrop="'+esc(p.id)+'" src="'+PH_IMG+'" style="width:120px;height:66px;object-fit:contain;object-position:left center;border-radius:6px;border:1px solid var(--line);background:#FAF8F4">'
         +'<div style="flex:1">第 '+p.pageNo+' 页　<b>'+esc(p.studentNo||'—')+'</b><br><span class="kv">'+((p.meta&&p.meta.regFlags||[]).join('；'))+'</span></div>'
         +'<button class="btn btn-sm btn-o" data-act="scan-fix-reg" data-id="'+p.id+'">考号改判</button></div>';
     }).join(''),{title:'考号异常（'+rev.reg.length+' 页）',wide:true});
+    fillRegCrops();
   },
   'scan-rev-locate':async function(){
     const ex=await dbGet('exams',ui.scanExam);
@@ -7847,7 +7960,8 @@ window.__yjDbg={recognizeCanvas:recognizeCanvas,putBlob:putBlob,getBlob:getBlob,
   imageViewer:imageViewer,enhanceImageData:enhanceImageData,median3Gray:median3Gray,estimateBackground:estimateBackground,enhanceCropURL:enhanceCropURL,gradePref:function(){return gradePref},
   getAll:function(s){return dbAll(s)},get:dbGet,examMeta:examMeta,computeScorebook:computeScorebook,pageRegDigits:pageRegDigits,
   examThresholdsOf:examThresholdsOf,gradeLevelOf:gradeLevelOf,seqLetters:seqLetters,normalizeSections:normalizeSections,blanksCfgOf:blanksCfgOf,
-  subjCropRect:subjCropRect,SUBJ_PAD:function(){return SUBJ_PAD},subjRowHOf:subjRowHOf,rowHQuantize:rowHQuantize,ROW_H_DEF:function(){return ROW_H_DEF}};
+  subjCropRect:subjCropRect,SUBJ_PAD:function(){return SUBJ_PAD},subjRowHOf:subjRowHOf,rowHQuantize:rowHQuantize,ROW_H_DEF:function(){return ROW_H_DEF},
+  newTemplate:newTemplate,regCropURL:regCropURL,regDigitsInfoHTML:regDigitsInfoHTML,suggestVerdictFor:suggestVerdictFor,judgeQuestion:judgeQuestion,regBottom:regBottom};
 })();
 </script>
 </body>
